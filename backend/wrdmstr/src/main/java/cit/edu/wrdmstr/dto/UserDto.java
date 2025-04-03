@@ -6,7 +6,10 @@ public class UserDto {
     private String email;
     private String fname;
     private String lname;
+
+    private String role;
     private String profilePicture;
+    private boolean active;
 
     // Exclude password and role from DTO
     public UserDto(UserEntity user) {
@@ -15,10 +18,28 @@ public class UserDto {
         this.fname = user.getFname();
         this.lname = user.getLname();
         this.profilePicture = user.getProfilePicture();
+        this.role = user.getRole();
+        this.active = user.isActive();
     }
 
     // Getters and setters
 
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
 
     public Long getId() {
         return id;

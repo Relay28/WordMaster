@@ -1,7 +1,7 @@
 // src/components/admin/AdminLogin.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import {
   Box,
@@ -34,10 +34,10 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const response = await axios.post('/api/admin/users/login', {
-        email,
-        password
-      });
+        const response = await axios.post('http://localhost:8080/api/admin/users/login', {
+            email,
+            password
+          });
 
       if (response.data.role !== 'ADMIN') {
         throw new Error('Access denied. Admin privileges required.');

@@ -1,34 +1,12 @@
 // src/context/AuthContext.js
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode'; // Install with: npm install jwt-decode
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const storedAuth = localStorage.getItem('adminAuth');
-    if (storedAuth) {
-      try {
-        const parsedAuth = JSON.parse(storedAuth);
-        if (parsedAuth.token) {
-          // Verify token expiration
-          const decoded = jwtDecode(parsedAuth.token);
-          if (decoded.exp * 1000 < Date.now()) {
-            logout();
-          } else {
-            setUser(parsedAuth);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to parse auth data', err);
-        logout();
-      }
-    }
-  }, []);
 
   const login = (userData) => {
     localStorage.setItem('adminAuth', JSON.stringify(userData));
@@ -41,22 +19,27 @@ export function AuthProvider({ children }) {
     navigate('/admin/login');
   };
 
-  const isAdmin = () => {
-    return user?.role === 'ADMIN';
+  const isAdmin = () => user?.role === 'ADMIN';
+
+  const value = {
+    currentUser: user,
+    isAdmin: isAdmin(),
+    login,
+    logout
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      currentUser: user, 
-      isAdmin: isAdmin(), 
-      login, 
-      logout 
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
 
+// IMPORTANT: Make sure this is exported as a named export
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
