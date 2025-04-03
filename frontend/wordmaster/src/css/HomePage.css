@@ -1,0 +1,93 @@
+.homepage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: white;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); 
+    position: relative;
+    z-index: 10;
+}
+  
+.logo {
+    height: 80px; 
+}
+  
+.header-right {
+    display: flex;
+    align-items: center;
+}
+  
+.role-indicator {
+    background-color: rgb(167, 67, 167);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    margin-right: 30px;
+
+}
+  
+.profile-icon {
+    height: 50px;
+    width: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.classes-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+}
+
+.your-classes {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-left: 50px;
+}
+
+.join-classes-btn {
+    background-color: #ffffff00;
+    color: rgb(0, 0, 0);
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    border-radius: 5px;
+    margin-right: 50px;
+}
+
+.join-classes-btn:hover {
+    background-color: #0056b3;
+    color: white;
+}
+
+.class-cards-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 30px;
+    margin-top: 20px;
+}
+
+.class-card {
+    width: 30%;
+    height: 200px;
+    background-color: #495bfd;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.class-card:hover {
+    transform: scale(1.05);
+}
