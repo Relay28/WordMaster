@@ -25,31 +25,21 @@ public class AuthService {
     private AuthenticationManager authenticationManager;
 
     public AuthResponse login(AuthRequest request) {
-        // Authenticate user credentials
-        Authentication authentication = authenticationManager.authenticate(
+        authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
+                        request.getEmail(),
                         request.getPassword()
                 )
         );
 
-        // Set authentication in the security context
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        UserEntity user = userService.findByEmail(request.getEmail());
+        UserDetails userDetails = userService.loadUserByUsername(request.getEmail());
 
-        // Get user details
-        UserDetails userDetails = userService.loadUserByUsername(request.getUsername());
-
-        // Generate JWT token
         String jwt = jwtService.generateToken(userDetails);
 
-        // Get user from database
-        UserEntity user = userService.findByUsername(request.getUsername());
-
-        // Return auth response with token and user information using factory method
         return AuthResponse.create(
                 jwt,
                 user.getId(),
-                user.getUsername(),
                 user.getEmail(),
                 user.getName(),
                 user.getRole()
@@ -57,11 +47,6 @@ public class AuthService {
     }
 
     public AuthResponse registerTeacher(RegisterRequest request) {
-        // Check if username already exists
-        if (userService.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username is already taken");
-        }
-
         // Check if email already exists
         if (userService.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email is already in use");
@@ -69,7 +54,6 @@ public class AuthService {
 
         // Create new user entity
         UserEntity user = new UserEntity();
-        user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(request.getPassword());
         user.setName(request.getName());
@@ -80,7 +64,7 @@ public class AuthService {
         UserEntity savedUser = userService.saveUser(user);
 
         // Create user details for JWT
-        UserDetails userDetails = userService.loadUserByUsername(savedUser.getUsername());
+        UserDetails userDetails = userService.loadUserByUsername(savedUser.getEmail());
 
         // Generate JWT token
         String jwt = jwtService.generateToken(userDetails);
@@ -89,7 +73,6 @@ public class AuthService {
         return AuthResponse.create(
                 jwt,
                 savedUser.getId(),
-                savedUser.getUsername(),
                 savedUser.getEmail(),
                 savedUser.getName(),
                 savedUser.getRole()
@@ -97,11 +80,6 @@ public class AuthService {
     }
 
     public AuthResponse registerStudent(RegisterRequest request) {
-        // Check if username already exists
-        if (userService.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username is already taken");
-        }
-
         // Check if email already exists
         if (userService.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email is already in use");
@@ -109,7 +87,6 @@ public class AuthService {
 
         // Create new user entity
         UserEntity user = new UserEntity();
-        user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(request.getPassword());
         user.setName(request.getName());
@@ -120,7 +97,7 @@ public class AuthService {
         UserEntity savedUser = userService.saveUser(user);
 
         // Create user details for JWT
-        UserDetails userDetails = userService.loadUserByUsername(savedUser.getUsername());
+        UserDetails userDetails = userService.loadUserByUsername(savedUser.getEmail());
 
         // Generate JWT token
         String jwt = jwtService.generateToken(userDetails);
@@ -129,7 +106,6 @@ public class AuthService {
         return AuthResponse.create(
                 jwt,
                 savedUser.getId(),
-                savedUser.getUsername(),
                 savedUser.getEmail(),
                 savedUser.getName(),
                 savedUser.getRole()
