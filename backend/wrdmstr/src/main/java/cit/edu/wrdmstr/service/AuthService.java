@@ -95,6 +95,7 @@ public class AuthService {
         user.setFname(request.getFname());
         user.setRole("USER_STUDENT");
         user.setProfilePicture(request.getProfilePicture());
+        user.set
 
         // Save user to database
         UserEntity savedUser = userService.saveUser(user);

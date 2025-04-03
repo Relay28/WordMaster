@@ -41,6 +41,11 @@ public class UserEntity {
     @Column(nullable = false, updatable = false)
     private Date createdAt;
 
+    @PrePersist
+    protected void onCreate() {
+        createdAt = new Date();
+    }
+
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private boolean active = true;
 
