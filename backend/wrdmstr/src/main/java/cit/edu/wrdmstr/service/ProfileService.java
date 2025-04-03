@@ -56,21 +56,31 @@ public class ProfileService {
         return userRepository.save(user);
     }
 
-    public void deactivateAuthenticatedUser(Authentication authentication) {
+    public String deactivateAuthenticatedUser(Authentication authentication) {
+        // Get email from authentication
         String email = authentication.getName();
-        UserEntity user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        // For multi-user safety, verify again that we're acting on the correct user
-        if (!user.getEmail().equals(authentication.getName())) {
+        // Find user by email
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        // Additional security verification
+        if (!user.getEmail().equals(email)) {
             throw new SecurityException("Unauthorized profile deactivation attempt");
         }
 
-        // Soft delete approach (recommended)
+        // Check if account is already deactivated
+        if (!user.isActive()) {
+            return "Account is already deactivated";
+        }
+
+        // Soft delete the account
         user.setActive(false);
         userRepository.save(user);
-    }
 
+        // Return success message
+        return "Account deactivated successfully. You can reactivate by logging in within 30 days.";
+    }
     private void validatePasswordChange(UserEntity user, String currentPassword, String newPassword) {
         if (currentPassword == null || currentPassword.isEmpty()) {
             throw new IllegalArgumentException("Current password is required to change password");

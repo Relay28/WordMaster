@@ -36,8 +36,7 @@ public class ProfileController {
     }
 
     @DeleteMapping
-    public ResponseEntity<Void> deactivateProfile(Authentication authentication) {
-        profileService.deactivateAuthenticatedUser(authentication);
-        return ResponseEntity.noContent().build();
+    public String deactivateProfile(Authentication authentication) {
+       return  profileService.deactivateAuthenticatedUser(authentication);
     }
 }
