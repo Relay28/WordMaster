@@ -1,7 +1,7 @@
 // src/components/admin/AdminLogin.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AdminAuthContext';
 import axios from 'axios';
 import {
   Box,

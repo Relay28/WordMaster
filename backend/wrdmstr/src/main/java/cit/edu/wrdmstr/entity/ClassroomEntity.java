@@ -41,6 +41,7 @@ public class ClassroomEntity {
 
    // @JsonIgnore // For ManyToMany, we typically ignore one side
     @ManyToMany
+    @JsonIgnore
     @JoinTable(
             name = "classroom_students",
             joinColumns = @JoinColumn(name = "classroom_id"),

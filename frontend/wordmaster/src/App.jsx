@@ -4,13 +4,16 @@ import UserProfileContainer from './components/UserProfileContainer';
 import Login from './components/Login';
 import AppRoutes from "./AppRoutes"
 import Register from './components/Register';
-import { AuthProvider } from './components/context/AuthContext';
+import { AuthProvider } from './components/context/AdminAuthContext';
+import { UserAuthProvider } from './components/context/UserAuthContext';
 
 const App = () => {
   return (
-    <AuthProvider>
+    <UserAuthProvider>
+     <AuthProvider> 
    <AppRoutes/>
    </AuthProvider>
+   </UserAuthProvider>
   );
 };
 

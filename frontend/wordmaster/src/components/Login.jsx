@@ -17,6 +17,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+
+  
   
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -32,6 +34,7 @@ const Login = () => {
       navigate('/homepage');
     }
   }, [location, navigate]);
+
 
   const handleRegularLogin = async (e) => {
     e.preventDefault();
@@ -53,9 +56,9 @@ const Login = () => {
       if (response.data && response.data.token) {
         console.log("Login successful:", response.data);
         
-        // Save user data
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify({
+        // Save user data - using consistent keys with AuthProvider
+        localStorage.setItem('userToken', response.data.token);
+        localStorage.setItem('userData', JSON.stringify({
           id: response.data.id,
           email: response.data.email,
           fname: response.data.fname,
@@ -63,7 +66,11 @@ const Login = () => {
           role: response.data.role
         }));
         
-        navigate('/homepage');
+        if (!response.data.fname || !response.data.lname) {
+            navigate('/setup'); // Navigate to setup page
+          } else {
+            navigate('/homepage'); // Proceed to homepage
+          }
       } else {
         throw new Error('Invalid response from server');
       }
