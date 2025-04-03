@@ -4,6 +4,7 @@ import UserProfile from './components/UserProfile';
 import EditProfile from './components/EditProfile';
 import DeactivateAccount from './components/DeactivateAccount';
 import Login from './components/Login';
+import Register from './components/Register';
 
 const App = () => {
   return (
@@ -13,6 +14,7 @@ const App = () => {
         <Route path="/edit-profile" element={<EditProfile />} />
         <Route path="/deactivate-account" element={<DeactivateAccount />} />
         <Route path='/login' element={<Login/>}/>
+        <Route path='/register' element={<Register/>}/>
       </Routes>
     </Router>
   );
