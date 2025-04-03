@@ -4,7 +4,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import "../css/login.css";
-
+import { logout, isLoggedIn } from '../utils/authUtils';
 
 // API base URL - centralized for easy configuration
 const API_BASE_URL = 'http://localhost:8080/api';
@@ -19,17 +19,17 @@ const Login = () => {
   const location = useLocation();
   
   useEffect(() => {
-    // Check for error message in URL params (from failed OAuth login)
     const params = new URLSearchParams(location.search);
     if (params.get('error')) {
       setError(decodeURIComponent(params.get('error')));
     }
     
-    // Check if already logged in
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    if (token && user) {
-      navigate('/home');
+    // Check for logout parameter
+    if (params.get('logout') === 'true') {
+      logout();
+      console.log('User logged out successfully');
+    } else if (isLoggedIn()) {
+      navigate('/homepage');
     }
   }, [location, navigate]);
 
@@ -63,7 +63,7 @@ const Login = () => {
           role: response.data.role
         }));
         
-        navigate('/home');
+        navigate('/homepage');
       } else {
         throw new Error('Invalid response from server');
       }

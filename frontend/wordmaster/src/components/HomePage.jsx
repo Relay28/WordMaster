@@ -1,18 +1,56 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../css/HomePage.css';
 import logo from '../assets/WOMS.png'; 
 import profileIcon from '../assets/ProfilePicturePlaceholder.jpg'; 
+import { logout, getCurrentUser } from '../utils/authUtils';
 
 const HomePage = () => {
+  const navigate = useNavigate();
+  const [userRole, setUserRole] = useState('STUDENT');
+  const [userName, setUserName] = useState('');
+  
+  useEffect(() => {
+    // Check if user is logged in
+    const user = getCurrentUser();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    // Set user data directly from the utility function
+    setUserRole(user.role || 'STUDENT');
+    setUserName(`${user.fname || ''} ${user.lname || ''}`);
+  }, [navigate]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login?logout=true');
+  };
+
   return (
     <div className="homepage-container">
-
       <div className="homepage-header">
         <img src={logo} alt="Logo" className="logo" />
         
         <div className="header-right">
-          <span className="role-indicator">STUDENT</span> 
+          <span className="role-indicator">{userRole}</span> 
           <img src={profileIcon} alt="Profile" className="profile-icon" />
+          <button 
+            onClick={handleLogout}
+            className="logout-btn"
+            style={{
+              marginLeft: '10px',
+              padding: '5px 10px',
+              background: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Logout
+          </button>
         </div>
       </div>
 
