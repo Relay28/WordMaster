@@ -1,5 +1,6 @@
 package cit.edu.wrdmstr.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -10,13 +11,16 @@ public class StudentEnrollmentEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonBackReference("classroom-enrollments")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "classroom_id")
     private ClassroomEntity classroom;
 
+    @JsonBackReference("user-enrollments")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id")
     private UserEntity student;
+
 
 
 

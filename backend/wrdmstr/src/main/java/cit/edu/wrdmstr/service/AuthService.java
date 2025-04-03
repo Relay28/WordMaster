@@ -12,6 +12,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+
 @Service
 public class AuthService {
 
@@ -60,6 +62,7 @@ public class AuthService {
         user.setFname(request.getFname());
         user.setLname(request.getLname());
         user.setRole("USER_TEACHER");
+        user.setCreatedAt(new Date());
         user.setProfilePicture(request.getProfilePicture());
 
         // Save user to database
@@ -95,8 +98,8 @@ public class AuthService {
         user.setFname(request.getFname());
         user.setRole("USER_STUDENT");
         user.setProfilePicture(request.getProfilePicture());
-        user.set
-
+     
+        user.setCreatedAt(new Date());
         // Save user to database
         UserEntity savedUser = userService.saveUser(user);
 

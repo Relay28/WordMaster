@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -72,6 +73,7 @@ public class AdminUserService {
         user.setFname(userCreateDto.getFname());
         user.setLname(userCreateDto.getLname());
         user.setRole(userCreateDto.getRole());
+        user.setCreatedAt(new Date());
         user.setActive(userCreateDto.isActive());
         user.setProfilePicture(userCreateDto.getProfilePicture());
 
@@ -157,6 +159,7 @@ public class AdminUserService {
         admin.setFname(adminCreateDto.getFname());
         admin.setLname(adminCreateDto.getLname());
         admin.setRole("ADMIN");
+        admin.setCreatedAt(new Date());
         admin.setActive(true);
 
         // Save the admin entity
