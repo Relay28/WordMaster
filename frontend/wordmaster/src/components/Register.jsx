@@ -3,6 +3,7 @@ import { TextField, Button, IconButton, Typography, Container, Box, Divider } fr
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import "../css/register.css";
 // import msLogo from "../assets/microsoft.svg";
+import {Link } from "react-router-dom";
 
 
 const Register = () => {
@@ -27,7 +28,7 @@ const Register = () => {
             Ready to start?
           </Typography>
           <Typography variant="body2" className="sub-text" sx={{ paddingBottom: '20px' }}>
-            Log in or sign up to dive into endless possibilities!
+            Sign up to dive into endless possibilities!
           </Typography>
 
           {/* Email Input */}
@@ -81,7 +82,7 @@ const Register = () => {
 
           {/* Signup Link */}
           <Typography className="login-text" sx={{ marginTop: '30px', fontSize: '10px'}}>
-            Have an account? <a href="#">Login</a>
+            Have an account? <Link to="/login">Login</Link>
           </Typography>
         </Container>
         

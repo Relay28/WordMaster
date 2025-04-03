@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { TextField, Button, IconButton, Typography, Container, Box, Divider, CircularProgress, Alert } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import "../css/login.css";
+
 
 // API base URL - centralized for easy configuration
 const API_BASE_URL = 'http://localhost:8080/api';
@@ -111,7 +112,7 @@ const Login = () => {
             Ready to start?
           </Typography>
           <Typography variant="body2" className="sub-text" sx={{ paddingBottom: '20px' }}>
-            Log in or sign up to dive into endless possibilities!
+            Log in to dive into endless possibilities!
           </Typography>
 
           {/* Error message */}
@@ -206,7 +207,7 @@ const Login = () => {
 
           {/* Signup Link */}
           <Typography className="register-text" sx={{ marginTop: '30px', fontSize: '10px'}}>
-            Don't have an account? <a href="#">Signup</a>
+            Don't have an account? <Link to="/register">Signup</Link>
           </Typography>
         </Container>
       </div>
