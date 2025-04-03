@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.service;
 
 import cit.edu.wrdmstr.dto.UserProfileUpdateDto;
+import cit.edu.wrdmstr.dto.UserSetupDto;
 import cit.edu.wrdmstr.entity.UserEntity;
 import cit.edu.wrdmstr.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,5 +92,48 @@ public class ProfileService {
         if (newPassword.length() < 8) {
             throw new IllegalArgumentException("New password must be at least 8 characters long");
         }
+    }
+
+    public UserEntity setupUserProfile(Authentication authentication, UserSetupDto setupDto) {
+        // Get the authenticated user's email
+        String email = authentication.getName();
+
+        // Find the user
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        // Validate that the user hasn't already completed setup
+        if (user.getFname() != null && user.getLname() != null && user.getRole() != null) {
+            throw new IllegalStateException("User profile has already been set up");
+        }
+
+        // Validate the role
+        if (!"student".equalsIgnoreCase(setupDto.getRole()) && !"teacher".equalsIgnoreCase(setupDto.getRole())) {
+            throw new IllegalArgumentException("Role must be either 'student' or 'teacher'");
+        }
+
+        // Validate first and last names
+        if (setupDto.getFname() == null || setupDto.getFname().trim().isEmpty()) {
+            throw new IllegalArgumentException("First name is required");
+        }
+        if (setupDto.getLname() == null || setupDto.getLname().trim().isEmpty()) {
+            throw new IllegalArgumentException("Last name is required");
+        }
+
+        // Update the user's profile
+        user.setFname(setupDto.getFname());
+        user.setLname(setupDto.getLname());
+        user.setRole(setupDto.getRole().toLowerCase()); // store role in lowercase
+
+        // Save and return the updated user
+        return userRepository.save(user);
+    }
+
+    public boolean isSetupNeeded(Authentication authentication) {
+        String email = authentication.getName();
+        UserEntity user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+
+        return user.getFname() == null || user.getLname() == null || user.getRole() == null;
     }
 }

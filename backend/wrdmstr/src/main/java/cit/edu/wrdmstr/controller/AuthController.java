@@ -61,16 +61,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    @PostMapping("/registerAsStudent")
+    @PostMapping("/register")
     public ResponseEntity<AuthResponse> registerStudent(@RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.registerStudent(request));
+        return ResponseEntity.ok(authService.registerUser(request));
     }
 
-    @PostMapping("/registerAsTeacher")
-    public ResponseEntity<AuthResponse> registerTeacher(@RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.registerTeacher(request));
-    }
-    
+
     @PostMapping("/microsoft")
     public ResponseEntity<AuthResponse> microsoftAuthentication(@RequestBody MicrosoftAuthRequest request) {
         return ResponseEntity.ok(microsoftAuthService.authenticateWithMicrosoft(request));

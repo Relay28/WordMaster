@@ -18,7 +18,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  
+  console.log("Check");;;
   
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -66,10 +66,17 @@ const Login = () => {
           role: response.data.role
         }));
         
-        if (!response.data.fname || !response.data.lname) {
-            navigate('/setup'); // Navigate to setup page
+       const val  =  localStorage.getItem('userToken')
+        const setupResponse = await axios.get(`${API_BASE_URL}/profile/setup/status`, {
+            headers: {
+              Authorization: `Bearer ${val}`
+            }
+          });
+          
+          if (setupResponse.data === true) {
+            navigate('/setup');
           } else {
-            navigate('/homepage'); // Proceed to homepage
+            navigate('/homepage');
           }
       } else {
         throw new Error('Invalid response from server');

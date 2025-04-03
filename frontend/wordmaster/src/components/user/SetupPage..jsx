@@ -15,37 +15,43 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useUserAuth } from '../context/UserAuthContext';
 
 const SetupPage = () => {
-  const [role, setRole] = useState('USER_STUDENT');
+  const [role, setRole] = useState('student'); // Changed to match backend values
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { getToken } = useUserAuth();
+  const token = localStorage.getItem('userToken');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!fname || !lname) {
+      setError('First name and last name are required');
+      return;
+    }
+    
     setLoading(true);
     setError('');
 
     try {
-      const response = await axios.put(
-        '/api/profile',
+      const response = await axios.post(
+        'http://localhost:8080/api/profile/setup',
         {
           fname,
           lname,
-          role,
+          role
         },
         {
           headers: {
-            Authorization: `Bearer ${getToken()}`
+            Authorization: `Bearer ${token}`
           }
         }
       );
 
+      // Update local storage with new user data
       const userData = JSON.parse(localStorage.getItem('userData'));
       const updatedUser = {
         ...userData,
@@ -57,8 +63,8 @@ const SetupPage = () => {
 
       navigate('/homepage');
     } catch (err) {
-      console.error('Profile update failed:', err);
-      setError(err.response?.data?.message || 'Failed to update profile. Please try again.');
+      console.error('Setup failed:', err);
+      setError(err.response?.data?.message || 'Failed to complete setup. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -74,8 +80,8 @@ const SetupPage = () => {
   return (
     <Box sx={{
       display: 'flex',
-      justifyContent: 'center', // Added for horizontal centering
-      alignItems: 'center', // Added for vertical centering
+      justifyContent: 'center',
+      alignItems: 'center',
       minHeight: '100vh',
       backgroundColor: '#f9f9f9'
     }}>
@@ -90,14 +96,14 @@ const SetupPage = () => {
         }
       }} />
 
-      {/* Right Section - Form - Only added mx: 'auto' to center this container */}
+      {/* Right Section - Form */}
       <Box sx={{
         width: { xs: '100%', md: '60%' },
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         p: 4,
-        mx: 'auto' // This is the only new property added for centering
+        mx: 'auto'
       }}>
         <Container maxWidth="sm">
           <Typography variant="h4" sx={{ 
@@ -109,10 +115,10 @@ const SetupPage = () => {
           </Typography>
 
           <Typography variant="h5" sx={{ mb: 1 }}>
-            Just a few more things...
+            Complete Your Profile
           </Typography>
           <Typography variant="body2" sx={{ mb: 4, color: 'text.secondary' }}>
-            By emailing to us with the app, you agree to do it every Friday.
+            Tell us a bit more about yourself to get started.
           </Typography>
 
           {error && (
@@ -122,6 +128,9 @@ const SetupPage = () => {
           )}
 
           <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              I am a:
+            </Typography>
             <RadioGroup
               row
               value={role}

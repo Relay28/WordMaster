@@ -138,7 +138,8 @@ public class AdminUserService {
             throw new IllegalStateException("Cannot delete user with existing classrooms. Reassign classrooms first.");
         }
 
-        userRepository.delete(user);
+
+        userRepository.deleteById(userId);
     }
 
     public UserDto createFirstAdmin(AdminCreateDto adminCreateDto) {

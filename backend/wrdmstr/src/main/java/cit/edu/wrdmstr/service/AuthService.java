@@ -49,7 +49,7 @@ public class AuthService {
         );
     }
 
-    public AuthResponse registerTeacher(RegisterRequest request) {
+    public AuthResponse registerUser(RegisterRequest request) {
         // Check if email already exists
         if (userService.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email is already in use");
@@ -61,45 +61,11 @@ public class AuthService {
         user.setPassword(request.getPassword());
         user.setFname(request.getFname());
         user.setLname(request.getLname());
-        user.setRole("USER_TEACHER");
-        user.setCreatedAt(new Date());
         user.setProfilePicture(request.getProfilePicture());
-
-        // Save user to database
-        UserEntity savedUser = userService.saveUser(user);
-
-        // Create user details for JWT
-        UserDetails userDetails = userService.loadUserByUsername(savedUser.getEmail());
-
-        // Generate JWT token
-        String jwt = jwtService.generateToken(userDetails);
-
-        // Return auth response with token and user information using factory method
-        return AuthResponse.create(
-                jwt,
-                savedUser.getId(),
-                savedUser.getEmail(),
-                savedUser.getFname(),
-                savedUser.getLname(),
-                savedUser.getRole()
-        );
-    }
-
-    public AuthResponse registerStudent(RegisterRequest request) {
-        // Check if email already exists
-        if (userService.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already in use");
-        }
-
-        // Create new user entity
-        UserEntity user = new UserEntity();
-        user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
-        user.setFname(request.getFname());
-        user.setRole("USER_STUDENT");
-        user.setProfilePicture(request.getProfilePicture());
-     
         user.setCreatedAt(new Date());
+
+
+
         // Save user to database
         UserEntity savedUser = userService.saveUser(user);
 

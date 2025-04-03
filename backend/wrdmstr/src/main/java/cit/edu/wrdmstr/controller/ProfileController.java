@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.controller;
 
 import cit.edu.wrdmstr.dto.UserProfileUpdateDto;
+import cit.edu.wrdmstr.dto.UserSetupDto;
 import cit.edu.wrdmstr.entity.UserEntity;
 import cit.edu.wrdmstr.service.ProfileService;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/profile")
 @PreAuthorize("isAuthenticated()")
+@CrossOrigin(origins = "http://localhost:5173")
 public class ProfileController {
 
     private final ProfileService profileService;
@@ -38,5 +40,19 @@ public class ProfileController {
     @DeleteMapping
     public String deactivateProfile(Authentication authentication) {
        return  profileService.deactivateAuthenticatedUser(authentication);
+    }
+
+    @GetMapping("/setup/status")
+    public ResponseEntity<Boolean> checkSetupStatus(Authentication authentication) {
+        boolean setupNeeded = profileService.isSetupNeeded(authentication);
+        return ResponseEntity.ok(setupNeeded);
+    }
+
+    @PostMapping("/setup")
+    public ResponseEntity<UserEntity> completeSetup(
+            Authentication authentication,
+            @RequestBody UserSetupDto setupDto) {
+        UserEntity updatedUser = profileService.setupUserProfile(authentication, setupDto);
+        return ResponseEntity.ok(updatedUser);
     }
 }
