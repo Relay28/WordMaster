@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -71,6 +72,13 @@ public class ClassroomService {
         StudentEnrollmentEntity enrollment = new StudentEnrollmentEntity();
         enrollment.setClassroom(classroom);
         enrollment.setStudent(student);
+
+        List<StudentEnrollmentEntity> s =classroom.getEnrollments();
+        s.add(enrollment);
+        Set<UserEntity> s2 = classroom.getStudents();
+        s2.add(student);
+        classroom.setStudents(s2);
+        classroom.setEnrollments(s);
 
         return enrollmentRepository.save(enrollment);
     }

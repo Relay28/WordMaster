@@ -2,6 +2,7 @@ package cit.edu.wrdmstr.entity;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -44,11 +45,21 @@ public class UserEntity {
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private boolean active = true;
 
+   // @JsonManagedReference("user-classrooms")
     @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ClassroomEntity> taughtClassrooms = new ArrayList<>();
 
+    @JsonManagedReference("user-enrollments")
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StudentEnrollmentEntity> studentEnrollments = new ArrayList<>();
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
 
     public List<ClassroomEntity> getTaughtClassrooms() {
         return taughtClassrooms;
@@ -61,6 +72,7 @@ public class UserEntity {
     public List<StudentEnrollmentEntity> getStudentEnrollments() {
         return studentEnrollments;
     }
+
 
     public void setStudentEnrollments(List<StudentEnrollmentEntity> studentEnrollments) {
         this.studentEnrollments = studentEnrollments;

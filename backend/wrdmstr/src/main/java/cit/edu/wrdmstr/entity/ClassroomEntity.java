@@ -1,5 +1,8 @@
 package cit.edu.wrdmstr.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Digits;
 
@@ -18,12 +21,11 @@ public class ClassroomEntity {
     private String description;
     private String enrollmentCode;
 
+    @JsonBackReference("user-classrooms")
     @ManyToOne
     @JoinColumn(name = "teacher_id")
     private UserEntity teacher;
 
-    @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StudentEnrollmentEntity> enrollments = new ArrayList<>();
 
     public List<StudentEnrollmentEntity> getEnrollments() {
         return enrollments;
@@ -33,6 +35,11 @@ public class ClassroomEntity {
         this.enrollments = enrollments;
     }
 
+    @JsonManagedReference("classroom-enrollments")
+    @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudentEnrollmentEntity> enrollments = new ArrayList<>();
+
+   // @JsonIgnore // For ManyToMany, we typically ignore one side
     @ManyToMany
     @JoinTable(
             name = "classroom_students",
@@ -40,6 +47,8 @@ public class ClassroomEntity {
             inverseJoinColumns = @JoinColumn(name = "student_id")
     )
     private Set<UserEntity> students = new HashSet<>();
+
+
 
     // Helper methods for managing relationships
     public void addStudent(UserEntity student) {
