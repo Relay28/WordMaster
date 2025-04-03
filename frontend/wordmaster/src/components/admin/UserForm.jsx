@@ -29,6 +29,25 @@ const UserForm = ({ user, type, onSuccess, onError }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+        setFormData(prev => ({
+          ...prev,
+          profilePicture: file // Store the file object for upload
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current.click();
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({

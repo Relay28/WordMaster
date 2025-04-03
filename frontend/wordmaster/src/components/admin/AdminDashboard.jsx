@@ -18,8 +18,8 @@ import {
   DialogContent,
   DialogActions,
   Chip,
-  Avatar,
-  IconButton
+  Avatar
+  
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -106,6 +106,19 @@ const AdminDashboard = () => {
         />
       )
     },
+    {
+        field: 'profilePicture',
+        headerName: 'Photo',
+        width: 100,
+        renderCell: (params) => (
+          <Avatar 
+            src={params.value} 
+            sx={{ width: 40, height: 40 }}
+          />
+        ),
+        sortable: false,
+        filterable: false
+      },
     {
       field: 'actions',
       headerName: 'Actions',
