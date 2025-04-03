@@ -1,23 +1,18 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import UserProfile from './components/UserProfile';
-import EditProfile from './components/EditProfile';
-import DeactivateAccount from './components/DeactivateAccount';
+import { Routes, Route } from 'react-router-dom';
+import UserProfile from './components/UserProfileContainer';
 import Login from './components/Login';
 import Register from './components/Register';
 
-const App = () => {
+const AppRoutes = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/UserProfile" element={<UserProfile />} />
-        <Route path="/edit-profile" element={<EditProfile />} />
-        <Route path="/deactivate-account" element={<DeactivateAccount />} />
-        <Route path='/login' element={<Login/>}/>
-        <Route path='/register' element={<Register/>}/>
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path="/userProfile" element={<UserProfile />} />
+      {/* Other routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+    </Routes>
   );
 };
 
-export default App;
+export default AppRoutes;
