@@ -24,6 +24,16 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import jakarta.servlet.http.HttpServletResponse;
+
+// import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -78,12 +88,11 @@ public class AuthController {
 
     @GetMapping("/microsoft/auth-url")
     public ResponseEntity<String> getAuthUrl() {
-
         String frontendUrl = "http://localhost:5173"; 
         String state = Base64.getEncoder().encodeToString(frontendUrl.getBytes());
         
         String authUrl = String.format(
-            "https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&scope=openid%%20profile%%20email%%20User.Read&response_mode=query&state=%s",
+            "https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&scope=openid%%20profile%%20email%%20User.Read&response_mode=query&state=%s&prompt=select_account",
             tenantId,
             clientId,
             "http://localhost:8080/login/oauth2/code/azure",
@@ -129,6 +138,54 @@ public class AuthController {
                 "error", e.getClass().getName(),
                 "message", e.getMessage()
             ));
+        }
+    }
+    
+    @GetMapping("/login/oauth2/code/azure")
+    public void handleOAuth2Callback(@RequestParam String code, 
+                                     @RequestParam(required = false) String state,
+                                     HttpServletResponse response) throws IOException {
+        try {
+            logger.info("OAuth2 callback received with code length: {}", code.length());
+            
+            // Exchange code for token and user info
+            AuthResponse authResponse = microsoftAuthService.handleOAuth2Code(code);
+            
+            // Determine where to redirect (from state parameter or default to frontend URL)
+            String redirectUrl = "http://localhost:5173/oauth-success";
+            
+            // Convert the auth response to JSON and encode as base64
+            String authJson = convertToJson(authResponse);
+            String encodedData = Base64.getEncoder().encodeToString(authJson.getBytes(StandardCharsets.UTF_8));
+            
+            // Create redirect URL with a single data parameter
+            String finalUrl = redirectUrl + "?data=" + encodedData;
+            
+            logger.info("Redirecting to: {}", redirectUrl);
+            
+            // Redirect to frontend with encoded data
+            response.sendRedirect(finalUrl);
+            
+        } catch (Exception e) {
+            logger.error("Error during OAuth callback handling", e);
+            response.sendRedirect("http://localhost:5173/login?error=Authentication%20failed");
+        }
+    }
+
+    // Helper method to convert AuthResponse to JSON
+    private String convertToJson(AuthResponse authResponse) {
+        try {
+            return "{" +
+                "\"token\":\"" + authResponse.getToken() + "\"," +
+                "\"id\":" + authResponse.getId() + "," +
+                "\"email\":\"" + authResponse.getEmail() + "\"," +
+                "\"fname\":\"" + authResponse.getFname() + "\"," +
+                "\"lname\":\"" + authResponse.getLname() + "\"," +
+                "\"role\":\"" + authResponse.getRole() + "\"" +
+                "}";
+        } catch (Exception e) {
+            logger.error("Error converting AuthResponse to JSON", e);
+            throw new RuntimeException("Failed to serialize auth response", e);
         }
     }
 }
