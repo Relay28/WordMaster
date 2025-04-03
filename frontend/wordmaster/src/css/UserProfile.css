@@ -1,0 +1,141 @@
+/* Container */
+.user-profile-container {
+  width: 100%;
+  margin: 0 auto;
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.back-button {
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 10px;
+  background: none;
+  border: none;
+  font-size: 2.5em;
+  cursor: pointer;
+}
+
+.profile-title {
+  padding-left: 30px;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-align: left;
+  flex-grow: 1;
+}
+
+.deactivate-button {
+  background-color: rgb(168, 1, 1);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  padding-left: 30px;
+  padding-right: 30px;
+  margin-top: 20px;
+  margin-right: 30px;
+  cursor: pointer;
+  font-size: 1em;
+  border-radius: 5px;
+}
+
+.deactivate-button:hover {
+  background-color: darkred;
+}
+
+/* Profile Picture */
+.profile-picture-container {
+    position: relative;
+    text-align: center;
+    margin-bottom: -190px; /* Negative margin to overlap with the Personal Information container */
+  }
+  
+  .profile-picture {
+    width: 250px;
+    height: 250px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid white;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .camera-icon {
+    position: absolute;
+    bottom: 5px; /* Position it close to the bottom of the profile picture */
+    right: 43%; /* Position it close to the right of the profile picture */
+    font-size: 24px;
+    background: rgb(255, 255, 255); /* Blue background */
+    color: white;
+    border: none;
+    padding: 16px;
+    cursor: pointer;
+    border-radius: 50%;
+    z-index: 2;
+  }
+  
+  .camera-icon:hover {
+    background: rgba(180, 180, 180, 0.8); /* Darker blue when hovered */
+  }
+  
+
+/* Personal Information Section */
+.personal-info-container {
+  margin-top: 70px; /* Space between profile picture and personal info */
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1); /* Shadow only at the top */
+}
+
+.personal-info h2 {
+  
+  padding-top: 75px;
+  padding-left: 10px;
+}
+
+.input-section {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  
+}
+
+.name-inputs input{
+  width: 500px;
+  padding: 10px;
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+.email-password input {
+    width: 500px;
+    padding: 10px;
+    margin-left: 10px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+.update-btn {
+    background-color: green;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    width: 200px;
+    margin-left: 83.5%;
+    font-size: 0.8em;
+    cursor: pointer;
+    border-radius: 5px;
+    align-self: flex-end; /* Align the button to the right */
+    margin-top: 10px;
+  }
+  
+  .update-btn:hover {
+    background-color: darkgreen;
+  }
