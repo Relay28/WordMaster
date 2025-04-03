@@ -4,9 +4,13 @@ import '../css/HomePage.css';
 import logo from '../assets/WOMS.png'; 
 import profileIcon from '../assets/ProfilePicturePlaceholder.jpg'; 
 import { logout, getCurrentUser } from '../utils/authUtils';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
   const [userRole, setUserRole] = useState('STUDENT');
   const [userName, setUserName] = useState('');
   
@@ -56,7 +60,41 @@ const HomePage = () => {
 
       <div className="classes-container">
         <h2 className="your-classes">Your Classes</h2>
-        <button className="join-classes-btn">+ Join Class</button>
+        {/* Modal */}
+        <Button variant="contained" color="primary" onClick={() => setOpen(true)}>
+        + Join Class
+      </Button>
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="sm">
+        <DialogTitle>
+          Join Class
+          <IconButton
+            aria-label="close"
+            onClick={() => setOpen(false)}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <p>Enter the code that was given to you by your teacher</p>
+          <TextField
+            fullWidth
+            variant="outlined"
+            label="Enter Code"
+            // value={code}
+            onChange={(e) => setCode(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+
+        <DialogActions>
+          <Button variant="contained" color="success" fullWidth>
+            Join Class
+          </Button>
+        </DialogActions>
+      </Dialog>
       </div>
 
       <div className="class-cards-container">
