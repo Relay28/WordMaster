@@ -41,7 +41,8 @@ public class AuthService {
                 jwt,
                 user.getId(),
                 user.getEmail(),
-                user.getName(),
+                user.getLname(),
+                user.getLname(),
                 user.getRole()
         );
     }
@@ -56,7 +57,8 @@ public class AuthService {
         UserEntity user = new UserEntity();
         user.setEmail(request.getEmail());
         user.setPassword(request.getPassword());
-        user.setName(request.getName());
+        user.setFname(request.getFname());
+        user.setLname(request.getLname());
         user.setRole("USER_TEACHER");
         user.setProfilePicture(request.getProfilePicture());
 
@@ -74,7 +76,8 @@ public class AuthService {
                 jwt,
                 savedUser.getId(),
                 savedUser.getEmail(),
-                savedUser.getName(),
+                savedUser.getFname(),
+                savedUser.getLname(),
                 savedUser.getRole()
         );
     }
@@ -89,7 +92,7 @@ public class AuthService {
         UserEntity user = new UserEntity();
         user.setEmail(request.getEmail());
         user.setPassword(request.getPassword());
-        user.setName(request.getName());
+        user.setFname(request.getFname());
         user.setRole("USER_STUDENT");
         user.setProfilePicture(request.getProfilePicture());
 
@@ -107,7 +110,8 @@ public class AuthService {
                 jwt,
                 savedUser.getId(),
                 savedUser.getEmail(),
-                savedUser.getName(),
+                savedUser.getFname(),
+                savedUser.getLname(),
                 savedUser.getRole()
         );
     }

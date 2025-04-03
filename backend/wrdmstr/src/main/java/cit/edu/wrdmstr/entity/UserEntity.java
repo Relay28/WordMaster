@@ -23,8 +23,9 @@ public class UserEntity {
     @Lob
     private String profilePicture;
 
-    private String name;
 
+    private String fname;
+    private String lname;
     private String role;
 
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
@@ -66,12 +67,20 @@ public class UserEntity {
         this.profilePicture = profilePicture;
     }
 
-    public String getName() {
-        return name;
+    public String getFname() {
+        return fname;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setFname(String fname) {
+        this.fname = fname;
+    }
+
+    public String getLname() {
+        return lname;
+    }
+
+    public void setLname(String lname) {
+        this.lname = lname;
     }
 
     public String getRole() {

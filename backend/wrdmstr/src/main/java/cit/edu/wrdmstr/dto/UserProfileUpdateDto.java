@@ -1,19 +1,30 @@
 package cit.edu.wrdmstr.dto;
 
 public class UserProfileUpdateDto {
-    private String name;
+    private String fname;
+    private String lname;
     private String email;
     private String profilePicture;
     private String currentPassword;
     private String newPassword;
 
     // Getters and setters
-    public String getName() {
-        return name;
+
+
+    public String getFname() {
+        return fname;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setFname(String fname) {
+        this.fname = fname;
+    }
+
+    public String getLname() {
+        return lname;
+    }
+
+    public void setLname(String lname) {
+        this.lname = lname;
     }
 
     public String getEmail() {

@@ -8,15 +8,17 @@ public class AuthResponse {
     private String token;
     private Long id;
     private String email;
-    private String name;
+    private String fname;
+    private String lname;
     private String role;
 
-    public static AuthResponse create(String token, Long id, String email, String name, String role) {
+    public static AuthResponse create(String token, Long id, String email, String fname,String lname, String role) {
         AuthResponse response = new AuthResponse();
         response.setToken(token);
         response.setId(id);
         response.setEmail(email);
-        response.setName(name);
+        response.setFname(fname);
+        response.setLname(lname);
         response.setRole(role);
         return response;
     }
@@ -45,12 +47,20 @@ public class AuthResponse {
         this.email = email;
     }
 
-    public String getName() {
-        return name;
+    public String getFname() {
+        return fname;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setFname(String fname) {
+        this.fname = fname;
+    }
+
+    public String getLname() {
+        return lname;
+    }
+
+    public void setLname(String lname) {
+        this.lname = lname;
     }
 
     public String getRole() {
