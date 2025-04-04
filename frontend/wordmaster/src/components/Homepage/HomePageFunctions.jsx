@@ -2,18 +2,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getUserClassrooms, joinClassroom } from '../utils/classroomService';
+import { getUserClassrooms, joinClassroom, createClassroom } from '../utils/classroomService';
 
 export const useHomePage = (authChecked, user, getToken, login, logout) => {
   const navigate = useNavigate();
   const [joinClassOpen, setJoinClassOpen] = useState(false);
+  const [createClassOpen, setCreateClassOpen] = useState(false);
   const [classCode, setClassCode] = useState("");
+  const [className, setClassName] = useState("");
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingClassrooms, setLoadingClassrooms] = useState(false);
   const [classrooms, setClassrooms] = useState([]);
+  
   const [error, setError] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
-  console.log(user)
 
   // Menu handlers
   const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
@@ -34,10 +36,9 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       if (authChecked && getToken() && !user) {
         setLoadingProfile(true);
         try {
-          const response = await axios.get('/api/profile', {
+          const response = await axios.get('http://localhost:8080/api/profile', {
             headers: { Authorization: `Bearer ${getToken()}` }
           });
-          
           if (response.data) {
             login({
               id: response.data.id,
@@ -103,10 +104,34 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
     }
   };
 
+  // Classroom creation
+  const handleCreateClass = async () => {
+    if (!className) {
+      setError('Please enter a class name');
+      return;
+    }
+
+    try {
+      setLoadingClassrooms(true);
+      await createClassroom(getToken(), { name: className });
+      const data = await getUserClassrooms(getToken());
+      setClassrooms(data);
+      setCreateClassOpen(false);
+      setClassName("");
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create classroom. Please try again.');
+    } finally {
+      setLoadingClassrooms(false);
+    }
+  };
+
   return {
     // State
     joinClassOpen,
+    createClassOpen,
     classCode,
+    className,
     loadingProfile,
     loadingClassrooms,
     classrooms,
@@ -115,18 +140,22 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
     
     // Handlers
     setJoinClassOpen,
+    setCreateClassOpen,
     setClassCode,
+    setClassName,
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
     handleLogout,
     handleJoinClass,
+    handleCreateClass,
     
     // Derived values
     displayName: `${user?.fname || ''} ${user?.lname || ''}`.trim() || user?.email || '',
-    roleDisplay: user?.role?.replace('USER_', '') || 'Student',
+    roleDisplay: user?.role === "USER_TEACHER" ? "Teacher" : user?.role === "USER_STUDENT" ? "Student" : "Unknown",
     avatarInitials: user?.fname && user?.lname 
       ? `${user.fname.charAt(0)}${user.lname.charAt(0)}`
-      : user?.email?.charAt(0)?.toUpperCase() || 'U'
+      : user?.email?.charAt(0)?.toUpperCase() || 'U',
+    isTeacher: user?.role === "USER_TEACHER"
   };
 };

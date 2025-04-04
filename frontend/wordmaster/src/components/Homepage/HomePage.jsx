@@ -1,5 +1,6 @@
 // src/pages/HomePage.js
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box,
   Button,
@@ -30,7 +31,9 @@ const HomePage = () => {
   const {
     // State
     joinClassOpen,
+    createClassOpen, // Add this
     classCode,
+    className, // Add this
     loadingProfile,
     loadingClassrooms,
     classrooms,
@@ -39,24 +42,31 @@ const HomePage = () => {
     
     // Handlers
     setJoinClassOpen,
+    setCreateClassOpen, // Add this
     setClassCode,
+    setClassName, // Add this
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
     handleLogout,
     handleJoinClass,
+    handleCreateClass, // Add this
     
     // Derived values
     displayName,
     roleDisplay,
-    avatarInitials
+    avatarInitials,
+    isTeacher // Add this
   } = useHomePage(authChecked, user, getToken, login, logout);
+  const navigate = useNavigate();
+ console.log(isTeacher)
 
   if (!authChecked || loadingProfile) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
       <CircularProgress />
     </Box>
   );
+
 
   if (!user) return null;
 
@@ -154,27 +164,44 @@ const HomePage = () => {
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Typography variant="h5" fontWeight="bold" color="text.primary">
-            Your Classes
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => setJoinClassOpen(true)}
-            sx={{
-              backgroundColor: '#5F4B8B',
-              '&:hover': { backgroundColor: '#4a3a6d' },
-              textTransform: 'none',
-              borderRadius: '8px',
-              px: 3,
-              py: 1
-            }}
-          >
-            Join Class
-          </Button>
-        </Box>
-
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+  <Typography variant="h5" fontWeight="bold" color="text.primary">
+    Your Classes
+  </Typography>
+  {isTeacher ? (
+    <Button
+      variant="contained"
+      startIcon={<Add />}
+      onClick={() => setCreateClassOpen(true)}
+      sx={{
+        backgroundColor: '#5F4B8B',
+        '&:hover': { backgroundColor: '#4a3a6d' },
+        textTransform: 'none',
+        borderRadius: '8px',
+        px: 3,
+        py: 1
+      }}
+    >
+      Create Class
+    </Button>
+  ) : (
+    <Button
+      variant="contained"
+      startIcon={<Add />}
+      onClick={() => setJoinClassOpen(true)}
+      sx={{
+        backgroundColor: '#5F4B8B',
+        '&:hover': { backgroundColor: '#4a3a6d' },
+        textTransform: 'none',
+        borderRadius: '8px',
+        px: 3,
+        py: 1
+      }}
+    >
+      Join Class
+    </Button>
+  )}
+</Box>
         <Divider sx={{ my: 3 }} />
 
         {/* Error message */}
@@ -226,13 +253,14 @@ const HomePage = () => {
           </Box>
         ) : (
           <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={3}>
-            {classrooms.map((classroom) => (
-              <ClassroomCard 
-                key={classroom.id} 
-                classroom={classroom}
-                onClick={() => navigate(`/classroom/${classroom.id}`)}
-              />
-            ))}
+       // In the HomePage component, update the classrooms mapping to:
+              {classrooms.map((classroom) => (
+                <ClassroomCard 
+                  key={classroom.id} 
+                  classroom={classroom}
+                  onClick={() => navigate(`/classroom/${classroom.id}`)}
+                />
+              ))}
           </Box>
         )}
       </Container>
@@ -249,11 +277,23 @@ const HomePage = () => {
         onChange={(e) => setClassCode(e.target.value)}
         onSubmit={handleJoinClass}
       />
+   <CreateClassDialog 
+  open={createClassOpen}
+  className={className}
+  loading={loadingClassrooms}
+  onClose={() => {
+    setCreateClassOpen(false);
+    setError(null);
+  }}
+  onChange={(e) => setClassName(e.target.value)}
+  onSubmit={handleCreateClass}
+/>
     </Box>
   );
 };
 
 // Sub-components for better organization
+// In HomePage.js, update the ClassroomCard component to use navigate
 const ClassroomCard = ({ classroom, onClick }) => (
   <Card 
     sx={{ 
@@ -262,9 +302,11 @@ const ClassroomCard = ({ classroom, onClick }) => (
       transition: 'all 0.3s ease',
       '&:hover': { 
         transform: 'translateY(-4px)',
-        boxShadow: '0 6px 16px rgba(0,0,0,0.12)'
+        boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+        cursor: 'pointer'
       }
     }}
+    onClick={onClick}
   >
     <CardContent sx={{ p: 3 }}>
       <Box display="flex" alignItems="center" mb={2}>
@@ -279,7 +321,10 @@ const ClassroomCard = ({ classroom, onClick }) => (
       <Button
         fullWidth
         variant="outlined"
-        onClick={onClick}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
         sx={{
           borderColor: '#5F4B8B',
           color: '#5F4B8B',
@@ -294,7 +339,6 @@ const ClassroomCard = ({ classroom, onClick }) => (
     </CardContent>
   </Card>
 );
-
 const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit }) => (
   <Dialog 
     open={open} 
@@ -350,6 +394,64 @@ const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit
       </Button>
     </DialogActions>
   </Dialog>
+  
 );
+const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubmit }) => (
+  <Dialog 
+    open={open} 
+    onClose={onClose}
+    PaperProps={{ sx: { borderRadius: '12px' } }}
+  >
+    <DialogTitle sx={{ 
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: '#f5f3fa',
+      borderBottom: '1px solid #e0e0e0'
+    }}>
+      <Typography fontWeight="bold">Create New Class</Typography>
+      <IconButton onClick={onClose}>
+        <Close />
+      </IconButton>
+    </DialogTitle>
+    
+    <DialogContent sx={{ py: 3, px: 3 }}>
+      <Typography variant="body1" mb={2}>
+        Enter a name for your new class
+      </Typography>
+      <TextField
+        fullWidth
+        variant="outlined"
+        placeholder="e.g. English 101"
+        value={className}
+        onChange={onChange}
+        sx={{ 
+          '& .MuiOutlinedInput-root': {
+            borderRadius: '8px'
+          }
+        }}
+      />
+    </DialogContent>
+    
+    <DialogActions sx={{ px: 3, py: 2 }}>
+      <Button
+        fullWidth
+        variant="contained"
+        onClick={onSubmit}
+        disabled={loading}
+        sx={{
+          backgroundColor: '#5F4B8B',
+          '&:hover': { backgroundColor: '#4a3a6d' },
+          borderRadius: '8px',
+          py: 1,
+          textTransform: 'none'
+        }}
+      >
+        {loading ? <CircularProgress size={24} color="inherit" /> : 'Create Class'}
+      </Button>
+    </DialogActions>
+  </Dialog>
+);
+
 
 export default HomePage;

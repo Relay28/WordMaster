@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useUserAuth } from '../context/UserAuthContext'
 
 const SetupPage = () => {
   const [role, setRole] = useState('student'); // Changed to match backend values
@@ -23,7 +24,8 @@ const SetupPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const token = localStorage.getItem('userToken');
+  const { user, getToken, login } = useUserAuth(); // Get auth context methods
+
   console.log(role)
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,20 +48,21 @@ const SetupPage = () => {
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${getToken()}`
           }
         }
       );
 
-      // Update local storage with new user data
-      const userData = JSON.parse(localStorage.getItem('userData'));
+      // Update both localStorage AND auth context state
       const updatedUser = {
-        ...userData,
+        ...user, // Keep existing user data
         fname: response.data.fname,
         lname: response.data.lname,
         role: response.data.role
       };
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
+      
+      // Use the login method from auth context to properly update everything
+      login(updatedUser, getToken());
 
       navigate('/homepage');
     } catch (err) {

@@ -9,6 +9,7 @@ import ProtectedAdminRoute from './components/auth/ProtectedAdminRoute';
 import HomePage from './components/Homepage/HomePage';
 import OAuthSuccessHandler from './components/OAuthSuccessHandler';
 import SetupPage from './components/user/SetupPage.';
+import ClassroomDetailsPage from './components/Classroom/Classroom Details Page';
 
 const AppRoutes = () => {
   return (
@@ -18,6 +19,7 @@ const AppRoutes = () => {
 
       <Route path="/profile" element={<UserProfile />} />
       <Route path="/homepage" element={<HomePage />} />
+      <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/setup" element={<SetupPage/>} />
       <Route path="/register" element={<Register />} />
