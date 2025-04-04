@@ -103,12 +103,14 @@ public class ProfileService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
         // Validate that the user hasn't already completed setup
-        if (user.getFname() != null && user.getLname() != null && user.getRole() != null) {
+        if (user.getFname() != null && user.getLname() != null
+                && !(user.getRole().equals("USER_TEACHER") || user.getRole().equals("USER_STUDENT"))) {
             throw new IllegalStateException("User profile has already been set up");
         }
 
+
         // Validate the role
-        if (!"student".equalsIgnoreCase(setupDto.getRole()) && !"teacher".equalsIgnoreCase(setupDto.getRole())) {
+        if (!"USER_STUDENT".equalsIgnoreCase(setupDto.getRole()) && !"USER_TEACHER".equalsIgnoreCase(setupDto.getRole())) {
             throw new IllegalArgumentException("Role must be either 'student' or 'teacher'");
         }
 
@@ -123,7 +125,7 @@ public class ProfileService {
         // Update the user's profile
         user.setFname(setupDto.getFname());
         user.setLname(setupDto.getLname());
-        user.setRole(setupDto.getRole().toLowerCase()); // store role in lowercase
+        user.setRole(setupDto.getRole().toUpperCase()); // store role in lowercase
 
         // Save and return the updated user
         return userRepository.save(user);

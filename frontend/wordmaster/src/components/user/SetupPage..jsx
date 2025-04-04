@@ -24,7 +24,7 @@ const SetupPage = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('userToken');
-
+  console.log(role)
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -32,7 +32,7 @@ const SetupPage = () => {
       setError('First name and last name are required');
       return;
     }
-    
+ 
     setLoading(true);
     setError('');
 

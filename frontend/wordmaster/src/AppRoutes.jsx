@@ -1,12 +1,12 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import UserProfile from './components/UserProfileContainer';
+import UserProfile from './Profile/UserProfileContainer';
 import Login from './components/Login';
 import Register from './components/Register';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ProtectedAdminRoute from './components/auth/ProtectedAdminRoute';
-import HomePage from './components/user/HomePage';
+import HomePage from './components/Homepage/HomePage';
 import OAuthSuccessHandler from './components/OAuthSuccessHandler';
 import SetupPage from './components/user/SetupPage.';
 
@@ -16,7 +16,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Navigate to="/login" replace />} />
       
 
-      <Route path="/userProfile" element={<UserProfile />} />
+      <Route path="/profile" element={<UserProfile />} />
       <Route path="/homepage" element={<HomePage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/setup" element={<SetupPage/>} />
