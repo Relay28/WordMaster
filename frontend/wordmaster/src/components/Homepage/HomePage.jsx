@@ -253,7 +253,6 @@ const HomePage = () => {
           </Box>
         ) : (
           <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={3}>
-       // In the HomePage component, update the classrooms mapping to:
               {classrooms.map((classroom) => (
                 <ClassroomCard 
                   key={classroom.id} 
