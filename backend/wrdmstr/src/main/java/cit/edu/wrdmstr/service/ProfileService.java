@@ -103,11 +103,12 @@ public class ProfileService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
         // Validate that the user hasn't already completed setup
-        if (user.getFname() != null && user.getLname() != null
-                && !(user.getRole().equals("USER_TEACHER") || user.getRole().equals("USER_STUDENT"))) {
+        // Only consider a profile "set up" if role is already set to a finalized role (not USER)
+        if (!user.getRole().equals("USER") && 
+            user.getFname() != null && 
+            user.getLname() != null) {
             throw new IllegalStateException("User profile has already been set up");
         }
-
 
         // Validate the role
         if (!"USER_STUDENT".equalsIgnoreCase(setupDto.getRole()) && !"USER_TEACHER".equalsIgnoreCase(setupDto.getRole())) {
@@ -136,6 +137,11 @@ public class ProfileService {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        return user.getFname() == null || user.getLname() == null || user.getRole() == null;
+        // Only consider setup complete if role is USER_STUDENT or USER_TEACHER
+        // Even if firstName and lastName are filled, setup is needed if role is still USER
+        return user.getRole() == null || 
+               user.getRole().equals("USER") || 
+               user.getFname() == null || 
+               user.getLname() == null;
     }
 }

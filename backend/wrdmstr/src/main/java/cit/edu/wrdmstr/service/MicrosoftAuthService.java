@@ -111,7 +111,7 @@ public class MicrosoftAuthService {
                 newUser.setPassword(java.util.UUID.randomUUID().toString());
                 newUser.setFname(firstName);
                 newUser.setLname(lastName);
-                newUser.setRole("USER_STUDENT");
+                newUser.setRole("USER"); // Changed from USER_STUDENT to USER
                 user = userService.saveUser(newUser);
             } else {
                 logger.info("User already exists with email: " + email);
@@ -301,7 +301,7 @@ public class MicrosoftAuthService {
                 newUser.setPassword(java.util.UUID.randomUUID().toString());
                 newUser.setFname(firstName);
                 newUser.setLname(lastName);
-                newUser.setRole("USER_STUDENT");
+                newUser.setRole("USER"); // Changed from USER_STUDENT to USER
                 user = userService.saveUser(newUser);
             } else {
                 logger.info("User already exists with email: " + email);

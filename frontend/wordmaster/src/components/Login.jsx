@@ -97,6 +97,11 @@ const Login = () => {
       
       if (response.data) {
         console.log("Redirecting to:", response.data);
+        
+        // Clear any existing auth data to prevent state issues
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userData');
+        
         window.location.href = response.data;
       } else {
         throw new Error('Invalid response from server');

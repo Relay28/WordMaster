@@ -16,7 +16,6 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       
-
       <Route path="/profile" element={<UserProfile />} />
       <Route path="/homepage" element={<HomePage />} />
       <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
@@ -24,8 +23,6 @@ const AppRoutes = () => {
       <Route path="/setup" element={<SetupPage/>} />
       <Route path="/register" element={<Register />} />
       <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
-
-
 
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route element={<ProtectedAdminRoute />}>
