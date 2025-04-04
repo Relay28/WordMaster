@@ -81,7 +81,11 @@ const AdminDashboard = () => {
 
   const handleToggleStatus = async (userId, isActive) => {
     try {
-      await api.patch(`/api/admin/users/${userId}/deactivate`);
+      if (isActive) {
+        await api.patch(`/api/admin/users/${userId}/deactivate`);
+      } else {
+        await api.patch(`/api/admin/users/${userId}/activate`);
+      }
       await fetchUsers();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update user status');

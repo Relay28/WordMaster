@@ -126,6 +126,17 @@ public class AdminUserService {
         userRepository.save(user);
     }
 
+    // Activate user
+    public void activateUser(Authentication authentication, Long userId) {
+        verifyAdminAccess(authentication);
+
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+
+        user.setActive(true);
+        userRepository.save(user);
+    }
+
     // Delete user permanently
     public void deleteUser(Authentication authentication, Long userId) {
         verifyAdminAccess(authentication);

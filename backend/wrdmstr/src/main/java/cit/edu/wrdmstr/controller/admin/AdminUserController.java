@@ -64,6 +64,14 @@ public class AdminUserController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/{userId}/activate")
+    public ResponseEntity<Void> activateUser(
+            @PathVariable Long userId,
+            Authentication authentication) {
+        adminUserService.activateUser(authentication, userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteUser(
             @PathVariable Long userId,
