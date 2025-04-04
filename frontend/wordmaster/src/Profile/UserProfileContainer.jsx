@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+// src/components/UserProfileContainer.js
+import React from 'react';
 import { 
   Box,
   Button,
@@ -18,123 +19,25 @@ import {
   Alert
 } from "@mui/material";
 import { ArrowBack, CameraAlt, Lock, Email, Close } from "@mui/icons-material";
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useUserAuth } from '../components/context/UserAuthContext';
+import { useUserProfile } from './UserProfileFunctions';
 
 const UserProfileContainer = () => {
   const { user, authChecked, logout, getToken } = useUserAuth();
-  const [editMode, setEditMode] = useState(false);
-  const [isDeactivating, setIsDeactivating] = useState(false);
-  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    currentPassword: '',
-    newPassword: ''
-  });
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (authChecked && user) {
-      fetchUserProfile();
-    }
-  }, [authChecked, user]);
-
-  console.log(user)
-  const fetchUserProfile = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('/api/profile', {
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
-      });
-      setFormData({
-        firstName: response.data.fname || '',
-        lastName: response.data.lname || '',
-        email: response.data.email || '',
-        currentPassword: '',
-        newPassword: ''
-      });
-    } catch (err) {
-      setError('Failed to load profile data');
-      console.error('Error fetching profile:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
-
-      const updateDto = {
-        fname: formData.firstName,
-        lname: formData.lastName,
-        email: formData.email,
-        currentPassword: formData.currentPassword,
-        newPassword: formData.newPassword
-      };
-
-      const response = await axios.put('/api/profile', updateDto, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
-      });
-
-      // Update local storage with new user data
-      const updatedUser = {
-        ...user,
-        fname: response.data.fname,
-        lname: response.data.lname,
-        email: response.data.email
-      };
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
-
-      setSuccess('Profile updated successfully');
-      setEditMode(false);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile');
-      console.error('Error updating profile:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeactivate = async () => {
-    try {
-      setIsDeactivating(true);
-      setError(null);
-      
-      const response = await axios.delete('/api/profile', {
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
-      });
-
-      logout();
-      navigate('/login');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to deactivate account');
-      console.error('Error deactivating account:', err);
-    } finally {
-      setIsDeactivating(false);
-      setDeactivateDialogOpen(false);
-    }
-  };
+  const {
+    editMode,
+    isDeactivating,
+    deactivateDialogOpen,
+    loading,
+    error,
+    success,
+    formData,
+    setEditMode,
+    setDeactivateDialogOpen,
+    handleChange,
+    handleSubmit,
+    handleDeactivate
+  } = useUserProfile(user, authChecked, logout, getToken);
 
   if (!authChecked || !user) {
     return (
@@ -159,7 +62,7 @@ const UserProfileContainer = () => {
         px: { xs: 2, md: 6 }
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <IconButton onClick={() => navigate(-1)} sx={{ color: '#5F4B8B' }}>
+          <IconButton onClick={() => window.history.back()} sx={{ color: '#5F4B8B' }}>
             <ArrowBack />
           </IconButton>
           <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
@@ -184,7 +87,6 @@ const UserProfileContainer = () => {
           </Box>
         ) : (
           <Box display="flex" flexDirection="column" alignItems="center">
-            {/* Success/Error Messages */}
             {error && (
               <Alert severity="error" sx={{ mb: 3, width: '100%' }} onClose={() => setError(null)}>
                 {error}
@@ -196,257 +98,284 @@ const UserProfileContainer = () => {
               </Alert>
             )}
 
-            {/* Profile Picture */}
-            <Box position="relative" mb={4}>
-              <Avatar
-                sx={{ 
-                  width: 120, 
-                  height: 120, 
-                  bgcolor: '#5F4B8B',
-                  color: 'white',
-                  fontSize: '2.5rem'
-                }}
-              >
-              {formData.firstName.charAt(0)}{formData.lastName.charAt(0)}
-              </Avatar>
-              {editMode && (
-                <IconButton
-                  sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    backgroundColor: '#5F4B8B',
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: '#4a3a6d',
-                    }
-                  }}
-                >
-                  <CameraAlt />
-                </IconButton>
-              )}
-            </Box>
+            <ProfilePicture 
+              firstName={formData.firstName} 
+              lastName={formData.lastName} 
+              editMode={editMode} 
+            />
 
-            {/* Personal Information */}
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                width: '100%', 
-                p: 4, 
-                borderRadius: '12px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
-              }}
-            >
-              <Typography variant="h5" fontWeight="bold" gutterBottom>
-                Personal Information
-              </Typography>
-              <Divider sx={{ my: 2 }} />
-
-              <Box 
-                component="form" 
-                onSubmit={handleSubmit}
-                sx={{ mt: 3 }}
-              >
-                <Box display="flex" gap={3} mb={3}>
-                  <TextField
-                    fullWidth
-                    label="First Name"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                    variant={editMode ? "outlined" : "filled"}
-                    required
-                  />
-                  <TextField
-                    fullWidth
-                    label="Last Name"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    disabled={!editMode}
-                    variant={editMode ? "outlined" : "filled"}
-                    required
-                  />
-                </Box>
-
-                <TextField
-                  fullWidth
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  disabled={!editMode}
-                  variant={editMode ? "outlined" : "filled"}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Email color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ mb: 3 }}
-                  required
-                />
-
-                {editMode && (
-                  <>
-                    <TextField
-                      fullWidth
-                      label="Current Password"
-                      name="currentPassword"
-                      type="password"
-                      value={formData.currentPassword}
-                      onChange={handleChange}
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{ mb: 2 }}
-                      required
-                    />
-                    <TextField
-                      fullWidth
-                      label="New Password (leave blank to keep current)"
-                      name="newPassword"
-                      type="password"
-                      value={formData.newPassword}
-                      onChange={handleChange}
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{ mb: 3 }}
-                    />
-                  </>
-                )}
-
-                <Box display="flex" justifyContent="flex-end" mt={4}>
-                  {editMode ? (
-                    <>
-                      <Button
-                        variant="outlined"
-                        onClick={() => {
-                          setEditMode(false);
-                          fetchUserProfile(); // Reset form
-                        }}
-                        sx={{
-                          mr: 2,
-                          borderColor: '#5F4B8B',
-                          color: '#5F4B8B',
-                          '&:hover': { 
-                            backgroundColor: '#f0edf5',
-                            borderColor: '#4a3a6d'
-                          }
-                        }}
-                        disabled={loading}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        disabled={loading}
-                        sx={{
-                          backgroundColor: '#5F4B8B',
-                          '&:hover': { backgroundColor: '#4a3a6d' },
-                          textTransform: 'none',
-                        }}
-                      >
-                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      variant="contained"
-                      onClick={() => setEditMode(true)}
-                      sx={{
-                        backgroundColor: '#5F4B8B',
-                        '&:hover': { backgroundColor: '#4a3a6d' },
-                        textTransform: 'none',
-                      }}
-                    >
-                      Edit Profile
-                    </Button>
-                  )}
-                </Box>
-              </Box>
-            </Paper>
+            <PersonalInformation 
+              formData={formData}
+              editMode={editMode}
+              handleChange={handleChange}
+              handleSubmit={handleSubmit}
+              setEditMode={setEditMode}
+              loading={loading}
+            />
           </Box>
         )}
       </Container>
 
-      {/* Deactivate Account Dialog */}
-      <Dialog 
+      <DeactivateDialog 
         open={deactivateDialogOpen}
         onClose={() => setDeactivateDialogOpen(false)}
-        PaperProps={{ sx: { borderRadius: '12px' } }}
-      >
-        <DialogTitle sx={{ 
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: '#f5f3fa',
-          borderBottom: '1px solid #e0e0e0'
-        }}>
-          <Typography fontWeight="bold">Confirm Account Deactivation</Typography>
-          <IconButton onClick={() => setDeactivateDialogOpen(false)}>
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        
-        <DialogContent sx={{ py: 3, px: 3 }}>
-          <Typography variant="body1" mb={2}>
-            Are you sure you want to deactivate your account? This action cannot be undone.
-          </Typography>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-        </DialogContent>
-        
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button
-            variant="outlined"
-            onClick={() => setDeactivateDialogOpen(false)}
-            sx={{
-              borderColor: '#5F4B8B',
-              color: '#5F4B8B',
-              '&:hover': { 
-                backgroundColor: '#f0edf5',
-                borderColor: '#4a3a6d'
-              }
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            onClick={handleDeactivate}
-            disabled={isDeactivating}
-            color="error"
-            sx={{
-              backgroundColor: '#d32f2f',
-              '&:hover': { backgroundColor: '#b71c1c' },
-              textTransform: 'none',
-            }}
-          >
-            {isDeactivating ? <CircularProgress size={24} color="inherit" /> : 'Deactivate Account'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onDeactivate={handleDeactivate}
+        isDeactivating={isDeactivating}
+        error={error}
+      />
     </Box>
   );
 };
+
+const ProfilePicture = ({ firstName, lastName, editMode }) => (
+  <Box position="relative" mb={4}>
+    <Avatar
+      sx={{ 
+        width: 120, 
+        height: 120, 
+        bgcolor: '#5F4B8B',
+        color: 'white',
+        fontSize: '2.5rem'
+      }}
+    >
+      {firstName.charAt(0)}{lastName.charAt(0)}
+    </Avatar>
+    {editMode && (
+      <IconButton
+        sx={{
+          position: 'absolute',
+          bottom: 0,
+          right: 0,
+          backgroundColor: '#5F4B8B',
+          color: 'white',
+          '&:hover': {
+            backgroundColor: '#4a3a6d',
+          }
+        }}
+      >
+        <CameraAlt />
+      </IconButton>
+    )}
+  </Box>
+);
+
+const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading }) => (
+  <Paper 
+    elevation={3} 
+    sx={{ 
+      width: '100%', 
+      p: 4, 
+      borderRadius: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+    }}
+  >
+    <Typography variant="h5" fontWeight="bold" gutterBottom>
+      Personal Information
+    </Typography>
+    <Divider sx={{ my: 2 }} />
+
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+      <Box display="flex" gap={3} mb={3}>
+        <TextField
+          fullWidth
+          label="First Name"
+          name="firstName"
+          value={formData.firstName}
+          onChange={handleChange}
+          disabled={!editMode}
+          variant={editMode ? "outlined" : "filled"}
+          required
+        />
+        <TextField
+          fullWidth
+          label="Last Name"
+          name="lastName"
+          value={formData.lastName}
+          onChange={handleChange}
+          disabled={!editMode}
+          variant={editMode ? "outlined" : "filled"}
+          required
+        />
+      </Box>
+
+      <TextField
+        fullWidth
+        label="Email"
+        name="email"
+        type="email"
+        value={formData.email}
+        onChange={handleChange}
+        disabled={!editMode}
+        variant={editMode ? "outlined" : "filled"}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Email color="action" />
+            </InputAdornment>
+          ),
+        }}
+        sx={{ mb: 3 }}
+        required
+      />
+
+{editMode && (
+  <>
+    <TextField
+      fullWidth
+      label="Current Password"
+      name="currentPassword"
+      type="password"
+      value={formData.currentPassword}
+      onChange={handleChange}
+      variant="outlined"
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Lock color="action" />
+          </InputAdornment>
+        ),
+      }}
+      sx={{ mb: 2 }}
+      required
+    />
+    <TextField
+      fullWidth
+      label="New Password (for display only - not implemented)"
+      name="newPassword"
+      type="password"
+      value={formData.newPassword}
+      onChange={handleChange}
+      variant="outlined"
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <Lock color="action" />
+          </InputAdornment>
+        ),
+      }}
+      sx={{ mb: 3 }}
+      disabled // Optional: disable if you don't want users to interact with it
+    />
+  </>
+)}
+      <FormActions 
+        editMode={editMode}
+        setEditMode={setEditMode}
+        loading={loading}
+      />
+    </Box>
+  </Paper>
+);
+
+const FormActions = ({ editMode, setEditMode, loading }) => (
+  <Box display="flex" justifyContent="flex-end" mt={4}>
+    {editMode ? (
+      <>
+        <Button
+          variant="outlined"
+          onClick={() => setEditMode(false)}
+          sx={{
+            mr: 2,
+            borderColor: '#5F4B8B',
+            color: '#5F4B8B',
+            '&:hover': { 
+              backgroundColor: '#f0edf5',
+              borderColor: '#4a3a6d'
+            }
+          }}
+          disabled={loading}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={loading}
+          sx={{
+            backgroundColor: '#5F4B8B',
+            '&:hover': { backgroundColor: '#4a3a6d' },
+            textTransform: 'none',
+          }}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
+        </Button>
+      </>
+    ) : (
+      <Button
+        variant="contained"
+        onClick={() => setEditMode(true)}
+        sx={{
+          backgroundColor: '#5F4B8B',
+          '&:hover': { backgroundColor: '#4a3a6d' },
+          textTransform: 'none',
+        }}
+      >
+        Edit Profile
+      </Button>
+    )}
+  </Box>
+);
+
+const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error }) => (
+  <Dialog 
+    open={open}
+    onClose={onClose}
+    PaperProps={{ sx: { borderRadius: '12px' } }}
+  >
+    <DialogTitle sx={{ 
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: '#f5f3fa',
+      borderBottom: '1px solid #e0e0e0'
+    }}>
+      <Typography fontWeight="bold">Confirm Account Deactivation</Typography>
+      <IconButton onClick={onClose}>
+        <Close />
+      </IconButton>
+    </DialogTitle>
+    
+    <DialogContent sx={{ py: 3, px: 3 }}>
+      <Typography variant="body1" mb={2}>
+        Are you sure you want to deactivate your account? This action cannot be undone.
+      </Typography>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+    </DialogContent>
+    
+    <DialogActions sx={{ px: 3, py: 2 }}>
+      <Button
+        variant="outlined"
+        onClick={onClose}
+        sx={{
+          borderColor: '#5F4B8B',
+          color: '#5F4B8B',
+          '&:hover': { 
+            backgroundColor: '#f0edf5',
+            borderColor: '#4a3a6d'
+          }
+        }}
+      >
+        Cancel
+      </Button>
+      <Button
+        variant="contained"
+        onClick={onDeactivate}
+        disabled={isDeactivating}
+        color="error"
+        sx={{
+          backgroundColor: '#d32f2f',
+          '&:hover': { backgroundColor: '#b71c1c' },
+          textTransform: 'none',
+        }}
+      >
+        {isDeactivating ? <CircularProgress size={24} color="inherit" /> : 'Deactivate Account'}
+      </Button>
+    </DialogActions>
+  </Dialog>
+);
 
 export default UserProfileContainer;

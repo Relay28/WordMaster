@@ -34,9 +34,13 @@ public class AuthService {
                 )
         );
 
+
         UserEntity user = userService.findByEmail(request.getEmail());
         UserDetails userDetails = userService.loadUserByUsername(request.getEmail());
 
+        if(!user.isActive()){
+            throw new RuntimeException("Account is Deactivated");
+        }
         String jwt = jwtService.generateToken(userDetails);
 
         return AuthResponse.create(
