@@ -6,7 +6,7 @@ import Register from './components/Register';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ProtectedAdminRoute from './components/auth/ProtectedAdminRoute';
-import HomePage from './components/HomePage'; 
+import HomePage from './components/Homepage/HomePage';
 import OAuthSuccessHandler from './components/OAuthSuccessHandler';
 import SetupPage from './components/user/SetupPage.';
 import ClassroomDetailsPage from './components/Classroom/Classroom Details Page';
