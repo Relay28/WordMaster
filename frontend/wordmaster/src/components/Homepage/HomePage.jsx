@@ -164,44 +164,63 @@ const HomePage = () => {
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-  <Typography variant="h5" fontWeight="bold" color="text.primary">
-    Your Classes
-  </Typography>
-  {isTeacher ? (
-    <Button
-      variant="contained"
-      startIcon={<Add />}
-      onClick={() => setCreateClassOpen(true)}
-      sx={{
-        backgroundColor: '#5F4B8B',
-        '&:hover': { backgroundColor: '#4a3a6d' },
-        textTransform: 'none',
-        borderRadius: '8px',
-        px: 3,
-        py: 1
-      }}
-    >
-      Create Class
-    </Button>
-  ) : (
-    <Button
-      variant="contained"
-      startIcon={<Add />}
-      onClick={() => setJoinClassOpen(true)}
-      sx={{
-        backgroundColor: '#5F4B8B',
-        '&:hover': { backgroundColor: '#4a3a6d' },
-        textTransform: 'none',
-        borderRadius: '8px',
-        px: 3,
-        py: 1
-      }}
-    >
-      Join Class
-    </Button>
-  )}
-</Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Typography variant="h5" fontWeight="bold" color="text.primary">
+            Your Classes
+          </Typography>
+          <Box display="flex" gap={2}>
+            {isTeacher && (
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/content/dashboard')}
+                sx={{
+                  borderColor: '#5F4B8B',
+                  color: '#5F4B8B',
+                  '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                Content Dashboard
+              </Button>
+            )}
+            {isTeacher ? (
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setCreateClassOpen(true)}
+                sx={{
+                  backgroundColor: '#5F4B8B',
+                  '&:hover': { backgroundColor: '#4a3a6d' },
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                Create Class
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setJoinClassOpen(true)}
+                sx={{
+                  backgroundColor: '#5F4B8B',
+                  '&:hover': { backgroundColor: '#4a3a6d' },
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                Join Class
+              </Button>
+            )}
+          </Box>
+        </Box>
         <Divider sx={{ my: 3 }} />
 
         {/* Error message */}

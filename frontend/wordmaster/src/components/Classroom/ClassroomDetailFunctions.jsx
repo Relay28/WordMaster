@@ -73,10 +73,15 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
   };
 
   const handleDeleteClassroom = async () => {
+    if (!window.confirm("Are you sure you want to delete this classroom? This action cannot be undone.")) {
+      return;
+    }
+    
     try {
       setLoading(true);
       await deleteClassroom(getToken(), classroomId);
-      navigate('/');
+      // Navigate to homepage instead of the root path
+      navigate('/homepage');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete classroom');
       setLoading(false);

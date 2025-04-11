@@ -11,6 +11,13 @@ import OAuthSuccessHandler from './components/OAuthSuccessHandler';
 import SetupPage from './components/user/SetupPage.';
 import ClassroomDetailsPage from './components/Classroom/Classroom Details Page';
 
+// Import content components
+import ContentDashboard from './components/content/ContentDashboard';
+import EditContent from './components/content/EditContent';
+import UploadContent from './components/content/UploadContent';
+import ContentDetails from './components/content/ContentDetails';
+import ProtectedTeacherRoute from './components/auth/ProtectedTeacherRoute';
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -23,6 +30,14 @@ const AppRoutes = () => {
       <Route path="/setup" element={<SetupPage/>} />
       <Route path="/register" element={<Register />} />
       <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
+
+      {/* Content Management Routes */}
+      <Route element={<ProtectedTeacherRoute />}>
+        <Route path="/content/dashboard" element={<ContentDashboard />} />
+        <Route path="/content/upload" element={<UploadContent />} />
+        <Route path="/content/edit/:id" element={<EditContent />} />
+        <Route path="/content/:id" element={<ContentDetails />} />
+      </Route>
 
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route element={<ProtectedAdminRoute />}>
