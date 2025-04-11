@@ -230,15 +230,15 @@ const HomePage = () => {
             }}
           >
             <Typography variant="h6" color="text.secondary" gutterBottom>
-              You're not enrolled in any classes yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Join a class to get started with WordMaster
-            </Typography>
+      {isTeacher ? "You haven't created any classes yet" : "You're not enrolled in any classes yet"}
+    </Typography>
+    <Typography variant="body2" color="text.secondary" mb={3}>
+      {isTeacher ? "Create a class to get started with WordMaster" : "Join a class to get started with WordMaster"}
+    </Typography>
             <Button
               variant="contained"
               startIcon={<Add />}
-              onClick={() => setJoinClassOpen(true)}
+              onClick={() => isTeacher ? setCreateClassOpen(true) : setJoinClassOpen(true)}
               sx={{
                 backgroundColor: '#5F4B8B',
                 '&:hover': { backgroundColor: '#4a3a6d' },
@@ -248,7 +248,7 @@ const HomePage = () => {
                 py: 1
               }}
             >
-              Join Your First Class
+              {isTeacher ? "Create Your First Class" : "Join Your First Class"}
             </Button>
           </Box>
         ) : (
