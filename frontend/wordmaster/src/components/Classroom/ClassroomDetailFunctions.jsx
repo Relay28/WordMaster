@@ -4,10 +4,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   getClassroomDetails, 
   getClassroomMembers,
-  getClassroomMemberCount,
   updateClassroom,
   deleteClassroom
 } from '../utils/classroomService';
+
 export const useClassroomDetails = (authChecked, user, getToken) => {
   const { classroomId } = useParams();
   const navigate = useNavigate();
@@ -28,7 +28,6 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
           setLoading(true);
           setError(null);
           
-          // Fetch classroom details
           const classroomData = await getClassroomDetails(getToken(), classroomId);
           setClassroom(classroomData);
           setUpdatedData({
@@ -36,7 +35,6 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
             description: classroomData.description || ''
           });
           
-          // Fetch members if needed (separate endpoint)
           const membersData = await getClassroomMembers(getToken(), classroomId);
           setMembers(membersData);
           
@@ -55,15 +53,29 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
   const handleUpdateClassroom = async () => {
     try {
       setLoading(true);
-      const updatedClassroom = await updateClassroom(
+      
+      // Only send the fields we want to update
+      const updatePayload = {
+        ...(updatedData.name && { name: updatedData.name }),
+        ...(updatedData.description && { description: updatedData.description })
+      };
+
+      // Get the updated fields from the API
+      const updatedFields = await updateClassroom(
         getToken(), 
         classroomId, 
-        { 
-          name: updatedData.name,
-          description: updatedData.description
-        }
+        updatePayload
       );
-      setClassroom(updatedClassroom);
+
+      // Merge the updated fields with the existing classroom data
+      setClassroom(prev => ({
+        ...prev,
+        ...updatedFields,
+        // Ensure we don't overwrite critical fields with null/undefined
+        name: updatedFields.name ?? prev.name,
+        description: updatedFields.description ?? prev.description
+      }));
+      
       setEditMode(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update classroom');
@@ -73,14 +85,13 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
   };
 
   const handleDeleteClassroom = async () => {
-    if (!window.confirm("Are you sure you want to delete this classroom? This action cannot be undone.")) {
+    if (!window.confirm("Are you sure you want to delete this classroom?")) {
       return;
     }
     
     try {
       setLoading(true);
       await deleteClassroom(getToken(), classroomId);
-      // Navigate to homepage instead of the root path
       navigate('/homepage');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete classroom');
