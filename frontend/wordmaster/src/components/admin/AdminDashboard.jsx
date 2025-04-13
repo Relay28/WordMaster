@@ -93,7 +93,7 @@ const AdminDashboard = () => {
   };
 
   const columns = [
-    { field: 'id', headerName: 'ID', width: 70 },
+   
     { field: 'fname', headerName: 'First Name', width: 150 },
     { field: 'lname', headerName: 'Last Name', width: 150 },
     { field: 'email', headerName: 'Email', width: 250 },
