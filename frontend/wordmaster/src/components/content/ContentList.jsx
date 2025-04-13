@@ -10,7 +10,7 @@ import {
   Divider,
   Tooltip
 } from '@mui/material';
-import { Edit, Delete, Visibility, PublishedWithChanges, Unpublished } from '@mui/icons-material';
+import { Edit, Delete, Visibility, PublishedWithChanges, Unpublished, Person } from '@mui/icons-material';
 
 const ContentList = ({ 
   content, 
@@ -73,9 +73,19 @@ const ContentList = ({
                 <Divider sx={{ my: 1.5 }} />
                 
                 <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="body2" color="text.secondary">
-                    Updated: {formatDate(item.updatedAt || item.createdAt)}
-                  </Typography>
+                  <Box display="flex" alignItems="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+                      Updated: {formatDate(item.updatedAt || item.createdAt)}
+                    </Typography>
+                    {item.creatorName && (
+                      <Box display="flex" alignItems="center">
+                        <Person fontSize="small" sx={{ color: '#5F4B8B', mr: 0.5 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          By: {item.creatorName}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
                   
                   <Box>
                     <Tooltip title="View">

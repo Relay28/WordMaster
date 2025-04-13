@@ -30,7 +30,8 @@ import {
   Update,
   Group,
   AccessTime,
-  LoopRounded
+  LoopRounded,
+  Person
 } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
@@ -183,14 +184,21 @@ const ContentDetails = () => {
       display: 'flex',
       flexDirection: 'column',
       minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
+      backgroundColor: '#f9f9f9',
+      height: '100vh', // Ensure the Box takes the full viewport height
+      overflowY: 'auto', // Enable vertical scrolling
+      overflowX: 'hidden', // Prevent horizontal scrollbar
+      width: '100%'
     }}>
       {/* Header */}
       <Box sx={{ 
         backgroundColor: 'white',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         py: 2,
-        px: { xs: 2, md: 6 }
+        px: { xs: 2, md: 6 },
+        position: 'sticky', // Make the header sticky
+        top: 0,
+        zIndex: 1100
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center">
@@ -254,7 +262,12 @@ const ContentDetails = () => {
       </Box>
 
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
+      <Container maxWidth="lg" sx={{ 
+        py: 4, 
+        flex: 1,
+        width: '100%',
+        mb: 4
+      }}>
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}
@@ -278,6 +291,14 @@ const ContentDetails = () => {
                     mr: 2
                   }}
                 />
+                {content.creatorName && (
+                  <Box display="flex" alignItems="center">
+                    <Person fontSize="small" sx={{ color: '#5F4B8B', mr: 0.5 }} />
+                    <Typography variant="body2" color="text.secondary">
+                      Created by: {content.creatorName}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Box>
             <Box>
@@ -437,13 +458,24 @@ const ContentDetails = () => {
                 borderRadius: '8px',
                 overflow: 'hidden',
                 maxWidth: '100%',
-                maxHeight: '400px',
+                textAlign: 'center'
               }}
             >
               <img
                 src={parsedContent.backgroundImage}
                 alt="Scenario background"
-                style={{ width: '100%', objectFit: 'contain' }}
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: '400px', 
+                  objectFit: 'contain',
+                  border: '1px solid #eee',
+                  borderRadius: '8px'
+                }}
+                onError={(e) => {
+                  console.error("Error loading image:", e);
+                  e.target.onerror = null;
+                  e.target.src = "https://via.placeholder.com/800x450?text=Image+Not+Available";
+                }}
               />
             </Box>
           </Paper>

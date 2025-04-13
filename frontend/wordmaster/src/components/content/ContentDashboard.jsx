@@ -39,6 +39,7 @@ const ContentDashboard = () => {
   });
   const [classrooms, setClassrooms] = useState([]);
   const [selectedClassroom, setSelectedClassroom] = useState('all');
+  const [selectedTimeFrame, setSelectedTimeFrame] = useState('all');
   const [loadingClassrooms, setLoadingClassrooms] = useState(false);
 
   useEffect(() => {
@@ -95,28 +96,36 @@ const ContentDashboard = () => {
       
       if (selectedClassroom !== 'all') {
         data = await contentService.getContentByClassroom(selectedClassroom, token);
-        
-        if (tab === 1) {
-          data = data.filter(item => item.published);
-        } else if (tab === 2) {
-          data = data.filter(item => !item.published);
-        }
       } else {
-        switch (tab) {
-          case 0: // All content
-            data = await contentService.getContentByCreator(user.id, token);
-            break;
-          case 1: // Published content
-            data = await contentService.getContentByCreator(user.id, token);
-            data = data.filter(item => item.published);
-            break;
-          case 2: // Drafts
-            data = await contentService.getContentByCreator(user.id, token);
-            data = data.filter(item => !item.published);
-            break;
-          default:
-            data = [];
-        }
+        data = await contentService.getContentByCreator(user.id, token);
+      }
+      
+      // Apply tab filters (published/drafts)
+      if (tab === 1) {
+        data = data.filter(item => item.published);
+      } else if (tab === 2) {
+        data = data.filter(item => !item.published);
+      }
+      
+      // Apply time frame filters
+      const now = new Date();
+      if (selectedTimeFrame !== 'all') {
+        data = data.filter(item => {
+          const createdAt = new Date(item.createdAt);
+          switch (selectedTimeFrame) {
+            case 'week':
+              // Last 7 days
+              return (now - createdAt) <= 7 * 24 * 60 * 60 * 1000;
+            case 'month':
+              // Last 30 days
+              return (now - createdAt) <= 30 * 24 * 60 * 60 * 1000;
+            case 'year':
+              // Current year
+              return createdAt.getFullYear() === now.getFullYear();
+            default:
+              return true;
+          }
+        });
       }
       
       setContent(data);
@@ -130,7 +139,7 @@ const ContentDashboard = () => {
 
   useEffect(() => {
     loadContent();
-  }, [selectedClassroom]);
+  }, [selectedClassroom, selectedTimeFrame]);
 
   const handleTabChange = (event, newValue) => {
     setTab(newValue);
@@ -247,7 +256,7 @@ const ContentDashboard = () => {
         </Box>
 
         <Grid container spacing={3} mb={3}>
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={6}>
             <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', backgroundColor: 'white' }}>
               <Tabs
                 value={tab}
@@ -277,7 +286,8 @@ const ContentDashboard = () => {
               </Tabs>
             </Paper>
           </Grid>
-          <Grid item xs={12} md={4}>
+          
+          <Grid item xs={12} md={3}>
             <FormControl fullWidth variant="outlined">
               <InputLabel>Filter by Classroom</InputLabel>
               <Select
@@ -292,6 +302,28 @@ const ContentDashboard = () => {
                   </MenuItem>
                 ))}
               </Select>
+              <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'text.secondary' }}>
+                Filter to view content specific to a classroom
+              </Typography>
+            </FormControl>
+          </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth variant="outlined">
+              <InputLabel>Time Period</InputLabel>
+              <Select
+                value={selectedTimeFrame}
+                onChange={(e) => setSelectedTimeFrame(e.target.value)}
+                label="Time Period"
+              >
+                <MenuItem value="all">All Time</MenuItem>
+                <MenuItem value="week">Last 7 Days</MenuItem>
+                <MenuItem value="month">Last 30 Days</MenuItem>
+                <MenuItem value="year">This Year</MenuItem>
+              </Select>
+              <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'text.secondary' }}>
+                Filter by when content was created
+              </Typography>
             </FormControl>
           </Grid>
         </Grid>

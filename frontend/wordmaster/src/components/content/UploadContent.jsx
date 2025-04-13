@@ -24,12 +24,17 @@ import {
   ListItemText,
   ListItemSecondaryAction
 } from '@mui/material';
-import { ArrowBack, Upload, Save, Add, Delete, Image } from '@mui/icons-material';
+import { ArrowBack, Upload, Save, Add, Delete, Image as ImageIcon } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
 import PublishConfirmation from './PublishConfirmation';
 
-const studentGroupSizes = [10, 20, 30, 40, 50];
+// Update group sizes to match SRS requirements
+const studentGroupSizes = [
+  { value: 5, label: "Small Group (2-5 students)" },
+  { value: 10, label: "Medium Group (6-10 students)" },
+  { value: 20, label: "Large Group (11-20 students)" }
+];
 const turnTimes = [15, 30, 45, 60, 90, 120];
 const turnCyclesOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -53,7 +58,7 @@ const UploadContent = () => {
 
   // Specific scenario settings
   const [scenarioSettings, setScenarioSettings] = useState({
-    studentsPerGroup: 10,
+    studentsPerGroup: 5, // Default to small group
     roles: [],
     timePerTurn: 30,
     wordBank: [],
@@ -423,8 +428,8 @@ const UploadContent = () => {
                   label="Number of Students per Group"
                 >
                   {studentGroupSizes.map((size) => (
-                    <MenuItem key={size} value={size}>
-                      {size} students
+                    <MenuItem key={size.value} value={size.value}>
+                      {size.label}
                     </MenuItem>
                   ))}
                 </Select>
@@ -594,11 +599,15 @@ const UploadContent = () => {
             Background Image
           </Typography>
 
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Choose an image that represents your scenario context (e.g., Airport, Classroom, Office, Café, Hospital).
+          </Typography>
+
           <Box sx={{ mb: 2 }}>
             <Button
               variant="outlined"
               component="label"
-              startIcon={<Image />}
+              startIcon={<ImageIcon />}
               sx={{
                 borderColor: '#5F4B8B',
                 color: '#5F4B8B',
