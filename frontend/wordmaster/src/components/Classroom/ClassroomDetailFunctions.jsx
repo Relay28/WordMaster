@@ -5,10 +5,12 @@ import {
   getClassroomDetails, 
   getClassroomMembers,
   updateClassroom,
-  deleteClassroom
+  deleteClassroom,
+  removeStudentFromClassroom,
 } from '../utils/classroomService';
 
 export const useClassroomDetails = (authChecked, user, getToken) => {
+
   const { classroomId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,32 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     name: '',
     description: ''
   });
-
+  const handleRemoveStudent = async (studentId) => {
+    if (!window.confirm("Are you sure you want to remove this student from the classroom?")) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      await removeStudentFromClassroom(getToken(), classroomId, studentId);
+      
+      // Update members list by filtering out the removed student
+      setMembers(prev => prev.filter(member => member.id !== studentId));
+      
+      // Update student count in classroom data
+      setClassroom(prev => ({
+        ...prev,
+        studentCount: Math.max(0, prev.studentCount - 1)
+      }));
+      
+      setError(null);
+    } catch (err) {
+      setError(err.message || 'Failed to remove student from classroom');
+      console.error('Error removing student:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     const fetchClassroomData = async () => {
       if (authChecked && user && getToken()) {
@@ -49,6 +76,8 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
 
     fetchClassroomData();
   }, [authChecked, user, getToken, classroomId]);
+
+  
 
   const handleUpdateClassroom = async () => {
     try {
@@ -107,6 +136,7 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     }));
   };
 
+
   return {
     loading,
     error,
@@ -116,9 +146,10 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     updatedData,
     setEditMode,
     handleDataChange,
+    handleRemoveStudent,
     handleUpdateClassroom,
     handleDeleteClassroom,
     isTeacher: user?.role === "USER_TEACHER",
-    isClassroomTeacher: user?.id === classroom?.teacher?.id
+    isClassroomTeacher: user?.role === classroom?.teacher?.role
   };
 };

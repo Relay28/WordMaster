@@ -16,7 +16,36 @@ export const getUserClassrooms = async (token) => {
     throw error;
   }
 };
+// Add this function to your classroomService.js file
 
+/**
+ * Removes a student from a classroom
+ * @param {string} token - Authentication token
+ * @param {number} classroomId - The ID of the classroom
+ * @param {number} studentId - The ID of the student to remove
+ * @returns {Promise} - Promise that resolves when student is removed
+ */
+export const removeStudentFromClassroom = async (token, classroomId, studentId) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/classrooms/${classroomId}/members/${studentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      console.log(response)
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to remove student from classroom');
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error removing student from classroom:', error);
+    throw error;
+  }
+};
 
 export const createClassroom = async (token, classroomData) => {
   try {

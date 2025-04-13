@@ -39,6 +39,16 @@ public class ClassroomController {
         return ResponseEntity.ok(classroomService.enrollStudent(authentication, enrollmentCode));
     }
 
+    // Add this endpoint to the ClassroomController class
+    @DeleteMapping("/{classroomId}/members/{studentId}")
+    public ResponseEntity<Void> removeStudentFromClassroom(
+            @PathVariable Long classroomId,
+            @PathVariable Long studentId,
+            Authentication authentication) {
+        classroomService.removeStudentFromClassroom(authentication, classroomId, studentId);
+        return ResponseEntity.noContent().build();
+    }
+
 
 
 

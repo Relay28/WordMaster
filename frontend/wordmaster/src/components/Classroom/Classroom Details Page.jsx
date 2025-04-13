@@ -10,6 +10,7 @@ import {
   ListItem,
   ListItemAvatar,
   ListItemText,
+  ListItemSecondaryAction,
   Divider,
   CircularProgress,
   Alert,
@@ -19,9 +20,10 @@ import {
   Container,
   Grid,
   Tabs,
-  Tab
+  Tab,
+  Tooltip
 } from '@mui/material';
-import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useClassroomDetails } from './ClassroomDetailFunctions';
 import { useNavigate } from 'react-router-dom';
@@ -41,6 +43,7 @@ const ClassroomDetailsPage = () => {
     handleDataChange,
     handleUpdateClassroom,
     handleDeleteClassroom,
+    handleRemoveStudent,
     isTeacher,
     isClassroomTeacher
   } = useClassroomDetails(authChecked, user, getToken);
@@ -345,6 +348,21 @@ const ClassroomDetailsPage = () => {
                         primary={`${member.fname} ${member.lname}`}
                         secondary="Student"
                       />
+                      {isClassroomTeacher && (
+                        <ListItemSecondaryAction>
+                          <Tooltip title="Remove student">
+                            <IconButton 
+                              edge="end" 
+                              aria-label="remove" 
+                              onClick={() => handleRemoveStudent(member.id)}
+                              color="error"
+                              size="large"
+                            >
+                              <PersonRemove />
+                            </IconButton>
+                          </Tooltip>
+                        </ListItemSecondaryAction>
+                      )}
                     </ListItem>
                   ))
                 ) : (
