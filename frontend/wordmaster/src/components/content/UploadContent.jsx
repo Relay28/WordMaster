@@ -12,9 +12,6 @@ import {
   Grid,
   MenuItem,
   IconButton,
-  Divider,
-  FormControlLabel,
-  Switch,
   Select,
   Chip,
   InputLabel,
@@ -308,10 +305,10 @@ const UploadContent = () => {
       {/* Header */}
       <Box sx={{
         backgroundColor: 'white',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         py: 2,
         px: { xs: 2, md: 6 },
-        position: 'sticky', // Keeps the header sticky at the top
+        position: 'sticky',
         top: 0,
         zIndex: 1100
       }}>
@@ -328,7 +325,7 @@ const UploadContent = () => {
             <Button
               variant="outlined"
               startIcon={<Save />}
-              onClick={() => handleSubmit(false)} // Pass false for draft
+              onClick={() => handleSubmit(false)}
               disabled={loading}
               sx={{
                 borderColor: '#5F4B8B',
@@ -336,10 +333,11 @@ const UploadContent = () => {
                 mr: 2,
                 '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
                 textTransform: 'none',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                px: 3
               }}
             >
-              Save as Draft
+              Save Draft
             </Button>
             <Button
               variant="contained"
@@ -365,18 +363,17 @@ const UploadContent = () => {
       <Container maxWidth="lg" sx={{
         py: 4,
         width: '100%',
-        mb: 4,
-        overflow: 'visible', // Allow content to flow naturally
-        height: 'auto' // Remove any height restrictions
+        mb: 4
       }}>
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error" sx={{ mb: 3, borderRadius: '8px' }}>
             {error}
           </Alert>
         )}
 
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mb: 4, backgroundColor: 'white' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3}>
+        {/* Scenario Details */}
+        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, mb: 3, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
             Scenario Details
           </Typography>
 
@@ -390,7 +387,7 @@ const UploadContent = () => {
                 onChange={handleInputChange}
                 required
                 variant="outlined"
-                placeholder="Enter a title for your scenario"
+                placeholder="Enter a descriptive title for your scenario"
                 sx={{ mb: 2 }}
               />
             </Grid>
@@ -405,27 +402,31 @@ const UploadContent = () => {
                 variant="outlined"
                 multiline
                 rows={3}
-                placeholder="Provide a brief description of this scenario"
-                sx={{ mb: 2 }}
+                placeholder="Describe the context and purpose of this scenario"
+                sx={{ mb: 1 }}
               />
             </Grid>
           </Grid>
         </Paper>
 
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mb: 4, backgroundColor: 'white' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3}>
+        {/* Group Settings */}
+        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, mb: 3, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
             Group Settings
           </Typography>
-
+          
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                <InputLabel>Number of Students per Group</InputLabel>
+            {/* Group Size Section */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" fontWeight="medium" mb={1.5} color="#666">
+                Group Size
+              </Typography>
+              <FormControl fullWidth variant="outlined" sx={{ mb: 3 }}>
                 <Select
                   name="studentsPerGroup"
                   value={scenarioSettings.studentsPerGroup}
                   onChange={handleScenarioSettingChange}
-                  label="Number of Students per Group"
+                  displayEmpty
                 >
                   {studentGroupSizes.map((size) => (
                     <MenuItem key={size.value} value={size.value}>
@@ -434,18 +435,25 @@ const UploadContent = () => {
                   ))}
                 </Select>
               </FormControl>
+              
+              <Box sx={{ height: '1px', bgcolor: '#f0f0f0', width: '100%', my: 2 }} />
             </Grid>
-
+            
+            {/* Role Assignment Section */}
             <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight="medium" mb={1}>
-                Custom Roles
+              <Typography variant="subtitle1" fontWeight="medium" mb={1.5} color="#666">
+                Role Assignment
               </Typography>
+              <Typography variant="body2" color="text.secondary" mb={2}>
+                Add roles that students will play in the conversation scenario.
+              </Typography>
+              
               <Box display="flex" alignItems="center" mb={2}>
                 <TextField
                   fullWidth
                   variant="outlined"
-                  label="Add a role"
-                  placeholder="E.g., Mage, Warrior, Healer"
+                  label="Add Role"
+                  placeholder="E.g., Customer, Waiter, Manager"
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
                   sx={{ mr: 1 }}
@@ -462,11 +470,11 @@ const UploadContent = () => {
                     '&:hover': { backgroundColor: '#4a3a6d' },
                   }}
                 >
-                  Add Role
+                  Add
                 </Button>
               </Box>
-
-              <Box sx={{ mb: 2 }}>
+              
+              <Box sx={{ mb: 2, minHeight: '60px', p: 2, bgcolor: '#fafafa', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
                 {scenarioSettings.roles.length > 0 ? (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {scenarioSettings.roles.map((role, index) => (
@@ -477,14 +485,15 @@ const UploadContent = () => {
                         sx={{
                           backgroundColor: '#f0edf5',
                           color: '#5F4B8B',
-                          m: 0.5
+                          m: 0.5,
+                          fontWeight: 500
                         }}
                       />
                     ))}
                   </Box>
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    No roles added yet. Students will be assigned roles randomly.
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center' }}>
+                    No roles added yet. Please add at least one role.
                   </Typography>
                 )}
               </Box>
@@ -492,20 +501,21 @@ const UploadContent = () => {
           </Grid>
         </Paper>
 
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mb: 4, backgroundColor: 'white' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3}>
+        {/* Game Settings */}
+        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, mb: 3, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
             Game Settings
           </Typography>
 
           <Grid container spacing={3}>
             <Grid item xs={12} md={6}>
               <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                <InputLabel>Time per Turn (Seconds)</InputLabel>
+                <InputLabel>Time per Turn</InputLabel>
                 <Select
                   name="timePerTurn"
                   value={scenarioSettings.timePerTurn}
                   onChange={handleScenarioSettingChange}
-                  label="Time per Turn (Seconds)"
+                  label="Time per Turn"
                 >
                   {turnTimes.map((time) => (
                     <MenuItem key={time} value={time}>
@@ -518,16 +528,16 @@ const UploadContent = () => {
 
             <Grid item xs={12} md={6}>
               <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                <InputLabel>Turn Cycles</InputLabel>
+                <InputLabel>Number of Turns</InputLabel>
                 <Select
                   name="turnCycles"
                   value={scenarioSettings.turnCycles}
                   onChange={handleScenarioSettingChange}
-                  label="Turn Cycles"
+                  label="Number of Turns"
                 >
                   {turnCyclesOptions.map((cycles) => (
                     <MenuItem key={cycles} value={cycles}>
-                      {cycles} {cycles === 1 ? 'cycle' : 'cycles'}
+                      {cycles} {cycles === 1 ? 'turn' : 'turns'}
                     </MenuItem>
                   ))}
                 </Select>
@@ -536,8 +546,9 @@ const UploadContent = () => {
           </Grid>
         </Paper>
 
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mb: 4, backgroundColor: 'white' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3}>
+        {/* Word Bank */}
+        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, mb: 3, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
             Word Bank
           </Typography>
 
@@ -545,8 +556,8 @@ const UploadContent = () => {
             <TextField
               fullWidth
               variant="outlined"
-              label="Add a word"
-              placeholder="Enter a word for the word bank"
+              label="Add Word"
+              placeholder="Enter a word students will need to use"
               value={newWord}
               onChange={(e) => setNewWord(e.target.value)}
               sx={{ mr: 1 }}
@@ -563,12 +574,12 @@ const UploadContent = () => {
                 '&:hover': { backgroundColor: '#4a3a6d' },
               }}
             >
-              Add Word
+              Add
             </Button>
           </Box>
 
           {scenarioSettings.wordBank.length > 0 ? (
-            <List>
+            <List sx={{ maxHeight: '300px', overflow: 'auto' }}>
               {scenarioSettings.wordBank.map((word, index) => (
                 <ListItem
                   key={index}
@@ -580,7 +591,7 @@ const UploadContent = () => {
                 >
                   <ListItemText primary={word} />
                   <ListItemSecondaryAction>
-                    <IconButton edge="end" onClick={() => handleDeleteWord(index)}>
+                    <IconButton edge="end" onClick={() => handleDeleteWord(index)} color="error">
                       <Delete />
                     </IconButton>
                   </ListItemSecondaryAction>
@@ -588,22 +599,23 @@ const UploadContent = () => {
               ))}
             </List>
           ) : (
-            <Typography variant="body2" color="text.secondary">
-              No words added to the word bank yet. Students will need to come up with their own words.
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 1 }}>
+              Word bank is empty. Students will need to come up with their own vocabulary.
             </Typography>
           )}
         </Paper>
 
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, backgroundColor: 'white' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3}>
+        {/* Background Image */}
+        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
             Background Image
           </Typography>
 
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Choose an image that represents your scenario context (e.g., Airport, Classroom, Office, Café, Hospital).
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Select an image that represents your scenario context (e.g., Airport, Classroom, Office, Café).
           </Typography>
 
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
             <Button
               variant="outlined"
               component="label"
@@ -613,10 +625,11 @@ const UploadContent = () => {
                 color: '#5F4B8B',
                 '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
                 textTransform: 'none',
-                borderRadius: '8px'
+                borderRadius: '8px',
+                py: 1
               }}
             >
-              Upload Background Image
+              Upload Image
               <input
                 type="file"
                 hidden
@@ -624,20 +637,21 @@ const UploadContent = () => {
                 onChange={handleImageChange}
               />
             </Button>
+            
+            <Typography variant="caption" color="text.secondary">
+              Maximum size: 5MB. Recommended size: 1920x1080px
+            </Typography>
           </Box>
-
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-            Upload an image to use as the scenario background. Maximum size: 5MB. Images will be resized if needed.
-          </Typography>
 
           {imagePreview && (
             <Box
               sx={{
-                mt: 2,
+                mt: 3,
                 borderRadius: '8px',
                 overflow: 'hidden',
                 maxWidth: '100%',
                 maxHeight: '300px',
+                border: '1px solid #e0e0e0',
               }}
             >
               <img
@@ -647,10 +661,6 @@ const UploadContent = () => {
               />
             </Box>
           )}
-
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-            Upload an image to use as the scenario background. Recommended size: 1920x1080px.
-          </Typography>
         </Paper>
       </Container>
 

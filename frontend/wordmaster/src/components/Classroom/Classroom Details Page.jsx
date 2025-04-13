@@ -159,7 +159,7 @@ const ClassroomDetailsPage = () => {
         px: { xs: 2, md: 6 }
       }}>
         <Box display="flex" alignItems="center">
-          <IconButton onClick={() => navigate(-1)} sx={{ mr: 2 }}>
+          <IconButton onClick={() => navigate('/homepage')} sx={{ mr: 2 }}> 
             <ArrowBack />
           </IconButton>
           <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
