@@ -86,9 +86,10 @@ const SetupPage = () => {
       justifyContent: 'center',
       alignItems: 'center',
       minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
+      backgroundColor: '#f9f9f9',
+      flexDirection: 'row-reverse' // This will reverse the order of the boxes
     }}>
-      {/* Left Section - Image (Same as login) */}
+      {/* Right Section - Image (Same as login) */}
       <Box sx={{
         width: '40%',
         backgroundImage: 'url(your-image-url.jpg)',
@@ -99,7 +100,7 @@ const SetupPage = () => {
         }
       }} />
 
-      {/* Right Section - Form */}
+      {/* Left Section - Form */}
       <Box sx={{
         width: { xs: '100%', md: '60%' },
         display: 'flex',
