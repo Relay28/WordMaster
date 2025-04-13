@@ -62,6 +62,7 @@ const Login = () => {
           id: response.data.id,
           email: response.data.email,
           fname: response.data.fname,
+          profilePicture: response.profilePicture,
           lname: response.data.lname,
           role: response.data.role
         }));
