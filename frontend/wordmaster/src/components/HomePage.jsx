@@ -9,6 +9,7 @@ const HomePage = () => {
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState('STUDENT');
   const [userName, setUserName] = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
   
   useEffect(() => {
     // Check if user is logged in
@@ -21,6 +22,11 @@ const HomePage = () => {
     // Set user data directly from the utility function
     setUserRole(user.role || 'USER_STUDENT');
     setUserName(`${user.fname || ''} ${user.lname || ''}`);
+    
+    // Set profile picture if available
+    if (user.profilePicture) {
+      setProfilePicture(user.profilePicture);
+    }
   }, [navigate]);
 
   const handleLogout = () => {
@@ -35,7 +41,11 @@ const HomePage = () => {
         
         <div className="header-right">
           <span className="role-indicator">{userRole}</span> 
-          <img src={profileIcon} alt="Profile" className="profile-icon" />
+          <img 
+            src={profilePicture || profileIcon} 
+            alt="Profile" 
+            className="profile-icon" 
+          />
           <button 
             onClick={handleLogout}
             className="logout-btn"

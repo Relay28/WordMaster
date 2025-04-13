@@ -128,7 +128,8 @@ public class MicrosoftAuthService {
                 user.getEmail(),
                 user.getFname(),
                 user.getLname(),
-                user.getRole()
+                user.getRole(),
+                    user.getProfilePicture()
             );
         } catch (RestClientException e) {
             logger.error("Error during Microsoft authentication", e);
@@ -318,7 +319,8 @@ public class MicrosoftAuthService {
                 user.getEmail(),
                 user.getFname(),
                 user.getLname(),
-                user.getRole()
+                user.getRole(),
+                    user.getProfilePicture()
             );
         } catch (Exception e) {
             logger.error("Error processing user information", e);
