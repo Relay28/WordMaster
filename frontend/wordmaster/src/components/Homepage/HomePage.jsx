@@ -20,9 +20,10 @@ import {
   Alert,
   Menu,
   MenuItem,
-  ListItemIcon
+  ListItemIcon,
+  Snackbar
 } from "@mui/material";
-import { Close, ExitToApp, Add, Class, Person } from "@mui/icons-material";
+import { Close, ExitToApp, Add, Class, Person, CheckCircle } from "@mui/icons-material";
 import { useUserAuth } from '../context/UserAuthContext';
 import { useHomePage } from './HomePageFunctions';
 
@@ -39,19 +40,23 @@ const HomePage = () => {
     classrooms,
     error,
     anchorEl,
+    joinSuccess, 
+    createSuccess,  
     
     // Handlers
     setJoinClassOpen,
     setCreateClassOpen, // Add this
     setClassCode,
     setClassName, // Add this
+    setJoinSuccess,  // Add this
+    setCreateSuccess,  // Add this
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
     handleLogout,
     handleJoinClass,
     handleCreateClass, // Add this
-    
+
     // Derived values
     displayName,
     roleDisplay,
@@ -306,6 +311,61 @@ const HomePage = () => {
   onChange={(e) => setClassName(e.target.value)}
   onSubmit={handleCreateClass}
 />
+
+    {/* Success Snackbars */}
+    <Snackbar
+      open={joinSuccess}
+      autoHideDuration={2000} // 2 seconds
+      onClose={() => setJoinSuccess(false)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Position at bottom right
+      sx={{ 
+        '& .MuiSnackbar-root': {
+          bottom: '24px !important',
+          right: '24px !important'
+        }
+      }}
+    >
+      <Alert
+        onClose={() => setJoinSuccess(false)}
+        severity="success"
+        icon={<CheckCircle fontSize="inherit" />}
+        sx={{ 
+          width: '100%',
+          backgroundColor: '#4caf50',
+          color: 'white',
+          '& .MuiAlert-icon': { color: 'white' }
+        }}
+      >
+        Successfully joined the class!
+      </Alert>
+    </Snackbar>
+
+    <Snackbar
+      open={createSuccess}
+      autoHideDuration={2000} // 2 seconds
+      onClose={() => setCreateSuccess(false)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Position at bottom right
+      sx={{ 
+        '& .MuiSnackbar-root': {
+          bottom: '24px !important',
+          right: '24px !important'
+        }
+      }}
+    >
+      <Alert
+        onClose={() => setCreateSuccess(false)}
+        severity="success"
+        icon={<CheckCircle fontSize="inherit" />}
+        sx={{ 
+          width: '100%',
+          backgroundColor: '#4caf50',
+          color: 'white',
+          '& .MuiAlert-icon': { color: 'white' }
+        }}
+      >
+        Class created successfully!
+      </Alert>
+    </Snackbar>
     </Box>
   );
 };
@@ -469,6 +529,8 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
       </Button>
     </DialogActions>
   </Dialog>
+
+  
 );
 
 

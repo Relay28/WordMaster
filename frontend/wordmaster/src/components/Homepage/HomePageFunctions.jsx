@@ -1,5 +1,5 @@
 // src/hooks/useHomePage.js
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getUserClassrooms, joinClassroom, createClassroom } from '../utils/classroomService';
@@ -13,6 +13,9 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingClassrooms, setLoadingClassrooms] = useState(false);
   const [classrooms, setClassrooms] = useState([]);
+  const [joinSuccess, setJoinSuccess] = React.useState(false);
+  const [createSuccess, setCreateSuccess] = React.useState(false);
+
   
   const [error, setError] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -97,6 +100,8 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       setJoinClassOpen(false);
       setClassCode("");
       setError(null);
+      setJoinSuccess(true); // Add this after successful join
+      setJoinClassOpen(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to join classroom. Please check the code and try again.');
     } finally {
@@ -119,6 +124,8 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       setCreateClassOpen(false);
       setClassName("");
       setError(null);
+      setCreateSuccess(true); // Add this after successful creation
+    setCreateClassOpen(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create classroom. Please try again.');
     } finally {
@@ -137,12 +144,16 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
     classrooms,
     error,
     anchorEl,
+    joinSuccess,
+    createSuccess,
     
     // Handlers
     setJoinClassOpen,
     setCreateClassOpen,
     setClassCode,
     setClassName,
+    setJoinSuccess,
+    setCreateSuccess,
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
