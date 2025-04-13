@@ -334,7 +334,7 @@ const ClassroomCard = ({ classroom, onClick }) => (
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" mb={3}>
-        Teacher: {classroom.teacherName || 'Unknown Teacher'}
+        Teacher: {classroom.teacher.fname +" "+classroom.teacher.lname || 'Unknown Teacher'}
       </Typography>
       <Button
         fullWidth
