@@ -26,6 +26,7 @@ import {
 import { Close, ExitToApp, Add, Class, Person, CheckCircle } from "@mui/icons-material";
 import { useUserAuth } from '../context/UserAuthContext';
 import { useHomePage } from './HomePageFunctions';
+import logo from '../../assets/WOMS.png'
 
 const HomePage = () => {
   const { authChecked, user, getToken, login, logout } = useUserAuth();
@@ -90,10 +91,20 @@ const HomePage = () => {
         px: { xs: 2, md: 6 }
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
+        <Box display="flex" alignItems="center" gap={4}>
+        <img 
+                src={logo}
+                alt="WordMaster Logo"
+                style={{
+                  height: '50px',
+                  width: 'auto',
+                  objectFit: 'contain'
+                }}
+              />
+          <Typography variant="h5" fontWeight="bold" color="#5F4B8B">
             WordMaster
           </Typography>
-          
+          </Box>
           <Box display="flex" alignItems="center" gap={2}>
             <Box textAlign="right">
               <Typography variant="subtitle2" color="text.secondary">
