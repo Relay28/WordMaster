@@ -39,7 +39,7 @@ public class ContentController {
         return ResponseEntity.ok(contentService.getContentById(id,auth));
     }
 
-    @GetMapping
+    @GetMapping("/creator")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<List<ContentDTO>> getContentByCreator( Authentication auth) {
         return ResponseEntity.ok(contentService.getContentByCreator(auth));
@@ -51,7 +51,7 @@ public class ContentController {
         return ResponseEntity.ok(contentService.getPublishedContent(auth));
     }                       
 
-    @PostMapping
+    @PostMapping("/creator")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<ContentDTO> createContent(
             @RequestBody ContentDTO contentDTO,
