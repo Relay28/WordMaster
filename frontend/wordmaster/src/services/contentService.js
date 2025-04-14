@@ -18,10 +18,11 @@ const contentService = {
     }
   },
 
-  // Get content created by specific user
-  getContentByCreator: async (creatorId, token) => {
+  // Get content created by the authenticated user
+  // Note: No longer requires creatorId parameter as backend uses Authentication object
+  getContentByCreator: async (token) => {
     try {
-      const response = await axios.get(`${API_URL}/api/content/creator/${creatorId}`, {
+      const response = await axios.get(`${API_URL}/api/content/creator`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -61,9 +62,10 @@ const contentService = {
   },
 
   // Create new content
-  createContent: async (contentData, creatorId, token) => {
+  // Note: No longer needs creatorId in URL as backend uses Authentication object
+  createContent: async (contentData, token) => {
     try {
-      const response = await axios.post(`${API_URL}/api/content/creator/${creatorId}`, contentData, {
+      const response = await axios.post(`${API_URL}/api/content/creator`, contentData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -164,8 +166,9 @@ const contentService = {
   },
 
   // Create content for a classroom
-  createContentForClassroom: async (contentData, creatorId, classroomId, token) => {
-    console.log("Creating content for classroom:", classroomId, "creator:", creatorId);
+  // Note: No longer requires creatorId in URL as backend uses Authentication object
+  createContentForClassroom: async (contentData, classroomId, token) => {
+    console.log("Creating content for classroom:", classroomId);
     console.log("Content data being sent:", JSON.stringify(contentData));
     
     try {
@@ -175,7 +178,7 @@ const contentService = {
       }
       
       const response = await axios.post(
-        `${API_URL}/api/content/classroom/${classroomId}/creator/${creatorId}`, 
+        `${API_URL}/api/content/classroom/${classroomId}`, 
         contentData, 
         {
           headers: {

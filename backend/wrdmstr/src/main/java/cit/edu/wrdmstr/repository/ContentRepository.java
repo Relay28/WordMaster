@@ -17,4 +17,6 @@ public interface ContentRepository extends JpaRepository<ContentEntity, Long> {
     // Add new methods for classroom content
     List<ContentEntity> findByClassroom(ClassroomEntity classroom);
     List<ContentEntity> findByClassroomAndPublished(ClassroomEntity classroom, boolean published);
+
+
 }
