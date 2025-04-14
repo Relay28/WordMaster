@@ -14,9 +14,10 @@ import ClassroomDetailsPage from './components/Classroom/Classroom Details Page'
 // Import content components
 import ContentDashboard from './components/content/ContentDashboard';
 import EditContent from './components/content/EditContent';
-import UploadContent from './components/content/UploadContent';
+//import UploadContent from './components/content/UploadContent';
 import ContentDetails from './components/content/ContentDetails';
 import ProtectedTeacherRoute from './components/auth/ProtectedTeacherRoute';
+import  ContentUpload from './components/content/contentUpload/ContentUpload';
 
 const AppRoutes = () => {
   return (
@@ -34,7 +35,7 @@ const AppRoutes = () => {
       {/* Content Management Routes */}
       <Route element={<ProtectedTeacherRoute />}>
         <Route path="/content/dashboard" element={<ContentDashboard />} />
-        <Route path="/content/upload" element={<UploadContent />} />
+        <Route path="/content/upload" element={< ContentUpload />} />
         <Route path="/content/edit/:id" element={<EditContent />} />
         <Route path="/content/:id" element={<ContentDetails />} />
       </Route>
