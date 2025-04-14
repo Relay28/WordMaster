@@ -11,7 +11,6 @@ import {
   StepLabel,
   Button,
   Stack,
-  Snackbar
 } from '@mui/material';
 import ScenarioDetailsForm from './forms/ScenarioDetailsForm';
 import GroupSettingsForm from './forms/GroupSettingsForm';
@@ -40,39 +39,32 @@ const MainContent = ({
 }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [stepErrors, setStepErrors] = useState({});
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
   
   const validateCurrentStep = () => {
     const errors = {};
-    let errorMessage = '';
-    
+    let isValid = true;
+  
     // Step 0: Scenario Details Validation
     if (activeStep === 0) {
       if (!formData.title?.trim()) {
         errors.title = 'Scenario Title is required';
-        errorMessage = 'Scenario Title is required';
+        isValid = false;
       }
       if (!formData.description?.trim()) {
         errors.description = 'Description is required';
-        errorMessage = errorMessage || 'Description is required';
+        isValid = false;
       }
     }
     
     // Step 1: Group Settings Validation
     if (activeStep === 1) {
-      if (!scenarioSettings.studentsPerGroup|| scenarioSettings.studentsPerGroup < 1) {
-        errors.groupSize = 'Valid group size is required';
-        errorMessage = 'Valid group size is required';
+      if (!scenarioSettings.studentsPerGroup || scenarioSettings.studentsPerGroup < 1) {
+        errors.studentsPerGroup = 'Valid group size is required';
+        isValid = false;
       }
-   
-    }
-    
-    // Step 2: Game Settings Validation
-    if (activeStep === 2) {
-      if (!scenarioSettings.timePerTurn || scenarioSettings.timePerTurn < 1) {
-        errors.gameDuration = 'Valid duration is required';
-        errorMessage = 'Valid duration is required';
+      if (!scenarioSettings.roles || scenarioSettings.roles.length < 3) {
+        errors.roles = 'Add at least 3 roles';
+        isValid = false;
       }
     }
     
@@ -80,28 +72,15 @@ const MainContent = ({
     if (activeStep === 3) {
       if (!scenarioSettings.wordBank || scenarioSettings.wordBank.length < 5) {
         errors.wordBank = 'At least 5 words are required';
-        errorMessage = 'At least 5 words are required';
+        isValid = false;
       }
     }
-    
+  
     setStepErrors(errors);
-    
-    if (Object.keys(errors).length > 0) {
-      setSnackbarMessage(errorMessage);
-      setSnackbarOpen(true);
-      return false;
-    }
-    
-    return true;
+    return isValid;
   };
 
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setSnackbarOpen(false);
-  };
-
+  
   const handleNext = () => {
     if (validateCurrentStep()) {
       console.log("Current scenarioSettings:", scenarioSettings);

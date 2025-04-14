@@ -20,7 +20,7 @@ const studentGroupSizes = [
   { value: 20, label: "Large Group (11-20 students)" }
 ];
 
-const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenarioSettingChange }) => {
+const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenarioSettingChange, errors }) => {
   const [newRole, setNewRole] = useState('');
 
   const handleAddRole = () => {
@@ -50,7 +50,7 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
       </Typography>
       </Box>
 
-      <Grid container spacing={15} sx={{ mt: 2 }}>
+      <Grid container spacing={20} sx={{ mt: 2 }}>
         <Grid item xs={12} md={8}>
           <FormControl fullWidth>
             <InputLabel>Number of Students per Group</InputLabel>
@@ -59,16 +59,7 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
               value={scenarioSettings.studentsPerGroup}
               onChange={handleScenarioSettingChange}
               label="Number of Students per Group"
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                  minWidth: '400px',  // Fixed minimum width
-                  width: '100%',      // Responsive width
-                },
-                '& .MuiSelect-select': {
-                  padding: '12px 14px',
-                }
-              }}
+              sx={{ width: '150%' }}
             >
               {studentGroupSizes.map((size) => (
                 <MenuItem key={size.value} value={size.value}>
@@ -79,24 +70,25 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
           </FormControl>
         </Grid>
         
-        <Grid item xs={12} sx={{ mt: -5.8 }}>
+        <Grid item xs={12} sx={{ mt: -5.5 }}>
           <Typography variant="subtitle1" fontWeight="bold" mb={2}>
             Custom Roles
           </Typography>
           
-          <Box display="flex" gap={2} alignItems="center" mb={2}>
+          <Box display="flex" gap={2} alignItems="center" mb={2} sx={{minWidth: 500}}>
             <TextField 
               fullWidth
               variant="outlined"
               label="Add a role"
               placeholder="E.g., Leader, Researcher, Presenter"
+              required
               value={newRole}
               onChange={(e) => setNewRole(e.target.value)}
+              error={!!errors.roles}
+              helperText={errors.roles}
               sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '4px',
-                  height: '52px',
-                }
+                width: "500px", // Fixed width
+                // OR maxWidth: "200px" (flexible but capped)
               }}
             />
             <Button
@@ -106,6 +98,8 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
               sx={{
                 height: '52px',
                 minWidth: '60px',
+                paddingLeft: '40px',
+                paddingRight: '40px',
                 whiteSpace: 'nowrap',
                 backgroundColor: '#5F4B8B',
                 '&:hover': { backgroundColor: '#4a3a6d' },
@@ -117,7 +111,20 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
           
           <Box>
             {scenarioSettings.roles.length > 0 ? (
-              <Box display="flex" flexWrap="wrap" gap={1}>
+              <Box
+                display="grid"
+                gridTemplateColumns="repeat(7, 1fr)" // 7 columns per row
+                gap={1}
+                sx={{
+                  // Responsive fallback for smaller screens
+                  '@media (max-width: 1200px)': {
+                    gridTemplateColumns: 'repeat(4, 1fr)' // 4 columns on smaller screens
+                  },
+                  '@media (max-width: 600px)': {
+                    gridTemplateColumns: 'repeat(2, 1fr)' // 2 columns on mobile
+                  }
+                }}
+              >
                 {scenarioSettings.roles.map((role, index) => (
                   <Chip
                     key={index}

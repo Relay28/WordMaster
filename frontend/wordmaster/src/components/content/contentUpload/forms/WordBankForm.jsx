@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { Add, Delete } from '@mui/icons-material';
 
-const WordBankForm = ({ scenarioSettings, setScenarioSettings }) => {
+const WordBankForm = ({ scenarioSettings, setScenarioSettings, errors }) => {
   const [newWord, setNewWord] = useState('');
 
   const handleAddWord = () => {
@@ -41,6 +41,8 @@ const WordBankForm = ({ scenarioSettings, setScenarioSettings }) => {
           label="Add a word"
           placeholder="Enter a word for the word bank"
           value={newWord}
+          error={!!errors.wordBank}
+            helperText={errors.wordBank}
           onChange={(e) => setNewWord(e.target.value)}
           sx={{ mr: 1 }}
         />
