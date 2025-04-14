@@ -189,7 +189,7 @@ console.log(scenarioSettings)
           </Alert>
         )}
         
-        <form onSubmit={handleSubmit}>
+        <form>
           <Stepper 
             activeStep={activeStep}
             sx={{ 
@@ -272,14 +272,15 @@ console.log(scenarioSettings)
                       backgroundColor: '#4a3a6f'
                     }
                   }}
-                  type="submit"
+                  disabled
                 >
-                  Submit
+                  Next
                 </Button>
               ) : (
                 <Button
                   variant="contained"
                   onClick={handleNext}
+                  type="button"
                   sx={{
                     backgroundColor: '#5F4B8B',
                     color: '#fff',
