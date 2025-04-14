@@ -18,6 +18,7 @@ const ContentUpload = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, getToken } = useUserAuth();
+  console.log("Token Presnet "+getToken())
   
   // Get classroom ID from URL query parameters if it exists
   const queryParams = new URLSearchParams(location.search);
@@ -113,11 +114,11 @@ const ContentUpload = () => {
         contentData: prepareContentData(),
         gameElementConfig: prepareGameConfig()
       };
-      
+      console.log("There is a token "+token)
       // If classroomId exists, create content for that classroom
       if (classroomId) {
         await contentService.createContentForClassroom(
-          dataToSubmit, user.id, classroomId, token
+          dataToSubmit,classroomId, token
         );
         navigate(`/classroom/${classroomId}`, { 
           state: { 

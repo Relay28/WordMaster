@@ -100,7 +100,7 @@ public class ContentController {
         return ResponseEntity.ok(contentService.getPublishedContentByClassroom(classroomId,auth));
     }
 
-    @PostMapping("/classroom/{classroomId}/creator/{creatorId}")
+    @PostMapping("/classroom/{classroomId}")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<ContentDTO> createContentForClassroom(
             @RequestBody ContentDTO contentDTO,

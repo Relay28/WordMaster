@@ -61,19 +61,16 @@ const MainContent = ({
     
     // Step 1: Group Settings Validation
     if (activeStep === 1) {
-      if (!scenarioSettings.groupSize || scenarioSettings.groupSize < 1) {
+      if (!scenarioSettings.studentsPerGroup|| scenarioSettings.studentsPerGroup < 1) {
         errors.groupSize = 'Valid group size is required';
         errorMessage = 'Valid group size is required';
       }
-      if (!scenarioSettings.teamCount || scenarioSettings.teamCount < 1) {
-        errors.teamCount = 'Valid team count is required';
-        errorMessage = errorMessage || 'Valid team count is required';
-      }
+   
     }
     
     // Step 2: Game Settings Validation
     if (activeStep === 2) {
-      if (!scenarioSettings.gameDuration || scenarioSettings.gameDuration < 1) {
+      if (!scenarioSettings.timePerTurn || scenarioSettings.timePerTurn < 1) {
         errors.gameDuration = 'Valid duration is required';
         errorMessage = 'Valid duration is required';
       }
@@ -107,6 +104,8 @@ const MainContent = ({
 
   const handleNext = () => {
     if (validateCurrentStep()) {
+      console.log("Current scenarioSettings:", scenarioSettings);
+      console.log("CURRENTSTEP+"+activeStep)
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
       setStepErrors({}); // Clear errors when moving to next step
     }
@@ -116,8 +115,9 @@ const MainContent = ({
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
     setStepErrors({}); // Clear errors when going back
   };
-
+console.log(scenarioSettings)
   const getStepContent = (step) => {
+    console.log("STEP"+ step)
     switch (step) {
       case 0:
         return (
