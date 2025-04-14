@@ -1,5 +1,5 @@
 // src/pages/HomePage.js
-import React from 'react';
+import React, {useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box,
@@ -21,7 +21,8 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  Snackbar
+  Snackbar,
+  Pagination
 } from "@mui/material";
 import { Close, ExitToApp, Add, Class, Person, CheckCircle } from "@mui/icons-material";
 import { useUserAuth } from '../context/UserAuthContext';
@@ -67,6 +68,10 @@ const HomePage = () => {
   const navigate = useNavigate();
  console.log(isTeacher)
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const classesPerPage = 6; // Number of classes to show per page
+
   if (!authChecked || loadingProfile) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
       <CircularProgress />
@@ -76,6 +81,13 @@ const HomePage = () => {
 
   if (!user) return null;
 
+
+  // Calculate pagination
+  const indexOfLastClass = currentPage * classesPerPage;
+  const indexOfFirstClass = indexOfLastClass - classesPerPage;
+  const currentClasses = classrooms.slice(indexOfFirstClass, indexOfLastClass);
+  const totalPages = Math.ceil(classrooms.length / classesPerPage);
+  
   return (
     <Box sx={{ 
       display: 'flex',
@@ -287,16 +299,39 @@ const HomePage = () => {
             </Button>
           </Box>
         ) : (
+          <>
           <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={3}>
-              {classrooms.map((classroom) => (
-                <ClassroomCard 
-                  key={classroom.id} 
-                  classroom={classroom}
-                  onClick={() => navigate(`/classroom/${classroom.id}`)}
-                />
-              ))}
+          {currentClasses.map((classroom) => (
+            <ClassroomCard 
+              key={classroom.id} 
+              classroom={classroom}
+              onClick={() => navigate(`/classroom/${classroom.id}`)}
+            />
+          ))}
+        </Box>
+        
+        {/* Pagination controls */}
+        {classrooms.length > classesPerPage && (
+          <Box display="flex" justifyContent="center" mt={4}>
+            <Pagination
+              count={totalPages}
+              page={currentPage}
+              onChange={(event, page) => setCurrentPage(page)}
+              color="primary"
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  color: '#5F4B8B',
+                  '&.Mui-selected': {
+                    backgroundColor: '#5F4B8B',
+                    color: 'white'
+                  }
+                }
+              }}
+            />
           </Box>
         )}
+      </>
+    )}
       </Container>
 
       {/* Join Class Dialog */}
