@@ -1,13 +1,19 @@
-
-// forms/GroupSettingsForm.jsx
 import React, { useState } from 'react';
 import { 
-  Paper, Typography, Grid, TextField, Button, Box, 
-  FormControl, InputLabel, Select, MenuItem, IconButton, Paper as RolePaper
+  Box, 
+  Typography, 
+  Grid, 
+  TextField, 
+  Button, 
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem, 
+  IconButton,
+  Chip
 } from '@mui/material';
 import { Add, Delete } from '@mui/icons-material';
 
-// Update group sizes to match SRS requirements
 const studentGroupSizes = [
   { value: 5, label: "Small Group (2-5 students)" },
   { value: 10, label: "Medium Group (6-10 students)" },
@@ -37,20 +43,32 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
   };
 
   return (
-    <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mb: 4, backgroundColor: 'white' }}>
-      <Typography variant="h6" fontWeight="bold" mb={3}>
-        Group Settings
+    <Box sx={{ width: '100%' }}>
+      <Box sx={{ mb: 3 }}>
+      <Typography variant="body2" color="text.secondary" gutterBottom>
+        Configure student groups and roles
       </Typography>
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
+      </Box>
+
+      <Grid container spacing={15} sx={{ mt: 2 }}>
+        <Grid item xs={12} md={8}>
+          <FormControl fullWidth>
             <InputLabel>Number of Students per Group</InputLabel>
             <Select
               name="studentsPerGroup"
               value={scenarioSettings.studentsPerGroup}
               onChange={handleScenarioSettingChange}
               label="Number of Students per Group"
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                  minWidth: '400px',  // Fixed minimum width
+                  width: '100%',      // Responsive width
+                },
+                '& .MuiSelect-select': {
+                  padding: '12px 14px',
+                }
+              }}
             >
               {studentGroupSizes.map((size) => (
                 <MenuItem key={size.value} value={size.value}>
@@ -61,65 +79,64 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
           </FormControl>
         </Grid>
         
-        <Grid item xs={12}>
-          <Typography variant="subtitle1" fontWeight="medium" mb={1}>
+        <Grid item xs={12} sx={{ mt: -5.8 }}>
+          <Typography variant="subtitle1" fontWeight="bold" mb={2}>
             Custom Roles
           </Typography>
-          <Box display="flex" alignItems="center" mb={2}>
+          
+          <Box display="flex" gap={2} alignItems="center" mb={2}>
             <TextField 
               fullWidth
               variant="outlined"
               label="Add a role"
-              placeholder="E.g., Mage, Warrior, Healer"
+              placeholder="E.g., Leader, Researcher, Presenter"
               value={newRole}
               onChange={(e) => setNewRole(e.target.value)}
-              sx={{ mr: 1 }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '4px',
+                  height: '52px',
+                }
+              }}
             />
             <Button
               variant="contained"
               startIcon={<Add />}
               onClick={handleAddRole}
               sx={{
-                backgroundColor: '#5F4B8B',
-                height: '56px',
-                minWidth: '100px',
+                height: '52px',
+                minWidth: '60px',
                 whiteSpace: 'nowrap',
+                backgroundColor: '#5F4B8B',
                 '&:hover': { backgroundColor: '#4a3a6d' },
               }}
             >
-              Add Role
+              Add
             </Button>
           </Box>
           
-          <Box sx={{ mb: 2 }}>
+          <Box>
             {scenarioSettings.roles.length > 0 ? (
-              <Grid container spacing={1}>
+              <Box display="flex" flexWrap="wrap" gap={1}>
                 {scenarioSettings.roles.map((role, index) => (
-                  <Grid item key={index}>
-                    <RolePaper
-                      sx={{
-                        py: 1,
-                        px: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        backgroundColor: '#f0edf5',
-                        borderRadius: '20px',
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ mr: 1 }}>
-                        {role}
-                      </Typography>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDeleteRole(index)}
-                        sx={{ padding: '2px' }}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
-                    </RolePaper>
-                  </Grid>
+                  <Chip
+                    key={index}
+                    label={role}
+                    onDelete={() => handleDeleteRole(index)}
+                    deleteIcon={<span style={{ fontSize: '18px' }}>×</span>}
+                    sx={{
+                      backgroundColor: '#f0edf5',
+                      borderRadius: '16px',
+                      '& .MuiChip-deleteIcon': {
+                        color: '#5F4B8B',
+                        '&:hover': {
+                          color: '#4a3a6d'
+                        }
+                      }
+                    }}
+                  />
                 ))}
-              </Grid>
+              </Box>
             ) : (
               <Typography variant="body2" color="text.secondary">
                 No roles added yet. Students will be assigned roles randomly.
@@ -128,7 +145,7 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
           </Box>
         </Grid>
       </Grid>
-    </Paper>
+    </Box>
   );
 };
 
