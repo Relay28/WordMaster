@@ -114,30 +114,18 @@ const ContentUpload = () => {
         contentData: prepareContentData(),
         gameElementConfig: prepareGameConfig()
       };
+      
       console.log("There is a token "+token)
       // If classroomId exists, create content for that classroom
       if (classroomId) {
-        await contentService.createContentForClassroom(
-          dataToSubmit,classroomId, token
-        );
+        await contentService.createContentForClassroom( dataToSubmit,classroomId, token);
         navigate(`/classroom/${classroomId}`, { 
           state: { 
             message: `Content "${formData.title}" created successfully.`,
             success: true
           }
         });
-      } else {
-        // Otherwise create content normally
-        await contentService.createContent(
-          dataToSubmit, user.id, token
-        );
-        navigate('/content/dashboard', { 
-          state: { 
-            message: `Content "${formData.title}" created successfully.`,
-            success: true
-          }
-        });
-      }
+      } 
       
     } catch (err) {
       console.error("Error creating content:", err);

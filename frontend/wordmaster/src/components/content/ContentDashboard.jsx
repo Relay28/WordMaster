@@ -97,7 +97,7 @@ const ContentDashboard = () => {
       if (selectedClassroom !== 'all') {
         data = await contentService.getContentByClassroom(selectedClassroom, token);
       } else {
-        data = await contentService.getContentByCreator(user.id, token);
+        data = await contentService.getContentByCreator(token);
       }
       
       // Apply tab filters (published/drafts)

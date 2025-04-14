@@ -61,22 +61,7 @@ const contentService = {
     }
   },
 
-  // Create new content
-  // Note: No longer needs creatorId in URL as backend uses Authentication object
-  createContent: async (contentData, token) => {
-    try {
-      const response = await axios.post(`${API_URL}/api/content/creator`, contentData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
+  
   // Update content
   updateContent: async (id, contentData, token) => {
     try {
