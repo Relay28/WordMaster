@@ -1,10 +1,9 @@
 package cit.edu.wrdmstr.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.Date;
+import java.util.List;
 
 
 public class ContentDTO {
@@ -12,16 +11,15 @@ public class ContentDTO {
     private String title;
     private String description;
     private String backgroundTheme;
-    private String contentData;
-    private String gameElementConfig;
+    private boolean published;
+    private Date createdAt;
+    private Date updatedAt;
     private Long creatorId;
     private String creatorName;
     private Long classroomId;
     private String classroomName;
-    private boolean published;
-    private Date createdAt;
-    private Date updatedAt;
-
+    private ContentDataDTO contentData;
+    private GameConfigDTO gameConfig;
 
     public Long getId() {
         return id;
@@ -55,20 +53,28 @@ public class ContentDTO {
         this.backgroundTheme = backgroundTheme;
     }
 
-    public String getContentData() {
-        return contentData;
+    public boolean isPublished() {
+        return published;
     }
 
-    public void setContentData(String contentData) {
-        this.contentData = contentData;
+    public void setPublished(boolean published) {
+        this.published = published;
     }
 
-    public String getGameElementConfig() {
-        return gameElementConfig;
+    public Date getCreatedAt() {
+        return createdAt;
     }
 
-    public void setGameElementConfig(String gameElementConfig) {
-        this.gameElementConfig = gameElementConfig;
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Date getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Date updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public Long getCreatorId() {
@@ -103,27 +109,19 @@ public class ContentDTO {
         this.classroomName = classroomName;
     }
 
-    public boolean isPublished() {
-        return published;
+    public ContentDataDTO getContentData() {
+        return contentData;
     }
 
-    public void setPublished(boolean published) {
-        this.published = published;
+    public void setContentData(ContentDataDTO contentData) {
+        this.contentData = contentData;
     }
 
-    public Date getCreatedAt() {
-        return createdAt;
+    public GameConfigDTO getGameConfig() {
+        return gameConfig;
     }
 
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Date getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Date updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setGameConfig(GameConfigDTO gameConfig) {
+        this.gameConfig = gameConfig;
     }
 }

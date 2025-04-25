@@ -12,8 +12,6 @@ import {
   Divider,
   IconButton,
   Grid,
-  Tabs,
-  Tab,
   List,
   ListItem,
   ListItemText,
@@ -36,21 +34,17 @@ import {
 import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
 
-// Fallback date formatter in case date-fns isn't available
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   try {
-    // Try to use date-fns if available
-    const { format } = require('date-fns');
-    return format(new Date(dateString), 'MMM d, yyyy');
-  } catch (e) {
-    // Fallback to basic JS date formatting
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
     });
+  } catch (e) {
+    return 'N/A';
   }
 };
 
@@ -60,17 +54,8 @@ const ContentDetails = () => {
   const { user, getToken } = useUserAuth();
   
   const [content, setContent] = useState(null);
-  const [parsedContent, setParsedContent] = useState({
-    wordBank: [],
-    roles: [],
-    backgroundImage: null,
-    studentsPerGroup: 10,
-    timePerTurn: 30,
-    turnCycles: 3
-  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     loadContent();
@@ -82,42 +67,12 @@ const ContentDetails = () => {
       const token = await getToken();
       const data = await contentService.getContentById(id, token);
       setContent(data);
-
-      // Parse the JSON data
-      try {
-        let contentData = {};
-        let gameConfig = {};
-        
-        if (data.contentData && data.contentData !== '{}') {
-          contentData = JSON.parse(data.contentData);
-        }
-        
-        if (data.gameElementConfig && data.gameElementConfig !== '{}') {
-          gameConfig = JSON.parse(data.gameElementConfig);
-        }
-        
-        setParsedContent({
-          wordBank: contentData.wordBank || [],
-          roles: contentData.roles || [],
-          backgroundImage: contentData.backgroundImage || null,
-          studentsPerGroup: gameConfig.studentsPerGroup || 10,
-          timePerTurn: gameConfig.timePerTurn || 30,
-          turnCycles: gameConfig.turnCycles || 3
-        });
-      } catch (err) {
-        console.error("Error parsing JSON:", err);
-        setError("Could not parse content data correctly. Some information may be missing.");
-      }
     } catch (err) {
       console.error("Error loading content:", err);
       setError("Failed to load content details.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
   };
 
   const handleDelete = async () => {
@@ -179,15 +134,26 @@ const ContentDetails = () => {
     );
   }
 
+  // Helper function to get image URL
+  const getImageUrl = (imageData) => {
+    if (!imageData) return null;
+    // If it's already a URL or path
+    if (typeof imageData === 'string' && !imageData.startsWith('data:')) {
+      return imageData;
+    }
+    // If it's base64 encoded
+    return imageData;
+  };
+
   return (
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
       minHeight: '100vh',
       backgroundColor: '#f9f9f9',
-      height: '100vh', // Ensure the Box takes the full viewport height
-      overflowY: 'auto', // Enable vertical scrolling
-      overflowX: 'hidden', // Prevent horizontal scrollbar
+      height: '100vh',
+      overflowY: 'auto',
+      overflowX: 'hidden',
       width: '100%'
     }}>
       {/* Header */}
@@ -196,7 +162,7 @@ const ContentDetails = () => {
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         py: 2,
         px: { xs: 2, md: 6 },
-        position: 'sticky', // Make the header sticky
+        position: 'sticky',
         top: 0,
         zIndex: 1100
       }}>
@@ -305,13 +271,13 @@ const ContentDetails = () => {
               <Box display="flex" alignItems="center" mb={1}>
                 <CalendarToday fontSize="small" sx={{ color: '#666', mr: 1 }} />
                 <Typography variant="body2" color="text.secondary">
-                  Created: {content.createdAt ? formatDate(content.createdAt) : 'N/A'}
+                  Created: {formatDate(content.createdAt)}
                 </Typography>
               </Box>
               <Box display="flex" alignItems="center">
                 <Update fontSize="small" sx={{ color: '#666', mr: 1 }} />
                 <Typography variant="body2" color="text.secondary">
-                  Updated: {content.updatedAt ? formatDate(content.updatedAt) : 'N/A'}
+                  Updated: {formatDate(content.updatedAt)}
                 </Typography>
               </Box>
             </Box>
@@ -330,6 +296,7 @@ const ContentDetails = () => {
           )}
         </Paper>
         
+        {/* Game Settings */}
         <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', mb: 4, backgroundColor: 'white' }}>
           <Box p={3}>
             <Typography variant="h6" fontWeight="bold" mb={3}>
@@ -347,7 +314,7 @@ const ContentDetails = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
-                      {parsedContent.studentsPerGroup}
+                      {content.gameConfig?.studentsPerGroup || 'N/A'}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -363,7 +330,7 @@ const ContentDetails = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
-                      {parsedContent.timePerTurn} seconds
+                      {content.gameConfig?.timePerTurn || 'N/A'} seconds
                     </Typography>
                   </CardContent>
                 </Card>
@@ -379,7 +346,7 @@ const ContentDetails = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
-                      {parsedContent.turnCycles}
+                      {content.gameConfig?.turnCycles || 'N/A'}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -388,6 +355,7 @@ const ContentDetails = () => {
           </Box>
         </Paper>
         
+        {/* Roles and Word Bank */}
         <Grid container spacing={4}>
           <Grid item xs={12} md={6}>
             <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, backgroundColor: 'white', height: '100%' }}>
@@ -395,12 +363,12 @@ const ContentDetails = () => {
                 Roles
               </Typography>
               
-              {parsedContent.roles.length > 0 ? (
+              {content.contentData?.roles?.length > 0 ? (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {parsedContent.roles.map((role, index) => (
+                  {content.contentData.roles.map((role, index) => (
                     <Chip
                       key={index}
-                      label={role}
+                      label={role.name}
                       sx={{
                         backgroundColor: '#f0edf5',
                         color: '#5F4B8B',
@@ -423,9 +391,9 @@ const ContentDetails = () => {
                 Word Bank
               </Typography>
               
-              {parsedContent.wordBank.length > 0 ? (
+              {content.contentData?.wordBank?.length > 0 ? (
                 <List dense sx={{ maxHeight: '300px', overflow: 'auto' }}>
-                  {parsedContent.wordBank.map((word, index) => (
+                  {content.contentData.wordBank.map((word, index) => (
                     <ListItem
                       key={index}
                       sx={{
@@ -434,7 +402,7 @@ const ContentDetails = () => {
                         borderRadius: '8px',
                       }}
                     >
-                      <ListItemText primary={word} />
+                      <ListItemText primary={word.word} />
                     </ListItem>
                   ))}
                 </List>
@@ -447,7 +415,8 @@ const ContentDetails = () => {
           </Grid>
         </Grid>
         
-        {parsedContent.backgroundImage && (
+        {/* Background Image */}
+        {content.contentData?.backgroundImage && (
           <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mt: 4, backgroundColor: 'white' }}>
             <Typography variant="h6" fontWeight="bold" mb={3}>
               Background Image
@@ -462,7 +431,7 @@ const ContentDetails = () => {
               }}
             >
               <img
-                src={parsedContent.backgroundImage}
+                src={getImageUrl(content.contentData.backgroundImage)}
                 alt="Scenario background"
                 style={{ 
                   maxWidth: '100%', 

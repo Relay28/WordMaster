@@ -83,19 +83,25 @@ const ContentUpload = () => {
 
   // Prepare data for submission
   const prepareContentData = () => {
-    return JSON.stringify({
-      wordBank: scenarioSettings.wordBank,
-      roles: scenarioSettings.roles,
-      backgroundImage: imagePreview
-    });
+    return {
+      backgroundImage: imagePreview,
+      wordBank: scenarioSettings.wordBank.map((word, index) => ({
+        id: index + 1,
+        word: word
+      })),
+      roles: scenarioSettings.roles.map((role, index) => ({
+        id: index + 1,
+        name: role
+      }))
+    };
   };
 
   const prepareGameConfig = () => {
-    return JSON.stringify({
-      studentsPerGroup: scenarioSettings.studentsPerGroup,
-      timePerTurn: scenarioSettings.timePerTurn,
-      turnCycles: scenarioSettings.turnCycles
-    });
+    return {
+      studentsPerGroup: parseInt(scenarioSettings.studentsPerGroup),
+      timePerTurn: parseInt(scenarioSettings.timePerTurn),
+      turnCycles: parseInt(scenarioSettings.turnCycles)
+    };
   };
 
   // Handle form submission
@@ -112,24 +118,32 @@ const ContentUpload = () => {
       const dataToSubmit = { 
         ...formData,
         contentData: prepareContentData(),
-        gameElementConfig: prepareGameConfig()
+        gameConfig: prepareGameConfig()
       };
       
-      console.log("There is a token "+token)
+      console.log("Submitting data:", dataToSubmit);
+      
       // If classroomId exists, create content for that classroom
       if (classroomId) {
-        await contentService.createContentForClassroom( dataToSubmit,classroomId, token);
+        await contentService.createContentForClassroom(dataToSubmit, classroomId, token);
         navigate(`/classroom/${classroomId}`, { 
           state: { 
             message: `Content "${formData.title}" created successfully.`,
             success: true
           }
         });
-      } 
-      
+      } else {
+        await contentService.createContent(dataToSubmit, token);
+        navigate('/content/dashboard', { 
+          state: { 
+            message: `Content "${formData.title}" created successfully.`,
+            success: true
+          }
+        });
+      }
     } catch (err) {
       console.error("Error creating content:", err);
-      setError("Failed to create content. Please try again.");
+      setError(err.response?.data?.message || "Failed to create content. Please try again.");
     } finally {
       setLoading(false);
     }
