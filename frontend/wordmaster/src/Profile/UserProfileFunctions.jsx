@@ -14,6 +14,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
     firstName: '',
     lastName: '',
     email: '',
+    profilePicture: '',
     currentPassword: '',
     newPassword: '' // Retained in frontend but not sent to backend
   });
@@ -25,18 +26,56 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
     }
   }, [authChecked, user]);
 
+  const uploadProfilePicture = async (file) => {
+    try {
+      setLoading(true);
+      const token = await getToken();
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await axios.post(
+        `http://localhost:8080/api/profile/upload-picture`,
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      setSuccess('Profile picture updated successfully');
+      await fetchUserProfile(); // Refresh profile data to get the new picture
+      setLoading(false);
+      return response.data;
+    } catch (err) {
+      setLoading(false);
+      if (err.response && err.response.data) {
+        setError(err.response.data.error || 'Failed to upload profile picture');
+      } else {
+        setError('An error occurred while uploading. Please try again.');
+      }
+      console.error('Error uploading profile picture:', err);
+    }
+  };
+
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
+      const token = await getToken(); // Make sure to await the token
+      
       const response = await axios.get('http://localhost:8080/api/profile', {
         headers: {
-          Authorization: `Bearer ${getToken()}`
+          Authorization: `Bearer ${token}`
         }
       });
+      
       setFormData({
         firstName: response.data.fname || '',
         lastName: response.data.lname || '',
         email: response.data.email || '',
+        profilePicture: response.data.profilePicture || '',
         currentPassword: '',
         newPassword: '' // Reset new password field when fetching profile
       });
@@ -59,6 +98,8 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
       setLoading(true);
       setError(null);
       setSuccess(null);
+      
+      const token = await getToken(); // Make sure to await the token
 
       // Only include current password in the DTO (renamed to 'password')
       const updateDto = {
@@ -70,7 +111,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
 
       const response = await axios.put('http://localhost:8080/api/profile', updateDto, {
         headers: {
-          Authorization: `Bearer ${getToken()}`
+          Authorization: `Bearer ${token}`
         }
       });
 
@@ -105,9 +146,11 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
       setIsDeactivating(true);
       setError(null);
       
+      const token = await getToken(); // Make sure to await the token
+      
       await axios.delete('http://localhost:8080/api/profile', {
         headers: {
-          Authorization: `Bearer ${getToken()}`
+          Authorization: `Bearer ${token}`
         }
       });
 
@@ -132,8 +175,11 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
     formData,
     setEditMode,
     setDeactivateDialogOpen,
+    setError, // Add this
+    setSuccess, // Add this
     handleChange,
     handleSubmit,
-    handleDeactivate
+    handleDeactivate,
+    uploadProfilePicture // Add this
   };
 };

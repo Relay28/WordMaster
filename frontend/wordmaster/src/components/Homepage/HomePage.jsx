@@ -1,5 +1,5 @@
 // src/pages/HomePage.js
-import React from 'react';
+import React, {useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box,
@@ -20,11 +20,14 @@ import {
   Alert,
   Menu,
   MenuItem,
-  ListItemIcon
+  ListItemIcon,
+  Snackbar,
+  Pagination
 } from "@mui/material";
-import { Close, ExitToApp, Add, Class, Person } from "@mui/icons-material";
+import { Close, ExitToApp, Add, Class, Person, CheckCircle } from "@mui/icons-material";
 import { useUserAuth } from '../context/UserAuthContext';
 import { useHomePage } from './HomePageFunctions';
+import logo from '../../assets/WOMS.png'
 
 const HomePage = () => {
   const { authChecked, user, getToken, login, logout } = useUserAuth();
@@ -39,19 +42,23 @@ const HomePage = () => {
     classrooms,
     error,
     anchorEl,
+    joinSuccess, 
+    createSuccess,  
     
     // Handlers
     setJoinClassOpen,
     setCreateClassOpen, // Add this
     setClassCode,
     setClassName, // Add this
+    setJoinSuccess,  // Add this
+    setCreateSuccess,  // Add this
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
     handleLogout,
     handleJoinClass,
     handleCreateClass, // Add this
-    
+
     // Derived values
     displayName,
     roleDisplay,
@@ -60,6 +67,10 @@ const HomePage = () => {
   } = useHomePage(authChecked, user, getToken, login, logout);
   const navigate = useNavigate();
  console.log(isTeacher)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const classesPerPage = 6; // Number of classes to show per page
 
   if (!authChecked || loadingProfile) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -70,6 +81,13 @@ const HomePage = () => {
 
   if (!user) return null;
 
+
+  // Calculate pagination
+  const indexOfLastClass = currentPage * classesPerPage;
+  const indexOfFirstClass = indexOfLastClass - classesPerPage;
+  const currentClasses = classrooms.slice(indexOfFirstClass, indexOfLastClass);
+  const totalPages = Math.ceil(classrooms.length / classesPerPage);
+  
   return (
     <Box sx={{ 
       display: 'flex',
@@ -85,10 +103,20 @@ const HomePage = () => {
         px: { xs: 2, md: 6 }
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
+        <Box display="flex" alignItems="center" gap={4}>
+        <img 
+                src={logo}
+                alt="WordMaster Logo"
+                style={{
+                  height: '50px',
+                  width: 'auto',
+                  objectFit: 'contain'
+                }}
+              />
+          <Typography variant="h5" fontWeight="bold" color="#5F4B8B">
             WordMaster
           </Typography>
-          
+          </Box>
           <Box display="flex" alignItems="center" gap={2}>
             <Box textAlign="right">
               <Typography variant="subtitle2" color="text.secondary">
@@ -164,44 +192,63 @@ const HomePage = () => {
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-  <Typography variant="h5" fontWeight="bold" color="text.primary">
-    Your Classes
-  </Typography>
-  {isTeacher ? (
-    <Button
-      variant="contained"
-      startIcon={<Add />}
-      onClick={() => setCreateClassOpen(true)}
-      sx={{
-        backgroundColor: '#5F4B8B',
-        '&:hover': { backgroundColor: '#4a3a6d' },
-        textTransform: 'none',
-        borderRadius: '8px',
-        px: 3,
-        py: 1
-      }}
-    >
-      Create Class
-    </Button>
-  ) : (
-    <Button
-      variant="contained"
-      startIcon={<Add />}
-      onClick={() => setJoinClassOpen(true)}
-      sx={{
-        backgroundColor: '#5F4B8B',
-        '&:hover': { backgroundColor: '#4a3a6d' },
-        textTransform: 'none',
-        borderRadius: '8px',
-        px: 3,
-        py: 1
-      }}
-    >
-      Join Class
-    </Button>
-  )}
-</Box>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Typography variant="h5" fontWeight="bold" color="text.primary">
+            Your Classes
+          </Typography>
+          <Box display="flex" gap={2}>
+            {isTeacher && (
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/content/dashboard')}
+                sx={{
+                  borderColor: '#5F4B8B',
+                  color: '#5F4B8B',
+                  '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                Content Dashboard
+              </Button>
+            )}
+            {isTeacher ? (
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setCreateClassOpen(true)}
+                sx={{
+                  backgroundColor: '#5F4B8B',
+                  '&:hover': { backgroundColor: '#4a3a6d' },
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                Create Class
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => setJoinClassOpen(true)}
+                sx={{
+                  backgroundColor: '#5F4B8B',
+                  '&:hover': { backgroundColor: '#4a3a6d' },
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                Join Class
+              </Button>
+            )}
+          </Box>
+        </Box>
         <Divider sx={{ my: 3 }} />
 
         {/* Error message */}
@@ -230,15 +277,15 @@ const HomePage = () => {
             }}
           >
             <Typography variant="h6" color="text.secondary" gutterBottom>
-              You're not enrolled in any classes yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Join a class to get started with WordMaster
-            </Typography>
+      {isTeacher ? "You haven't created any classes yet" : "You're not enrolled in any classes yet"}
+    </Typography>
+    <Typography variant="body2" color="text.secondary" mb={3}>
+      {isTeacher ? "Create a class to get started with WordMaster" : "Join a class to get started with WordMaster"}
+    </Typography>
             <Button
               variant="contained"
               startIcon={<Add />}
-              onClick={() => setJoinClassOpen(true)}
+              onClick={() => isTeacher ? setCreateClassOpen(true) : setJoinClassOpen(true)}
               sx={{
                 backgroundColor: '#5F4B8B',
                 '&:hover': { backgroundColor: '#4a3a6d' },
@@ -248,20 +295,43 @@ const HomePage = () => {
                 py: 1
               }}
             >
-              Join Your First Class
+              {isTeacher ? "Create Your First Class" : "Join Your First Class"}
             </Button>
           </Box>
         ) : (
+          <>
           <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={3}>
-              {classrooms.map((classroom) => (
-                <ClassroomCard 
-                  key={classroom.id} 
-                  classroom={classroom}
-                  onClick={() => navigate(`/classroom/${classroom.id}`)}
-                />
-              ))}
+          {currentClasses.map((classroom) => (
+            <ClassroomCard 
+              key={classroom.id} 
+              classroom={classroom}
+              onClick={() => navigate(`/classroom/${classroom.id}`)}
+            />
+          ))}
+        </Box>
+        
+        {/* Pagination controls */}
+        {classrooms.length > classesPerPage && (
+          <Box display="flex" justifyContent="center" mt={4}>
+            <Pagination
+              count={totalPages}
+              page={currentPage}
+              onChange={(event, page) => setCurrentPage(page)}
+              color="primary"
+              sx={{
+                '& .MuiPaginationItem-root': {
+                  color: '#5F4B8B',
+                  '&.Mui-selected': {
+                    backgroundColor: '#5F4B8B',
+                    color: 'white'
+                  }
+                }
+              }}
+            />
           </Box>
         )}
+      </>
+    )}
       </Container>
 
       {/* Join Class Dialog */}
@@ -287,6 +357,61 @@ const HomePage = () => {
   onChange={(e) => setClassName(e.target.value)}
   onSubmit={handleCreateClass}
 />
+
+    {/* Success Snackbars */}
+    <Snackbar
+      open={joinSuccess}
+      autoHideDuration={2000} // 2 seconds
+      onClose={() => setJoinSuccess(false)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Position at bottom right
+      sx={{ 
+        '& .MuiSnackbar-root': {
+          bottom: '24px !important',
+          right: '24px !important'
+        }
+      }}
+    >
+      <Alert
+        onClose={() => setJoinSuccess(false)}
+        severity="success"
+        icon={<CheckCircle fontSize="inherit" />}
+        sx={{ 
+          width: '100%',
+          backgroundColor: '#4caf50',
+          color: 'white',
+          '& .MuiAlert-icon': { color: 'white' }
+        }}
+      >
+        Successfully joined the class!
+      </Alert>
+    </Snackbar>
+
+    <Snackbar
+      open={createSuccess}
+      autoHideDuration={2000} // 2 seconds
+      onClose={() => setCreateSuccess(false)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Position at bottom right
+      sx={{ 
+        '& .MuiSnackbar-root': {
+          bottom: '24px !important',
+          right: '24px !important'
+        }
+      }}
+    >
+      <Alert
+        onClose={() => setCreateSuccess(false)}
+        severity="success"
+        icon={<CheckCircle fontSize="inherit" />}
+        sx={{ 
+          width: '100%',
+          backgroundColor: '#4caf50',
+          color: 'white',
+          '& .MuiAlert-icon': { color: 'white' }
+        }}
+      >
+        Class created successfully!
+      </Alert>
+    </Snackbar>
     </Box>
   );
 };
@@ -315,7 +440,7 @@ const ClassroomCard = ({ classroom, onClick }) => (
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" mb={3}>
-        Teacher: {classroom.teacherName || 'Unknown Teacher'}
+        Teacher: {classroom.teacher.fname +" "+classroom.teacher.lname || 'Unknown Teacher'}
       </Typography>
       <Button
         fullWidth
@@ -450,6 +575,8 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
       </Button>
     </DialogActions>
   </Dialog>
+
+  
 );
 
 

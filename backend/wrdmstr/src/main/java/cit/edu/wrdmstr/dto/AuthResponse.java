@@ -1,5 +1,6 @@
 package cit.edu.wrdmstr.dto;
 
+import jakarta.persistence.Lob;
 import lombok.*;
 @Data
 @AllArgsConstructor
@@ -12,7 +13,9 @@ public class AuthResponse {
     private String lname;
     private String role;
 
-    public static AuthResponse create(String token, Long id, String email, String fname,String lname, String role) {
+    @Lob
+    private String profilePicture;
+    public static AuthResponse create(String token, Long id, String email, String fname,String lname, String role,String profilePicture) {
         AuthResponse response = new AuthResponse();
         response.setToken(token);
         response.setId(id);
@@ -20,7 +23,16 @@ public class AuthResponse {
         response.setFname(fname);
         response.setLname(lname);
         response.setRole(role);
+        response.setProfilePicture(profilePicture);
         return response;
+    }
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
     }
 
     public String getToken() {

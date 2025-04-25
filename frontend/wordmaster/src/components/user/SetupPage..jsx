@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box,
   Button,
@@ -15,18 +15,48 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useUserAuth } from '../context/UserAuthContext'
+import { useUserAuth } from '../context/UserAuthContext';
+
+// Import the image - adjust the path as needed
+import setupPageImage from '../../assets/Setup.png';
 
 const SetupPage = () => {
-  const [role, setRole] = useState('student'); // Changed to match backend values
+  const [role, setRole] = useState('USER_STUDENT');
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { user, getToken, login } = useUserAuth(); // Get auth context methods
+  const { user, getToken, login } = useUserAuth();
 
-  console.log(role)
+  // Check setup status when component mounts
+  useEffect(() => {
+    const checkSetupStatus = async () => {
+      try {
+        const response = await axios.get(
+          'http://localhost:8080/api/profile/setup/status',
+          {
+            headers: {
+              Authorization: `Bearer ${getToken()}`
+            }
+          }
+        );
+        
+        // If setupNeeded is false, redirect to homepage
+        if (!response.data) {
+          navigate('/homepage');
+        }
+      } catch (err) {
+        console.error('Failed to check setup status:', err);
+        setError('Failed to verify your account status. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSetupStatus();
+  }, [getToken, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -55,15 +85,13 @@ const SetupPage = () => {
 
       // Update both localStorage AND auth context state
       const updatedUser = {
-        ...user, // Keep existing user data
+        ...user,
         fname: response.data.fname,
         lname: response.data.lname,
         role: response.data.role
       };
       
-      // Use the login method from auth context to properly update everything
       login(updatedUser, getToken());
-
       navigate('/homepage');
     } catch (err) {
       console.error('Setup failed:', err);
@@ -80,32 +108,71 @@ const SetupPage = () => {
     },
   });
 
+  // If we're still checking setup status, show loading indicator
+  if (loading && !error) {
+    return (
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
+      }}>
+        <CircularProgress size={40} sx={{ color: '#5F4B8B' }} />
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
+      backgroundColor: '#f9f9f9',
+      flexDirection: 'row-reverse' // Reverse order to have image on right side
     }}>
-      {/* Left Section - Image (Same as login) */}
+      {/* Right Section - Image */}
       <Box sx={{
         width: '40%',
-        backgroundImage: 'url(your-image-url.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        '@media (max-width: 900px)': {
-          display: 'none'
-        }
-      }} />
+        height: '100vh',
+        position: 'relative',
+        overflow: 'hidden',
+        display: { xs: 'none', md: 'block' }, // Hide on small screens
+      }}>
+        {/* Image overlay with gradient */}
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(95, 75, 139, 0.6)', // Purple overlay with opacity
+          zIndex: 1
+        }} />
+        
+        {/* The actual image */}
+        <Box 
+          component="img"
+          src={setupPageImage} // Use the imported image
+          alt="WordMaster Learning"
+          sx={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center'
+          }}
+        />
+        
+  
+      </Box>
 
-      {/* Right Section - Form */}
+      {/* Left Section - Form */}
       <Box sx={{
         width: { xs: '100%', md: '60%' },
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        p: 4,
+        p: 0,
         mx: 'auto'
       }}>
         <Container maxWidth="sm">

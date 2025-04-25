@@ -4,11 +4,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { 
   getClassroomDetails, 
   getClassroomMembers,
-  getClassroomMemberCount,
   updateClassroom,
-  deleteClassroom
+  deleteClassroom,
+  removeStudentFromClassroom,
 } from '../utils/classroomService';
+
 export const useClassroomDetails = (authChecked, user, getToken) => {
+
   const { classroomId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,32 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     name: '',
     description: ''
   });
-
+  const handleRemoveStudent = async (studentId) => {
+    if (!window.confirm("Are you sure you want to remove this student from the classroom?")) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      await removeStudentFromClassroom(getToken(), classroomId, studentId);
+      
+      // Update members list by filtering out the removed student
+      setMembers(prev => prev.filter(member => member.id !== studentId));
+      
+      // Update student count in classroom data
+      setClassroom(prev => ({
+        ...prev,
+        studentCount: Math.max(0, prev.studentCount - 1)
+      }));
+      
+      setError(null);
+    } catch (err) {
+      setError(err.message || 'Failed to remove student from classroom');
+      console.error('Error removing student:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     const fetchClassroomData = async () => {
       if (authChecked && user && getToken()) {
@@ -28,7 +55,6 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
           setLoading(true);
           setError(null);
           
-          // Fetch classroom details
           const classroomData = await getClassroomDetails(getToken(), classroomId);
           setClassroom(classroomData);
           setUpdatedData({
@@ -36,7 +62,6 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
             description: classroomData.description || ''
           });
           
-          // Fetch members if needed (separate endpoint)
           const membersData = await getClassroomMembers(getToken(), classroomId);
           setMembers(membersData);
           
@@ -52,18 +77,34 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     fetchClassroomData();
   }, [authChecked, user, getToken, classroomId]);
 
+  
+
   const handleUpdateClassroom = async () => {
     try {
       setLoading(true);
-      const updatedClassroom = await updateClassroom(
+      
+      // Only send the fields we want to update
+      const updatePayload = {
+        ...(updatedData.name && { name: updatedData.name }),
+        ...(updatedData.description && { description: updatedData.description })
+      };
+
+      // Get the updated fields from the API
+      const updatedFields = await updateClassroom(
         getToken(), 
         classroomId, 
-        { 
-          name: updatedData.name,
-          description: updatedData.description
-        }
+        updatePayload
       );
-      setClassroom(updatedClassroom);
+
+      // Merge the updated fields with the existing classroom data
+      setClassroom(prev => ({
+        ...prev,
+        ...updatedFields,
+        // Ensure we don't overwrite critical fields with null/undefined
+        name: updatedFields.name ?? prev.name,
+        description: updatedFields.description ?? prev.description
+      }));
+      
       setEditMode(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update classroom');
@@ -73,10 +114,14 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
   };
 
   const handleDeleteClassroom = async () => {
+    if (!window.confirm("Are you sure you want to delete this classroom?")) {
+      return;
+    }
+    
     try {
       setLoading(true);
       await deleteClassroom(getToken(), classroomId);
-      navigate('/');
+      navigate('/homepage');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete classroom');
       setLoading(false);
@@ -91,6 +136,7 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     }));
   };
 
+
   return {
     loading,
     error,
@@ -100,9 +146,10 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     updatedData,
     setEditMode,
     handleDataChange,
+    handleRemoveStudent,
     handleUpdateClassroom,
     handleDeleteClassroom,
     isTeacher: user?.role === "USER_TEACHER",
-    isClassroomTeacher: user?.id === classroom?.teacher?.id
+    isClassroomTeacher: user?.role === classroom?.teacher?.role
   };
 };

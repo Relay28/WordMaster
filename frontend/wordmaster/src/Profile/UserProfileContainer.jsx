@@ -1,5 +1,4 @@
-// src/components/UserProfileContainer.js
-import React from 'react';
+import React, { useRef } from 'react';
 import { 
   Box,
   Button,
@@ -20,7 +19,7 @@ import {
 } from "@mui/material";
 import { ArrowBack, CameraAlt, Lock, Email, Close } from "@mui/icons-material";
 import { useUserAuth } from '../components/context/UserAuthContext';
-import { useUserProfile } from './UserProfileFunctions';
+import { useUserProfile } from './UserProfileFunctions'; // Updated import to match the hook location
 
 const UserProfileContainer = () => {
   const { user, authChecked, logout, getToken } = useUserAuth();
@@ -34,9 +33,12 @@ const UserProfileContainer = () => {
     formData,
     setEditMode,
     setDeactivateDialogOpen,
+    setError, // Make sure to destructure these
+    setSuccess, // Make sure to destructure these
     handleChange,
     handleSubmit,
-    handleDeactivate
+    handleDeactivate,
+    uploadProfilePicture // Make sure this is being properly destructured
   } = useUserProfile(user, authChecked, logout, getToken);
 
   if (!authChecked || !user) {
@@ -100,8 +102,11 @@ const UserProfileContainer = () => {
 
             <ProfilePicture 
               firstName={formData.firstName} 
-              lastName={formData.lastName} 
-              editMode={editMode} 
+              lastName={formData.lastName}
+              profilePicture={formData.profilePicture}
+              editMode={editMode}
+              uploadProfilePicture={uploadProfilePicture}
+              loading={loading}
             />
 
             <PersonalInformation 
@@ -122,43 +127,92 @@ const UserProfileContainer = () => {
         onDeactivate={handleDeactivate}
         isDeactivating={isDeactivating}
         error={error}
+        setError={setError} // Pass setError to the dialog
       />
     </Box>
   );
 };
 
-const ProfilePicture = ({ firstName, lastName, editMode }) => (
-  <Box position="relative" mb={4}>
-    <Avatar
-      sx={{ 
-        width: 120, 
-        height: 120, 
-        bgcolor: '#5F4B8B',
-        color: 'white',
-        fontSize: '2.5rem'
-      }}
-    >
-      {firstName.charAt(0)}{lastName.charAt(0)}
-    </Avatar>
-    {editMode && (
-      <IconButton
-        sx={{
-          position: 'absolute',
-          bottom: 0,
-          right: 0,
-          backgroundColor: '#5F4B8B',
+const ProfilePicture = ({ firstName, lastName, profilePicture, editMode, uploadProfilePicture, loading }) => {
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      // Check if file is an image
+      if (!file.type.match('image.*')) {
+        alert('Please select an image file');
+        return;
+      }
+      // Check if file size is less than 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size should be less than 5MB');
+        return;
+      }
+      // Make sure uploadProfilePicture is a function before calling it
+      if (typeof uploadProfilePicture === 'function') {
+        await uploadProfilePicture(file);
+      } else {
+        console.error('uploadProfilePicture is not a function:', uploadProfilePicture);
+      }
+    }
+  };
+
+  return (
+    <Box position="relative" mb={4}>
+      <Avatar
+        src={profilePicture ? profilePicture : undefined}
+        sx={{ 
+          width: 120, 
+          height: 120, 
+          bgcolor: '#5F4B8B',
           color: 'white',
-          '&:hover': {
-            backgroundColor: '#4a3a6d',
-          }
+          fontSize: '2.5rem'
         }}
       >
-        <CameraAlt />
-      </IconButton>
-    )}
-  </Box>
-);
+        {!profilePicture && firstName.charAt(0)}{!profilePicture && lastName.charAt(0)}
+      </Avatar>
+      {editMode && (
+        <>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            style={{ display: 'none' }}
+            disabled={loading}
+          />
+          <IconButton
+            onClick={handleFileSelect}
+            disabled={loading}
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              backgroundColor: '#5F4B8B',
+              color: 'white',
+              '&:hover': {
+                backgroundColor: '#4a3a6d',
+              },
+              '&.Mui-disabled': {
+                backgroundColor: '#9e9e9e',
+                color: '#f5f5f5',
+              }
+            }}
+          >
+            {loading ? <CircularProgress size={24} color="inherit" /> : <CameraAlt />}
+          </IconButton>
+        </>
+      )}
+    </Box>
+  );
+};
 
+// No changes needed for PersonalInformation component
 const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading }) => (
   <Paper 
     elevation={3} 
@@ -205,59 +259,81 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         type="email"
         value={formData.email}
         onChange={handleChange}
-        disabled={!editMode}
-        variant={editMode ? "outlined" : "filled"}
+        disabled={true} // Always disabled regardless of edit mode
+        variant="filled"
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
               <Email color="action" />
             </InputAdornment>
           ),
+          endAdornment: (
+            <InputAdornment position="end">
+              <Lock color="action" sx={{ opacity: 0.7 }} />
+            </InputAdornment>
+          ),
+          readOnly: true,
         }}
-        sx={{ mb: 3 }}
-        required
+        sx={{ 
+          mb: 3,
+          backgroundColor: '#f5f5f5',
+          '& .MuiInputBase-input': {
+            color: '#666',
+          },
+          '& .MuiFilledInput-root': {
+            backgroundColor: '#f0f0f0',
+            '&:hover': {
+              backgroundColor: '#f0f0f0',
+              cursor: 'not-allowed'
+            },
+            '&.Mui-focused': {
+              backgroundColor: '#f0f0f0'
+            }
+          }
+        }}
+        helperText="Email address cannot be changed"
       />
 
-{editMode && (
-  <>
-    <TextField
-      fullWidth
-      label="Current Password"
-      name="currentPassword"
-      type="password"
-      value={formData.currentPassword}
-      onChange={handleChange}
-      variant="outlined"
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <Lock color="action" />
-          </InputAdornment>
-        ),
-      }}
-      sx={{ mb: 2 }}
-      required
-    />
-    <TextField
-      fullWidth
-      label="New Password (for display only - not implemented)"
-      name="newPassword"
-      type="password"
-      value={formData.newPassword}
-      onChange={handleChange}
-      variant="outlined"
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <Lock color="action" />
-          </InputAdornment>
-        ),
-      }}
-      sx={{ mb: 3 }}
-      disabled // Optional: disable if you don't want users to interact with it
-    />
-  </>
-)}
+      {editMode && (
+        <>
+          <TextField
+            fullWidth
+            label="Current Password"
+            name="currentPassword"
+            type="password"
+            value={formData.currentPassword}
+            onChange={handleChange}
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ mb: 2 }}
+            required
+          />
+          <TextField
+            fullWidth
+            label="New Password (for display only - not implemented)"
+            name="newPassword"
+            type="password"
+            value={formData.newPassword}
+            onChange={handleChange}
+            variant="outlined"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock color="action" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ mb: 3 }}
+            disabled // Optional: disable if you don't want users to interact with it
+          />
+        </>
+      )}
       <FormActions 
         editMode={editMode}
         setEditMode={setEditMode}
@@ -267,6 +343,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
   </Paper>
 );
 
+// No changes needed for FormActions component
 const FormActions = ({ editMode, setEditMode, loading }) => (
   <Box display="flex" justifyContent="flex-end" mt={4}>
     {editMode ? (
@@ -316,7 +393,8 @@ const FormActions = ({ editMode, setEditMode, loading }) => (
   </Box>
 );
 
-const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error }) => (
+// Update DeactivateDialog to accept setError prop
+const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error, setError }) => (
   <Dialog 
     open={open}
     onClose={onClose}
@@ -340,7 +418,7 @@ const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error }
         Are you sure you want to deactivate your account? This action cannot be undone.
       </Typography>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}

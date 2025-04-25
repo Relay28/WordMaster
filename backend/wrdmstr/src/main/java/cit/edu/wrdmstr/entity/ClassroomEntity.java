@@ -50,6 +50,29 @@ public class ClassroomEntity {
     private Set<UserEntity> students = new HashSet<>();
 
 
+    // Add this to your ClassroomEntity class
+    @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ContentEntity> contents = new ArrayList<>();
+
+    // Helper methods for managing the relationship
+    public void addContent(ContentEntity content) {
+        contents.add(content);
+        content.setClassroom(this);
+    }
+
+    public void removeContent(ContentEntity content) {
+        contents.remove(content);
+        content.setClassroom(null);
+    }
+
+    // Add getter and setter for the contents field
+    public List<ContentEntity> getContents() {
+        return contents;
+    }
+
+    public void setContents(List<ContentEntity> contents) {
+        this.contents = contents;
+    }
 
     // Helper methods for managing relationships
     public void addStudent(UserEntity student) {

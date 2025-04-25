@@ -83,6 +83,45 @@ public class ClassroomService {
         return enrollmentRepository.save(enrollment);
     }
 
+    // Add this method to the ClassroomService class
+    public void removeStudentFromClassroom(Authentication authentication, Long classroomId, Long studentId) {
+        UserEntity teacher = getAuthenticatedUser(authentication);
+        ClassroomEntity classroom = getClassroomById(classroomId);
+
+        // Verify the requester is the teacher of this classroom
+        if (!(classroom.getTeacher().getId() == (teacher.getId()))) {
+            throw new RuntimeException("Only the classroom teacher can remove students");
+        }
+
+        // Find the student to remove
+        UserEntity student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        // Check if the student is enrolled in this classroom
+        boolean isEnrolled = classroom.getStudents().stream()
+                .anyMatch(s -> s.getId() == studentId);
+
+        if (!isEnrolled) {
+            throw new RuntimeException("Student is not enrolled in this classroom");
+        }
+
+        // Find and remove the enrollment
+        StudentEnrollmentEntity enrollment = enrollmentRepository.findByClassroomAndStudent(classroom, student)
+                .orElseThrow(() -> new RuntimeException("Enrollment record not found"));
+
+        // Remove the enrollment
+        enrollmentRepository.delete(enrollment);
+
+        // Remove student from the classroom's student set
+        classroom.getStudents().removeIf(s -> s.getId() == studentId);
+
+        // Remove enrollment from classroom's enrollments list
+        classroom.getEnrollments().remove(enrollment);
+
+        // Save the updated classroom
+        classroomRepository.save(classroom);
+    }
+
     // Get all classrooms for the authenticated teacher
     public List<ClassroomDto> getUserClassrooms(Authentication authentication) {
         UserEntity user = getAuthenticatedUser(authentication);
