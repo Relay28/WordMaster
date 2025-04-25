@@ -1,9 +1,7 @@
 package cit.edu.wrdmstr.service;
 
-import cit.edu.wrdmstr.dto.ContentDTO;
-import cit.edu.wrdmstr.entity.ClassroomEntity;
-import cit.edu.wrdmstr.entity.ContentEntity;
-import cit.edu.wrdmstr.entity.UserEntity;
+import cit.edu.wrdmstr.dto.*;
+import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.ClassroomRepository;
 import cit.edu.wrdmstr.repository.ContentRepository;
 import cit.edu.wrdmstr.repository.UserRepository;
@@ -46,7 +44,6 @@ public class ContentService {
 
     public List<ContentDTO> getAllContent(Authentication auth) {
         UserEntity user = getAuthenticatedUser(auth);
-        // Only return content created by the authenticated user
         return contentRepository.findByCreator(user).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -57,8 +54,7 @@ public class ContentService {
         ContentEntity content = contentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content not found with id: " + id));
 
-        // Verify that the user is either the creator or a teacher of the content's classroom
-        if (!(content.getCreator().getId() ==(user.getId())) &&
+        if (!(content.getCreator().getId()==(user.getId())) &&
                 (content.getClassroom() == null || !(content.getClassroom().getTeacher().getId() ==(user.getId())))) {
             throw new AccessDeniedException("You don't have permission to access this content");
         }
@@ -75,7 +71,6 @@ public class ContentService {
 
     public List<ContentDTO> getPublishedContent(Authentication auth) {
         UserEntity user = getAuthenticatedUser(auth);
-        // Return published content created by this user
         return contentRepository.findByCreatorAndPublished(user, true).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -89,10 +84,37 @@ public class ContentService {
         content.setTitle(contentDTO.getTitle());
         content.setDescription(contentDTO.getDescription());
         content.setBackgroundTheme(contentDTO.getBackgroundTheme());
-        content.setContentData(contentDTO.getContentData());
-        content.setGameElementConfig(contentDTO.getGameElementConfig());
         content.setCreator(creator);
         content.setPublished(contentDTO.isPublished());
+
+        // Create and set ContentData
+        ContentData contentData = new ContentData();
+        contentData.setBackgroundImage(contentDTO.getContentData().getBackgroundImage());
+        content.setContentData(contentData);
+        contentData.setContent(content);
+
+        // Create and set GameConfig
+        GameConfig gameConfig = new GameConfig();
+        GameConfigDTO gameConfigDTO = contentDTO.getGameConfig();
+        gameConfig.setStudentsPerGroup(gameConfigDTO.getStudentsPerGroup());
+        gameConfig.setTimePerTurn(gameConfigDTO.getTimePerTurn());
+        gameConfig.setTurnCycles(gameConfigDTO.getTurnCycles());
+        content.setGameConfig(gameConfig);
+        gameConfig.setContent(content);
+
+        // Add word bank items
+        if (contentDTO.getContentData().getWordBank() != null) {
+            for (WordBankItemDTO wordDTO : contentDTO.getContentData().getWordBank()) {
+                contentData.addWord(wordDTO.getWord());
+            }
+        }
+
+        // Add roles
+        if (contentDTO.getContentData().getRoles() != null) {
+            for (RoleDTO roleDTO : contentDTO.getContentData().getRoles()) {
+                contentData.addRole(roleDTO.getName());
+            }
+        }
 
         ContentEntity savedContent = contentRepository.save(content);
         return convertToDTO(savedContent);
@@ -104,7 +126,6 @@ public class ContentService {
         ContentEntity content = contentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content not found with id: " + id));
 
-        // Verify that the user is the content creator
         if (!(content.getCreator().getId() ==(user.getId()))) {
             throw new AccessDeniedException("You don't have permission to update this content");
         }
@@ -112,9 +133,34 @@ public class ContentService {
         content.setTitle(contentDTO.getTitle());
         content.setDescription(contentDTO.getDescription());
         content.setBackgroundTheme(contentDTO.getBackgroundTheme());
-        content.setContentData(contentDTO.getContentData());
-        content.setGameElementConfig(contentDTO.getGameElementConfig());
         content.setPublished(contentDTO.isPublished());
+
+        // Update ContentData
+        ContentData contentData = content.getContentData();
+        contentData.setBackgroundImage(contentDTO.getContentData().getBackgroundImage());
+
+        // Update word bank
+        contentData.getWordBank().clear();
+        if (contentDTO.getContentData().getWordBank() != null) {
+            for (WordBankItemDTO wordDTO : contentDTO.getContentData().getWordBank()) {
+                contentData.addWord(wordDTO.getWord());
+            }
+        }
+
+        // Update roles
+        contentData.getRoles().clear();
+        if (contentDTO.getContentData().getRoles() != null) {
+            for (RoleDTO roleDTO : contentDTO.getContentData().getRoles()) {
+                contentData.addRole(roleDTO.getName());
+            }
+        }
+
+        // Update GameConfig
+        GameConfig gameConfig = content.getGameConfig();
+        GameConfigDTO gameConfigDTO = contentDTO.getGameConfig();
+        gameConfig.setStudentsPerGroup(gameConfigDTO.getStudentsPerGroup());
+        gameConfig.setTimePerTurn(gameConfigDTO.getTimePerTurn());
+        gameConfig.setTurnCycles(gameConfigDTO.getTurnCycles());
 
         ContentEntity updatedContent = contentRepository.save(content);
         return convertToDTO(updatedContent);
@@ -126,7 +172,6 @@ public class ContentService {
         ContentEntity content = contentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content not found with id: " + id));
 
-        // Verify that the user is the content creator or the classroom teacher
         if (!(content.getCreator().getId() ==(user.getId())) &&
                 (content.getClassroom() == null || !(content.getClassroom().getTeacher().getId() ==(user.getId())))) {
             throw new AccessDeniedException("You don't have permission to delete this content");
@@ -141,7 +186,6 @@ public class ContentService {
         ContentEntity content = contentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content not found with id: " + id));
 
-        // Verify that the user is the content creator
         if (!(content.getCreator().getId() ==(user.getId()))) {
             throw new AccessDeniedException("You don't have permission to publish this content");
         }
@@ -156,7 +200,6 @@ public class ContentService {
         ContentEntity content = contentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content not found with id: " + id));
 
-        // Verify that the user is the content creator
         if (!(content.getCreator().getId() ==(user.getId()))) {
             throw new AccessDeniedException("You don't have permission to unpublish this content");
         }
@@ -173,10 +216,6 @@ public class ContentService {
         ClassroomEntity classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new EntityNotFoundException("Classroom not found with id: " + classroomId));
 
-        logger.info("Found classroom: {}", classroom.getName());
-        logger.info("Found creator: {} {}", creator.getFname(), creator.getLname());
-
-        // Verify that the authenticated user is the teacher of this classroom
         if (!(classroom.getTeacher().getId() ==(creator.getId()))) {
             logger.error("Creator ID: {} is not the teacher of classroom ID: {}", creator.getId(), classroomId);
             throw new AccessDeniedException("Only classroom teacher can create content for this classroom");
@@ -186,32 +225,50 @@ public class ContentService {
         content.setTitle(contentDTO.getTitle());
         content.setDescription(contentDTO.getDescription());
         content.setBackgroundTheme(contentDTO.getBackgroundTheme());
-        content.setContentData(contentDTO.getContentData());
-        content.setGameElementConfig(contentDTO.getGameElementConfig());
         content.setCreator(creator);
         content.setClassroom(classroom);
         content.setPublished(contentDTO.isPublished());
 
-        logger.info("Saving content with title: {} for classroom: {}", content.getTitle(), classroom.getName());
-        ContentEntity savedContent = contentRepository.save(content);
-        logger.info("Content saved with ID: {}", savedContent.getId());
+        // Create and set ContentData
+        ContentData contentData = new ContentData();
+        contentData.setBackgroundImage(contentDTO.getContentData().getBackgroundImage());
+        content.setContentData(contentData);
+        contentData.setContent(content);
 
+        // Create and set GameConfig
+        GameConfig gameConfig = new GameConfig();
+        GameConfigDTO gameConfigDTO = contentDTO.getGameConfig();
+        gameConfig.setStudentsPerGroup(gameConfigDTO.getStudentsPerGroup());
+        gameConfig.setTimePerTurn(gameConfigDTO.getTimePerTurn());
+        gameConfig.setTurnCycles(gameConfigDTO.getTurnCycles());
+        content.setGameConfig(gameConfig);
+        gameConfig.setContent(content);
+
+        // Add word bank items
+        if (contentDTO.getContentData().getWordBank() != null) {
+            for (WordBankItemDTO wordDTO : contentDTO.getContentData().getWordBank()) {
+                contentData.addWord(wordDTO.getWord());
+            }
+        }
+
+        // Add roles
+        if (contentDTO.getContentData().getRoles() != null) {
+            for (RoleDTO roleDTO : contentDTO.getContentData().getRoles()) {
+                contentData.addRole(roleDTO.getName());
+            }
+        }
+
+        ContentEntity savedContent = contentRepository.save(content);
         return convertToDTO(savedContent);
     }
 
     public List<ContentDTO> getContentByClassroom(Long classroomId) {
-        logger.info("Service: Getting content for classroom ID: {}", classroomId);
         ClassroomEntity classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new EntityNotFoundException("Classroom not found with id: " + classroomId));
 
-        List<ContentEntity> contentList = contentRepository.findByClassroom(classroom);
-        logger.info("Service: Found {} content items for classroom ID: {}", contentList.size(), classroomId);
-
-        List<ContentDTO> result = contentList.stream()
+        return contentRepository.findByClassroom(classroom).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-
-        return result;
     }
 
     public List<ContentDTO> getPublishedContentByClassroom(Long classroomId, Authentication auth) {
@@ -219,8 +276,7 @@ public class ContentService {
         ClassroomEntity classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new EntityNotFoundException("Classroom not found with id: " + classroomId));
 
-        // Verify that the user is either the teacher of this classroom or a student enrolled in it
-        boolean isTeacher = classroom.getTeacher().getId()==user.getId();
+        boolean isTeacher = classroom.getTeacher().getId()==(user.getId());
         boolean isEnrolledStudent = classroom.getStudents().contains(user);
 
         if (!isTeacher && !isEnrolledStudent) {
@@ -238,8 +294,9 @@ public class ContentService {
         dto.setTitle(content.getTitle());
         dto.setDescription(content.getDescription());
         dto.setBackgroundTheme(content.getBackgroundTheme());
-        dto.setContentData(content.getContentData());
-        dto.setGameElementConfig(content.getGameElementConfig());
+        dto.setPublished(content.isPublished());
+        dto.setCreatedAt(content.getCreatedAt());
+        dto.setUpdatedAt(content.getUpdatedAt());
         dto.setCreatorId(content.getCreator().getId());
         dto.setCreatorName(content.getCreator().getFname() + " " + content.getCreator().getLname());
 
@@ -248,9 +305,40 @@ public class ContentService {
             dto.setClassroomName(content.getClassroom().getName());
         }
 
-        dto.setPublished(content.isPublished());
-        dto.setCreatedAt(content.getCreatedAt());
-        dto.setUpdatedAt(content.getUpdatedAt());
+        // Convert ContentData
+        ContentData contentData = content.getContentData();
+        if (contentData != null) {
+            ContentDataDTO contentDataDTO = new ContentDataDTO();
+            contentDataDTO.setBackgroundImage(contentData.getBackgroundImage());
+
+            // Convert word bank
+            if (contentData.getWordBank() != null) {
+                List<WordBankItemDTO> wordBankDTOs = contentData.getWordBank().stream()
+                        .map(item -> new WordBankItemDTO(item.getId(), item.getWord()))
+                        .collect(Collectors.toList());
+                contentDataDTO.setWordBank(wordBankDTOs);
+            }
+
+            // Convert roles
+            if (contentData.getRoles() != null) {
+                List<RoleDTO> roleDTOs = contentData.getRoles().stream()
+                        .map(role -> new RoleDTO(role.getId(), role.getName()))
+                        .collect(Collectors.toList());
+                contentDataDTO.setRoles(roleDTOs);
+            }
+            dto.setContentData(contentDataDTO);
+        }
+
+        // Convert GameConfig
+        GameConfig gameConfig = content.getGameConfig();
+        if (gameConfig != null) {
+            GameConfigDTO gameConfigDTO = new GameConfigDTO();
+            gameConfigDTO.setStudentsPerGroup(gameConfig.getStudentsPerGroup());
+            gameConfigDTO.setTimePerTurn(gameConfig.getTimePerTurn());
+            gameConfigDTO.setTurnCycles(gameConfig.getTurnCycles());
+            dto.setGameConfig(gameConfigDTO);
+        }
+
         return dto;
     }
 }

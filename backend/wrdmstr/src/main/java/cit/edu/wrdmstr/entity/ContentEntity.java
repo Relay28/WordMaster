@@ -10,10 +10,6 @@ import java.util.Date;
 
 @Entity
 @Table(name = "content_entity")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class ContentEntity {
 
     @Id
@@ -29,14 +25,14 @@ public class ContentEntity {
     
     @Column(name = "background_theme")
     private String backgroundTheme;
-    
-    @Lob
-    @Column(name = "content_data", columnDefinition = "LONGTEXT")
-    private String contentData;
-    
-    @Column(name = "game_config", columnDefinition = "TEXT")
-    private String gameElementConfig;
-    
+
+    // Add these relationships:
+    @OneToOne(mappedBy = "content", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private GameConfig gameConfig;
+
+    @OneToOne(mappedBy = "content", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private ContentData contentData;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity creator;
@@ -56,7 +52,8 @@ public class ContentEntity {
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "updated_at")
     private Date updatedAt;
-    
+
+
     @PrePersist
     protected void onCreate() {
         createdAt = new Date();
@@ -100,20 +97,20 @@ public class ContentEntity {
         this.backgroundTheme = backgroundTheme;
     }
 
-    public String getContentData() {
+    public GameConfig getGameConfig() {
+        return gameConfig;
+    }
+
+    public void setGameConfig(GameConfig gameConfig) {
+        this.gameConfig = gameConfig;
+    }
+
+    public ContentData getContentData() {
         return contentData;
     }
 
-    public void setContentData(String contentData) {
+    public void setContentData(ContentData contentData) {
         this.contentData = contentData;
-    }
-
-    public String getGameElementConfig() {
-        return gameElementConfig;
-    }
-
-    public void setGameElementConfig(String gameElementConfig) {
-        this.gameElementConfig = gameElementConfig;
     }
 
     public UserEntity getCreator() {
