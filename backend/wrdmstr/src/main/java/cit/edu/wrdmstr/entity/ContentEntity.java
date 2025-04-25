@@ -24,6 +24,7 @@ public class ContentEntity {
     private String description;
     
     @Column(name = "background_theme")
+    @Lob
     private String backgroundTheme;
 
     // Add these relationships:

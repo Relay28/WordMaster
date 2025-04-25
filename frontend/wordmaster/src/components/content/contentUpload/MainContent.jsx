@@ -54,24 +54,28 @@ const MainContent = ({
         errors.description = 'Description is required';
         isValid = false;
       }
+      if (!formData.backgroundTheme) {
+        errors.backgroundTheme = 'Background theme is required';
+        isValid = false;
+      }
     }
     
     // Step 1: Group Settings Validation
     if (activeStep === 1) {
-      if (!scenarioSettings.studentsPerGroup || scenarioSettings.studentsPerGroup < 1) {
-        errors.studentsPerGroup = 'Valid group size is required';
+      if (!scenarioSettings.studentsPerGroup || scenarioSettings.studentsPerGroup < 2) {
+        errors.studentsPerGroup = 'Group size must be at least 2';
         isValid = false;
       }
-      if (!scenarioSettings.roles || scenarioSettings.roles.length < 3) {
-        errors.roles = 'Add at least 3 roles';
+      if (!scenarioSettings.roles || scenarioSettings.roles.length < 2) {
+        errors.roles = 'Add at least 2 roles';
         isValid = false;
       }
     }
     
     // Step 3: Word Bank Validation
     if (activeStep === 3) {
-      if (!scenarioSettings.wordBank || scenarioSettings.wordBank.length < 5) {
-        errors.wordBank = 'At least 5 words are required';
+      if (!scenarioSettings.wordBank || scenarioSettings.wordBank.length < 3) {
+        errors.wordBank = 'At least 3 words are required';
         isValid = false;
       }
     }

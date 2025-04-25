@@ -1,10 +1,12 @@
 package cit.edu.wrdmstr.dto;
 
+import jakarta.persistence.Lob;
 import lombok.Data;
 
 import java.util.List;
 
 public class ContentDataDTO {
+    @Lob
     private String backgroundImage;
     private List<WordBankItemDTO> wordBank;
     private List<RoleDTO> roles;

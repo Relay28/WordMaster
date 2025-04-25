@@ -47,8 +47,10 @@ public class ContentData {
         roles.add(role);
     }
 
+
+
     @Lob
-    @Column(name = "background_image")
+    @Column(name = "background_image", columnDefinition = "LONGTEXT")
     private String backgroundImage;
 
     @OneToOne
