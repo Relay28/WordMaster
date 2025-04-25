@@ -2,6 +2,9 @@ package cit.edu.wrdmstr.entity;
 
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 @Entity
 @Table(name = "roles")
@@ -13,6 +16,11 @@ public class Role {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "content_data_id")
     private ContentData contentData;
+
+
+
+    @OneToMany(mappedBy = "role", cascade = CascadeType.ALL)
+    private List<PlayerSessionEntity> playerSessions = new ArrayList<>();
 
     public Role(Long id, String name, ContentData contentData) {
         this.id = id;
@@ -50,5 +58,13 @@ public class Role {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public List<PlayerSessionEntity> getPlayerSessions() {
+        return playerSessions;
+    }
+
+    public void setPlayerSessions(List<PlayerSessionEntity> playerSessions) {
+        this.playerSessions = playerSessions;
     }
 }

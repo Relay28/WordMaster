@@ -6,7 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "content_entity")
@@ -34,6 +36,8 @@ public class ContentEntity {
     @OneToOne(mappedBy = "content", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private ContentData contentData;
 
+    @OneToMany(mappedBy = "content", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GameSessionEntity> gameSessions = new ArrayList<>();
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity creator;
@@ -60,10 +64,19 @@ public class ContentEntity {
         createdAt = new Date();
         updatedAt = new Date();
     }
-    
+
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = new Date();
+    }
+
+    public List<GameSessionEntity> getGameSessions() {
+        return gameSessions;
+    }
+
+    public void setGameSessions(List<GameSessionEntity> gameSessions) {
+        this.gameSessions = gameSessions;
     }
 
     public Long getId() {
