@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -13,10 +14,12 @@ public class GameSessionEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "content_id", nullable = false)
     private ContentEntity content;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id")
     private UserEntity teacher;
@@ -36,22 +39,19 @@ public class GameSessionEntity {
     @Column(name = "ended_at")
     private Date endedAt;
 
-
-
-
-
+    @JsonIgnore
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PlayerSessionEntity> players = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ChatMessageEntity> messages = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ScoreRecordEntity> scores = new ArrayList<>();
 
     // Getters and setters
-
-
 
     public Long getId() {
         return id;

@@ -197,6 +197,22 @@ const HomePage = () => {
             Your Classes
           </Typography>
           <Box display="flex" gap={2}>
+            {/* Game Page Button */}
+            <Button
+            variant="contained"
+            onClick={() => navigate(user?.role === 'USER_TEACHER' ? '/game/create' : '/game')}
+            sx={{
+              backgroundColor: '#6c63ff',
+              '&:hover': { backgroundColor: '#5a52e0' },
+              textTransform: 'none',
+              borderRadius: '8px',
+              px: 3,
+              py: 1
+            }}
+          >
+            {user?.role === 'USER_TEACHER' ? 'Create Game' : 'Join Game'}
+          </Button>
+            
             {isTeacher && (
               <Button
                 variant="outlined"

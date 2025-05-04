@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface RoleRepository extends JpaRepository<Role,Long> {
     List<Role> findByContentData(ContentData contentData);
+    List<Role> findByContentDataContentId(Long contentId);
 }

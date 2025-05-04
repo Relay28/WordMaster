@@ -2,6 +2,8 @@ package cit.edu.wrdmstr.config;
 
 import cit.edu.wrdmstr.security.JwtAuthenticationFilter;
 import cit.edu.wrdmstr.service.UserService;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -20,6 +22,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.io.IOException;
 import java.util.List;
 
 @Configuration
@@ -63,10 +66,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers("/api/auth/**", "/login/oauth2/code/azure").permitAll()
-
                         .requestMatchers("/api/auth/**","/api/admin/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
+                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/sessions/**").authenticated() // <-- ENSURE THIS LINE EXISTS
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());
@@ -83,18 +86,37 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of("http://localhost:5173"));
 
         // Allow only necessary HTTP methods
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH", "OPTIONS"));
 
-        // Allow specific headers only
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Allow specific headers only - add cache-control header
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control", "Pragma", "Expires"));
+        
+        // Expose headers that frontend might need to access
+        configuration.setExposedHeaders(List.of("Cache-Control", "Content-Type", "Authorization"));
 
         // Allow credentials (JWT tokens, sessions)
         configuration.setAllowCredentials(true);
 
-        // Restrict access to specific API paths (optional)
+        // Register CORS for both /api/** and /ws/**
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
+        source.registerCorsConfiguration("/ws/**", configuration);
+        source.registerCorsConfiguration("/ws", configuration);
         return source;
+    }
+
+    @Bean
+    public Filter loggingFilter() {
+        return new Filter() {
+            @Override
+            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+                    throws IOException, ServletException {
+                HttpServletRequest req = (HttpServletRequest) request;
+                System.out.println("Request: " + req.getMethod() + " " + req.getRequestURI());
+                System.out.println("Authorization: " + req.getHeader("Authorization"));
+                chain.doFilter(request, response);
+            }
+        };
     }
 
 }

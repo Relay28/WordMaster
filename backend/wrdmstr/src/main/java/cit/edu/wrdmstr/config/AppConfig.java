@@ -33,9 +33,13 @@ public class AppConfig implements WebMvcConfigurer {
     // mapping
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // Disable this generic CORS configuration since we're using the one in SecurityConfig
+        // This avoids conflicting CORS configurations
+        /* 
         registry.addMapping("/**")
                 .allowedOrigins("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
+        */
     }
 }

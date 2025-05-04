@@ -10,7 +10,9 @@ import HomePage from './components/Homepage/HomePage';
 import OAuthSuccessHandler from './components/OAuthSuccessHandler';
 import SetupPage from './components/user/SetupPage.';
 import ClassroomDetailsPage from './components/Classroom/Classroom Details Page';
-
+import GamePage from './components/gameplay/GamePage';
+import CreateGameSession from './components/gameplay/CreateGameSession';
+import GameCore from './components/gameplay/GameCore';
 // Import content components
 import ContentDashboard from './components/content/ContentDashboard';
 import EditContent from './components/content/EditContent';
@@ -27,6 +29,9 @@ const AppRoutes = () => {
       <Route path="/profile" element={<UserProfile />} />
       <Route path="/homepage" element={<HomePage />} />
       <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
+      <Route path="/game" element={<GamePage />} />
+      <Route path="/game/create" element={<CreateGameSession />} />
+      <Route path="/game/:sessionId" element={<GameCore />} />
       <Route path="/login" element={<Login />} />
       <Route path="/setup" element={<SetupPage/>} />
       <Route path="/register" element={<Register />} />

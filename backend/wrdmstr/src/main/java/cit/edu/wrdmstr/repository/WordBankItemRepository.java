@@ -9,4 +9,5 @@ import java.util.List;
 public interface WordBankItemRepository extends JpaRepository<WordBankItem,Long> {
 
     List<WordBankItem> findByContentData(ContentData contentData);
+    List<WordBankItem> findByContentDataContentId(Long contentId);
 }

@@ -215,7 +215,7 @@ const ContentDashboard = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
             WordMaster
-          </Typography>
+          </Typography> 
           <Button 
             variant="outlined" 
             onClick={() => navigate('/homepage')}
