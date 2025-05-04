@@ -40,7 +40,7 @@ public class GameSessionEntity {
     private Date endedAt;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "session", cascade = {CascadeType.MERGE, CascadeType.REFRESH})
     private List<PlayerSessionEntity> players = new ArrayList<>();
 
     @JsonIgnore

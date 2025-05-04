@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.controller;
 
 import cit.edu.wrdmstr.dto.GameStateDTO;
+import cit.edu.wrdmstr.dto.PlayerSessionDTO;
 import cit.edu.wrdmstr.dto.GameSessionDTO;
 import cit.edu.wrdmstr.entity.GameSessionEntity;
 import cit.edu.wrdmstr.entity.PlayerSessionEntity;
@@ -93,9 +94,10 @@ public class GameSessionController {
     }
     
     @GetMapping("/{sessionId}/players")
-    public ResponseEntity<List<PlayerSessionEntity>> getSessionPlayers(@PathVariable Long sessionId) {
-        List<PlayerSessionEntity> players = gameSessionService.getSessionPlayers(sessionId);
-        return ResponseEntity.ok(players);
+    public ResponseEntity<List<PlayerSessionDTO>> getSessionPlayers(@PathVariable Long sessionId) {
+        // Convert entities to DTOs
+        List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId);
+        return ResponseEntity.ok(playerDTOs);
     }
     
     @GetMapping("/{sessionCode}/join-by-code")

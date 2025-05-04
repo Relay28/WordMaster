@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.service.gameplay;
 
 import cit.edu.wrdmstr.dto.GameStateDTO;
+import cit.edu.wrdmstr.dto.PlayerSessionDTO;
 import cit.edu.wrdmstr.dto.TurnInfoDTO;
 import cit.edu.wrdmstr.dto.WordSubmissionDTO;
 import cit.edu.wrdmstr.entity.*;
@@ -28,7 +29,10 @@ public class GameSessionManagerService {
     private final RoleRepository roleRepository;
     private final ScoreRecordEntityRepository scoreRepository;
     private final ChatService chatService;
-    private final GrammarCheckerService grammarCheckerService;
+    private final GameSessionService gameSessionService; // Add this line
+    private final GrammarCheckerService grammarCheckerService; //unused atm
+    private final PlayerSessionEntityRepository playerSessionEntityRepository; // Add this line
+    
 
     // In-memory game state tracking
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
@@ -42,7 +46,9 @@ public class GameSessionManagerService {
             RoleRepository roleRepository,
             ScoreRecordEntityRepository scoreRepository,
             ChatService chatService,
-            GrammarCheckerService grammarCheckerService) {
+            GrammarCheckerService grammarCheckerService,
+            GameSessionService gameSessionService,
+            PlayerSessionEntityRepository playerSessionEntityRepository) {  // Add this parameter
         this.messagingTemplate = messagingTemplate;
         this.gameSessionRepository = gameSessionRepository;
         this.playerRepository = playerRepository;
@@ -51,6 +57,8 @@ public class GameSessionManagerService {
         this.scoreRepository = scoreRepository;
         this.chatService = chatService;
         this.grammarCheckerService = grammarCheckerService;
+        this.gameSessionService = gameSessionService; 
+        this.playerSessionEntityRepository= playerSessionEntityRepository; // Add this line
     }
 
     @Transactional
@@ -277,21 +285,21 @@ public class GameSessionManagerService {
     }
 
     public void joinGame(Long sessionId, Long userId) {
-        // This will be used for live-updating the player list
-        List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId);
-        List<Map<String, Object>> playerData = players.stream().map(p -> {
-            Map<String, Object> data = new HashMap<>();
-            data.put("id", p.getId());
-            data.put("userId", p.getUser().getId());
-            data.put("name", p.getUser().getFname() + " " + p.getUser().getLname());
-            data.put("role", p.getRole() != null ? p.getRole().getName() : null);
-            data.put("score", p.getTotalScore());
-            return data;
-        }).collect(Collectors.toList());
-
-        messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/players", playerData);
+        logger.info("Player {} joining game {}", userId, sessionId);
+        
+        List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId);
+        
+        logger.info("Found {} players in session", playerDTOs.size());
+        messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/players", playerDTOs);
     }
+    
 
+@Transactional
+public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
+    return gameSessionService.getSessionPlayerDTOs(sessionId);
+}
+
+    @Transactional
     public GameStateDTO getGameState(Long sessionId) {
         GameState gameState = activeGames.get(sessionId);
         
@@ -302,8 +310,10 @@ public class GameSessionManagerService {
                     
             GameStateDTO dto = new GameStateDTO();
             dto.setSessionId(sessionId);
+            dto.setSessionCode(session.getSessionCode()); // Make sure this line is present
             dto.setStatus(session.getStatus().toString());
-            
+            dto.setPlayers(gameSessionService.getSessionPlayerDTOs(sessionId));
+
             // Set basic info from database
             if (session.getContent() != null) {
                 Map<String, Object> contentInfo = new HashMap<>();
@@ -326,35 +336,17 @@ public class GameSessionManagerService {
         // Game is active, convert from game state
         GameStateDTO dto = new GameStateDTO();
         dto.setSessionId(sessionId);
+        
+        // Make sure to set sessionCode here too for active games
+        GameSessionEntity session = gameSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Game session not found"));
+        dto.setSessionCode(session.getSessionCode());
+        dto.setPlayers(gameSessionService.getSessionPlayerDTOs(sessionId));
         dto.setStatus(gameState.getStatus().toString());
         dto.setCurrentTurn(gameState.getCurrentTurn());
         dto.setTotalTurns(gameState.getTotalTurns());
         
-        // Set current player info
-        if (gameState.getCurrentPlayerId() != null) {
-            PlayerSessionEntity currentPlayer = playerRepository.findById(gameState.getCurrentPlayerId()).orElse(null);
-            if (currentPlayer != null) {
-                Map<String, Object> playerInfo = new HashMap<>();
-                playerInfo.put("id", currentPlayer.getId());
-                playerInfo.put("userId", currentPlayer.getUser().getId());
-                playerInfo.put("name", currentPlayer.getUser().getFname() + " " + currentPlayer.getUser().getLname());
-                playerInfo.put("role", currentPlayer.getRole() != null ? currentPlayer.getRole().getName() : null);
-                dto.setCurrentPlayer(playerInfo);
-            }
-        }
-        
-        // Calculate time remaining
-        long elapsed = (System.currentTimeMillis() - gameState.getLastTurnTime()) / 1000;
-        int timeRemaining = gameState.getTimePerTurn() - (int) elapsed;
-        dto.setTimeRemaining(Math.max(0, timeRemaining));
-        
-        // Set used words
-        dto.setUsedWords(gameState.getUsedWords());
-        dto.setContentInfo(gameState.getContentInfo());
-        dto.setBackgroundImage(gameState.getBackgroundImage());
-        
-        // Set leaderboard
-        dto.setLeaderboard(getSessionLeaderboard(sessionId));
+        // Rest of your existing code...
         
         return dto;
     }
@@ -406,8 +398,11 @@ public class GameSessionManagerService {
     }
 
     private void awardPoints(Long sessionId, Long userId, int points, String reason) {
-        PlayerSessionEntity player = playerRepository.findBySessionIdAndUserId(sessionId, userId)
-                .orElseThrow(() -> new RuntimeException("Player not found in session"));
+        List<PlayerSessionEntity> players = playerSessionEntityRepository.findBySessionIdAndUserId(sessionId, userId);
+        if (players.isEmpty()) {
+            throw new RuntimeException("Player not found in session");
+        }
+        PlayerSessionEntity player = players.get(0);
         
         ScoreRecordEntity score = new ScoreRecordEntity();
         score.setSession(player.getSession());

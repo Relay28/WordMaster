@@ -37,30 +37,24 @@ const GamePage = () => {
     
     try {
       const token = await getToken();
-      const response = await fetch(`/api/sessions/${sessionCode}/join-by-code`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      // Fix: Change this URL format to match the backend endpoint
+      const response = await fetch(`${API_URL}/api/sessions/${sessionCode}/join-by-code`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       
       if (!response.ok) {
-        throw new Error('Invalid session code');
+        throw new Error('Invalid session code or unable to join game');
       }
       
       const data = await response.json();
-      setSessionId(data.id);
-      
-      // Join the session as a player
-      await fetch(`/api/sessions/${data.id}/join`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      navigate(`/game/${data.id}`);
     } catch (err) {
       console.error('Error joining game:', err);
-      setError('Failed to join game. Please check the code and try again.');
+      setError('Invalid session code or unable to join game');
     } finally {
       setLoading(false);
     }
@@ -79,7 +73,7 @@ const GamePage = () => {
           Join a Game Session
         </Typography>
         
-        <Box component="form" onSubmit={(e) => { e.preventDefault(); handleJoinGame(); }}>
+        <Box component="form" onSubmit={(e) => { e.preventDefault(); }}>
           <TextField
             fullWidth
             label="Enter Session Code"

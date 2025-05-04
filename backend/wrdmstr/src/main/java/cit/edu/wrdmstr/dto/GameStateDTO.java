@@ -5,6 +5,7 @@ import java.util.Map;
 
 public class GameStateDTO {
     private Long sessionId;
+    private String sessionCode; // Add this field
     private String status;
     private int currentTurn;
     private int totalTurns;
@@ -14,14 +15,32 @@ public class GameStateDTO {
     private Map<String, Object> contentInfo;
     private String backgroundImage;
     private List<Map<String, Object>> leaderboard;
-
+    
     // Getters and setters
     public Long getSessionId() {
         return sessionId;
     }
 
-    public void setSessionId(Long sessionId) {
-        this.sessionId = sessionId;
+        public void setSessionId(Long sessionId) {
+            this.sessionId = sessionId;
+        }
+        private List<PlayerSessionDTO> players;
+
+        public List<PlayerSessionDTO> getPlayers() {
+            return players;
+        }
+
+        public void setPlayers(List<PlayerSessionDTO> players) {
+            this.players = players;
+        }
+        
+    // Add these methods
+    public String getSessionCode() {
+        return sessionCode;
+    }
+
+    public void setSessionCode(String sessionCode) {
+        this.sessionCode = sessionCode;
     }
 
     public String getStatus() {

@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface PlayerSessionEntityRepository extends JpaRepository<PlayerSessionEntity, Long> {
     Optional<PlayerSessionEntity> findBySessionAndUser(GameSessionEntity session, UserEntity user);
     List<PlayerSessionEntity> findBySessionId(Long sessionId);
-    Optional<PlayerSessionEntity> findBySessionIdAndUserId(Long sessionId, Long userId);
+    List<PlayerSessionEntity> findBySessionIdAndUserId(Long sessionId, Long userId);
     List<PlayerSessionEntity> findByUserId(Long userId);
 
 

@@ -21,12 +21,29 @@ const GameCore = () => {
   const [gameState, setGameState] = useState({});
   const [stompClient, setStompClient] = useState(null);
   
+    // Define the joinSession function
+    const joinSession = async () => {
+      try {
+        const token = await getToken();
+        await fetch(`${API_URL}/api/sessions/${sessionId}/join`, {
+          method: 'POST', 
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        console.log('Successfully joined session via REST API');
+      } catch (error) {
+        console.error('Error joining session:', error);
+      }
+    };
+
   // Initialize WebSocket connection
   useEffect(() => {
     let client = null;
     
     const initializeWebSocket = async () => {
       try {
+        await joinSession();
         const token = await getToken();
         if (!token) {
           setError('Authentication token not available');
@@ -70,10 +87,6 @@ const GameCore = () => {
             fetchGameState();
             
             // Join the game
-            client.publish({
-              destination: `/app/game/${sessionId}/join`,
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
           },
           
           beforeConnect: () => {
@@ -145,6 +158,7 @@ const GameCore = () => {
       }
 
       const data = await response.json();
+      console.log('Game state data received:', data); // Add this line to see the actual data
       setGameState(data);
       setLoading(false);
     } catch (err) {
@@ -212,9 +226,20 @@ const GameCore = () => {
   const handlePlayerUpdate = (message) => {
     try {
       const players = JSON.parse(message.body);
-      setGameState(prev => ({
-        ...prev,
-        players: players
+
+      // Remove duplicate players by userId
+      const uniquePlayers = [];
+      const seenUserIds = new Set();
+      for (const player of players) {
+        if (!seenUserIds.has(player.userId)) {
+          uniquePlayers.push(player);
+          seenUserIds.add(player.userId);
+        }
+      }
+
+      setGameState(prevState => ({
+        ...prevState,
+        players: uniquePlayers
       }));
     } catch (error) {
       console.error('Error handling player update:', error);
@@ -270,18 +295,22 @@ const GameCore = () => {
   }, [stompClient, getToken]);
   
   // Determine which component to render based on game state
-  const renderGameContent = () => {
+// Determine which component to render based on game state
+    const renderGameContent = () => {
     // Use appropriate component based on user role and game status
-    if (gameState.status === 'WAITING_TO_START') {
+    if (gameState.status === 'WAITING_TO_START' || gameState.status === 'PENDING') {
       return <WaitingRoom gameState={gameState} isTeacher={user?.role === 'USER_TEACHER'} />;
-    } else if (gameState.status === 'TURN_IN_PROGRESS' || gameState.status === 'WAITING_FOR_PLAYER') {
+    } else if (gameState.status === 'TURN_IN_PROGRESS' || gameState.status === 'WAITING_FOR_PLAYER' || 
+               gameState.status === 'ACTIVE') {
       return <GamePlay gameState={gameState} stompClient={stompClient} sendMessage={sendMessage} />;
     } else if (gameState.status === 'COMPLETED') {
       return <GameResults gameState={gameState} />;
     }
     
-    return <Typography>Unknown game state</Typography>;
-  };
+    // For debugging
+    console.log("Unrecognized game status:", gameState.status);
+    return <Typography>Unknown game state: {gameState.status}</Typography>;
+  }
   
   if (loading) {
     return (

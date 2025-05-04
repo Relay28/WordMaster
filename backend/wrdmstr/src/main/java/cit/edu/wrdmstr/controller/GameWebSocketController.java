@@ -1,14 +1,20 @@
 package cit.edu.wrdmstr.controller;
 
+import cit.edu.wrdmstr.dto.PlayerSessionDTO;
 import cit.edu.wrdmstr.dto.WordSubmissionDTO;
+import cit.edu.wrdmstr.entity.PlayerSessionEntity;
 import cit.edu.wrdmstr.service.gameplay.GameSessionManagerService;
+import cit.edu.wrdmstr.service.gameplay.GameSessionService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -17,12 +23,16 @@ public class GameWebSocketController {
     @Autowired
     private GameSessionManagerService gameSessionManagerService;
 
+    @Autowired
+    private GameSessionService gameSessionService;
+
     @MessageMapping("/game/{sessionId}/word")
     @SendTo("/topic/game/{sessionId}/updates")
     public Map<String, Object> submitWord(@DestinationVariable Long sessionId, 
                                           WordSubmissionDTO submission,
                                           Principal principal) {
-        Long userId = Long.parseLong(principal.getName());
+        String email = principal.getName();
+        Long userId = gameSessionService.getUserIdByEmail(email);
         boolean success = gameSessionManagerService.submitWord(sessionId, userId, submission);
         
         return Map.of(
@@ -34,9 +44,13 @@ public class GameWebSocketController {
 
     @MessageMapping("/game/{sessionId}/join")
     @SendTo("/topic/game/{sessionId}/players")
-    public void joinGame(@DestinationVariable Long sessionId, Principal principal) {
-        Long userId = Long.parseLong(principal.getName());
-        gameSessionManagerService.joinGame(sessionId, userId);
+    @Transactional
+    public List<PlayerSessionDTO> joinGame(@DestinationVariable Long sessionId, Principal principal) {
+        String email = principal.getName();
+        Long userId = gameSessionService.getUserIdByEmail(email);
+        
+        // Return proper DTOs
+        return gameSessionService.getSessionPlayerDTOs(sessionId);
     }
 
     @MessageMapping("/game/{sessionId}/submit")

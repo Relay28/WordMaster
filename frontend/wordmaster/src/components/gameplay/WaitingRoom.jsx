@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect }  from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Box, 
@@ -12,30 +12,46 @@ import {
   Chip,
   Card,
   CardContent,
-  Grid
+  Grid,
+  CircularProgress
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
 
 const WaitingRoom = ({ gameState, isTeacher }) => {
-  const { sessionId } = useParams();
-  const { getToken } = useUserAuth();
-  const navigate = useNavigate();
-  
-  // Start game (teacher only)
-  const handleStartGame = async () => {
-    try {
-      const token = await getToken();
-      await fetch(`/api/sessions/${sessionId}/start`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
+    const { sessionId } = useParams();
+    const { getToken } = useUserAuth();
+    const navigate = useNavigate();
+    
+    useEffect(() => {
+        console.log('WaitingRoom gameState:', gameState.players);
+        console.log('Available game state properties:', Object.keys(gameState || {}));
+        if (gameState && gameState.players) {
+          console.log('Player list:', gameState.players);
+          console.log('Player count:', gameState.players.length);
         }
-      });
-      // Game start will be handled by WebSocket connection
-    } catch (err) {
-      console.error('Failed to start game:', err);
-    }
-  };
+        if (gameState && gameState.contentInfo) {
+          console.log('ContentInfo details:', gameState.contentInfo);
+        }
+      }, [gameState.player]);
+    
+    // Start game (teacher only)
+    const handleStartGame = async () => {
+        try {
+          const token = await getToken();
+          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+          
+          // Use the complete URL with API_URL
+          await fetch(`${API_URL}/api/sessions/${sessionId}/start`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          // Game start will be handled by WebSocket connection
+        } catch (err) {
+          console.error('Failed to start game:', err);
+        }
+      };
   
   return (
     <Box sx={{ py: 4 }}>
@@ -91,11 +107,11 @@ const WaitingRoom = ({ gameState, isTeacher }) => {
             }}
           >
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">Session Code: <b>{gameState.sessionCode || 'Loading...'}</b></Typography>
-              <Chip 
+            <Typography variant="h6">Session Code: <b>{gameState?.sessionCode || sessionId || 'Loading...'}</b></Typography>
+            <Chip 
                 label={`${gameState.players?.length || 0} players joined`} 
                 color="primary" 
-              />
+            />
             </Box>
             
             {/* Display session details */}
@@ -115,25 +131,25 @@ const WaitingRoom = ({ gameState, isTeacher }) => {
             {/* Players list */}
             <Typography variant="h6" mb={1}>Players</Typography>
             <Paper elevation={0} sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: '8px', maxHeight: '300px', overflow: 'auto' }}>
-              {gameState.players && gameState.players.length > 0 ? (
-                <List disablePadding>
-                  {gameState.players.map(player => (
-                    <ListItem key={player.id} divider>
-                      <Avatar sx={{ mr: 2, bgcolor: '#5F4B8B' }}>
-                        {player.name?.charAt(0) || 'P'}
-                      </Avatar>
-                      <ListItemText 
-                        primary={player.name} 
-                        secondary={player.role || 'No role assigned'} 
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-                  No players have joined yet
-                </Typography>
-              )}
+            {gameState.players && gameState.players.length > 0 ? (
+            <List disablePadding>
+            {gameState.players.map(player => (
+              <ListItem key={player.id} divider>
+                <Avatar sx={{ mr: 2, bgcolor: '#5F4B8B' }}>
+                  {player.name?.charAt(0) || 'P'}
+                </Avatar>
+                <ListItemText 
+                  primary={player.playerName} 
+                  secondary={player.role || 'No role assigned'} 
+                />
+              </ListItem>
+            ))}
+            </List>
+          ) : (
+            <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
+              No players have joined yet
+            </Typography>
+          )}
             </Paper>
           </Box>
           

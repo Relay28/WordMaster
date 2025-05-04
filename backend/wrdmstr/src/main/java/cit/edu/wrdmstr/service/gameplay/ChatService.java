@@ -26,8 +26,13 @@ public class ChatService {
     @Autowired private GrammarCheckerService grammarCheckerService;
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
-        PlayerSessionEntity player = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Player not found in session"));
+        List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
+        PlayerSessionEntity player = players.isEmpty() ? 
+            null : players.get(0);
+            
+        if (player == null) {
+            throw new ResourceNotFoundException("Player not found in session");
+        }
 
         GameSessionEntity session = player.getSession();
 

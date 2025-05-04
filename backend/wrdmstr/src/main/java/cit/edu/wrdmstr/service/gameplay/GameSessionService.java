@@ -3,6 +3,8 @@ package cit.edu.wrdmstr.service.gameplay;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.dto.GameSessionDTO;
+import cit.edu.wrdmstr.dto.PlayerSessionDTO;
+
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -27,24 +30,32 @@ public class GameSessionService {
         String email = auth.getName();
         UserEntity teacher = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Teacher not found"));
-
+    
         ContentEntity content = contentRepository.findById(contentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Content not found"));
-
+    
         // Verify teacher can access this content
         if (!(content.getCreator().getId() == teacher.getId()) &&
         (content.getClassroom() == null || !(content.getClassroom().getTeacher().getId() == teacher.getId()))) {
-        throw new AccessDeniedException("You don't have permission to create a game with this content");
+            throw new AccessDeniedException("You don't have permission to create a game with this content");
         }
-
+    
         GameSessionEntity session = new GameSessionEntity();
         session.setContent(content);
         session.setTeacher(teacher);
         session.setSessionCode(generateSessionCode());
         session.setStatus(GameSessionEntity.SessionStatus.PENDING);
-        session.setPlayers(new ArrayList<>());
         
-        return gameSessionRepository.save(session);
+        // Save the session first
+        GameSessionEntity savedSession = gameSessionRepository.save(session);
+        
+        // Clear any automatic player entries that might have been created
+        List<PlayerSessionEntity> defaultPlayers = playerSessionRepository.findBySessionId(savedSession.getId());
+        if (!defaultPlayers.isEmpty()) {
+            playerSessionRepository.deleteAll(defaultPlayers);
+        }
+        
+        return savedSession;
     }
 
     public Long getUserIdByEmail(String email) {
@@ -87,6 +98,38 @@ public class GameSessionService {
         return code.toString();
     }
 
+    // Add this method
+    public PlayerSessionDTO convertToDTO(PlayerSessionEntity entity) {
+        if (entity == null) return null;
+        PlayerSessionDTO dto = new PlayerSessionDTO();
+        dto.setId(entity.getId());
+        
+        if (entity.getUser() != null) {
+            dto.setUserId(entity.getUser().getId());
+            String fname = entity.getUser().getFname() != null ? entity.getUser().getFname() : "";
+            String lname = entity.getUser().getLname() != null ? entity.getUser().getLname() : "";
+            dto.setName((fname + " " + lname).trim()); // <-- Use setName, not setPlayerName
+        }
+        
+        if (entity.getRole() != null) {
+            dto.setRole(entity.getRole().getName());
+        }
+        
+        dto.setTotalScore(entity.getTotalScore());
+        dto.setActive(entity.isActive());
+        
+        return dto;
+    }
+
+    // Add this method to get player DTOs for a session
+    @Transactional(readOnly = true)
+    public List<PlayerSessionDTO> getSessionPlayerDTOs(Long sessionId) {
+        List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
+        return players.stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+
     public GameSessionEntity getSessionById(Long sessionId) {
         return gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Game session not found"));
@@ -126,24 +169,24 @@ public class GameSessionService {
         return playerSessionRepository.findBySessionId(sessionId);
     }
 
-    public PlayerSessionEntity joinSession(Long sessionId, Long userId) {
+    @Transactional
+    public synchronized PlayerSessionEntity joinSession(Long sessionId, Long userId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found"));
 
-        if (session.getStatus() != GameSessionEntity.SessionStatus.PENDING) {
-            throw new IllegalStateException("Cannot join a game that has already started or ended");
+        if (session.getTeacher() != null && session.getTeacher().getId() == userId) {
+            throw new IllegalStateException("Teacher cannot join the session as a player.");
         }
 
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Check if player already in session
-        Optional<PlayerSessionEntity> existingPlayer = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
-        if (existingPlayer.isPresent()) {
-            return existingPlayer.get();
+        // Prevent duplicate player sessions for the same user and session
+        List<PlayerSessionEntity> existingPlayers = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
+        if (!existingPlayers.isEmpty()) {
+            return existingPlayers.get(0); // Return the existing player session
         }
 
-        // Create new player session
         PlayerSessionEntity playerSession = new PlayerSessionEntity();
         playerSession.setSession(session);
         playerSession.setUser(user);
