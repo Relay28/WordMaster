@@ -20,7 +20,7 @@ const GameCore = () => {
   const [error, setError] = useState(null);
   const [gameState, setGameState] = useState({});
   const [stompClient, setStompClient] = useState(null);
-  
+  let hasJoinedSession = false; // 
     // Define the joinSession function
     const joinSession = async () => {
       try {
@@ -40,10 +40,13 @@ const GameCore = () => {
   // Initialize WebSocket connection
   useEffect(() => {
     let client = null;
-    
+
     const initializeWebSocket = async () => {
       try {
-        await joinSession();
+        if (!hasJoinedSession) {
+          hasJoinedSession = true; // Set the flag to true
+          await joinSession(); // Call joinSession only once
+        }
         const token = await getToken();
         if (!token) {
           setError('Authentication token not available');

@@ -13,7 +13,8 @@ public class WordBankItemDTO {
         this.id=id;
         this.word=word;
     }
-
+    public WordBankItemDTO() {
+    }
     public Long getId() {
         return id;
     }
