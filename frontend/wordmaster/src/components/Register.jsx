@@ -15,10 +15,17 @@ import axios from "axios";
 import "../css/register.css";
 
 const Register = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+ const [formData, setFormData] = useState({
+  email: "",
+  password: "",
+  fname: "",
+  lname: ""
+});
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  // Add this after the existing useState declarations
+const [role, setRole] = useState('student'); // default to student
   const navigate = useNavigate();
 
   // Regex for validating email
@@ -41,13 +48,17 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:8080/api/auth/register", formData);
+      const endpoint = role === 'student' 
+        ? "http://localhost:8080/api/auth/register/student"
+        : "http://localhost:8080/api/auth/register/teacher";
+      
+      const response = await axios.post(endpoint, formData);
       setSuccess("Registration successful! Redirecting to login...");
-      setTimeout(() => navigate("/login"), 2000); // Redirect after 2 seconds
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Try again.");
     }
-  };
+};
 
   return (
     <div className="register-container">
@@ -62,6 +73,45 @@ const Register = () => {
           <Typography variant="h5" className="main-heading" sx={{ paddingTop: "10px" }}>
             Ready to start?
           </Typography>
+         
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: 1, 
+            mb: 2, 
+            mt: 2 
+          }}
+        >
+          <Button
+            variant={role === 'student' ? 'contained' : 'outlined'}
+            onClick={() => setRole('student')}
+            sx={{
+              flex: 1,
+              maxWidth: '150px',
+              backgroundColor: role === 'student' ? '#5F4B8B' : 'transparent',
+              '&:hover': {
+                backgroundColor: role === 'student' ? '#3F3689' : 'transparent',
+              }
+            }}
+          >
+            Student
+          </Button>
+          <Button
+            variant={role === 'teacher' ? 'contained' : 'outlined'}
+            onClick={() => setRole('teacher')}
+            sx={{
+              flex: 1,
+              maxWidth: '150px',
+              backgroundColor: role === 'teacher' ? '#5F4B8B' : 'transparent',
+              '&:hover': {
+                backgroundColor: role === 'teacher' ? '#3F3689' : 'transparent',
+              }
+            }}
+          >
+            Teacher
+          </Button>
+        </Box>
           <Typography variant="body2" className="sub-text" sx={{ paddingBottom: "20px" }}>
             Sign up to dive into endless possibilities!
           </Typography>
@@ -70,6 +120,29 @@ const Register = () => {
           {success && <Alert severity="success">{success}</Alert>}
 
           <form onSubmit={handleSubmit}>
+              <TextField
+                label="First Name"
+                name="fname"
+                value={formData.fname}
+                onChange={handleChange}
+                fullWidth
+                margin="normal"
+                variant="outlined"
+                className="input-field"
+                required
+              />
+
+              <TextField
+                label="Last Name"
+                name="lname"
+                value={formData.lname}
+                onChange={handleChange}
+                fullWidth
+                margin="normal"
+                variant="outlined"
+                className="input-field"
+                required
+              />
             <TextField
               label="Email"
               name="email"

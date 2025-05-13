@@ -61,9 +61,14 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    @PostMapping("/register")
+    @PostMapping("/register/student")
     public ResponseEntity<AuthResponse> registerStudent(@RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.registerUser(request));
+        return ResponseEntity.ok(authService.registerUserStudent(request));
+    }
+
+    @PostMapping("/register/teacher")
+    public ResponseEntity<AuthResponse> registerTeacher(@RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.registerUserTeacher(request));
     }
 
 
