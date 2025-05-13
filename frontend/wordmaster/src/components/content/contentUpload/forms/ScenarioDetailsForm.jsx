@@ -50,7 +50,7 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
           />
         </Grid>
         
-        <Grid item xs={12}>
+        <Grid item xs={12} width={500}>
           <TextField
             fullWidth
             label="Scenario Description"
@@ -72,7 +72,7 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
           />
         </Grid>
         
-        <Grid item xs={12}>
+        <Grid item xs={12} width={200}>
           <FormControl fullWidth>
             <InputLabel>Background Theme Color</InputLabel>
             <Select
