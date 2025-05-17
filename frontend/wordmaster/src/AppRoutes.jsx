@@ -7,6 +7,7 @@ import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ProtectedAdminRoute from './components/auth/ProtectedAdminRoute';
 import HomePage from './components/Homepage/HomePage';
+import StudentHomePage from './components/Homepage/StudentHomePage';
 import OAuthSuccessHandler from './components/OAuthSuccessHandler';
 import SetupPage from './components/user/SetupPage.';
 import ClassroomDetailsPage from './components/Classroom/Classroom Details Page';
@@ -20,6 +21,26 @@ import EditContent from './components/content/EditContent';
 import ContentDetails from './components/content/ContentDetails';
 import ProtectedTeacherRoute from './components/auth/ProtectedTeacherRoute';
 import  ContentUpload from './components/content/contentUpload/ContentUpload';
+import { useUserAuth } from './components/context/UserAuthContext';
+
+// Create a wrapper component for role-based routing
+function HomePageRouter() {
+  const { isTeacher, isStudent, authChecked, user } = useUserAuth();
+
+  console.log('Current user role:', user?.role);
+
+  if (!authChecked) {
+    return <div>Loading...</div>; // or a spinner
+  }
+
+  if (isTeacher()) {
+    return <HomePage />;
+  } else if (isStudent()) {
+    return <StudentHomePage />;
+  } 
+  
+}
+
 
 const AppRoutes = () => {
   return (
@@ -27,7 +48,7 @@ const AppRoutes = () => {
       <Route path="/" element={<Navigate to="/login" replace />} />
       
       <Route path="/profile" element={<UserProfile />} />
-      <Route path="/homepage" element={<HomePage />} />
+      <Route path="/homepage" element={<HomePageRouter />} />
       <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
       <Route path="/game" element={<GamePage />} />
       <Route path="/game/create" element={<CreateGameSession />} />

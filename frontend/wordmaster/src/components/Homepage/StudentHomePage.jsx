@@ -1,4 +1,4 @@
-// src/pages/HomePage.js
+// src/pages/StudentHomePage.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -29,26 +29,26 @@ import { useUserAuth } from '../context/UserAuthContext';
 import { useHomePage } from './HomePageFunctions';
 import logo from '../../assets/WOMS.png'
 
-const HomePage = () => {
+const StudentHomePage = () => {
   const { authChecked, user, getToken, login, logout } = useUserAuth();
   const {
-    createClassOpen,
-    className,
+    joinClassOpen,
+    classCode,
     loadingProfile,
     loadingClassrooms,
     classrooms,
     error,
     anchorEl,
-    createSuccess,
+    joinSuccess,
     
-    setCreateClassOpen,
-    setClassName,
-    setCreateSuccess,
+    setJoinClassOpen,
+    setClassCode,
+    setJoinSuccess,
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
     handleLogout,
-    handleCreateClass,
+    handleJoinClass,
 
     displayName,
     roleDisplay,
@@ -185,7 +185,7 @@ const HomePage = () => {
           <Box display="flex" gap={2}>
             <Button
               variant="contained"
-              onClick={() => navigate('/game/create')}
+              onClick={() => navigate('/game')}
               sx={{
                 backgroundColor: '#6c63ff',
                 '&:hover': { backgroundColor: '#5a52e0' },
@@ -195,29 +195,13 @@ const HomePage = () => {
                 py: 1
               }}
             >
-              Create Game
-            </Button>
-            
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/content/dashboard')}
-              sx={{
-                borderColor: '#5F4B8B',
-                color: '#5F4B8B',
-                '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
-                textTransform: 'none',
-                borderRadius: '8px',
-                px: 3,
-                py: 1
-              }}
-            >
-              Content Dashboard
+              Join Game
             </Button>
             
             <Button
               variant="contained"
               startIcon={<Add />}
-              onClick={() => setCreateClassOpen(true)}
+              onClick={() => setJoinClassOpen(true)}
               sx={{
                 backgroundColor: '#5F4B8B',
                 '&:hover': { backgroundColor: '#4a3a6d' },
@@ -227,7 +211,7 @@ const HomePage = () => {
                 py: 1
               }}
             >
-              Create Class
+              Join Class
             </Button>
           </Box>
         </Box>
@@ -259,15 +243,15 @@ const HomePage = () => {
             }}
           >
             <Typography variant="h6" color="text.secondary" gutterBottom>
-              You haven't created any classes yet
+              You're not enrolled in any classes yet
             </Typography>
             <Typography variant="body2" color="text.secondary" mb={3}>
-              Create a class to get started with WordMaster
+              Join a class to get started with WordMaster
             </Typography>
             <Button
               variant="contained"
               startIcon={<Add />}
-              onClick={() => setCreateClassOpen(true)}
+              onClick={() => setJoinClassOpen(true)}
               sx={{
                 backgroundColor: '#5F4B8B',
                 '&:hover': { backgroundColor: '#4a3a6d' },
@@ -277,7 +261,7 @@ const HomePage = () => {
                 py: 1
               }}
             >
-              Create Your First Class
+              Join Your First Class
             </Button>
           </Box>
         ) : (
@@ -316,24 +300,24 @@ const HomePage = () => {
         )}
       </Container>
 
-      {/* Create Class Dialog */}
-      <CreateClassDialog 
-        open={createClassOpen}
-        className={className}
+      {/* Join Class Dialog */}
+      <JoinClassDialog 
+        open={joinClassOpen}
+        classCode={classCode}
         loading={loadingClassrooms}
         onClose={() => {
-          setCreateClassOpen(false);
+          setJoinClassOpen(false);
           setError(null);
         }}
-        onChange={(e) => setClassName(e.target.value)}
-        onSubmit={handleCreateClass}
+        onChange={(e) => setClassCode(e.target.value)}
+        onSubmit={handleJoinClass}
       />
 
       {/* Success Snackbar */}
       <Snackbar
-        open={createSuccess}
+        open={joinSuccess}
         autoHideDuration={2000}
-        onClose={() => setCreateSuccess(false)}
+        onClose={() => setJoinSuccess(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         sx={{ 
           '& .MuiSnackbar-root': {
@@ -343,7 +327,7 @@ const HomePage = () => {
         }}
       >
         <Alert
-          onClose={() => setCreateSuccess(false)}
+          onClose={() => setJoinSuccess(false)}
           severity="success"
           icon={<CheckCircle fontSize="inherit" />}
           sx={{ 
@@ -353,7 +337,7 @@ const HomePage = () => {
             '& .MuiAlert-icon': { color: 'white' }
           }}
         >
-          Class created successfully!
+          Successfully joined the class!
         </Alert>
       </Snackbar>
     </Box>
@@ -382,7 +366,7 @@ const ClassroomCard = ({ classroom, onClick }) => (
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" mb={3}>
-        {classroom.students?.length || 0} students enrolled
+        Teacher: {classroom.teacher.fname +" "+classroom.teacher.lname || 'Unknown Teacher'}
       </Typography>
       <Button
         fullWidth
@@ -400,13 +384,13 @@ const ClassroomCard = ({ classroom, onClick }) => (
           }
         }}
       >
-        Manage Class
+        Enter Class
       </Button>
     </CardContent>
   </Card>
 );
 
-const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubmit }) => (
+const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit }) => (
   <Dialog 
     open={open} 
     onClose={onClose}
@@ -419,7 +403,7 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
       backgroundColor: '#f5f3fa',
       borderBottom: '1px solid #e0e0e0'
     }}>
-      <Typography fontWeight="bold">Create New Class</Typography>
+      <Typography fontWeight="bold">Join Class</Typography>
       <IconButton onClick={onClose}>
         <Close />
       </IconButton>
@@ -427,13 +411,13 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
     
     <DialogContent sx={{ py: 3, px: 3 }}>
       <Typography variant="body1" mb={2}>
-        Enter a name for your new class
+        Enter the class code provided by your teacher
       </Typography>
       <TextField
         fullWidth
         variant="outlined"
-        placeholder="e.g. English 101"
-        value={className}
+        placeholder="e.g. A1B2C3"
+        value={classCode}
         onChange={onChange}
         sx={{ 
           '& .MuiOutlinedInput-root': {
@@ -457,10 +441,10 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
           textTransform: 'none'
         }}
       >
-        {loading ? <CircularProgress size={24} color="inherit" /> : 'Create Class'}
+        {loading ? <CircularProgress size={24} color="inherit" /> : 'Join Class'}
       </Button>
     </DialogActions>
   </Dialog>
 );
 
-export default HomePage;
+export default StudentHomePage;
