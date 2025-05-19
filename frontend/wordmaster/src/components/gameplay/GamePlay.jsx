@@ -16,7 +16,9 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Avatar
+  Avatar,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
 
@@ -30,6 +32,8 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const [submitting, setSubmitting] = useState(false);
   const [storyPrompt, setStoryPrompt] = useState(''); // For AI-generated story prompts
   const [rolePrompt, setRolePrompt] = useState('');   // For AI-generated role-specific hints
+  const [pointsNotification, setPointsNotification] = useState(false);
+  const [pointsData, setPointsData] = useState({ points: 0, reason: '' });
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -88,6 +92,29 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
     }
   }, [stompClient, user]);
 
+  // Subscription for score updates
+  useEffect(() => {
+    if (stompClient && stompClient.connected && user && user.id) {
+      const subscription = stompClient.subscribe(`/user/${user.email}/queue/score`, (message) => {
+        try {
+          const data = JSON.parse(message.body);
+          // Show notification when points are awarded
+          if (data.points) {
+            setPointsData({
+              points: data.points,
+              reason: data.reason || 'Points awarded'
+            });
+            setPointsNotification(true);
+          }
+        } catch (error) {
+          console.error('Error handling score update:', error);
+        }
+      });
+      
+      return () => subscription.unsubscribe();
+    }
+  }, [stompClient, user]);
+
   // Determine if it's the current user's turn
   const currentUserInPlayers = gameState.players?.find(p => p.userId === user?.id);
  // Fix the isMyTurn comparison by ensuring type consistency
@@ -139,13 +166,26 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
     try {
       // The backend expects 'sentence' and optionally 'word' if you extract it.
       // For simplicity, sending the whole sentence. Backend can parse if needed.
-      const success = await sendMessage(
+      const response = await sendMessage(
         `/app/game/${gameState.sessionId}/submit`, 
         { sentence: sentence.trim() } // Ensure you send what the backend expects
       );
       
-      if (success) {
+      if (response.ok) {
+        // Add the word to local used words list for immediate UI feedback
+        const usedWord = sentence.split(' ').find(word => 
+          gameState.wordBank && gameState.wordBank.includes(word)
+        );
+        
+        if (usedWord) {
+          setGameState(prev => ({
+            ...prev,
+            usedWords: [...(prev.usedWords || []), usedWord.toLowerCase()]
+          }));
+        }
+        
         setSentence('');
+        setSubmitting(false);
       }
     } catch (error) {
       console.error('Error submitting sentence:', error);
@@ -402,7 +442,57 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
             </Box>
           </Paper>
         </Grid>
+
+        {/* Word Bank Display - New Section */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, mb: 3, borderRadius: '8px', backgroundColor: '#f8f9fa' }}>
+            <Typography variant="h6" fontWeight="medium" mb={1}>Word Bank</Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {gameState.wordBank && gameState.wordBank.map((word, index) => (
+                <Chip 
+                  key={index} 
+                  label={word}
+                  color="primary"
+                  variant={gameState.usedWords && gameState.usedWords.includes(word.toLowerCase()) ? "default" : "outlined"}
+                  sx={{ 
+                    fontWeight: 'medium',
+                    opacity: gameState.usedWords && gameState.usedWords.includes(word.toLowerCase()) ? 0.6 : 1,
+                    textDecoration: gameState.usedWords && gameState.usedWords.includes(word.toLowerCase()) ? 'line-through' : 'none',
+                    '&:hover': { 
+                      backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                      cursor: 'pointer'
+                    }
+                  }}
+                  onClick={() => {
+                    if (!gameState.usedWords || !gameState.usedWords.includes(word.toLowerCase())) {
+                      setSentence(prev => prev ? `${prev} ${word}` : word);
+                    }
+                  }}
+                />
+              ))}
+              {(!gameState.wordBank || gameState.wordBank.length === 0) && (
+                <Typography variant="body2" color="text.secondary">No words available in word bank.</Typography>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
       </Grid>
+
+      {/* Notification for points awarded */}
+      <Snackbar
+        open={pointsNotification}
+        autoHideDuration={3000}
+        onClose={() => setPointsNotification(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setPointsNotification(false)} 
+          severity={pointsData.points > 0 ? "success" : "error"}
+          sx={{ width: '100%' }}
+        >
+          {pointsData.points > 0 ? `+${pointsData.points}` : pointsData.points} points: {pointsData.reason}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

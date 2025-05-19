@@ -37,6 +37,8 @@ public class ChatMessageEntity {
     @Column(nullable = false)
     private Date timestamp;
 
+    @Column(name = "word_used")
+    private String wordUsed;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "player_session_id")
@@ -130,5 +132,13 @@ public class ChatMessageEntity {
 
     public enum MessageStatus {
         PERFECT, MINOR_ERRORS, MAJOR_ERRORS
+    }
+
+    public String getWordUsed() {
+    return wordUsed;
+    }
+
+    public void setWordUsed(String wordUsed) {
+        this.wordUsed = wordUsed;
     }
 }

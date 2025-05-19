@@ -19,6 +19,12 @@ public class GameStateDTO {
     // Add current cycle field
     private int currentCycle;
 
+    // Add this field to the class
+    private List<String> wordBank;
+
+    // Add these fields if they don't exist
+    private int timePerTurn;
+
     // Getters and setters
     public Long getSessionId() {
         return sessionId;
@@ -132,5 +138,22 @@ public class GameStateDTO {
 
     public void setCurrentCycle(int currentCycle) {
         this.currentCycle = currentCycle;
+    }
+
+    public List<String> getWordBank() {
+        return wordBank;
+    }
+
+    public void setWordBank(List<String> wordBank) {
+        this.wordBank = wordBank;
+    }
+
+    // Add these getter and setter methods
+    public int getTimePerTurn() {
+        return timePerTurn;
+    }
+
+    public void setTimePerTurn(int timePerTurn) {
+        this.timePerTurn = timePerTurn;
     }
 }

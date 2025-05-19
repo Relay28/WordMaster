@@ -174,6 +174,11 @@ public class AIService {
                     rolePrompt.append("in a conversation about: ").append(request.get("context")).append(". ");
                     rolePrompt.append("The tip should help them stay in character and use appropriate vocabulary and expressions for this role. Keep it short and helpful.");
                     return rolePrompt.toString();
+                case "role_check":
+                    return "Evaluate if the following text is appropriate for someone playing the role of '" + 
+                    request.get("role") + "' in a conversation about " + request.get("context") + 
+                    ". The text is: \"" + request.get("text") + 
+                    "\". Respond with either 'Appropriate' or 'Not appropriate' followed by a brief explanation.";
                 default:
                     return "Provide a response to: " + request;
             }

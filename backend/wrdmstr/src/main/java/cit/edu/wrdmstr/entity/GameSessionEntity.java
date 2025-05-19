@@ -51,6 +51,22 @@ public class GameSessionEntity {
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ScoreRecordEntity> scores = new ArrayList<>();
 
+    @Column(name = "current_turn")
+    private int currentTurn = 0;
+
+    @Column(name = "total_turns")
+    private int totalTurns = 0;
+
+    @Column(name = "current_cycle")
+    private int currentCycle = 0;
+
+    @Column(name = "time_per_turn")
+    private int timePerTurn = 60; // Default 60 seconds
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "current_player_id")
+    private PlayerSessionEntity currentPlayer;
+
     // Getters and setters
 
     public Long getId() {
@@ -145,6 +161,46 @@ public class GameSessionEntity {
 
     public void setScores(List<ScoreRecordEntity> scores) {
         this.scores = scores;
+    }
+
+    public int getCurrentTurn() {
+        return currentTurn;
+    }
+
+    public void setCurrentTurn(int currentTurn) {
+        this.currentTurn = currentTurn;
+    }
+
+    public int getTotalTurns() {
+        return totalTurns;
+    }
+
+    public void setTotalTurns(int totalTurns) {
+        this.totalTurns = totalTurns;
+    }
+
+    public int getCurrentCycle() {
+        return currentCycle;
+    }
+
+    public void setCurrentCycle(int currentCycle) {
+        this.currentCycle = currentCycle;
+    }
+
+    public int getTimePerTurn() {
+        return timePerTurn;
+    }
+
+    public void setTimePerTurn(int timePerTurn) {
+        this.timePerTurn = timePerTurn;
+    }
+
+    public PlayerSessionEntity getCurrentPlayer() {
+        return currentPlayer;
+    }
+
+    public void setCurrentPlayer(PlayerSessionEntity currentPlayer) {
+        this.currentPlayer = currentPlayer;
     }
 
     public enum SessionStatus {

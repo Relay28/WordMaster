@@ -85,37 +85,27 @@ public class GameSessionManagerService {
             throw new IllegalStateException("Cannot start a game with no players");
         }
 
-        // Get game configuration
-        GameConfig gameConfig = session.getContent().getGameConfig();
-        int timePerTurn = gameConfig.getTimePerTurn();
-        int turnCycles = gameConfig.getTurnCycles();
-
-        // Assign roles if they exist
-        List<Role> roles = roleRepository.findByContentData(session.getContent().getContentData());
-        if (!roles.isEmpty()) {
-            assignRoles(players, roles);
-        }
-
-        // Assign word bombs
-        List<WordBankItem> wordBank = wordBankRepository.findByContentData(session.getContent().getContentData());
-        if (!wordBank.isEmpty()) {
-            assignWordBombs(players, wordBank);
-        }
-
         // Initialize game state
         GameState gameState = new GameState();
         gameState.setSessionId(sessionId);
         gameState.setPlayers(players);
-        gameState.setTimePerTurn(timePerTurn);
-        gameState.setTotalTurns(players.size() * turnCycles);
-        gameState.setCurrentTurn(1);
-        gameState.setCurrentPlayerId(players.get(0).getId());
         gameState.setStatus(GameState.Status.WAITING_FOR_PLAYER);
         gameState.setTurnStartTime(new Date());
         gameState.setBackgroundImage(session.getContent().getContentData().getBackgroundImage());
         gameState.setUsedWords(new ArrayList<>());
         gameState.setCurrentCycle(1); // Set initial cycle
-
+        gameState.setCurrentTurn(1);
+        gameState.setTotalTurns(session.getTotalTurns());
+        gameState.setTimePerTurn(session.getTimePerTurn());
+        
+        // Make sure to copy the total turns from the config
+        if (session.getTotalTurns() == 0) {
+            GameConfig config = session.getContent().getGameConfig();
+            int totalTurns = config.getTurnCycles() * players.size();
+            gameState.setTotalTurns(totalTurns);
+            session.setTotalTurns(totalTurns);
+            gameSessionRepository.save(session);
+        }
         // Set content info
         Map<String, Object> contentInfo = new HashMap<>();
         contentInfo.put("id", session.getContent().getId());
@@ -126,72 +116,134 @@ public class GameSessionManagerService {
         // Store game state
         activeGames.put(sessionId, gameState);
 
+        // Initialize game
+        initializeGame(session);
+
         // Broadcast game started
         Map<String, Object> startedMessage = new HashMap<>();
         startedMessage.put("event", "gameStarted");
         startedMessage.put("sessionId", sessionId);
-        startedMessage.put("timePerTurn", timePerTurn);
-        startedMessage.put("totalTurns", gameState.getTotalTurns());
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/status", startedMessage);
 
         // Broadcast first turn
         startNextTurn(sessionId);
     }
 
-    private void assignRoles(List<PlayerSessionEntity> players, List<Role> roles) {
-        Random random = new Random();
-        int numRoles = roles.size();
+    private void initializeGame(GameSessionEntity session) {
+        // Get the game config from the content
+        GameConfig gameConfig = session.getContent().getGameConfig();
         
-        logger.info("Starting role assignment: {} roles for {} players", numRoles, players.size());
-        // Log role information for debugging
-        for (Role role : roles) {
-            logger.info("Available role: ID={}, Name={}", role.getId(), role.getName());
+        // Use turn cycles directly from config without multiplying by player count
+        int totalTurns = gameConfig.getTurnCycles();
+        System.out.println("Setting total turns to: " + totalTurns + " (from config turnCycles)");
+        session.setTotalTurns(totalTurns);
+        
+            // Make sure gameState also gets updated
+        GameState gameState = activeGames.get(session.getId());
+        if (gameState != null) {
+            gameState.setTotalTurns(totalTurns);
         }
         
-        if (numRoles == 0) {
-            logger.warn("No roles available to assign!");
+        // Set the correct turn time from content config
+        session.setTimePerTurn(gameConfig.getTimePerTurn());
+        
+        // Make sure to reset and initialize first turn properly
+        session.setCurrentTurn(1);
+        session.setCurrentCycle(1);
+        
+        // Important: Select the first player immediately when game starts
+        selectNextPlayer(session);
+        
+        // Generate and send initial story prompt
+        String initialStoryElement = generateStoryElement(session, 1);
+        Map<String, Object> storyUpdate = new HashMap<>();
+        storyUpdate.put("type", "storyUpdate");
+        storyUpdate.put("content", initialStoryElement);
+        
+        messagingTemplate.convertAndSend(
+            "/topic/game/" + session.getId() + "/updates",
+            storyUpdate
+        );
+        
+        // Make sure to reset the timer for the first turn
+        resetTurnTimer(session);
+        
+        // Save the updated session
+        gameSessionRepository.save(session);
+        
+        // Send the initial game state to all clients immediately
+        broadcastGameState(session);
+    }
+
+    // Update this method if it exists, or create it if it doesn't
+    private void selectNextPlayer(GameSessionEntity session) {
+        List<PlayerSessionEntity> players = new ArrayList<>(session.getPlayers());
+        
+        if (players.isEmpty()) {
+            logger.warn("No players available to select as next player");
             return;
         }
         
-        // Shuffle roles for better distribution
-        List<Role> shuffledRoles = new ArrayList<>(roles);
-        Collections.shuffle(shuffledRoles);
+        // Sort players by some consistent order (e.g., by ID)
+        players.sort(Comparator.comparing(PlayerSessionEntity::getId));
         
-        for (int i = 0; i < players.size(); i++) {
-            PlayerSessionEntity player = players.get(i);
-            Role role = shuffledRoles.get(i % numRoles);
+        // If it's the first turn, select the first player
+        if (session.getCurrentTurn() == 1 || session.getCurrentPlayer() == null) {
+            session.setCurrentPlayer(players.get(0));
             
-            logger.info("Assigning role '{}' (ID: {}) to player: {} {}",
-                        role.getName(), role.getId(),
-                        player.getUser().getFname(), 
-                        player.getUser().getLname());
-            
-            // Explicitly set the role relationship on both sides
-            player.setRole(role);
-            if (!role.getPlayerSessions().contains(player)) {
-                role.getPlayerSessions().add(player);
+            // Make sure to update the GameState too
+            GameState gameState = activeGames.get(session.getId());
+            if (gameState != null) {
+                gameState.setCurrentPlayerId(players.get(0).getId());
             }
-            
-            // Save the player with the new role assignment
-            PlayerSessionEntity savedPlayer = playerRepository.save(player);
-            
-            // Verify the assignment took effect
-            logger.info("After save - Player ID: {}, Role: {}", 
-                        savedPlayer.getId(), 
-                        savedPlayer.getRole() != null ? savedPlayer.getRole().getName() : "null");
+            return;
         }
         
-        // After all players have been assigned roles, fetch them from the database to confirm
-        logger.info("Verifying all player role assignments:");
-        for (PlayerSessionEntity player : playerRepository.findBySessionId(players.get(0).getSession().getId())) {
-            logger.info("Player: {} {}, Role: {}", 
-                       player.getUser().getFname(),
-                       player.getUser().getLname(),
-                       player.getRole() != null ? player.getRole().getName() : "null");
+        // Find current player index
+        int currentIndex = -1;
+        for (int i = 0; i < players.size(); i++) {
+            if (players.get(i).getId().equals(session.getCurrentPlayer().getId())) {
+                currentIndex = i;
+                break;
+            }
+        }
+        
+        // Move to next player
+        int nextIndex = (currentIndex + 1) % players.size();
+        session.setCurrentPlayer(players.get(nextIndex));
+        
+        // Make sure to update the GameState too
+        GameState gameState = activeGames.get(session.getId());
+        if (gameState != null) {
+            gameState.setCurrentPlayerId(players.get(nextIndex).getId());
         }
     }
     
+    private void resetTurnTimer(GameSessionEntity session) {
+        GameState gameState = activeGames.get(session.getId());
+        if (gameState != null) {
+            gameState.setTurnStartTime(new Date());
+            gameState.setLastTurnTime(System.currentTimeMillis());
+            
+            // Also update the game state to match the session
+            gameState.setCurrentTurn(session.getCurrentTurn());
+            gameState.setTotalTurns(session.getTotalTurns());
+            gameState.setTimePerTurn(session.getTimePerTurn());
+            
+            if (session.getCurrentPlayer() != null) {
+                gameState.setCurrentPlayerId(session.getCurrentPlayer().getId());
+            }
+        }
+    }
+    
+    // Add this broadcastGameState method
+    private void broadcastGameState(GameSessionEntity session) {
+        GameStateDTO gameState = getGameState(session.getId());
+        messagingTemplate.convertAndSend("/topic/game/" + session.getId() + "/state", gameState);
+    }
+
     // Replace the existing generateStoryElement method with this improved version
+    @Transactional(propagation = Propagation.REQUIRED)
     private String generateStoryElement(GameSessionEntity session, int turnNumber) {
         try {
             Map<String, Object> request = new HashMap<>();
@@ -416,6 +468,15 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
                 }
             }
             
+            // Add word bank to DTO
+            if (session.getContent() != null && session.getContent().getContentData() != null) {
+                List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(session.getContent().getContentData());
+                List<String> words = wordBankItems.stream()
+                    .map(WordBankItem::getWord)
+                    .collect(Collectors.toList());
+                dto.setWordBank(words);
+            }
+            
             // Set leaderboard
             dto.setLeaderboard(getSessionLeaderboard(sessionId));
             
@@ -434,8 +495,33 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         dto.setStatus(gameState.getStatus().toString());
         dto.setCurrentTurn(gameState.getCurrentTurn());
         dto.setTotalTurns(gameState.getTotalTurns());
+        dto.setTimePerTurn(session.getTimePerTurn()); // Make sure this field exists in GameStateDTO
         
-        // Rest of your existing code...
+        // Add this code to set the word bank for active games
+        if (session.getContent() != null && session.getContent().getContentData() != null) {
+            List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(session.getContent().getContentData());
+            List<String> words = wordBankItems.stream()
+                .map(WordBankItem::getWord)
+                .collect(Collectors.toList());
+            dto.setWordBank(words);
+        }
+        
+        // Set current player info with role
+        if (gameState.getCurrentPlayerId() != null) {
+            PlayerSessionEntity currentPlayer = playerRepository.findById(gameState.getCurrentPlayerId()).orElse(null);
+            if (currentPlayer != null) {
+                Map<String, Object> currentPlayerMap = new HashMap<>();
+                currentPlayerMap.put("id", currentPlayer.getId());
+                currentPlayerMap.put("name", currentPlayer.getUser().getFname() + " " + currentPlayer.getUser().getLname());
+                
+                // Make sure role name is included
+                if (currentPlayer.getRole() != null) {
+                    currentPlayerMap.put("role", currentPlayer.getRole().getName());
+                }
+                
+                dto.setCurrentPlayer(currentPlayerMap);
+            }
+        }
         
         return dto;
     }
@@ -510,6 +596,19 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         messagingTemplate.convertAndSend(
             "/topic/game/" + sessionId + "/scores",
             Collections.singletonMap("playerId", userId)
+        );
+        
+        // Add this to notify the player
+        Map<String, Object> scoreUpdate = new HashMap<>();
+        scoreUpdate.put("points", points);
+        scoreUpdate.put("reason", reason);
+        
+        // Get the user's email for sending to their queue
+        String userEmail = player.getUser().getEmail();
+        messagingTemplate.convertAndSendToUser(
+            userEmail,
+            "/queue/score",
+            scoreUpdate
         );
     }
 

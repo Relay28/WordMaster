@@ -5,6 +5,7 @@ import cit.edu.wrdmstr.repository.ChatMessageEntityRepository;
 import cit.edu.wrdmstr.repository.MessageReactionEntityRepository;
 import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
 import cit.edu.wrdmstr.repository.ScoreRecordEntityRepository;
+import cit.edu.wrdmstr.repository.WordBankItemRepository;
 import cit.edu.wrdmstr.service.AIService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
@@ -31,6 +32,7 @@ public class ChatService {
     @Autowired private GrammarCheckerService grammarCheckerService;
     @Autowired private SimpMessagingTemplate messagingTemplate;
     @Autowired private AIService aiService;
+    @Autowired private WordBankItemRepository wordBankItemRepository;
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
@@ -43,8 +45,12 @@ public class ChatService {
 
         GameSessionEntity session = player.getSession();
 
-        // Grammar check
-        GrammarCheckerService.GrammarCheckResult grammarResult = grammarCheckerService.checkGrammar(content);
+        String roleName = player.getRole() != null ? player.getRole().getName() : null;
+        String contextDesc = session.getContent() != null ? session.getContent().getDescription() : "";
+
+        // Grammar check with role assessment
+        GrammarCheckerService.GrammarCheckResult grammarResult = 
+            grammarCheckerService.checkGrammar(content, roleName, contextDesc);
 
         String rolePrompt = generateRolePrompt(player);
         if (rolePrompt != null) {
@@ -102,6 +108,32 @@ public class ChatService {
 
         // Add to session's messages
         session.getMessages().add(message);
+
+        // Check for word bank usage
+        List<WordBankItem> sessionWordBank = wordBankItemRepository.findByContentData(session.getContent().getContentData());
+        boolean usedWordBankItem = false;
+        String wordUsed = null;
+
+        for (WordBankItem item : sessionWordBank) {
+            String word = item.getWord().toLowerCase();
+            if (content.toLowerCase().contains(word)) {
+                usedWordBankItem = true;
+                wordUsed = item.getWord();
+                break;
+            }
+        }
+
+        if (usedWordBankItem) {
+            // Award points for using word bank item
+            awardPoints(player, 15, "Used word bank item: " + wordUsed);
+            message.setWordUsed(wordUsed);
+        }
+
+        // Later in the method, add role-appropriate bonus points
+        if (grammarResult.isRoleAppropriate()) {
+            int roleBonus = 10;
+            awardPoints(player, roleBonus, "Role-appropriate communication");
+        }
 
         return chatMessageRepository.save(message);
     }
