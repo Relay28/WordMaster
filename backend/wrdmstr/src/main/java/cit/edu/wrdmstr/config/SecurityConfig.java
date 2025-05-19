@@ -67,6 +67,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/auth/**", "/login/oauth2/code/azure").permitAll()
                         .requestMatchers("/api/auth/**","/api/admin/**").permitAll()
+                        .requestMatchers("/api/grammar/check").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/sessions/**").authenticated() // <-- ENSURE THIS LINE EXISTS

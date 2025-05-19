@@ -6,56 +6,37 @@
     import org.languagetool.rules.RuleMatch;
     import org.springframework.beans.factory.annotation.Autowired;
     import org.springframework.stereotype.Service;
-
+    import cit.edu.wrdmstr.service.ai.AIService;
+    import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
     import java.util.ArrayList;
     import java.util.List;
-
     @Service
     public class GrammarCheckerService {
-
-        private final JLanguageTool langTool;
+        private final AIService aiService;
 
         @Autowired
-        public GrammarCheckerService(JLanguageTool langTool) {
-            this.langTool = langTool;
+        public GrammarCheckerService(AIService aiService) {
+            this.aiService = aiService;
         }
 
-//        public GrammarCheckerService() {
-//            try {
-//                this.langTool = new JLanguageTool(new AmericanEnglish());
-//            } catch (Exception e) {
-//                System.err.println("LanguageTool initialization error: " + e.getMessage());
-//                e.printStackTrace();
-//                throw new RuntimeException("LanguageTool failed to initialize", e);
-//            }
-//        }
-
         public GrammarCheckResult checkGrammar(String text) {
-            if (text == null || text.trim().isEmpty()) {
-                return new GrammarCheckResult(ChatMessageEntity.MessageStatus.PERFECT, "Empty input");
-            }
+            // Get AI-powered feedback
+            String aiFeedback = aiService.getGrammarFeedback(text);
 
-            try {
-                List<RuleMatch> matches = langTool.check(text);
-                if (matches.isEmpty()) {
-                    return new GrammarCheckResult(ChatMessageEntity.MessageStatus.PERFECT, "No grammar errors detected");
-                } else {
-                    List<String> suggestions = new ArrayList<>();
-                    for (int i = 0; i < Math.min(3, matches.size()); i++) {
-                        RuleMatch match = matches.get(i);
-                        String suggestion = String.format("Issue at position %d-%d: %s. Suggestion: %s",
-                                match.getFromPos(), match.getToPos(), match.getMessage(), match.getSuggestedReplacements());
-                        suggestions.add(suggestion);
-                    }
+            // Parse feedback to determine status
+            MessageStatus status = determineStatusFromFeedback(aiFeedback);
 
-                    ChatMessageEntity.MessageStatus status = matches.size() > 2
-                            ? ChatMessageEntity.MessageStatus.MAJOR_ERRORS
-                            : ChatMessageEntity.MessageStatus.MINOR_ERRORS;
+            return new GrammarCheckResult(status, aiFeedback);
+        }
 
-                    return new GrammarCheckResult(status, String.join("\n", suggestions));
-                }
-            } catch (Exception e) {
-                return new GrammarCheckResult(ChatMessageEntity.MessageStatus.MAJOR_ERRORS, "Error analyzing text");
+        private MessageStatus determineStatusFromFeedback(String feedback) {
+            // Implement logic to determine severity based on AI feedback
+            if (feedback.contains("no errors")) {
+                return MessageStatus.PERFECT;
+            } else if (feedback.contains("minor errors")) {
+                return MessageStatus.MINOR_ERRORS;
+            } else {
+                return MessageStatus.MAJOR_ERRORS;
             }
         }
 
