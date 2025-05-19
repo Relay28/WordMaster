@@ -20,22 +20,6 @@ const GameCore = () => {
   const [error, setError] = useState(null);
   const [gameState, setGameState] = useState({});
   const [stompClient, setStompClient] = useState(null);
-  let hasJoinedSession = false; // 
-    // Define the joinSession function
-    const joinSession = async () => {
-      try {
-        const token = await getToken();
-        await fetch(`${API_URL}/api/sessions/${sessionId}/join`, {
-          method: 'POST', 
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        console.log('Successfully joined session via REST API');
-      } catch (error) {
-        console.error('Error joining session:', error);
-      }
-    };
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -43,10 +27,6 @@ const GameCore = () => {
 
     const initializeWebSocket = async () => {
       try {
-        if (!hasJoinedSession) {
-          hasJoinedSession = true; // Set the flag to true
-          await joinSession(); // Call joinSession only once
-        }
         const token = await getToken();
         if (!token) {
           setError('Authentication token not available');
@@ -88,8 +68,6 @@ const GameCore = () => {
             
             // Fetch initial game state
             fetchGameState();
-            
-            // Join the game
           },
           
           beforeConnect: () => {

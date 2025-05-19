@@ -8,22 +8,64 @@ import {
   Chip,
   Grid,
   Divider,
-  Tooltip
+  Tooltip,
 } from '@mui/material';
 import { Edit, Delete, Visibility, PublishedWithChanges, Unpublished, Person } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { useUserAuth } from '../context/UserAuthContext';
+import API_URL from '../../services/apiConfig';
+import { styled } from '@mui/material/styles'; // Import styled
 
-const ContentList = ({ 
-  content, 
-  onEdit, 
-  onView, 
-  onDelete, 
+// Styled Card that navigates on click
+const ContentCard = styled(Card)(({ theme }) => ({
+  borderRadius: '8px',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  transition: 'all 0.3s ease',
+  cursor: 'pointer', // Indicate it's clickable
+  '&:hover': {
+    boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+  },
+}));
+
+const ContentList = ({
+  content,
+  onEdit,
+  onView,
+  onDelete,
   onPublishToggle,
   disableActions = false
 }) => {
+  const navigate = useNavigate();
+  const { getToken } = useUserAuth();
+
   // Format date function
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
+  const handleContentClick = async (contentId) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/join`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error("Failed to join waiting room:", response.status, response.statusText);
+        // Optionally, display an error message to the user
+        return;
+      }
+
+      navigate(`/waiting-room/${contentId}`);
+
+    } catch (error) {
+      console.error("Error joining waiting room:", error);
+      // Optionally, display an error message to the user
+    }
   };
 
   return (
@@ -31,22 +73,15 @@ const ContentList = ({
       <Grid container spacing={2}>
         {content.map(item => (
           <Grid item xs={12} key={item.id}>
-            <Card sx={{ 
-              borderRadius: '8px', 
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
-              }
-            }}>
+            <ContentCard onClick={() => handleContentClick(item.id)}>
               <CardContent>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
                   <Typography variant="h6" component="div" fontWeight="500">
                     {item.title}
                   </Typography>
                   <Box>
-                    <Chip 
-                      label={item.published ? "Published" : "Draft"} 
+                    <Chip
+                      label={item.published ? "Published" : "Draft"}
                       color={item.published ? "success" : "default"}
                       size="small"
                       sx={{ mr: 1 }}
@@ -61,17 +96,17 @@ const ContentList = ({
                     )}
                   </Box>
                 </Box>
-                
+
                 {item.description && (
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {item.description.length > 100 
-                      ? `${item.description.substring(0, 100)}...` 
+                    {item.description.length > 100
+                      ? `${item.description.substring(0, 100)}...`
                       : item.description}
                   </Typography>
                 )}
-                
+
                 <Divider sx={{ my: 1.5 }} />
-                
+
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Box display="flex" alignItems="center">
                     <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
@@ -86,44 +121,44 @@ const ContentList = ({
                       </Box>
                     )}
                   </Box>
-                  
+
                   <Box>
                     <Tooltip title="View">
-                      <IconButton 
-                        size="small" 
+                      <IconButton
+                        size="small"
                         onClick={() => onView(item.id)}
                         sx={{ color: '#5F4B8B' }}
                       >
                         <Visibility fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    
+
                     {!disableActions && (
                       <>
                         <Tooltip title="Edit">
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             onClick={() => onEdit(item.id)}
                           >
                             <Edit fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        
+
                         <Tooltip title={item.published ? "Unpublish" : "Publish"}>
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             onClick={() => onPublishToggle(item.id, item.published)}
                             sx={{ color: item.published ? '#4caf50' : '#9e9e9e' }}
                           >
-                            {item.published 
+                            {item.published
                               ? <PublishedWithChanges fontSize="small" />
                               : <Unpublished fontSize="small" />}
                           </IconButton>
                         </Tooltip>
-                        
+
                         <Tooltip title="Delete">
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             onClick={() => onDelete(item.id)}
                             color="error"
                           >
@@ -135,7 +170,7 @@ const ContentList = ({
                   </Box>
                 </Box>
               </CardContent>
-            </Card>
+            </ContentCard>
           </Grid>
         ))}
       </Grid>

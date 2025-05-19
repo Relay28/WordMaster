@@ -95,7 +95,8 @@ const ClassroomDetailsPage = () => {
   };
 
   const handleViewContent = (contentId) => {
-    navigate(`/content/${contentId}?classroomId=${classroom?.id}`);
+        navigate(`/waiting-room/${contentId}`);
+    
   };
 
   const handleDeleteContent = async (contentId) => {
@@ -119,7 +120,16 @@ const ClassroomDetailsPage = () => {
       if (currentStatus) {
         updatedContent = await contentService.unpublishContent(contentId, token);
       } else {
-        updatedContent = await contentService.publishContent(contentId, token);
+        try {
+          const token = await getToken();
+          await contentService.publishContent(contentId, token);
+          // Redirect to waiting room after successful publish
+          navigate(`/waiting-room/${contentId}`);
+        } catch (error) {
+          console.error("Error publishing content:", error);
+          // Handle error
+        }
+
       }
       
       setContentList(contentList.map(item => 

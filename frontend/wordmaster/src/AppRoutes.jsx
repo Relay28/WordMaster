@@ -22,7 +22,7 @@ import ContentDetails from './components/content/ContentDetails';
 import ProtectedTeacherRoute from './components/auth/ProtectedTeacherRoute';
 import  ContentUpload from './components/content/contentUpload/ContentUpload';
 import { useUserAuth } from './components/context/UserAuthContext';
-
+import WaitingRoomPage from './components/WaitingRoom/WaitingRoomPage';
 // Create a wrapper component for role-based routing
 function HomePageRouter() {
   const { isTeacher, isStudent, authChecked, user } = useUserAuth();
@@ -57,13 +57,14 @@ const AppRoutes = () => {
       <Route path="/setup" element={<SetupPage/>} />
       <Route path="/register" element={<Register />} />
       <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
-
+<Route path="/waiting-room/:contentId" element={<WaitingRoomPage />} />
       {/* Content Management Routes */}
       <Route element={<ProtectedTeacherRoute />}>
         <Route path="/content/dashboard" element={<ContentDashboard />} />
         <Route path="/content/upload" element={< ContentUpload />} />
         <Route path="/content/edit/:id" element={<EditContent />} />
         <Route path="/content/:id" element={<ContentDetails />} />
+        
       </Route>
 
       <Route path="/admin/login" element={<AdminLogin />} />
