@@ -100,6 +100,8 @@ public class WaitingRoomService {
                 playerSession.setSession(session);
                 playerSession.setUser(student);
                 playerSession.setActive(true);
+                playerSession.setTotalScore(0);
+                playerSession.setGrammarStreak(0);
                 playerSession.setGroupNumber(sessions.size() + 1); // Set group number
                 playerSessionRepository.save(playerSession);
                 session.addPlayer(playerSession);
