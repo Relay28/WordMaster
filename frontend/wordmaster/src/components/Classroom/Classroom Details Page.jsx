@@ -26,7 +26,7 @@ import {
 import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useClassroomDetails } from './ClassroomDetailFunctions';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ContentList from '../content/ContentList';
 import contentService from '../../services/contentService';
 
@@ -49,10 +49,12 @@ const ClassroomDetailsPage = () => {
   } = useClassroomDetails(authChecked, user, getToken);
   
   const navigate = useNavigate();
+  const location = useLocation();
   const [tabValue, setTabValue] = useState(0);
   const [contentList, setContentList] = useState([]);
   const [loadingContent, setLoadingContent] = useState(false);
   const [contentError, setContentError] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Add this line
 
   // Handler for tab change
   const handleTabChange = (event, newValue) => {
@@ -82,7 +84,7 @@ const ClassroomDetailsPage = () => {
     };
 
     fetchClassroomContent();
-  }, [classroom, getToken]);
+  }, [classroom, getToken, refreshTrigger]); // Add refreshTrigger here
 
   const handleCreateContent = () => {
     if (!classroom) return;
@@ -90,13 +92,23 @@ const ClassroomDetailsPage = () => {
     navigate(`/content/upload?classroomId=${classroom.id}`);
   };
 
+  // Update the handleGenerateAIContent function
+  const handleGenerateAIContent = () => {
+    if (!classroom) return;
+    navigate(`/content/ai-generate?classroomId=${classroom.id}`, {
+      state: { 
+        returnTo: `/classroom/${classroom.id}`,
+        refreshOnReturn: true
+      }
+    });
+  };
+
   const handleEditContent = (contentId) => {
     navigate(`/content/edit/${contentId}?classroomId=${classroom?.id}`);
   };
 
   const handleViewContent = (contentId) => {
-        navigate(`/waiting-room/${contentId}`);
-    
+        navigate(`/content/${contentId}`);    
   };
 
   const handleDeleteContent = async (contentId) => {
@@ -140,6 +152,15 @@ const ClassroomDetailsPage = () => {
       setContentError("Failed to update content status. Please try again.");
     }
   };
+
+  // Check for state when component mounts or updates
+  useEffect(() => {
+    if (location.state?.refreshOnReturn) {
+      setRefreshTrigger(prev => prev + 1);
+      // Clear the state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   if (!authChecked || loading) {
     return (
@@ -391,19 +412,35 @@ const ClassroomDetailsPage = () => {
                 <Typography variant="h5">Learning Content</Typography>
                 
                 {isClassroomTeacher && (
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={handleCreateContent}
-                    sx={{
-                      backgroundColor: '#5F4B8B',
-                      '&:hover': { backgroundColor: '#4a3a6d' },
-                      textTransform: 'none',
-                      borderRadius: '8px',
-                    }}
-                  >
-                    Create Content
-                  </Button>
+                  <Box>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={handleCreateContent}
+                      sx={{
+                        backgroundColor: '#5F4B8B',
+                        '&:hover': { backgroundColor: '#4a3a6d' },
+                        textTransform: 'none',
+                        borderRadius: '8px',
+                        mr: 2
+                      }}
+                    >
+                      Create Content
+                    </Button>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={handleGenerateAIContent}
+                      sx={{
+                        backgroundColor: '#5F4B8B',
+                        '&:hover': { backgroundColor: '#4a3a6d' },
+                        textTransform: 'none',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      Generate AI Content
+                    </Button>
+                  </Box>
                 )}
               </Box>
               
@@ -412,16 +449,16 @@ const ClassroomDetailsPage = () => {
                   {contentError}
                 </Alert>
               )}
-              
+
               {loadingContent ? (
                 <Box display="flex" justifyContent="center" py={4}>
                   <CircularProgress />
                 </Box>
               ) : contentList.length === 0 ? (
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 4,
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 4, 
                     textAlign: 'center',
                     backgroundColor: '#f5f5f5',
                     borderRadius: '12px'
@@ -430,25 +467,23 @@ const ClassroomDetailsPage = () => {
                   <Typography variant="h6" color="text.secondary" gutterBottom>
                     No content available yet
                   </Typography>
+                  <Typography variant="body2" color="text.secondary" mb={3}>
+                    Create your first content for this classroom
+                  </Typography>
                   {isClassroomTeacher && (
-                    <>
-                      <Typography variant="body2" color="text.secondary" mb={3}>
-                        Create your first content for this classroom
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        startIcon={<Add />}
-                        onClick={handleCreateContent}
-                        sx={{
-                          backgroundColor: '#5F4B8B',
-                          '&:hover': { backgroundColor: '#4a3a6d' },
-                          textTransform: 'none',
-                          borderRadius: '8px',
-                        }}
-                      >
-                        Create Content
-                      </Button>
-                    </>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={handleCreateContent}
+                      sx={{
+                        backgroundColor: '#5F4B8B',
+                        '&:hover': { backgroundColor: '#4a3a6d' },
+                        textTransform: 'none',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      Create Content
+                    </Button>
                   )}
                 </Paper>
               ) : (

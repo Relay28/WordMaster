@@ -146,19 +146,37 @@ public class ContentController {
         return new ResponseEntity<>(createdContent, HttpStatus.CREATED);
     }
 
-    @PostMapping("/generate")
-    @PreAuthorize("hasAuthority('USER_TEACHER')")
-    public ResponseEntity<ContentDTO> generateContent(@RequestBody Map<String, String> request, 
-                                                    Authentication auth) {
-        String topic = request.get("topic");
-        if (topic == null || topic.trim().isEmpty()) {
-            logger.error("Topic is required for AI content generation");
-            return ResponseEntity.badRequest().build();
+@PostMapping("/generate")
+@PreAuthorize("hasAuthority('USER_TEACHER')")
+public ResponseEntity<ContentDTO> generateContent(@RequestBody Map<String, String> request, 
+                                                Authentication auth) {
+    String topic = request.get("topic");
+    Long classroomId = null;
+    
+    // Extract classroomId from the request if it exists
+    if (request.containsKey("classroomId") && request.get("classroomId") != null) {
+        try {
+            classroomId = Long.parseLong(request.get("classroomId"));
+        } catch (NumberFormatException e) {
+            logger.error("Invalid classroom ID format: {}", request.get("classroomId"));
         }
-        
-        logger.info("Generating AI content for topic: {}", topic);
-        ContentDTO generatedContent = contentService.generateAIContent(topic, auth);
-        logger.info("Generated AI content with ID: {}", generatedContent.getId());
-        return new ResponseEntity<>(generatedContent, HttpStatus.CREATED);
-        }
+    }
+    
+    if (topic == null || topic.trim().isEmpty()) {
+        logger.error("Topic is required for AI content generation");
+        return ResponseEntity.badRequest().build();
+    }
+    
+    logger.info("Generating AI content for topic: {} for classroom ID: {}", topic, classroomId);
+    ContentDTO generatedContent;
+    
+    if (classroomId != null) {
+        generatedContent = contentService.generateAIContentForClassroom(topic, auth, classroomId);
+    } else {
+        generatedContent = contentService.generateAIContent(topic, auth);
+    }
+    
+    logger.info("Generated AI content with ID: {}", generatedContent.getId());
+    return new ResponseEntity<>(generatedContent, HttpStatus.CREATED);
+}
 }

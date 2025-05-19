@@ -61,7 +61,7 @@ const AppRoutes = () => {
       <Route path="/setup" element={<SetupPage/>} />
       <Route path="/register" element={<Register />} />
       <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
-<Route path="/waiting-room/:contentId" element={<WaitingRoomPage />} />
+      <Route path="/waiting-room/:contentId" element={<WaitingRoomPage />} />
       {/* Content Management Routes */}
       <Route element={<ProtectedTeacherRoute />}>
         <Route path="/content/dashboard" element={<ContentDashboard />} />

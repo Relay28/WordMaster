@@ -110,7 +110,7 @@ const WaitingRoomPage = () => {
       <List>
         {students.map(student => (
           <ListItem key={student.id}>
-            <ListItemText primary={`${student.fname} ${student.lname}`} />
+            <ListItemText primary={`${student.fname} ${student.lname}`}/>
           </ListItem>
         ))}
       </List>

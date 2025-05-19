@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
@@ -222,7 +223,7 @@ public class GameSessionManagerService {
         }
     }
     
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED)
     public void startNextTurn(Long sessionId) {
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
@@ -308,6 +309,7 @@ public class GameSessionManagerService {
         return true;
     }
 
+    @Transactional(propagation = Propagation.REQUIRED)
     private void advanceToNextPlayer(Long sessionId) {
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
@@ -453,6 +455,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
     }
 
     @Scheduled(fixedRate = 1000) // Check every second
+    @Transactional(propagation = Propagation.REQUIRED)
     public void checkTurnTimers() {
         long currentTime = System.currentTimeMillis();
         

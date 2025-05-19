@@ -294,6 +294,117 @@ public class ContentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+public ContentDTO generateAIContentForClassroom(String topic, Authentication auth, Long classroomId) {
+    // Similar to generateAIContent but with classroom association
+    UserEntity creator = getAuthenticatedUser(auth);
+    logger.info("Generating AI content about topic: {} for classroom ID: {}", topic, classroomId);
+    
+    ClassroomEntity classroom = classroomRepository.findById(classroomId)
+            .orElseThrow(() -> new EntityNotFoundException("Classroom not found with id: " + classroomId));
+    
+    if (!(classroom.getTeacher().getId() == (creator.getId()))) {
+        throw new AccessDeniedException("Only classroom teacher can create content for this classroom");
+    }
+
+    // Get AI response - same as in generateAIContent
+    Map<String, Object> request = new HashMap<>();
+    request.put("task", "content_generation");
+    request.put("topic", topic);
+    
+    String aiResponse = aiService.callAIModel(request).getResult();
+    
+    // Parse AI response to extract words and roles
+    List<String> generatedWords = new ArrayList<>();
+    List<String> generatedRoles = new ArrayList<>();
+    boolean parsingWords = false;
+    boolean parsingRoles = false;
+    
+    // Parse the AI response
+    for (String line : aiResponse.split("\n")) {
+        line = line.trim();
+        
+        // Check for section headers
+        if (line.contains("WORDS:")) {
+            parsingWords = true;
+            parsingRoles = false;
+            logger.debug("Started parsing WORDS section");
+            continue;
+        } else if (line.contains("ROLES:")) {
+            parsingWords = false;
+            parsingRoles = true;
+            logger.debug("Started parsing ROLES section");
+            continue;
+        }
+        
+        // Check for item with various prefixes
+        if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
+            String item = line.substring(2).trim();
+            if (parsingWords && !item.isEmpty()) {
+                generatedWords.add(item);
+                logger.debug("Added word: {}", item);
+            } else if (parsingRoles && !item.isEmpty()) {
+                generatedRoles.add(item);
+                logger.debug("Added role: {}", item);
+            }
+        }
+    }
+
+    // Add fallback if parsing failed to find any words or roles
+    if (generatedWords.isEmpty()) {
+        logger.warn("No words found in AI response, adding fallback words");
+        generatedWords.add("vocabulary");
+        generatedWords.add("language");
+        generatedWords.add("speaking");
+        generatedWords.add("listening");
+        generatedWords.add("conversation");
+    }
+
+    if (generatedRoles.isEmpty()) {
+        logger.warn("No roles found in AI response, adding fallback roles");
+        generatedRoles.add("Speaker");
+        generatedRoles.add("Listener");
+        generatedRoles.add("Moderator");
+        generatedRoles.add("Observer");
+    }
+    
+    // Create new content with classroom association
+    ContentEntity content = new ContentEntity();
+    content.setTitle("AI Generated: " + topic);
+    content.setDescription("AI-generated content about " + topic);
+    content.setBackgroundTheme("default");
+    content.setCreator(creator);
+    content.setClassroom(classroom); // Set the classroom
+    content.setPublished(false);
+    
+    // Create and set ContentData
+    ContentData contentData = new ContentData();
+    content.setContentData(contentData);
+    contentData.setContent(content);
+
+    // Create and set GameConfig
+    GameConfig gameConfig = new GameConfig();
+    gameConfig.setStudentsPerGroup(4);
+    gameConfig.setTimePerTurn(60);
+    gameConfig.setTurnCycles(3);
+    content.setGameConfig(gameConfig);
+    gameConfig.setContent(content);
+
+    // Add generated words
+    for (String word : generatedWords) {
+        contentData.addWord(word);
+    }
+
+    // Add generated roles
+    for (String role : generatedRoles) {
+        contentData.addRole(role);
+    }
+
+    ContentEntity savedContent = contentRepository.save(content);
+    logger.info("Created AI-generated content with ID: {} for classroom: {}", savedContent.getId(), classroomId);
+    return convertToDTO(savedContent);
+}
+
     private ContentDTO convertToDTO(ContentEntity content) {
         ContentDTO dto = new ContentDTO();
         dto.setId(content.getId());
