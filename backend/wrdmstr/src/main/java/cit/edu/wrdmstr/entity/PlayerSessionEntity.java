@@ -42,7 +42,16 @@ public class PlayerSessionEntity {
 
     @Column(name = "total_score")
     private int totalScore = 0;
+    @Column(name = "group_number")
+    private Integer groupNumber;
 
+    public Integer getGroupNumber() {
+        return groupNumber;
+    }
+
+    public void setGroupNumber(Integer groupNumber) {
+        this.groupNumber = groupNumber;
+    }
     // Getters and setters
 
 

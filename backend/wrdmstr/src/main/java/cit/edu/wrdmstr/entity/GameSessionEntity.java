@@ -28,7 +28,7 @@ public class GameSessionEntity {
     private String sessionCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", length = 20) // Adjust length as needed
     private SessionStatus status = SessionStatus.PENDING;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -64,6 +64,20 @@ public class GameSessionEntity {
     public ContentEntity getContent() {
         return content;
     }
+
+    public void addPlayer(PlayerSessionEntity player) {
+        if (!players.contains(player)) {
+            players.add(player);
+            player.setSession(this); // maintain bidirectional consistency
+        }
+    }
+
+    public void removePlayer(PlayerSessionEntity player) {
+        if (players.remove(player)) {
+            player.setSession(null); // break the association
+        }
+    }
+
 
     public void setContent(ContentEntity content) {
         this.content = content;
@@ -134,6 +148,9 @@ public class GameSessionEntity {
     }
 
     public enum SessionStatus {
-        PENDING, ACTIVE, COMPLETED, CANCELLED
+        PENDING,
+        WAITING,
+        ACTIVE,
+        COMPLETED
     }
 }

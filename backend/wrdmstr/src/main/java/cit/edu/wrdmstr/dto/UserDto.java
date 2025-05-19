@@ -22,6 +22,10 @@ public class UserDto {
         this.active = user.isActive();
     }
 
+    public UserDto() {
+
+    }
+
     // Getters and setters
 
 
