@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/content")
@@ -144,4 +145,20 @@ public class ContentController {
         logger.info("Created content with ID: {} for classroom ID: {}", createdContent.getId(), classroomId);
         return new ResponseEntity<>(createdContent, HttpStatus.CREATED);
     }
+
+    @PostMapping("/generate")
+    @PreAuthorize("hasAuthority('USER_TEACHER')")
+    public ResponseEntity<ContentDTO> generateContent(@RequestBody Map<String, String> request, 
+                                                    Authentication auth) {
+        String topic = request.get("topic");
+        if (topic == null || topic.trim().isEmpty()) {
+            logger.error("Topic is required for AI content generation");
+            return ResponseEntity.badRequest().build();
+        }
+        
+        logger.info("Generating AI content for topic: {}", topic);
+        ContentDTO generatedContent = contentService.generateAIContent(topic, auth);
+        logger.info("Generated AI content with ID: {}", generatedContent.getId());
+        return new ResponseEntity<>(generatedContent, HttpStatus.CREATED);
+        }
 }

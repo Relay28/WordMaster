@@ -1,4 +1,4 @@
-// src/context/AuthContext.js
+// src/context/AuthContext.js wa gigamit
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode'; // Install with: npm install jwt-decode

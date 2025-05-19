@@ -6,7 +6,7 @@
     import org.languagetool.rules.RuleMatch;
     import org.springframework.beans.factory.annotation.Autowired;
     import org.springframework.stereotype.Service;
-    import cit.edu.wrdmstr.service.ai.AIService;
+    import cit.edu.wrdmstr.service.AIService;
     import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
     import java.util.ArrayList;
     import java.util.List;
@@ -26,7 +26,10 @@
             // Parse feedback to determine status
             MessageStatus status = determineStatusFromFeedback(aiFeedback);
 
-            return new GrammarCheckResult(status, aiFeedback);
+            // Add role-specific context to feedback
+            String enhancedFeedback = aiFeedback;
+
+            return new GrammarCheckResult(status, enhancedFeedback);
         }
 
         private MessageStatus determineStatusFromFeedback(String feedback) {

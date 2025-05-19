@@ -5,13 +5,18 @@ import cit.edu.wrdmstr.repository.ChatMessageEntityRepository;
 import cit.edu.wrdmstr.repository.MessageReactionEntityRepository;
 import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
 import cit.edu.wrdmstr.repository.ScoreRecordEntityRepository;
+import cit.edu.wrdmstr.service.AIService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus.*;
 
@@ -24,6 +29,8 @@ public class ChatService {
     @Autowired private ScoreRecordEntityRepository scoreRecordRepository;
     @Autowired private MessageReactionEntityRepository messageReactionRepository;
     @Autowired private GrammarCheckerService grammarCheckerService;
+    @Autowired private SimpMessagingTemplate messagingTemplate;
+    @Autowired private AIService aiService;
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
@@ -39,6 +46,14 @@ public class ChatService {
         // Grammar check
         GrammarCheckerService.GrammarCheckResult grammarResult = grammarCheckerService.checkGrammar(content);
 
+        String rolePrompt = generateRolePrompt(player);
+        if (rolePrompt != null) {
+        messagingTemplate.convertAndSendToUser(
+            player.getUser().getEmail(),
+            "/queue/responses",
+            Collections.singletonMap("rolePrompt", rolePrompt)
+        );
+    }
         // Create message
         ChatMessageEntity message = new ChatMessageEntity();
         message.setSession(session);
@@ -49,6 +64,7 @@ public class ChatService {
         message.setGrammarFeedback(grammarResult.getFeedback());
         message.setTimestamp(new Date());
 
+        
         // Check word bomb
         if (!player.isWordBombUsed() &&
                 player.getCurrentWordBomb() != null &&
@@ -130,5 +146,20 @@ public class ChatService {
 
     public List<ChatMessageEntity> getSessionMessages(Long sessionId) {
         return chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+    }
+
+    // Add this method to generate role-specific prompts
+    private String generateRolePrompt(PlayerSessionEntity player) {
+        if (player.getRole() == null) return null;
+        
+        String roleName = player.getRole().getName();
+        String context = player.getSession().getContent().getDescription();
+        
+        Map<String, Object> request = new HashMap<>();
+        request.put("task", "role_prompt");
+        request.put("role", roleName);
+        request.put("context", context);
+        
+        return aiService.callAIModel(request).getResult();
     }
 }

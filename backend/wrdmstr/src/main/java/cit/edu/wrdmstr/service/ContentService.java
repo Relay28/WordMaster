@@ -4,6 +4,7 @@ import cit.edu.wrdmstr.dto.*;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.ClassroomRepository;
 import cit.edu.wrdmstr.repository.ContentRepository;
+import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,25 +16,30 @@ import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 public class ContentService {
 
     private static final Logger logger = LoggerFactory.getLogger(ContentService.class);
-
+    private final AIService aiService;
     private final ContentRepository contentRepository;
     private final UserRepository userRepository;
     private final ClassroomRepository classroomRepository;
-
+    
     @Autowired
     public ContentService(ContentRepository contentRepository,
                           UserRepository userRepository,
-                          ClassroomRepository classroomRepository) {
+                          ClassroomRepository classroomRepository,
+                          AIService aiService) {
         this.contentRepository = contentRepository;
         this.userRepository = userRepository;
         this.classroomRepository = classroomRepository;
+        this.aiService = aiService;
     }
 
     private UserEntity getAuthenticatedUser(Authentication authentication) {
@@ -340,5 +346,113 @@ public class ContentService {
         }
 
         return dto;
+    }
+
+    @Transactional
+    public ContentDTO generateAIContent(String topic, Authentication auth) {
+        UserEntity creator = getAuthenticatedUser(auth);
+        logger.info("Generating AI content about topic: {} for user: {}", topic, creator.getEmail());
+
+        // Prepare request for AI
+        Map<String, Object> request = new HashMap<>();
+        request.put("task", "content_generation");
+        request.put("topic", topic);
+
+        // Get AI response
+        String aiResponse = aiService.callAIModel(request).getResult();
+        logger.info("Received AI response: {}", aiResponse);
+
+        // Parse AI response to extract words and roles
+        List<String> generatedWords = new ArrayList<>();
+        List<String> generatedRoles = new ArrayList<>();
+        
+        // Simple parsing of the expected format
+        boolean parsingWords = false;
+        boolean parsingRoles = false;
+        
+        // Log the response for debugging
+        logger.info("Parsing AI response: {}", aiResponse);
+
+        for (String line : aiResponse.split("\n")) {
+            line = line.trim();
+            
+            // Check for section headers
+            if (line.contains("WORDS:")) {
+                parsingWords = true;
+                parsingRoles = false;
+                logger.debug("Started parsing WORDS section");
+                continue;
+            } else if (line.contains("ROLES:")) {
+                parsingWords = false;
+                parsingRoles = true;
+                logger.debug("Started parsing ROLES section");
+                continue;
+            }
+            
+            // Check for item with various prefixes
+            if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
+                String item = line.substring(2).trim();
+                if (parsingWords && !item.isEmpty()) {
+                    generatedWords.add(item);
+                    logger.debug("Added word: {}", item);
+                } else if (parsingRoles && !item.isEmpty()) {
+                    generatedRoles.add(item);
+                    logger.debug("Added role: {}", item);
+                }
+            }
+        }
+
+        // Add fallback if parsing failed to find any words or roles
+        if (generatedWords.isEmpty()) {
+            logger.warn("No words found in AI response, adding fallback words");
+            generatedWords.add("vocabulary");
+            generatedWords.add("language");
+            generatedWords.add("speaking");
+            generatedWords.add("listening");
+            generatedWords.add("conversation");
+        }
+
+        if (generatedRoles.isEmpty()) {
+            logger.warn("No roles found in AI response, adding fallback roles");
+            generatedRoles.add("Speaker");
+            generatedRoles.add("Listener");
+            generatedRoles.add("Moderator");
+            generatedRoles.add("Observer");
+        }
+
+        // Create new content
+        ContentEntity content = new ContentEntity();
+        content.setTitle("AI Generated: " + topic);
+        content.setDescription("AI-generated content about " + topic);
+        content.setBackgroundTheme("default");
+        content.setCreator(creator);
+        content.setPublished(false);
+
+        // Create and set ContentData
+        ContentData contentData = new ContentData();
+        content.setContentData(contentData);
+        contentData.setContent(content);
+
+        // Create and set GameConfig
+        GameConfig gameConfig = new GameConfig();
+        gameConfig.setStudentsPerGroup(4);
+        gameConfig.setTimePerTurn(60);
+        gameConfig.setTurnCycles(3);
+        content.setGameConfig(gameConfig);
+        gameConfig.setContent(content);
+
+        // Add generated words
+        for (String word : generatedWords) {
+            contentData.addWord(word);
+        }
+
+        // Add generated roles
+        for (String role : generatedRoles) {
+            contentData.addRole(role);
+        }
+
+        ContentEntity savedContent = contentRepository.save(content);
+        logger.info("Created AI-generated content with ID: {}", savedContent.getId());
+        return convertToDTO(savedContent);
     }
 }

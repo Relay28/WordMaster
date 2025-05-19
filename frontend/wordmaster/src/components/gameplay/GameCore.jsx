@@ -15,7 +15,7 @@ const GameCore = () => {
   const { sessionId } = useParams();
   const { user, getToken } = useUserAuth();
   const navigate = useNavigate();
-  
+  const [storyPrompt, setStoryPrompt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [gameState, setGameState] = useState({});
@@ -231,8 +231,10 @@ const GameCore = () => {
     try {
       const updateData = JSON.parse(message.body);
       console.log('Game update received:', updateData);
-      // Handle general game updates
-    } catch (error) {
+    if (updateData.type === "storyUpdate") {
+      setStoryPrompt(updateData.content);
+    }
+      } catch (error) {
       console.error('Error handling game update:', error);
     }
   };
@@ -241,7 +243,12 @@ const GameCore = () => {
     try {
       const response = JSON.parse(message.body);
       console.log('Personal response received:', response);
-      // Handle personal responses
+      
+      // Handle role prompts
+      if (response.rolePrompt) {
+        // This will be handled by the GamePlay component through its own subscription
+        console.log('Role prompt received:', response.rolePrompt);
+      }
     } catch (error) {
       console.error('Error handling personal response:', error);
     }

@@ -254,6 +254,22 @@ const ContentDashboard = () => {
             Upload New Content
           </Button>
         </Box>
+        <Button
+  variant="contained"
+  startIcon={<Add />}
+  onClick={() => navigate('/content/ai-generate')}
+  sx={{
+    backgroundColor: '#5F4B8B',
+    '&:hover': { backgroundColor: '#4a3a6d' },
+    textTransform: 'none',
+    borderRadius: '8px',
+    px: 3,
+    py: 1,
+    ml: 2
+  }}
+>
+  Generate AI Content
+</Button>
 
         <Grid container spacing={3} mb={3}>
           <Grid item xs={12} md={6}>

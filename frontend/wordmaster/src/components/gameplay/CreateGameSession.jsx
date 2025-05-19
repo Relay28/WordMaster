@@ -6,6 +6,7 @@ import {
   FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
+import { useLocation } from 'react-router-dom';
 
 const CreateGameSession = () => {
   const { getToken } = useUserAuth();
@@ -16,6 +17,7 @@ const CreateGameSession = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
+  const location = useLocation();
 
   // Fetch available content
   useEffect(() => {
@@ -26,7 +28,14 @@ const CreateGameSession = () => {
         // Default to localhost if not defined
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
         console.log('Using API URL:', apiUrl);
-        
+
+        // Parse content ID from URL if present
+        const params = new URLSearchParams(location.search);
+        const contentId = params.get('contentId');
+        if (contentId) {
+          setSelectedContent(contentId);
+        }
+
         // Use the complete path to the endpoint
         const response = await fetch(`${apiUrl}/api/content/published`, {
           headers: { 
@@ -54,7 +63,7 @@ const CreateGameSession = () => {
     };
     
     fetchContents();
-  }, [getToken]);
+  }, [getToken, location.search]);
 
   // Handle content selection
   const handleContentChange = (event) => {

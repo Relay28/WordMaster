@@ -6,6 +6,7 @@ import cit.edu.wrdmstr.dto.TurnInfoDTO;
 import cit.edu.wrdmstr.dto.WordSubmissionDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
+import cit.edu.wrdmstr.service.AIService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,11 +30,11 @@ public class GameSessionManagerService {
     private final RoleRepository roleRepository;
     private final ScoreRecordEntityRepository scoreRepository;
     private final ChatService chatService;
-    private final GameSessionService gameSessionService; // Add this line
-    private final GrammarCheckerService grammarCheckerService; //unused atm
-    private final PlayerSessionEntityRepository playerSessionEntityRepository; // Add this line
+    private final GameSessionService gameSessionService;
+    private final GrammarCheckerService grammarCheckerService;
+    private final PlayerSessionEntityRepository playerSessionEntityRepository;
+    private final AIService aiService;
     
-
     // In-memory game state tracking
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
 
@@ -48,7 +49,8 @@ public class GameSessionManagerService {
             ChatService chatService,
             GrammarCheckerService grammarCheckerService,
             GameSessionService gameSessionService,
-            PlayerSessionEntityRepository playerSessionEntityRepository) {  // Add this parameter
+            PlayerSessionEntityRepository playerSessionEntityRepository,
+            AIService aiService) {
         this.messagingTemplate = messagingTemplate;
         this.gameSessionRepository = gameSessionRepository;
         this.playerRepository = playerRepository;
@@ -57,8 +59,9 @@ public class GameSessionManagerService {
         this.scoreRepository = scoreRepository;
         this.chatService = chatService;
         this.grammarCheckerService = grammarCheckerService;
-        this.gameSessionService = gameSessionService; 
-        this.playerSessionEntityRepository= playerSessionEntityRepository; // Add this line
+        this.gameSessionService = gameSessionService;
+        this.playerSessionEntityRepository = playerSessionEntityRepository;
+        this.aiService = aiService;
     }
 
     @Transactional
@@ -110,6 +113,7 @@ public class GameSessionManagerService {
         gameState.setTurnStartTime(new Date());
         gameState.setBackgroundImage(session.getContent().getContentData().getBackgroundImage());
         gameState.setUsedWords(new ArrayList<>());
+        gameState.setCurrentCycle(1); // Set initial cycle
 
         // Set content info
         Map<String, Object> contentInfo = new HashMap<>();
@@ -136,12 +140,74 @@ public class GameSessionManagerService {
     private void assignRoles(List<PlayerSessionEntity> players, List<Role> roles) {
         Random random = new Random();
         int numRoles = roles.size();
-
+        
+        logger.info("Starting role assignment: {} roles for {} players", numRoles, players.size());
+        // Log role information for debugging
+        for (Role role : roles) {
+            logger.info("Available role: ID={}, Name={}", role.getId(), role.getName());
+        }
+        
+        if (numRoles == 0) {
+            logger.warn("No roles available to assign!");
+            return;
+        }
+        
+        // Shuffle roles for better distribution
+        List<Role> shuffledRoles = new ArrayList<>(roles);
+        Collections.shuffle(shuffledRoles);
+        
         for (int i = 0; i < players.size(); i++) {
-            Role role = roles.get(i % numRoles);
             PlayerSessionEntity player = players.get(i);
+            Role role = shuffledRoles.get(i % numRoles);
+            
+            logger.info("Assigning role '{}' (ID: {}) to player: {} {}",
+                        role.getName(), role.getId(),
+                        player.getUser().getFname(), 
+                        player.getUser().getLname());
+            
+            // Explicitly set the role relationship on both sides
             player.setRole(role);
-            playerRepository.save(player);
+            if (!role.getPlayerSessions().contains(player)) {
+                role.getPlayerSessions().add(player);
+            }
+            
+            // Save the player with the new role assignment
+            PlayerSessionEntity savedPlayer = playerRepository.save(player);
+            
+            // Verify the assignment took effect
+            logger.info("After save - Player ID: {}, Role: {}", 
+                        savedPlayer.getId(), 
+                        savedPlayer.getRole() != null ? savedPlayer.getRole().getName() : "null");
+        }
+        
+        // After all players have been assigned roles, fetch them from the database to confirm
+        logger.info("Verifying all player role assignments:");
+        for (PlayerSessionEntity player : playerRepository.findBySessionId(players.get(0).getSession().getId())) {
+            logger.info("Player: {} {}, Role: {}", 
+                       player.getUser().getFname(),
+                       player.getUser().getLname(),
+                       player.getRole() != null ? player.getRole().getName() : "null");
+        }
+    }
+    
+    // Replace the existing generateStoryElement method with this improved version
+    private String generateStoryElement(GameSessionEntity session, int turnNumber) {
+        try {
+            Map<String, Object> request = new HashMap<>();
+            request.put("task", "story_prompt");
+            request.put("content", session.getContent().getDescription());
+            request.put("turn", turnNumber);
+            
+            // Only add used words if they exist
+            GameState gameState = activeGames.get(session.getId());
+            if (gameState != null && gameState.getUsedWords() != null && !gameState.getUsedWords().isEmpty()) {
+                request.put("usedWords", gameState.getUsedWords());
+            }
+            
+            return aiService.callAIModel(request).getResult();
+        } catch (Exception e) {
+            logger.error("Error generating story element: " + e.getMessage(), e);
+            return "Continue the conversation based on your role!";
         }
     }
     
@@ -168,6 +234,21 @@ public class GameSessionManagerService {
             endGame(sessionId);
             return;
         }
+
+        // Generate and add story element
+    GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
+    if (session != null) {
+        String storyElement = generateStoryElement(session, gameState.getCurrentTurn());
+        
+        Map<String, Object> storyUpdate = new HashMap<>();
+        storyUpdate.put("type", "storyUpdate");
+        storyUpdate.put("content", storyElement);
+        
+        messagingTemplate.convertAndSend(
+            "/topic/game/" + sessionId + "/updates",
+            storyUpdate
+        );
+    }
 
         // Set up turn
         gameState.setStatus(GameState.Status.TURN_IN_PROGRESS);
@@ -251,6 +332,12 @@ public class GameSessionManagerService {
         // Move to next player
         int nextIndex = (currentIndex + 1) % players.size();
         gameState.setCurrentPlayerId(players.get(nextIndex).getId());
+        
+        // If we've completed a full cycle through all players
+        if (nextIndex == 0) {
+            gameState.setCurrentCycle(gameState.getCurrentCycle() + 1);
+        }
+        
         gameState.setCurrentTurn(gameState.getCurrentTurn() + 1);
 
         // Start next turn
@@ -437,6 +524,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         private String backgroundImage;
         private List<String> usedWords;
         private Map<String, Object> contentInfo;
+        private int currentCycle; // Add cycle counter
 
         enum Status {
             WAITING_TO_START,
@@ -540,6 +628,14 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
 
         public void setContentInfo(Map<String, Object> contentInfo) {
             this.contentInfo = contentInfo;
+        }
+
+        public int getCurrentCycle() {
+            return currentCycle;
+        }
+
+        public void setCurrentCycle(int currentCycle) {
+            this.currentCycle = currentCycle;
         }
     }
 }

@@ -16,6 +16,9 @@ public class GameStateDTO {
     private String backgroundImage;
     private List<Map<String, Object>> leaderboard;
     
+    // Add current cycle field
+    private int currentCycle;
+
     // Getters and setters
     public Long getSessionId() {
         return sessionId;
@@ -30,9 +33,16 @@ public class GameStateDTO {
             return players;
         }
 
-        public void setPlayers(List<PlayerSessionDTO> players) {
-            this.players = players;
+    // Make sure the PlayerSessionDTO includes role information
+    public void setPlayers(List<PlayerSessionDTO> players) {
+        this.players = players;
+        // Add debug logging
+        if (players != null) {
+            for (PlayerSessionDTO player : players) {
+                System.out.println("Player: " + player.getPlayerName() + ", Role: " + player.getRole());
+            }
         }
+    }
         
     // Add these methods
     public String getSessionCode() {
@@ -113,5 +123,14 @@ public class GameStateDTO {
 
     public void setLeaderboard(List<Map<String, Object>> leaderboard) {
         this.leaderboard = leaderboard;
+    }
+
+    // Add getter and setter for current cycle
+    public int getCurrentCycle() {
+        return currentCycle;
+    }
+
+    public void setCurrentCycle(int currentCycle) {
+        this.currentCycle = currentCycle;
     }
 }

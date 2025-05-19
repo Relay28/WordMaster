@@ -2,6 +2,7 @@ package cit.edu.wrdmstr.service.gameplay;
 
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
+import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.dto.GameSessionDTO;
 import cit.edu.wrdmstr.dto.PlayerSessionDTO;
 
@@ -25,6 +26,7 @@ public class GameSessionService {
     @Autowired private ClassroomRepository classroomRepository;
     @Autowired private WordBankItemRepository wordBankItemRepository;
     @Autowired private RoleRepository roleRepository;
+    @Autowired private AIService aiService;
 
     public GameSessionEntity createSession(Long contentId, Authentication auth) {
         String email = auth.getName();
@@ -58,10 +60,16 @@ public class GameSessionService {
         return savedSession;
     }
 
+    public UserEntity getAuthenticatedUser(Authentication authentication) {
+        String email = authentication.getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+    }
+
     public Long getUserIdByEmail(String email) {
-        UserEntity user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
-        return user.getId();
+        return userRepository.findByEmail(email)
+                .map(UserEntity::getId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
     
     public GameSessionEntity startSession(Long sessionId) {
@@ -121,13 +129,33 @@ public class GameSessionService {
         return dto;
     }
 
-    // Add this method to get player DTOs for a session
-    @Transactional(readOnly = true)
     public List<PlayerSessionDTO> getSessionPlayerDTOs(Long sessionId) {
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
-        return players.stream()
-            .map(this::convertToDTO)
-            .collect(Collectors.toList());
+        return players.stream().map(playerEntity -> {
+            PlayerSessionDTO dto = new PlayerSessionDTO();
+            dto.setId(playerEntity.getId());
+            
+            UserEntity user = playerEntity.getUser();
+            if (user != null) {
+                dto.setUserId(user.getId());
+                dto.setName(user.getFname() + " " + user.getLname()); // Or however player name is determined
+            } else {
+                dto.setName("Unknown Player"); // Fallback
+            }
+            
+            Role playerRole = playerEntity.getRole();
+            if (playerRole != null) {
+                dto.setRole(playerRole.getName()); // Ensure role NAME is set
+            } else {
+                dto.setRole(null); // Or a default like "Participant" if preferred
+            }
+            
+            dto.setTotalScore(playerEntity.getTotalScore());
+            dto.setActive(playerEntity.isActive());
+            // Map other necessary fields from PlayerSessionEntity to PlayerSessionDTO
+            
+            return dto;
+        }).collect(Collectors.toList());
     }
 
     public GameSessionEntity getSessionById(Long sessionId) {
@@ -169,6 +197,8 @@ public class GameSessionService {
         return playerSessionRepository.findBySessionId(sessionId);
     }
 
+    // Ensure joinSession and other methods are correctly implemented
+    // For example, the joinSession method provided in context:
     @Transactional
     public synchronized PlayerSessionEntity joinSession(Long sessionId, Long userId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
@@ -181,10 +211,10 @@ public class GameSessionService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Prevent duplicate player sessions for the same user and session
         List<PlayerSessionEntity> existingPlayers = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
         if (!existingPlayers.isEmpty()) {
-            return existingPlayers.get(0); // Return the existing player session
+            // If player already exists, ensure their DTO reflects current role if game started
+            return existingPlayers.get(0); 
         }
 
         PlayerSessionEntity playerSession = new PlayerSessionEntity();
@@ -193,11 +223,13 @@ public class GameSessionService {
         playerSession.setActive(true);
         playerSession.setTotalScore(0);
         playerSession.setGrammarStreak(0);
+        // Note: Role is typically assigned when the game starts or groups are organized,
+        // not necessarily immediately on join, unless that's the desired logic.
 
-        session.getPlayers().add(playerSession);
+        session.getPlayers().add(playerSession); // Ensure bidirectional relationship if managed this way
         return playerSessionRepository.save(playerSession);
     }
-
+    
     public GameSessionEntity endSession(Long sessionId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
             .orElseThrow(() -> new ResourceNotFoundException("Game session not found"));
@@ -226,7 +258,7 @@ public class GameSessionService {
             
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
         
-        // Get word bank for this content
+        // Get content for this session
         ContentEntity content = session.getContent();
         List<WordBankItem> wordBank = wordBankItemRepository.findByContentData(content.getContentData());
         
@@ -238,7 +270,31 @@ public class GameSessionService {
         Random random = new Random();
         
         for (PlayerSessionEntity player : players) {
-            String newWord = wordBank.get(random.nextInt(wordBank.size())).getWord();
+            String newWord;
+            
+            // Use AI to generate contextual word bomb if player has a role
+            if (player.getRole() != null) {
+                try {
+                    String roleName = player.getRole().getName();
+                    String contentContext = content.getDescription();
+                    String difficulty = determinePlayerDifficulty(player); // New helper method
+                    
+                    newWord = aiService.generateWordBomb(difficulty, 
+                        "Role: " + roleName + ", Context: " + contentContext);
+                    
+                    // Fallback if AI fails to generate a good word
+                    if (newWord == null || newWord.trim().isEmpty()) {
+                        newWord = wordBank.get(random.nextInt(wordBank.size())).getWord();
+                    }
+                } catch (Exception e) {
+                    // Fallback to random selection if AI fails
+                    newWord = wordBank.get(random.nextInt(wordBank.size())).getWord();
+                }
+            } else {
+                // Fallback to random selection from word bank
+                newWord = wordBank.get(random.nextInt(wordBank.size())).getWord();
+            }
+            
             player.setCurrentWordBomb(newWord);
             player.setWordBombUsed(false);
             playerSessionRepository.save(player);
@@ -251,6 +307,19 @@ public class GameSessionService {
         }
         
         return result;
+    }
+
+    // Helper method to determine difficulty based on player performance
+    private String determinePlayerDifficulty(PlayerSessionEntity player) {
+        int score = player.getTotalScore();
+        
+        if (score > 50) {
+            return "hard";
+        } else if (score > 20) {
+            return "medium";
+        } else {
+            return "easy";
+        }
     }
 
     public GameSessionDTO toDTO(GameSessionEntity entity) {

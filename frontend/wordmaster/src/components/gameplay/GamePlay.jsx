@@ -23,82 +23,135 @@ import { useUserAuth } from '../context/UserAuthContext';
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-const GamePlay = ({ gameState, stompClient }) => {
-  const { sessionId } = useParams();
-  const { user, getToken } = useUserAuth();
+const GamePlay = ({ gameState, stompClient, sendMessage }) => {
+  const { sessionId } = useParams(); // Ensure sessionId is available if used directly for subscriptions
+  const { user } = useUserAuth();
   const [sentence, setSentence] = useState('');
-  const [word, setWord] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [timePercent, setTimePercent] = useState(100);
+  const [storyPrompt, setStoryPrompt] = useState(''); // For AI-generated story prompts
+  const [rolePrompt, setRolePrompt] = useState('');   // For AI-generated role-specific hints
   const chatEndRef = useRef(null);
 
-  // Update time percentage whenever timeRemaining changes
   useEffect(() => {
-    if (gameState.timePerTurn) {
-      setTimePercent((gameState.timeRemaining / gameState.timePerTurn) * 100);
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [gameState.timeRemaining, gameState.timePerTurn]);
-
-  // Auto-scroll chat to bottom
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [gameState.messages]);
 
-  // Check if it's current user's turn
-  const isMyTurn = gameState.currentPlayer?.userId === user?.id;
-
-  // Extract word from sentence
-  const handleSentenceChange = (e) => {
-    const newSentence = e.target.value;
-    setSentence(newSentence);
-    
-    // Simple extraction of potential word (for demonstration)
-    const words = newSentence.trim().split(/\s+/);
-    if (words.length > 0) {
-      setWord(words[words.length - 1].replace(/[^a-zA-Z]/g, '').toLowerCase());
+  // Subscription for AI-generated story prompts
+  useEffect(() => {
+    if (stompClient && stompClient.connected && gameState.sessionId) {
+      console.log('[GamePlay Debug] Subscribing to story updates for session:', gameState.sessionId);
+      const subscription = stompClient.subscribe(`/topic/game/${gameState.sessionId}/updates`, (message) => {
+        try {
+          const data = JSON.parse(message.body);
+          console.log('[GamePlay Debug] Received story update:', data);
+          if (data.type === "storyUpdate" && data.content) {
+            setStoryPrompt(data.content);
+          }
+        } catch (error) {
+          console.error('Error handling story update:', error);
+        }
+      });
+      return () => {
+        console.log('[GamePlay Debug] Unsubscribing from story updates.');
+        subscription.unsubscribe();
+      };
     } else {
-      setWord('');
+      if (!stompClient?.connected) console.log('[GamePlay Debug] Story updates: StompClient not connected.');
+      if (!gameState.sessionId) console.log('[GamePlay Debug] Story updates: gameState.sessionId is missing.');
     }
+  }, [stompClient, gameState.sessionId]);
+
+  // Subscription for AI-generated role-specific prompts/hints
+  useEffect(() => {
+    if (stompClient && stompClient.connected && user && user.email) {
+      console.log('[GamePlay Debug] Subscribing to role prompts for user:', user.email);
+      const subscription = stompClient.subscribe(`/user/${user.email}/queue/responses`, (message) => {
+        try {
+          const data = JSON.parse(message.body);
+          console.log('[GamePlay Debug] Received role prompt/personal response:', data);
+          if (data.rolePrompt) {
+            setRolePrompt(data.rolePrompt);
+          }
+        } catch (error) {
+          console.error('Error handling personal response (role prompt):', error);
+        }
+      });
+      return () => {
+        console.log('[GamePlay Debug] Unsubscribing from role prompts.');
+        subscription.unsubscribe();
+      };
+    } else {
+      if (!stompClient?.connected) console.log('[GamePlay Debug] Role prompts: StompClient not connected.');
+      if (!user?.email) console.log('[GamePlay Debug] Role prompts: user.email is missing.');
+    }
+  }, [stompClient, user]);
+
+  // Determine if it's the current user's turn
+  const currentUserInPlayers = gameState.players?.find(p => p.userId === user?.id);
+ // Fix the isMyTurn comparison by ensuring type consistency
+  const isMyTurn = !!(gameState.currentPlayer && currentUserInPlayers && user &&
+                 String(gameState.currentPlayer.id) === String(currentUserInPlayers.id));
+
+  // Debugging for isMyTurn calculation and related states
+  useEffect(() => {
+    console.log('-------------------------------------------');
+    console.log('[GamePlay Debug] gameState:', JSON.parse(JSON.stringify(gameState))); // Deep copy for logging
+    console.log('[GamePlay Debug] user from useUserAuth():', user);
+    console.log('[GamePlay Debug] stompClient connected:', stompClient?.connected);
+    console.log('--- isMyTurn Calculation ---');
+    console.log('[GamePlay Debug] gameState.currentPlayer:', gameState.currentPlayer);
+    console.log('[GamePlay Debug] currentUserInPlayers (found by user.id in gameState.players):', currentUserInPlayers);
+    if (gameState.currentPlayer && currentUserInPlayers) {
+      console.log(`[GamePlay Debug] Comparing currentPlayer.id (${gameState.currentPlayer.id}, type: ${typeof gameState.currentPlayer.id}) with currentUserInPlayers.id (${currentUserInPlayers.id}, type: ${typeof currentUserInPlayers.id})`);
+    }
+    console.log('[GamePlay Debug] Calculated isMyTurn:', isMyTurn);
+    console.log('-------------------------------------------');
+  }, [user, gameState, stompClient, currentUserInPlayers, isMyTurn]);
+
+  // Add near the top of your component
+  useEffect(() => {
+    if (gameState && Object.keys(gameState).length > 0) {
+      console.log("Current game state:", gameState);
+      console.log("Is current user's turn:", isMyTurn);
+      console.log("Current player:", gameState.currentPlayer);
+      console.log("Current user in players:", currentUserInPlayers);
+    }
+  }, [gameState, isMyTurn, currentUserInPlayers]);
+
+  const timePercent = gameState.timePerTurn > 0 ? (gameState.timeRemaining / gameState.timePerTurn) * 100 : 0;
+
+  const getTimerColor = () => {
+    if (gameState.timeRemaining > 10) return 'primary';
+    if (gameState.timeRemaining > 5) return 'warning';
+    return 'error';
   };
 
-  // Submit word/sentence
+  const handleSentenceChange = (e) => {
+    setSentence(e.target.value);
+  };
+
   const handleSubmit = async () => {
-    if (!isMyTurn || !sentence.trim() || !word) return;
+    if (!sentence.trim() || submitting || !gameState.sessionId) return;
     
     setSubmitting(true);
     try {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/api/sessions/${sessionId}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          word: word,
-          sentence: sentence
-        })
-      });
+      // The backend expects 'sentence' and optionally 'word' if you extract it.
+      // For simplicity, sending the whole sentence. Backend can parse if needed.
+      const success = await sendMessage(
+        `/app/game/${gameState.sessionId}/submit`, 
+        { sentence: sentence.trim() } // Ensure you send what the backend expects
+      );
       
-      if (!response.ok) {
-        throw new Error('Failed to submit word');
+      if (success) {
+        setSentence('');
       }
-      
-      // Clear input after successful submission
-      setSentence('');
-      setWord('');
-    } catch (err) {
-      console.error('Failed to submit word:', err);
+    } catch (error) {
+      console.error('Error submitting sentence:', error);
     } finally {
       setSubmitting(false);
     }
-  };
-
-  // Determine timer color based on time remaining
-  const getTimerColor = () => {
-    if (timePercent > 60) return 'success.main';
-    if (timePercent > 30) return 'warning.main';
-    return 'error.main';
   };
 
   return (
@@ -107,17 +160,30 @@ const GamePlay = ({ gameState, stompClient }) => {
         {/* Game Status Section */}
         <Grid item xs={12}>
           <Paper sx={{ p: 2, borderRadius: '8px' }}>
+            {/* Enhance the display of game information */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-              <Typography variant="h5">{gameState.contentInfo?.title || 'Game Session'}</Typography>
-              <Chip 
-                label={`Turn ${gameState.currentTurn || '?'} of ${gameState.totalTurns || '?'}`} 
-                color="primary" 
-                size="medium"
-              />
+              <Typography variant="h5">
+                {gameState.contentInfo?.title || 'Game Session'}
+              </Typography>
+              <Box>
+                <Chip 
+                  label={`Turn ${gameState.currentTurn || '?'} of ${gameState.totalTurns || '?'}`} 
+                  color="primary" 
+                  size="medium"
+                  sx={{ mr: 1 }}
+                />
+                {gameState.currentCycle && (
+                  <Chip 
+                    label={`Cycle ${gameState.currentCycle}`} 
+                    color="secondary" 
+                    size="medium"
+                  />
+                )}
+              </Box>
             </Box>
             <Box display="flex" alignItems="center" spacing={1}>
               <Typography variant="subtitle1" mr={1}>
-                {isMyTurn ? "Your turn!" : `${gameState.currentPlayer?.name || 'Player'}'s turn`}
+                {isMyTurn ? "Your turn!" : `${gameState.currentPlayer?.name || 'Waiting for player'}'s turn`}
                 {gameState.currentPlayer?.role && ` (${gameState.currentPlayer.role})`}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
@@ -136,8 +202,38 @@ const GamePlay = ({ gameState, stompClient }) => {
             </Box>
           </Paper>
         </Grid>
+
+        {/* User's role display and AI Role Hint */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 2, mb: 2, borderRadius: '8px', bgcolor: '#f8f5ff' }}>
+            <Typography variant="h6" mb={1}>Your Role: {gameState.players?.find(p => p.userId === user?.id)?.role || 'No role assigned'}</Typography>
+            {rolePrompt && (
+              <Box mt={1} p={2} bgcolor="#e3f2fd" borderRadius="8px" borderLeft="4px solid #2196f3">
+                <Typography variant="subtitle2" fontWeight="bold" color="#1e88e5">Role Hint:</Typography>
+                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {rolePrompt}
+                </Typography>
+              </Box>
+            )}
+            <Typography variant="body2" mt={rolePrompt ? 1 : 0}>
+              Play according to your role to earn more points!
+            </Typography>
+          </Paper>
+        </Grid>
+
+        {/* AI Story Prompt */}
+        {storyPrompt && (
+          <Grid item xs={12}>
+            <Paper sx={{ p: 2, mb: 2, borderRadius: '8px', bgcolor: '#fff8e1' }}>
+              <Typography variant="h6" mb={1} color="#f57c00">Story Prompt:</Typography>
+              <Typography variant="body1" sx={{ fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
+                {storyPrompt}
+              </Typography>
+            </Paper>
+          </Grid>
+        )}
         
-        {/* Main Game Area */}
+        {/* Main chat area and input field */}
         <Grid item xs={12} md={8}>
           <Card 
             sx={{ 
@@ -146,35 +242,16 @@ const GamePlay = ({ gameState, stompClient }) => {
               flexDirection: 'column',
               backgroundImage: gameState.backgroundImage ? `url(${gameState.backgroundImage})` : 'none',
               backgroundSize: 'cover',
+              backgroundPosition: 'center',
               position: 'relative',
               borderRadius: '8px',
               overflow: 'hidden'
             }}
           >
-            {/* Background overlay */}
             {gameState.backgroundImage && (
-              <Box 
-                sx={{ 
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0,0,0,0.5)'
-                }} 
-              />
+              <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} />
             )}
-            
-            {/* Chat/Messages Area */}
-            <Box 
-              sx={{ 
-                flexGrow: 1, 
-                overflowY: 'auto',
-                p: 3,
-                position: 'relative',
-                zIndex: 1
-              }}
-            >
+            <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3, position: 'relative', zIndex: 1 }}>
               {gameState.messages && gameState.messages.map((msg, index) => (
                 <Box 
                   key={index}
@@ -187,79 +264,99 @@ const GamePlay = ({ gameState, stompClient }) => {
                 >
                   <Box 
                     sx={{
-                      bgcolor: msg.userId === user?.id ? '#5F4B8B' : 'rgba(255, 255, 255, 0.9)',
+                      bgcolor: msg.userId === user?.id ? '#5F4B8B' : (gameState.backgroundImage ? 'rgba(255, 255, 255, 0.9)' : '#e0e0e0'),
                       color: msg.userId === user?.id ? 'white' : 'inherit',
-                      p: 2,
-                      borderRadius: '8px',
-                      maxWidth: '80%'
+                      p: 1.5,
+                      borderRadius: '12px',
+                      maxWidth: '80%',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
                     }}
                   >
                     <Typography variant="subtitle2" fontWeight="bold">
-                      {msg.playerName} {msg.roleName ? `(${msg.roleName})` : ''}:
+                      {msg.playerName || 'Player'} {msg.roleName ? `(${msg.roleName})` : ''}:
                     </Typography>
-                    <Typography variant="body1">{msg.content}</Typography>
+                    <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{msg.content}</Typography>
                   </Box>
                   {msg.wordUsed && (
-                    <Chip 
-                      label={`Used word: ${msg.wordUsed}`} 
-                      size="small"
-                      sx={{ mt: 0.5 }}
-                    />
+                    <Chip label={`Used word: ${msg.wordUsed}`} size="small" sx={{ mt: 0.5, alignSelf: msg.userId === user?.id ? 'flex-end' : 'flex-start' }} />
                   )}
                 </Box>
               ))}
               <div ref={chatEndRef} />
             </Box>
             
-            {/* Input Area */}
-            <Box 
-              sx={{ 
-                p: 2, 
-                bgcolor: 'rgba(255, 255, 255, 0.9)',
-                position: 'relative',
-                zIndex: 1
-              }}
-            >
+            {/* Input area */}
+            <Box sx={{ p: 2, bgcolor: gameState.backgroundImage ? 'rgba(0,0,0,0.6)' : 'rgba(245,245,245,1)', position: 'relative', zIndex: 1, borderTop: gameState.backgroundImage ? '1px solid rgba(255,255,255,0.2)' : '1px solid #ddd' }}>
               {isMyTurn ? (
-                <Box display="flex" alignItems="center">
-                  <TextField
-                    fullWidth
-                    variant="outlined"
-                    placeholder="Type your sentence..."
-                    value={sentence}
-                    onChange={handleSentenceChange}
-                    disabled={submitting || !isMyTurn}
-                    sx={{
-                      mr: 2,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: '50px'
-                      }
-                    }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={handleSubmit}
-                    disabled={submitting || !sentence.trim() || !isMyTurn}
-                    sx={{
-                      bgcolor: '#5F4B8B',
-                      borderRadius: '50px',
-                      px: 3,
-                      '&:hover': { bgcolor: '#4a3a6d' },
-                      '&.Mui-disabled': { bgcolor: '#c5c5c5' }
+                <Box display="flex" flexDirection="column">
+                  <Typography 
+                    variant="subtitle1" 
+                    color="primary" 
+                    fontWeight="bold" 
+                    mb={1}
+                    sx={{ 
+                      backgroundColor: "rgba(95, 75, 139, 0.1)", 
+                      p: 1, 
+                      borderRadius: '4px',
+                      textAlign: 'center' 
                     }}
                   >
-                    {submitting ? <CircularProgress size={24} /> : 'Submit'}
-                  </Button>
+                    It's your turn! Type your sentence using the word bank.
+                  </Typography>
+                  <Box display="flex" alignItems="center">
+                    <TextField
+                      fullWidth
+                      variant="outlined"
+                      placeholder="Type your sentence..."
+                      value={sentence}
+                      onChange={handleSentenceChange}
+                      disabled={submitting}
+                      sx={{
+                        mr: 2,
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: '50px',
+                          backgroundColor: gameState.backgroundImage ? 'rgba(255,255,255,0.9)' : 'white',
+                          borderColor: '#5F4B8B',
+                          borderWidth: '2px'
+                        }
+                      }}
+                      onKeyPress={(ev) => {
+                        if (ev.key === 'Enter') {
+                          handleSubmit();
+                          ev.preventDefault();
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={handleSubmit}
+                      disabled={submitting || !sentence.trim() || !isMyTurn}
+                      sx={{
+                        bgcolor: '#5F4B8B',
+                        borderRadius: '50px',
+                        px: 3,
+                        py: 1.5,
+                        '&:hover': { bgcolor: '#4a3a6d' },
+                        '&.Mui-disabled': { bgcolor: '#c5c5c5' }
+                      }}
+                    >
+                      {submitting ? <CircularProgress size={24} color="inherit"/> : 'Submit'}
+                    </Button>
+                  </Box>
                 </Box>
               ) : (
-                <Typography variant="body1" textAlign="center">
-                  Wait for your turn to submit a word
+                <Typography variant="body1" textAlign="center" sx={{
+                  color: gameState.backgroundImage ? 'white' : 'text.secondary',
+                  backgroundColor: 'rgba(0,0,0,0.1)',
+                  p: 2,
+                  borderRadius: '8px'
+                }}>
+                  Wait for your turn to submit a response. Current player: {gameState.currentPlayer?.name}
                 </Typography>
               )}
-              
               {isMyTurn && gameState.currentPlayer?.wordBomb && (
-                <Box mt={1} p={2} bgcolor="#ffebee" borderRadius="8px">
-                  <Typography variant="subtitle2" color="error">
+                <Box mt={1} p={1} bgcolor="#ffebee" borderRadius="8px" textAlign="center">
+                  <Typography variant="subtitle2" color="error.main">
                     Your word bomb: <b>{gameState.currentPlayer.wordBomb}</b> (don't use this word!)
                   </Typography>
                 </Box>
@@ -268,53 +365,39 @@ const GamePlay = ({ gameState, stompClient }) => {
           </Card>
         </Grid>
         
-        {/* Sidebar - Leaderboard & Used Words */}
+        {/* Side panels: Leaderboard and Used Words */}
         <Grid item xs={12} md={4}>
-          {/* Leaderboard */}
           <Paper sx={{ p: 2, mb: 3, borderRadius: '8px' }}>
             <Typography variant="h6" mb={2}>Leaderboard</Typography>
             <List dense disablePadding>
-              {gameState.leaderboard && gameState.leaderboard.map((player, index) => (
-                <ListItem key={player.id} divider={index < gameState.leaderboard.length - 1}>
-                  <Avatar sx={{ bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B', mr: 2, width: 30, height: 30 }}>
+              {gameState.leaderboard && gameState.leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
+                <ListItem key={player.id || player.userId || index} divider={index < gameState.leaderboard.length - 1}>
+                  <Avatar sx={{ bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B', mr: 2, width: 30, height: 30, fontSize: '0.875rem' }}>
                     {index + 1}
                   </Avatar>
                   <ListItemText 
-                    primary={player.name} 
-                    secondary={player.role || 'Player'} 
+                    primary={player.name || 'Player'} 
+                    secondary={player.role || 'Role N/A'} 
                   />
                   <Typography variant="body1" fontWeight="bold">
                     {player.score}
                   </Typography>
                 </ListItem>
               ))}
+              {(!gameState.leaderboard || gameState.leaderboard.length === 0) && (
+                 <Typography variant="body2" color="text.secondary">Leaderboard is empty.</Typography>
+              )}
             </List>
           </Paper>
           
-          {/* Used Words */}
           <Paper sx={{ p: 2, borderRadius: '8px' }}>
             <Typography variant="h6" mb={2}>Used Words</Typography>
-            <Box 
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 1,
-                maxHeight: '200px',
-                overflowY: 'auto'
-              }}
-            >
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: '200px', overflowY: 'auto' }}>
               {gameState.usedWords && gameState.usedWords.map((word, index) => (
-                <Chip 
-                  key={index} 
-                  label={word} 
-                  size="small" 
-                  variant="outlined"
-                />
+                <Chip key={index} label={word} size="small" variant="outlined"/>
               ))}
               {(!gameState.usedWords || gameState.usedWords.length === 0) && (
-                <Typography variant="body2" color="text.secondary">
-                  No words have been used yet
-                </Typography>
+                <Typography variant="body2" color="text.secondary">No words have been used yet.</Typography>
               )}
             </Box>
           </Paper>
