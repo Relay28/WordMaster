@@ -6,6 +6,7 @@ import cit.edu.wrdmstr.repository.ContentRepository;
 import cit.edu.wrdmstr.repository.GameSessionEntityRepository;
 import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
 import cit.edu.wrdmstr.repository.UserRepository;
+import cit.edu.wrdmstr.service.gameplay.GameSessionManagerService;
 import cit.edu.wrdmstr.service.gameplay.GameSessionService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
@@ -31,6 +32,9 @@ public class WaitingRoomService {
     private GameSessionEntityRepository gameSessionEntityRepository;
     @Autowired
     private ContentRepository contentRepository;
+
+    @Autowired
+    private GameSessionManagerService gameSessionManagerService;
     @Autowired
     private PlayerSessionEntityRepository playerSessionRepository;
 
@@ -88,9 +92,9 @@ public class WaitingRoomService {
 
             // Create game session for this group
             GameSessionEntity session = gameSessionService.createSession(contentId, auth);
-            session.setStatus(GameSessionEntity.SessionStatus.ACTIVE);
+            session.setStatus(GameSessionEntity.SessionStatus.PENDING);
             session.setStartedAt(new Date());
-            session = gameSessionEntityRepository.save(session);
+
 
             // Add students to session
             for (UserDto studentDto : groupStudents) {
@@ -108,10 +112,11 @@ public class WaitingRoomService {
             }
 
             sessions.add(session);
-
             // Notify participants of this group
+              gameSessionManagerService.startGame(session.getId());
             messagingTemplate.convertAndSend("/topic/game-start/" + contentId,
                     Map.of("sessionId", session.getId(), "groupNumber", sessions.size()));
+            session = gameSessionEntityRepository.save(session);
         }
 
         // Clear waiting room after all sessions are created
