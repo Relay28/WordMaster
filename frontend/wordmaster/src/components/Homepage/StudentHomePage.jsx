@@ -154,7 +154,7 @@ const StudentHomePage = () => {
                 <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
                   {displayName}
                 </Typography>
-                <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+                <Typography sx={{ ...pixelText, color: ' #5F4B8B' }}>
                   {roleDisplay}
                 </Typography>
               </Box>
