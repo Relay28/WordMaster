@@ -32,47 +32,59 @@ public class GrammarCheckerService {
         String enhancedFeedback = aiFeedback;
 
         return new GrammarCheckResult(status, enhancedFeedback);
-    }
-
-    // Modify the checkGrammar method to include role checking
+    }    // Modify the checkGrammar method to include role checking
     public GrammarCheckResult checkGrammar(String text, String role, String contextDescription) {
-        // Get AI-powered grammar feedback
-        String aiFeedback = aiService.getGrammarFeedback(text);
+        try {
+            // Get AI-powered grammar feedback
+            String aiFeedback = aiService.getGrammarFeedback(text);
 
-        // Parse feedback to determine status
-        MessageStatus status = determineStatusFromFeedback(aiFeedback);
+            // Parse feedback to determine status
+            MessageStatus status = determineStatusFromFeedback(aiFeedback);
 
-        // Check role appropriateness if role provided
-        boolean isRoleAppropriate = false;
-        String roleFeedback = "";
+            // Check role appropriateness if role provided
+            boolean isRoleAppropriate = false;
+            String roleFeedback = "";
 
-        if (role != null && !role.isEmpty()) {
-            Map<String, Object> request = new HashMap<>();
-            request.put("task", "role_check");
-            request.put("text", text);
-            request.put("role", role);
-            request.put("context", contextDescription);
+            if (role != null && !role.isEmpty() && contextDescription != null) {
+                Map<String, Object> request = new HashMap<>();
+                request.put("task", "role_check");
+                request.put("text", text);
+                request.put("role", role);
+                request.put("context", contextDescription);
 
-            String roleCheckResponse = aiService.callAIModel(request).getResult();
-            isRoleAppropriate = roleCheckResponse.toLowerCase().contains("appropriate") &&
+                String roleCheckResponse = aiService.callAIModel(request).getResult();
+                isRoleAppropriate = roleCheckResponse != null && 
+                    roleCheckResponse.toLowerCase().contains("appropriate") &&
                     !roleCheckResponse.toLowerCase().contains("not appropriate");
-            roleFeedback = roleCheckResponse;
+                roleFeedback = roleCheckResponse != null ? roleCheckResponse : "";
+            } else {
+                // If no role or context, assume appropriate
+                isRoleAppropriate = true;
+            }
+
+            // Combine feedback
+            String enhancedFeedback = aiFeedback;
+            if (!roleFeedback.isEmpty()) {
+                enhancedFeedback += "\n\nRole feedback: " + roleFeedback;
+            }
+
+            return new GrammarCheckResult(status, enhancedFeedback, isRoleAppropriate);
+        } catch (Exception e) {
+            // If any error occurs, provide a default result
+            System.err.println("Error checking grammar: " + e.getMessage());
+            return new GrammarCheckResult(MessageStatus.MINOR_ERRORS, 
+                "Grammar check encountered an error. Please try again.", false);
         }
-
-        // Combine feedback
-        String enhancedFeedback = aiFeedback;
-        if (!roleFeedback.isEmpty()) {
-            enhancedFeedback += "\n\nRole feedback: " + roleFeedback;
-        }
-
-        return new GrammarCheckResult(status, enhancedFeedback, isRoleAppropriate);
-    }
-
-    private MessageStatus determineStatusFromFeedback(String feedback) {
+    }    private MessageStatus determineStatusFromFeedback(String feedback) {
         // Implement logic to determine severity based on AI feedback
-        if (feedback.contains("no errors")) {
+        if (feedback == null) {
+            return MessageStatus.MINOR_ERRORS;
+        }
+        
+        String lowerFeedback = feedback.toLowerCase();
+        if (lowerFeedback.contains("no errors")) {
             return MessageStatus.PERFECT;
-        } else if (feedback.contains("minor errors")) {
+        } else if (lowerFeedback.contains("minor errors")) {
             return MessageStatus.MINOR_ERRORS;
         } else {
             return MessageStatus.MAJOR_ERRORS;

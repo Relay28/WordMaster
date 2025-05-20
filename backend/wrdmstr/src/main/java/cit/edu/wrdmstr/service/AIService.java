@@ -88,11 +88,10 @@ public class AIService {
             // Add API key as query parameter
             String fullUrl = apiUrl + "?key=" + apiKey;
             
-            logger.info("Making API request to: {}", apiUrl);
-            
-            try {
+            logger.info("Making API request to: {}", apiUrl);              try {
                 // Make the API call
-                Map response = restTemplate.postForObject(fullUrl, geminiRequest, Map.class);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> response = restTemplate.postForObject(fullUrl, geminiRequest, Map.class);
                 
                 // Parse Gemini response
                 AIResponse result = new AIResponse();
@@ -100,15 +99,30 @@ public class AIService {
                     // Debug logging
                     logger.debug("Received response: {}", response);
                     
+                    @SuppressWarnings("unchecked")
                     List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
                     if (candidates != null && !candidates.isEmpty()) {
                         Map<String, Object> candidate = candidates.get(0);
+                        @SuppressWarnings("unchecked")
                         Map<String, Object> candidateContent = (Map<String, Object>) candidate.get("content");
-                        List<Map<String, Object>> candidateParts = (List<Map<String, Object>>) candidateContent.get("parts");
-                        if (candidateParts != null && !candidateParts.isEmpty()) {
-                            result.setResult((String) candidateParts.get(0).get("text"));
+                        
+                        if (candidateContent != null) {
+                            @SuppressWarnings("unchecked")
+                            List<Map<String, Object>> candidateParts = (List<Map<String, Object>>) candidateContent.get("parts");
+                            if (candidateParts != null && !candidateParts.isEmpty()) {
+                                Object textObj = candidateParts.get(0).get("text");
+                                result.setResult(textObj != null ? textObj.toString() : "No response text");
+                            } else {
+                                result.setResult("No content parts in response");
+                            }
+                        } else {
+                            result.setResult("No content in response candidate");
                         }
+                    } else {
+                        result.setResult("No candidates in response");
                     }
+                } else {
+                    result.setResult("Null response from API");
                 }
                 return result;
             } catch (Exception e) {
@@ -116,8 +130,7 @@ public class AIService {
                 logger.error("Error calling Gemini API: " + e.getMessage(), e);
                 // Create a fallback response
                 AIResponse errorResponse = new AIResponse();
-                
-                // Task-specific fallbacks
+                  // Task-specific fallbacks
                 String task = (String) request.get("task");
                 switch (task) {
                     case "story_prompt":
@@ -126,8 +139,14 @@ public class AIService {
                     case "role_prompt":
                         errorResponse.setResult("Remember to stay in character and use vocabulary appropriate for your role.");
                         break;
+                    case "role_check":
+                        errorResponse.setResult("Appropriate. The text appears to match the role context.");
+                        break;
                     case "word_generation":
                         errorResponse.setResult("vocabulary");
+                        break;
+                    case "grammar_check":
+                        errorResponse.setResult("The text has minor errors. Please review your sentence structure and punctuation.");
                         break;
                     default:
                         errorResponse.setResult("Error: Unable to get AI response.");
@@ -155,12 +174,12 @@ public class AIService {
                 + "You MUST format your response EXACTLY as follows (including the exact headers and bullet points):\n\n"
                 + "WORDS:\n- word1\n- word2\n- word3\n- word4\n- word5\n- word6\n- word7\n- word8\n- word9\n- word10\n\n"
                 + "ROLES:\n- role1\n- role2\n- role3\n- role4\n\n"
-                + "Replace the placeholders with actual words and roles relevant to the topic. Do not include any other text or explanations.";
-                case "story_prompt":
+                + "Replace the placeholders with actual words and roles relevant to the topic. Do not include any other text or explanations.";                case "story_prompt":
                     StringBuilder prompt = new StringBuilder("Generate a short, engaging scenario prompt for a language learning game. ");
                     prompt.append("Context: ").append(request.get("content")).append(". ");
                     prompt.append("This is turn #").append(request.get("turn")).append(". ");
                     
+                    @SuppressWarnings("unchecked")
                     List<String> usedWords = (List<String>) request.get("usedWords");
                     if (usedWords != null && !usedWords.isEmpty()) {
                         prompt.append("Words already used: ").append(String.join(", ", usedWords)).append(". ");
@@ -173,11 +192,11 @@ public class AIService {
                     rolePrompt.append("Generate a brief guidance tip (1-2 sentences) for a student playing the role of '").append(request.get("role")).append("' ");
                     rolePrompt.append("in a conversation about: ").append(request.get("context")).append(". ");
                     rolePrompt.append("The tip should help them stay in character and use appropriate vocabulary and expressions for this role. Keep it short and helpful.");
-                    return rolePrompt.toString();
-                case "role_check":
+                    return rolePrompt.toString();                case "role_check":
                     return "Evaluate if the following text is appropriate for someone playing the role of '" + 
-                    request.get("role") + "' in a conversation about " + request.get("context") + 
-                    ". The text is: \"" + request.get("text") + 
+                    request.getOrDefault("role", "student") + "' in a conversation about " + 
+                    request.getOrDefault("context", "general topics") + 
+                    ". The text is: \"" + request.getOrDefault("text", "") + 
                     "\". Respond with either 'Appropriate' or 'Not appropriate' followed by a brief explanation.";
                 default:
                     return "Provide a response to: " + request;

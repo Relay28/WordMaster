@@ -54,12 +54,13 @@ public class ChatService {
 
         String rolePrompt = generateRolePrompt(player);
         if (rolePrompt != null) {
-        messagingTemplate.convertAndSendToUser(
-            player.getUser().getEmail(),
-            "/queue/responses",
-            Collections.singletonMap("rolePrompt", rolePrompt)
-        );
-    }
+            messagingTemplate.convertAndSendToUser(
+                player.getUser().getEmail(),
+                "/queue/responses",
+                Collections.singletonMap("rolePrompt", rolePrompt)
+            );
+        }
+        
         // Create message
         ChatMessageEntity message = new ChatMessageEntity();
         message.setSession(session);
@@ -67,18 +68,31 @@ public class ChatService {
         message.setPlayerSession(player);
         message.setContent(content);
         message.setGrammarStatus(grammarResult.getStatus());
-        message.setGrammarFeedback(grammarResult.getFeedback());
-        message.setTimestamp(new Date());
+        message.setTimestamp(new Date()); // Add this line to set the timestamp
 
         
+        // Truncate grammar feedback if too long (for example, limit to 1000 chars)
+        String feedback = grammarResult.getFeedback();
+        if (feedback != null && feedback.length() > 2000) {
+            feedback = feedback.substring(0, 997) + "...";
+        }
+        
+        message.setGrammarFeedback(feedback);
+        
         // Check word bomb
-        if (!player.isWordBombUsed() &&
-                player.getCurrentWordBomb() != null &&
-                content.toLowerCase().contains(player.getCurrentWordBomb().toLowerCase())) {
+        try {
+            if (!player.isWordBombUsed() &&
+                    player.getCurrentWordBomb() != null &&
+                    !player.getCurrentWordBomb().isEmpty() &&
+                    content.toLowerCase().contains(player.getCurrentWordBomb().toLowerCase())) {
 
-            message.setContainsWordBomb(true);
-            player.setWordBombUsed(true);
-            awardPoints(player, 5, "Word bomb: " + player.getCurrentWordBomb());
+                message.setContainsWordBomb(true);
+                player.setWordBombUsed(true);
+                awardPoints(player, 5, "Word bomb: " + player.getCurrentWordBomb());
+            }
+        } catch (Exception e) {
+            // Log the error but don't fail the message submission
+            System.err.println("Error processing word bomb: " + e.getMessage());
         }
 
         // Grammar scoring
@@ -139,41 +153,69 @@ public class ChatService {
     }
 
     public MessageReactionEntity addReaction(Long messageId, Long userId, String emoji) {
-        ChatMessageEntity message = chatMessageRepository.findById(messageId)
-                .orElseThrow(() -> new ResourceNotFoundException("Message not found"));
+        try {
+            if (messageId == null || userId == null || emoji == null || emoji.isEmpty()) {
+                throw new IllegalArgumentException("Message ID, User ID, and emoji must be provided");
+            }
+            
+            ChatMessageEntity message = chatMessageRepository.findById(messageId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Message not found with ID: " + messageId));
 
-        UserEntity user = message.getSender();
+            UserEntity user = message.getSender();
+            if (user == null) {
+                throw new IllegalArgumentException("Message has no sender");
+            }
 
-        // Check if reaction already exists
-        messageReactionRepository.findByMessageIdAndUserId(messageId, userId)
-                .ifPresent(mr -> {
-                    throw new IllegalStateException("User already reacted to this message");
-                });
+            // Check if reaction already exists
+            messageReactionRepository.findByMessageIdAndUserId(messageId, userId)
+                    .ifPresent(mr -> {
+                        throw new IllegalStateException("User already reacted to this message");
+                    });
 
-        MessageReactionEntity reaction = new MessageReactionEntity();
-        reaction.setMessage(message);
-        reaction.setUser(user);
-        reaction.setEmoji(emoji);
+            MessageReactionEntity reaction = new MessageReactionEntity();
+            reaction.setMessage(message);
+            reaction.setUser(user);
+            reaction.setEmoji(emoji);
 
-        message.getReactions().add(reaction);
-        user.getReactions().add(reaction);
+            message.getReactions().add(reaction);
+            user.getReactions().add(reaction);
 
-        return messageReactionRepository.save(reaction);
+            return messageReactionRepository.save(reaction);
+        } catch (ResourceNotFoundException | IllegalArgumentException | IllegalStateException e) {
+            // Rethrow these as they're expected exceptions with messages for the client
+            throw e;
+        } catch (Exception e) {
+            // Log and wrap any unexpected exceptions
+            System.err.println("Error adding reaction: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to add reaction: " + e.getMessage(), e);
+        }
     }
 
     private void awardPoints(PlayerSessionEntity player, int points, String reason) {
-        ScoreRecordEntity record = new ScoreRecordEntity();
-        record.setSession(player.getSession());
-        record.setUser(player.getUser());
-        record.setPoints(points);
-        record.setReason(reason);
-        record.setTimestamp(new Date());
+        try {
+            if (player == null || player.getUser() == null || player.getSession() == null) {
+                System.err.println("Error awarding points: Player, user, or session is null");
+                return;
+            }
+            
+            ScoreRecordEntity record = new ScoreRecordEntity();
+            record.setSession(player.getSession());
+            record.setUser(player.getUser());
+            record.setPoints(points);
+            record.setReason(reason != null ? reason : "Points awarded");
+            record.setTimestamp(new Date());
 
-        player.getUser().getScoreRecords().add(record);
-        player.getSession().getScores().add(record);
+            player.getUser().getScoreRecords().add(record);
+            player.getSession().getScores().add(record);
 
-        scoreRecordRepository.save(record);
-        player.setTotalScore(player.getTotalScore() + points);
+            scoreRecordRepository.save(record);
+            player.setTotalScore(player.getTotalScore() + points);
+            System.out.println("Points awarded: " + points + " to player " + player.getUser().getEmail() + " for: " + reason);
+        } catch (Exception e) {
+            System.err.println("Error awarding points: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     public List<ChatMessageEntity> getSessionMessages(Long sessionId) {
@@ -182,16 +224,33 @@ public class ChatService {
 
     // Add this method to generate role-specific prompts
     private String generateRolePrompt(PlayerSessionEntity player) {
-        if (player.getRole() == null) return null;
+        if (player == null || player.getRole() == null) {
+            return null;
+        }
         
         String roleName = player.getRole().getName();
-        String context = player.getSession().getContent().getDescription();
+        String context = "";
+        
+        if (player.getSession() != null && player.getSession().getContent() != null) {
+            context = player.getSession().getContent().getDescription();
+        }
+        
+        if (roleName == null || roleName.isEmpty()) {
+            return null;
+        }
         
         Map<String, Object> request = new HashMap<>();
         request.put("task", "role_prompt");
         request.put("role", roleName);
-        request.put("context", context);
+        request.put("context", context != null ? context : "general conversation");
         
-        return aiService.callAIModel(request).getResult();
+        try {
+            AIService.AIResponse response = aiService.callAIModel(request);
+            return response != null ? response.getResult() : null;
+        } catch (Exception e) {
+            // Log the error and return a default prompt
+            System.err.println("Error generating role prompt: " + e.getMessage());
+            return "Remember to stay in character as " + roleName + " during the conversation.";
+        }
     }
 }

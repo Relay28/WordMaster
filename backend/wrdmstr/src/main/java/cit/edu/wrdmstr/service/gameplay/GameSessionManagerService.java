@@ -159,13 +159,17 @@ public class GameSessionManagerService {
         }
         
         // Important: Select the first player immediately when game starts
-        selectNextPlayer(session);
-        
-        // Generate and send initial story prompt
+        selectNextPlayer(session);        // Generate and send initial story prompt
         String initialStoryElement = generateStoryElement(session, 1);
         Map<String, Object> storyUpdate = new HashMap<>();
         storyUpdate.put("type", "storyUpdate");
         storyUpdate.put("content", initialStoryElement);
+        
+        // Store the story prompt in the existing GameState
+        GameState currentGameState = activeGames.get(session.getId());
+        if (currentGameState != null) {
+            currentGameState.setStoryPrompt(initialStoryElement);
+        }
         
         messagingTemplate.convertAndSend(
             "/topic/game/" + session.getId() + "/updates",
@@ -585,8 +589,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
                 .collect(Collectors.toList());
             dto.setWordBank(words);
         }
-        
-        // Set current player info with role
+          // Set current player info with role
         if (gameState.getCurrentPlayerId() != null) {
             PlayerSessionEntity currentPlayer = playerRepository.findById(gameState.getCurrentPlayerId()).orElse(null);
             if (currentPlayer != null) {
@@ -601,6 +604,11 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
                 
                 dto.setCurrentPlayer(currentPlayerMap);
             }
+        }
+        
+        // Add the story prompt from game state
+        if (gameState.getStoryPrompt() != null) {
+            dto.setStoryPrompt(gameState.getStoryPrompt());
         }
         
         return dto;
@@ -709,6 +717,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         private List<String> usedWords;
         private Map<String, Object> contentInfo;
         private int currentCycle; // Add cycle counter
+        private String storyPrompt; // Added field for story prompt
 
         enum Status {
             WAITING_TO_START,
@@ -820,6 +829,14 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
 
         public void setCurrentCycle(int currentCycle) {
             this.currentCycle = currentCycle;
+        }
+
+        public String getStoryPrompt() {
+            return storyPrompt;
+        }
+
+        public void setStoryPrompt(String storyPrompt) {
+            this.storyPrompt = storyPrompt;
         }
     }
 }

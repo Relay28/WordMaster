@@ -15,6 +15,7 @@ public class GameStateDTO {
     private Map<String, Object> contentInfo;
     private String backgroundImage;
     private List<Map<String, Object>> leaderboard;
+    private String storyPrompt; // Added field for story prompt
     
     // Add current cycle field
     private int currentCycle;
@@ -155,5 +156,14 @@ public class GameStateDTO {
 
     public void setTimePerTurn(int timePerTurn) {
         this.timePerTurn = timePerTurn;
+    }
+    
+    // Getter and setter for story prompt
+    public String getStoryPrompt() {
+        return storyPrompt;
+    }
+    
+    public void setStoryPrompt(String storyPrompt) {
+        this.storyPrompt = storyPrompt;
     }
 }
