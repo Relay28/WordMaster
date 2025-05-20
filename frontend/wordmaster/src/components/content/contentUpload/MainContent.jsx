@@ -18,6 +18,7 @@ import GroupSettingsForm from './forms/GroupSettingsForm';
 import GameSettingsForm from './forms/GameSettingsForm';
 import WordBankForm from './forms/WordBankForm';
 import BackgroundImageForm from './forms/BackgroundImageForm';
+import picbg from '../../../assets/picbg.png';
 
 const steps = [
   'Scenario Details',
@@ -166,15 +167,20 @@ const MainContent = ({
     <Box
       component="main"
       sx={{
-        flexGrow: 1,
-        height: 'calc(100vh - 64px)',
-        overflow: 'auto',
-        background: `
-          linear-gradient(to bottom, 
-            rgba(249, 249, 249, 10) 0%, 
-            rgba(249, 249, 249, 10) 40%, 
-            rgba(249, 249, 249, 0.1) 100%)`,
-        py: 4
+        display: 'flex',
+              flexDirection: 'column',
+              minHeight: '100vh',
+              background: `
+                linear-gradient(to bottom, 
+                  rgba(249, 249, 249, 10) 0%, 
+                  rgba(249, 249, 249, 10) 40%, 
+                  rgba(249, 249, 249, 0.1) 100%),
+                url(${picbg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'fixed',
+              imageRendering: 'pixelated',
       }}
     >
       <Container maxWidth="lg">
