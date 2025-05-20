@@ -138,7 +138,7 @@ public class GameSessionManagerService {
         System.out.println("Setting total turns to: " + totalTurns + " (from config turnCycles)");
         session.setTotalTurns(totalTurns);
         
-            // Make sure gameState also gets updated
+        // Make sure gameState also gets updated
         GameState gameState = activeGames.get(session.getId());
         if (gameState != null) {
             gameState.setTotalTurns(totalTurns);
@@ -150,6 +150,13 @@ public class GameSessionManagerService {
         // Make sure to reset and initialize first turn properly
         session.setCurrentTurn(1);
         session.setCurrentCycle(1);
+        
+        // RESTORE THIS CODE: Assign roles if they exist
+        List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
+        List<Role> roles = roleRepository.findByContentDataContentId(session.getContent().getId());
+        if (!roles.isEmpty()) {
+            assignRoles(players, roles);
+        }
         
         // Important: Select the first player immediately when game starts
         selectNextPlayer(session);
@@ -175,7 +182,52 @@ public class GameSessionManagerService {
         broadcastGameState(session);
     }
 
-    // Update this method if it exists, or create it if it doesn't
+    // RESTORE THIS METHOD: Add back the role assignment method
+    private void assignRoles(List<PlayerSessionEntity> players, List<Role> roles) {
+        Random random = new Random();
+        int numRoles = roles.size();
+        
+        logger.info("Starting role assignment: {} roles for {} players", numRoles, players.size());
+        // Log role information for debugging
+        for (Role role : roles) {
+            logger.info("Available role: ID={}, Name={}", role.getId(), role.getName());
+        }
+        
+        // Shuffle roles for better distribution
+        List<Role> shuffledRoles = new ArrayList<>(roles);
+        Collections.shuffle(shuffledRoles);
+        
+        for (int i = 0; i < players.size(); i++) {
+            PlayerSessionEntity player = players.get(i);
+            Role role = shuffledRoles.get(i % numRoles);
+            
+            logger.info("Assigning role '{}' (ID: {}) to player: {} {}",
+                        role.getName(), role.getId(),
+                        player.getUser().getFname(), 
+                        player.getUser().getLname());
+            
+            // Explicitly set the role relationship on both sides
+            player.setRole(role);
+            
+            // Save the player with the new role assignment
+            PlayerSessionEntity savedPlayer = playerRepository.save(player);
+            
+            // Verify the assignment took effect
+            logger.info("After save - Player ID: {}, Role: {}", 
+                        savedPlayer.getId(), 
+                        savedPlayer.getRole() != null ? savedPlayer.getRole().getName() : "null");
+        }
+        
+        // After all players have been assigned roles, fetch them from the database to confirm
+        logger.info("Verifying all player role assignments:");
+        for (PlayerSessionEntity player : playerRepository.findBySessionId(players.get(0).getSession().getId())) {
+            logger.info("Player: {} {}, Role: {}", 
+                       player.getUser().getFname(),
+                       player.getUser().getLname(),
+                       player.getRole() != null ? player.getRole().getName() : "null");
+        }
+    }
+    
     private void selectNextPlayer(GameSessionEntity session) {
         List<PlayerSessionEntity> players = new ArrayList<>(session.getPlayers());
         
