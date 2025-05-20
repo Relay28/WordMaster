@@ -72,8 +72,8 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
       });
       
       setFormData({
-        firstName: response.data.fname || '',
-        lastName: response.data.lname || '',
+        firstName: response.data.firstName || '',
+        lastName: response.data.lastName || '',
         email: response.data.email || '',
         profilePicture: response.data.profilePicture || '',
         currentPassword: '',
