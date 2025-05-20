@@ -30,9 +30,11 @@ import ContentList from '../content/ContentList';
 import contentService from '../../services/contentService';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
+import ClassroomDetailHeader from '../Header/ClassroomDetailHeader';
+import { useHomePage } from '../Homepage/HomePageFunctions';
 
 const ClassroomDetailsPage = () => {
-  const { authChecked, user, getToken } = useUserAuth();
+  const { authChecked, user, getToken, logout, login } = useUserAuth();
   const {
     loading,
     error,
@@ -49,6 +51,18 @@ const ClassroomDetailsPage = () => {
     isClassroomTeacher
   } = useClassroomDetails(authChecked, user, getToken);
   
+  const {
+
+      anchorEl,
+      handleMenuOpen,
+      handleMenuClose,
+      handleProfileClick,
+      handleLogout,
+      displayName,
+      roleDisplay,
+      avatarInitials
+    } = useHomePage(authChecked, user, getToken, logout, login);
+
   const navigate = useNavigate();
   const location = useLocation();
   const [tabValue, setTabValue] = useState(0);
@@ -219,36 +233,20 @@ return (
       imageRendering: 'pixelated',
     }}>
       {/* Header */}
-      <Box sx={{ 
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        py: 2,
-        px: { xs: 2, md: 6 },
-        backdropFilter: 'blur(8px)'
-      }}>
-        <Box display="flex" alignItems="center">
-          <IconButton 
-            onClick={() => navigate('/homepage')} 
-            sx={{ 
-              mr: 2,
-              '&:hover': {
-                transform: 'translateX(-2px)'
-              },
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <ArrowBack />
-          </IconButton>
-          <Typography sx={{ 
-            ...pixelHeading,
-            color: '#5F4B8B',
-            fontSize: isMobile ? '14px' : '18px',
-            textShadow: '1px 1px 0px rgba(255,255,255,0.8)'
-          }}>
-            CLASSROOM DETAILS
-          </Typography>
-        </Box>
-      </Box>
+      <ClassroomDetailHeader 
+        displayName={displayName}
+        roleDisplay={roleDisplay}
+        avatarInitials={avatarInitials}
+        user={user}
+        anchorEl={anchorEl}
+        isMobile={isMobile}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+        handleMenuOpen={handleMenuOpen}
+        handleMenuClose={handleMenuClose}
+        handleProfileClick={handleProfileClick}
+        handleLogout={handleLogout}
+      />
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
@@ -368,7 +366,7 @@ return (
 
           <Divider sx={{ my: 2.5, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
 
-          <Grid container spacing={28} sx={{ mt: 1, mb: 0.3 }}>
+          <Grid container spacing={3} sx={{ mt: 1, mb: 0.3 }}>
           <Grid item xs={12} sm={6} md={4}>
             <Box display="flex" alignItems="center" gap={1.5}>
               <Class sx={{ color: '#5F4B8B', fontSize: '20px' }} />
