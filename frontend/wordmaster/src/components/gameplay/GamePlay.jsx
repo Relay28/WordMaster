@@ -41,6 +41,13 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [gameState.messages]);
+  // Initialize story prompt from gameState if available
+  useEffect(() => {
+    if (gameState && gameState.storyPrompt) {
+      console.log('[GamePlay Debug] Initial story prompt from gameState:', gameState.storyPrompt);
+      setStoryPrompt(gameState.storyPrompt);
+    }
+  }, [gameState]);
 
   // Subscription for AI-generated story prompts
   useEffect(() => {

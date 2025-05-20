@@ -35,6 +35,7 @@ public class GameSessionManagerService {
     private final GrammarCheckerService grammarCheckerService;
     private final PlayerSessionEntityRepository playerSessionEntityRepository;
     private final AIService aiService;
+    @Autowired private ScoreService scoreService;
     
     // In-memory game state tracking
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
@@ -159,13 +160,17 @@ public class GameSessionManagerService {
         }
         
         // Important: Select the first player immediately when game starts
-        selectNextPlayer(session);
-        
-        // Generate and send initial story prompt
+        selectNextPlayer(session);        // Generate and send initial story prompt
         String initialStoryElement = generateStoryElement(session, 1);
         Map<String, Object> storyUpdate = new HashMap<>();
         storyUpdate.put("type", "storyUpdate");
         storyUpdate.put("content", initialStoryElement);
+        
+        // Store the story prompt in the existing GameState
+        GameState currentGameState = activeGames.get(session.getId());
+        if (currentGameState != null) {
+            currentGameState.setStoryPrompt(initialStoryElement);
+        }
         
         messagingTemplate.convertAndSend(
             "/topic/game/" + session.getId() + "/updates",
@@ -413,6 +418,12 @@ public class GameSessionManagerService {
             return false;
         }
 
+        // Input validation - at least 5 characters to encourage full sentences
+        if (submission.getWord().trim().length() < 5) {
+            logger.warn("Submit word failed - submission too short: {}", submission.getWord());
+            return false;
+        }
+
         // Check if word already used
         String lowercaseWord = submission.getWord().toLowerCase();
         if (gameState.getUsedWords().contains(lowercaseWord)) {
@@ -428,7 +439,31 @@ public class GameSessionManagerService {
         try {
             logger.debug("Sending word via chat service for session {}", sessionId);
             // Send message via chat service (which handles word bomb checking and scoring)
-            chatService.sendMessage(sessionId, userId, submission.getWord());
+            ChatMessageEntity message = chatService.sendMessage(sessionId, userId, submission.getWord());
+            
+            // After submitting, check if this contribution was exceptional
+            boolean wasExceptional = false;
+            
+            // Check for exceptional contribution
+            if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.PERFECT) {
+                if (message.getWordUsed() != null && !message.getWordUsed().isEmpty()) {
+                    // Use ScoreService to handle exceptional contribution
+                    scoreService.handleExceptionalContribution(sessionId, userId, submission.getWord());
+                    wasExceptional = true;
+                }
+            }
+            
+            // Broadcast exceptional contributions to all players
+            if (wasExceptional) {
+                Map<String, Object> exceptionalNotice = new HashMap<>();
+                exceptionalNotice.put("type", "exceptionalContribution");
+                exceptionalNotice.put("playerName", currentPlayer.getUser().getFname() + " " + 
+                                     currentPlayer.getUser().getLname());
+                exceptionalNotice.put("message", submission.getWord());
+                
+                messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", 
+                                               exceptionalNotice);
+            }
         } catch (Exception e) {
             logger.error("Error sending word via chat service for session {}: {}", sessionId, e.getMessage(), e);
             return false;
@@ -436,6 +471,7 @@ public class GameSessionManagerService {
 
         logger.info("Successfully processed word submission '{}' for session {} by user {}, advancing to next player",
                 submission.getWord(), sessionId, userId);
+    
         // Advance to next player's turn
         advanceToNextPlayer(sessionId);
         return true;
@@ -585,8 +621,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
                 .collect(Collectors.toList());
             dto.setWordBank(words);
         }
-        
-        // Set current player info with role
+          // Set current player info with role
         if (gameState.getCurrentPlayerId() != null) {
             PlayerSessionEntity currentPlayer = playerRepository.findById(gameState.getCurrentPlayerId()).orElse(null);
             if (currentPlayer != null) {
@@ -601,6 +636,11 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
                 
                 dto.setCurrentPlayer(currentPlayerMap);
             }
+        }
+        
+        // Add the story prompt from game state
+        if (gameState.getStoryPrompt() != null) {
+            dto.setStoryPrompt(gameState.getStoryPrompt());
         }
         
         return dto;
@@ -656,42 +696,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
     }
 
     private void awardPoints(Long sessionId, Long userId, int points, String reason) {
-        List<PlayerSessionEntity> players = playerSessionEntityRepository.findBySessionIdAndUserId(sessionId, userId);
-        if (players.isEmpty()) {
-            throw new RuntimeException("Player not found in session");
-        }
-        PlayerSessionEntity player = players.get(0);
-        
-        ScoreRecordEntity score = new ScoreRecordEntity();
-        score.setSession(player.getSession());
-        score.setUser(player.getUser());
-        score.setPoints(points);
-        score.setReason(reason);
-        score.setTimestamp(new Date());
-        scoreRepository.save(score);
-        
-        // Update player score
-        player.setTotalScore(player.getTotalScore() + points);
-        playerRepository.save(player);
-        
-        // Broadcast updated score
-        messagingTemplate.convertAndSend(
-            "/topic/game/" + sessionId + "/scores",
-            Collections.singletonMap("playerId", userId)
-        );
-        
-        // Add this to notify the player
-        Map<String, Object> scoreUpdate = new HashMap<>();
-        scoreUpdate.put("points", points);
-        scoreUpdate.put("reason", reason);
-        
-        // Get the user's email for sending to their queue
-        String userEmail = player.getUser().getEmail();
-        messagingTemplate.convertAndSendToUser(
-            userEmail,
-            "/queue/score",
-            scoreUpdate
-        );
+        scoreService.awardPoints(sessionId, userId, points, reason);
     }
 
     // Inner class for tracking game state
@@ -709,6 +714,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         private List<String> usedWords;
         private Map<String, Object> contentInfo;
         private int currentCycle; // Add cycle counter
+        private String storyPrompt; // Added field for story prompt
 
         enum Status {
             WAITING_TO_START,
@@ -820,6 +826,14 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
 
         public void setCurrentCycle(int currentCycle) {
             this.currentCycle = currentCycle;
+        }
+
+        public String getStoryPrompt() {
+            return storyPrompt;
+        }
+
+        public void setStoryPrompt(String storyPrompt) {
+            this.storyPrompt = storyPrompt;
         }
     }
 }

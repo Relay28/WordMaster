@@ -27,7 +27,8 @@ public class ChatMessageEntity {
     @Enumerated(EnumType.STRING)
     private MessageStatus grammarStatus;
 
-    @Column(name = "grammar_feedback")
+    @Lob
+    @Column(name = "grammar_feedback", columnDefinition = "TEXT")
     private String grammarFeedback;
 
     @Column(name = "contains_word_bomb")
