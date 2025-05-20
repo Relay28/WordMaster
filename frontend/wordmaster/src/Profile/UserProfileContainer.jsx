@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Box,
   Button,
@@ -7,6 +7,7 @@ import {
   IconButton,
   TextField,
   Typography,
+  Grid,
   Avatar,
   Paper,
   InputAdornment,
@@ -20,6 +21,14 @@ import {
 import { ArrowBack, CameraAlt, Lock, Email, Close } from "@mui/icons-material";
 import { useUserAuth } from '../components/context/UserAuthContext';
 import { useUserProfile } from './UserProfileFunctions'; // Updated import to match the hook location
+
+import farmer from '../assets/ch-farmer.png';
+import king from '../assets/ch-king.png';
+import knight from '../assets/ch-knight.png';
+import mermaid from '../assets/ch-mermaid.png';
+import priest from '../assets/ch-priest.png';
+import teacher from '../assets/ch-teacher.png';
+import wizard from '../assets/ch-wizard.png';
 
 const UserProfileContainer = () => {
   const { user, authChecked, logout, getToken } = useUserAuth();
@@ -133,84 +142,107 @@ const UserProfileContainer = () => {
   );
 };
 
-const ProfilePicture = ({ firstName, lastName, profilePicture, editMode, uploadProfilePicture, loading }) => {
-  const fileInputRef = useRef(null);
+const ProfilePicture = ({
+  firstName,
+  lastName,
+  profilePicture,
+  editMode,
+  uploadProfilePicture,
+  loading
+}) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleFileSelect = () => {
-    fileInputRef.current.click();
-  };
+  const imageOptions = [
+    farmer,
+    king,
+    knight,
+    mermaid,
+    priest,
+    teacher,
+    wizard,
+  ];
 
-  const handleFileChange = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      // Check if file is an image
-      if (!file.type.match('image.*')) {
-        alert('Please select an image file');
-        return;
-      }
-      // Check if file size is less than 5MB
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size should be less than 5MB');
-        return;
-      }
-      // Make sure uploadProfilePicture is a function before calling it
-      if (typeof uploadProfilePicture === 'function') {
-        await uploadProfilePicture(file);
-      } else {
-        console.error('uploadProfilePicture is not a function:', uploadProfilePicture);
-      }
+  const handleImageSelect = async (imgPath) => {
+    try {
+      const response = await fetch(imgPath);
+      const blob = await response.blob();
+      const file = new File([blob], imgPath.split('/').pop(), { type: blob.type });
+      await uploadProfilePicture(file);
+      setDialogOpen(false);
+    } catch (error) {
+      console.error('Error selecting image:', error);
     }
   };
 
   return (
-    <Box position="relative" mb={4}>
-      <Avatar
-        src={profilePicture ? profilePicture : undefined}
-        sx={{ 
-          width: 120, 
-          height: 120, 
-          bgcolor: '#5F4B8B',
-          color: 'white',
-          fontSize: '2.5rem'
+    <Box position="relative" mb={4} textAlign="center">
+      <Box
+        component="img"
+        src={profilePicture || '/images/default.png'}
+        alt="Profile"
+        sx={{
+          width: 120,
+          height: 120,
+          objectFit: 'cover',
+          borderRadius: '50%',
+          border: '2px solid #5F4B8B',
+          backgroundColor: '#ddd',
         }}
-      >
-        {!profilePicture && firstName.charAt(0)}{!profilePicture && lastName.charAt(0)}
-      </Avatar>
+      />
       {editMode && (
-        <>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            style={{ display: 'none' }}
-            disabled={loading}
-          />
-          <IconButton
-            onClick={handleFileSelect}
-            disabled={loading}
-            sx={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              backgroundColor: '#5F4B8B',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: '#4a3a6d',
-              },
-              '&.Mui-disabled': {
-                backgroundColor: '#9e9e9e',
-                color: '#f5f5f5',
-              }
-            }}
-          >
-            {loading ? <CircularProgress size={24} color="inherit" /> : <CameraAlt />}
-          </IconButton>
-        </>
+        <IconButton
+          onClick={() => setDialogOpen(true)}
+          disabled={loading}
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            right: 'calc(50% - 60px)', // aligns relative to image
+            backgroundColor: '#5F4B8B',
+            color: 'white',
+            '&:hover': {
+              backgroundColor: '#4a3a6d',
+            },
+            '&.Mui-disabled': {
+              backgroundColor: '#9e9e9e',
+              color: '#f5f5f5',
+            }
+          }}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : <CameraAlt />}
+        </IconButton>
       )}
+
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Select a Profile Character</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2}>
+            {imageOptions.map((src, index) => (
+              <Grid item xs={4} key={index} display="flex" justifyContent="center">
+                <img
+                  src={src}
+                  alt={`Option ${index + 1}`}
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    border: '2px solid transparent',
+                    transition: 'border 0.2s ease-in-out',
+                  }}
+                  onClick={() => handleImageSelect(src)}
+                  onMouseOver={(e) => e.currentTarget.style.border = '2px solid #5F4B8B'}
+                  onMouseOut={(e) => e.currentTarget.style.border = '2px solid transparent'}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
+
 
 // No changes needed for PersonalInformation component
 const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading }) => (
