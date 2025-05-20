@@ -15,7 +15,7 @@ public interface PlayerSessionEntityRepository extends JpaRepository<PlayerSessi
     List<PlayerSessionEntity> findBySessionId(Long sessionId);
     List<PlayerSessionEntity> findBySessionIdAndUserId(Long sessionId, Long userId);
     List<PlayerSessionEntity> findByUserId(Long userId);
-
+    List<PlayerSessionEntity> findBySessionIdAndIsActiveTrue(Long sessionId);
 
     @Query("SELECT ps FROM PlayerSessionEntity ps WHERE ps.session.id = :sessionId AND ps.role IS NOT NULL")
     List<PlayerSessionEntity> findPlayersWithRolesBySessionId(@Param("sessionId") Long sessionId);

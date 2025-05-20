@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.service.gameplay;
 
 import cit.edu.wrdmstr.entity.*;
+import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
 import cit.edu.wrdmstr.repository.ChatMessageEntityRepository;
 import cit.edu.wrdmstr.repository.MessageReactionEntityRepository;
 import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -33,6 +35,7 @@ public class ChatService {
     @Autowired private SimpMessagingTemplate messagingTemplate;
     @Autowired private AIService aiService;
     @Autowired private WordBankItemRepository wordBankItemRepository;
+    @Autowired private ScoreService scoreService;
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
@@ -52,6 +55,7 @@ public class ChatService {
         GrammarCheckerService.GrammarCheckResult grammarResult = 
             grammarCheckerService.checkGrammar(content, roleName, contextDesc);
 
+        // Send role prompt if available
         String rolePrompt = generateRolePrompt(player);
         if (rolePrompt != null) {
             messagingTemplate.convertAndSendToUser(
@@ -61,7 +65,7 @@ public class ChatService {
             );
         }
         
-        // Create message
+        // Create message with all necessary info
         ChatMessageEntity message = new ChatMessageEntity();
         message.setSession(session);
         message.setSender(player.getUser());
@@ -80,75 +84,45 @@ public class ChatService {
         message.setGrammarFeedback(feedback);
         
         // Check word bomb
-        try {
-            if (!player.isWordBombUsed() &&
-                    player.getCurrentWordBomb() != null &&
-                    !player.getCurrentWordBomb().isEmpty() &&
-                    content.toLowerCase().contains(player.getCurrentWordBomb().toLowerCase())) {
-
-                message.setContainsWordBomb(true);
-                player.setWordBombUsed(true);
-                awardPoints(player, 5, "Word bomb: " + player.getCurrentWordBomb());
-            }
-        } catch (Exception e) {
-            // Log the error but don't fail the message submission
-            System.err.println("Error processing word bomb: " + e.getMessage());
+        if (!player.isWordBombUsed() &&
+                player.getCurrentWordBomb() != null &&
+                !player.getCurrentWordBomb().isEmpty() &&
+                content.toLowerCase().contains(player.getCurrentWordBomb().toLowerCase())) {
+            
+            message.setContainsWordBomb(true);
+            player.setWordBombUsed(true);
+            
+            // Use score service for word bomb points
+            scoreService.handleWordBomb(player, player.getCurrentWordBomb());
         }
 
-        // Grammar scoring
-        int grammarPoints = switch (grammarResult.getStatus()) {
-            case PERFECT -> 10;
-            case MINOR_ERRORS -> 5;
-            case MAJOR_ERRORS -> 0;
-        };
-
-        if (grammarPoints > 0) {
-            awardPoints(player, grammarPoints, "Grammar: " + grammarResult.getStatus());
-            player.setGrammarStreak(player.getGrammarStreak() + 1);
-
-            // Grammar streak bonus
-            if (player.getGrammarStreak() >= 3) {
-                int bonus = player.getGrammarStreak() * 2;
-                awardPoints(player, bonus, "Grammar streak x" + player.getGrammarStreak());
-            }
-        } else {
-            player.setGrammarStreak(0);
-        }
-
-        playerSessionRepository.save(player);
-
-        // Add to user's sent messages
-        player.getUser().getSentMessages().add(message);
-
-        // Add to session's messages
-        session.getMessages().add(message);
-
-        // Check for word bank usage
+        // Let score service handle grammar scoring and streaks
+        scoreService.handleGrammarScoring(player, grammarResult.getStatus());
+        
+        // Score service handles word bank usage
         List<WordBankItem> sessionWordBank = wordBankItemRepository.findByContentData(session.getContent().getContentData());
-        boolean usedWordBankItem = false;
-        String wordUsed = null;
-
+        List<String> usedWordsFromBank = new ArrayList<>();
+        
         for (WordBankItem item : sessionWordBank) {
             String word = item.getWord().toLowerCase();
             if (content.toLowerCase().contains(word)) {
-                usedWordBankItem = true;
-                wordUsed = item.getWord();
-                break;
+                usedWordsFromBank.add(item.getWord());
             }
         }
-
-        if (usedWordBankItem) {
-            // Award points for using word bank item
-            awardPoints(player, 15, "Used word bank item: " + wordUsed);
-            message.setWordUsed(wordUsed);
+        
+        if (!usedWordsFromBank.isEmpty()) {
+            scoreService.handleWordBankUsage(player, usedWordsFromBank);
+            message.setWordUsed(String.join(", ", usedWordsFromBank));
         }
 
-        // Later in the method, add role-appropriate bonus points
-        if (grammarResult.isRoleAppropriate()) {
-            int roleBonus = 10;
-            awardPoints(player, roleBonus, "Role-appropriate communication");
-        }
+        // Score service handles role-appropriate communication
+        scoreService.handleRoleAppropriateScoring(player, grammarResult.isRoleAppropriate(), 
+                grammarResult.getStatus());
 
+        // Score service handles message complexity/length
+        scoreService.handleMessageComplexity(player, content);
+        
+        // Save and return the message
         return chatMessageRepository.save(message);
     }
 
@@ -192,31 +166,7 @@ public class ChatService {
         }
     }
 
-    private void awardPoints(PlayerSessionEntity player, int points, String reason) {
-        try {
-            if (player == null || player.getUser() == null || player.getSession() == null) {
-                System.err.println("Error awarding points: Player, user, or session is null");
-                return;
-            }
-            
-            ScoreRecordEntity record = new ScoreRecordEntity();
-            record.setSession(player.getSession());
-            record.setUser(player.getUser());
-            record.setPoints(points);
-            record.setReason(reason != null ? reason : "Points awarded");
-            record.setTimestamp(new Date());
-
-            player.getUser().getScoreRecords().add(record);
-            player.getSession().getScores().add(record);
-
-            scoreRecordRepository.save(record);
-            player.setTotalScore(player.getTotalScore() + points);
-            System.out.println("Points awarded: " + points + " to player " + player.getUser().getEmail() + " for: " + reason);
-        } catch (Exception e) {
-            System.err.println("Error awarding points: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
+    // Removed the awardPoints method as it's now in ScoreService
 
     public List<ChatMessageEntity> getSessionMessages(Long sessionId) {
         return chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);

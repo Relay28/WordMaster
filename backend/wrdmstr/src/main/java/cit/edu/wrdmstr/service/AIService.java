@@ -162,8 +162,41 @@ public class AIService {
             
             switch (task) {
                 case "grammar_check":
-                    return "Check the following text for grammar errors and provide feedback. Include phrases 'no errors', 'minor errors', or 'major errors' in your response: " 
-                        + request.get("text");
+                    return "You are an expert language teacher analyzing a student's sentence.\n" +
+                        "Check the following text for grammar, spelling, and sentence structure errors: \"" + 
+                        request.get("text") + "\"\n\n" +
+                        "Evaluate the text and classify it as one of:\n" +
+                        "- 'NO ERRORS' if the text is completely correct grammatically\n" +
+                        "- 'MINOR ERRORS' if there are small issues that don't impact understanding\n" +
+                        "- 'MAJOR ERRORS' if there are significant issues affecting clarity\n\n" +
+                        "Start your response with one of these classifications, then provide a brief explanation.";
+
+                case "role_check":
+                    return "You are evaluating if a student's message is appropriate for their assigned role in a language learning game.\n" +
+                        "Role: " + request.getOrDefault("role", "student") + "\n" +
+                        "Context: " + request.getOrDefault("context", "general topics") + "\n" +
+                        "Message: \"" + request.getOrDefault("text", "") + "\"\n\n" +
+                        "First, analyze if the vocabulary, tone, and content match what would be expected from someone in this role.\n" +
+                        "Your response must begin with either 'APPROPRIATE' or 'NOT APPROPRIATE' in capital letters,\n" +
+                        "followed by a brief explanation of your reasoning. Consider both language appropriateness and role alignment.";
+
+                case "story_prompt":
+                    StringBuilder prompt = new StringBuilder("You are creating engaging prompts for a language learning game.\n");
+                    prompt.append("Create a thought-provoking scenario that encourages students to practice conversation skills.\n\n");
+                    prompt.append("Topic/Context: ").append(request.get("content")).append("\n");
+                    prompt.append("Turn number: ").append(request.get("turn")).append("\n");
+                    
+                    @SuppressWarnings("unchecked")
+                    List<String> usedWords = (List<String>) request.get("usedWords");
+                    if (usedWords != null && !usedWords.isEmpty()) {
+                        prompt.append("Words already used: ").append(String.join(", ", usedWords)).append("\n");
+                        prompt.append("Try to create a scenario that might encourage using new vocabulary.\n");
+                    }
+                    
+                    prompt.append("\nYour response should be exactly 1-2 sentences that create a clear situation or question.");
+                    prompt.append("\nMake your prompt conversational, engaging, and appropriate for language learners.");
+                    return prompt.toString();
+                    
                 case "word_generation":
                     return "Generate one challenging vocabulary word appropriate for a " 
                         + request.get("difficulty") + " difficulty level in the context: " 
@@ -174,30 +207,7 @@ public class AIService {
                 + "You MUST format your response EXACTLY as follows (including the exact headers and bullet points):\n\n"
                 + "WORDS:\n- word1\n- word2\n- word3\n- word4\n- word5\n- word6\n- word7\n- word8\n- word9\n- word10\n\n"
                 + "ROLES:\n- role1\n- role2\n- role3\n- role4\n\n"
-                + "Replace the placeholders with actual words and roles relevant to the topic. Do not include any other text or explanations.";                case "story_prompt":
-                    StringBuilder prompt = new StringBuilder("Generate a short, engaging scenario prompt for a language learning game. ");
-                    prompt.append("Context: ").append(request.get("content")).append(". ");
-                    prompt.append("This is turn #").append(request.get("turn")).append(". ");
-                    
-                    @SuppressWarnings("unchecked")
-                    List<String> usedWords = (List<String>) request.get("usedWords");
-                    if (usedWords != null && !usedWords.isEmpty()) {
-                        prompt.append("Words already used: ").append(String.join(", ", usedWords)).append(". ");
-                    }
-                    
-                    prompt.append("Create a 1-2 sentence prompt that encourages creative conversation and vocabulary use.");
-                    return prompt.toString();
-                case "role_prompt":
-                    StringBuilder rolePrompt = new StringBuilder("You are a language learning assistant helping a student practice their conversation skills. ");
-                    rolePrompt.append("Generate a brief guidance tip (1-2 sentences) for a student playing the role of '").append(request.get("role")).append("' ");
-                    rolePrompt.append("in a conversation about: ").append(request.get("context")).append(". ");
-                    rolePrompt.append("The tip should help them stay in character and use appropriate vocabulary and expressions for this role. Keep it short and helpful.");
-                    return rolePrompt.toString();                case "role_check":
-                    return "Evaluate if the following text is appropriate for someone playing the role of '" + 
-                    request.getOrDefault("role", "student") + "' in a conversation about " + 
-                    request.getOrDefault("context", "general topics") + 
-                    ". The text is: \"" + request.getOrDefault("text", "") + 
-                    "\". Respond with either 'Appropriate' or 'Not appropriate' followed by a brief explanation.";
+                + "Replace the placeholders with actual words and roles relevant to the topic. Do not include any other text or explanations.";
                 default:
                     return "Provide a response to: " + request;
             }

@@ -1,0 +1,286 @@
+package cit.edu.wrdmstr.service.gameplay;
+
+import cit.edu.wrdmstr.entity.ChatMessageEntity;
+import cit.edu.wrdmstr.entity.PlayerSessionEntity;
+import cit.edu.wrdmstr.entity.ScoreRecordEntity;
+import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
+import cit.edu.wrdmstr.repository.ScoreRecordEntityRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional
+public class ScoreService {
+    private static final Logger logger = LoggerFactory.getLogger(ScoreService.class);
+    
+    private final ScoreRecordEntityRepository scoreRepository;
+    private final PlayerSessionEntityRepository playerRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    public ScoreService(
+            ScoreRecordEntityRepository scoreRepository,
+            PlayerSessionEntityRepository playerRepository,
+            SimpMessagingTemplate messagingTemplate) {
+        this.scoreRepository = scoreRepository;
+        this.playerRepository = playerRepository;
+        this.messagingTemplate = messagingTemplate;
+    }
+    
+    /**
+     * Award points to a player by session and user IDs
+     */
+    public void awardPoints(Long sessionId, Long userId, int points, String reason) {
+        List<PlayerSessionEntity> players = playerRepository.findBySessionIdAndUserId(sessionId, userId);
+        if (players.isEmpty()) {
+            logger.warn("Cannot award points: player not found for session {} and user {}", sessionId, userId);
+            return;
+        }
+        
+        PlayerSessionEntity player = players.get(0);
+        awardPoints(player, points, reason);
+        
+        // Broadcast updated score to all clients
+        Map<String, Object> scoreUpdate = new HashMap<>();
+        scoreUpdate.put("playerId", userId);
+        scoreUpdate.put("sessionId", sessionId);
+        scoreUpdate.put("points", points);
+        scoreUpdate.put("reason", reason);
+        scoreUpdate.put("totalScore", player.getTotalScore());
+        
+        // Broadcast to topic for all players
+        messagingTemplate.convertAndSend(
+            "/topic/game/" + sessionId + "/scores",
+            scoreUpdate
+        );
+        
+        // Also send direct notification to the player
+        String userEmail = player.getUser().getEmail();
+        messagingTemplate.convertAndSendToUser(
+            userEmail,
+            "/queue/score",
+            scoreUpdate
+        );
+    }
+    
+    /**
+     * Award points directly to a player entity
+     */
+    public void awardPoints(PlayerSessionEntity player, int points, String reason) {
+        try {
+            if (player == null || player.getUser() == null || player.getSession() == null) {
+                logger.error("Cannot award points: player, user, or session is null");
+                return;
+            }
+            
+            ScoreRecordEntity record = new ScoreRecordEntity();
+            record.setSession(player.getSession());
+            record.setUser(player.getUser());
+            record.setPoints(points);
+            record.setReason(reason != null ? reason : "Points awarded");
+            record.setTimestamp(new Date());
+            
+            // Update relationships
+            if (player.getUser().getScoreRecords() != null) {
+                player.getUser().getScoreRecords().add(record);
+            }
+            
+            if (player.getSession().getScores() != null) {
+                player.getSession().getScores().add(record);
+            }
+            
+            // Save record and update player total
+            scoreRepository.save(record);
+            player.setTotalScore(player.getTotalScore() + points);
+            playerRepository.save(player);
+            
+            logger.info("Awarded {} points to player {} for: {}", 
+                points, player.getUser().getEmail(), reason);
+        } catch (Exception e) {
+            logger.error("Error awarding points: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Award grammar-based points with streak tracking
+     */
+    public void handleGrammarScoring(PlayerSessionEntity player, ChatMessageEntity.MessageStatus status) {
+        // Base grammar points based on quality
+        int grammarPoints = switch (status) {
+            case PERFECT -> 15;
+            case MINOR_ERRORS -> 5;
+            case MAJOR_ERRORS -> 1;  // Still give 1 point for participation
+        };
+        
+        if (grammarPoints > 0) {
+            awardPoints(player, grammarPoints, "Grammar: " + status);
+            
+            // Handle streak bonuses
+            player.setGrammarStreak(player.getGrammarStreak() + 1);
+            int streak = player.getGrammarStreak();
+            
+            if (streak >= 3) {
+                // Progressive streak bonus
+                int bonus = streak * 2;
+                awardPoints(player, bonus, "Grammar streak bonus x" + streak);
+                
+                // Milestone bonuses at key streak levels
+                if (streak == 5 || streak == 10 || streak == 15) {
+                    awardPoints(player, 10, "Streak milestone bonus!");
+                }
+            }
+        } else {
+            // Reset streak on very poor performance
+            player.setGrammarStreak(0);
+        }
+        
+        playerRepository.save(player);
+    }
+    
+    /**
+     * Award word bank usage points
+     */
+    public void handleWordBankUsage(PlayerSessionEntity player, List<String> usedWords) {
+        if (usedWords == null || usedWords.isEmpty()) {
+            return;
+        }
+        
+        // Base points for using any word bank word
+        int basePoints = 10;
+        
+        // Bonus for using multiple words (5 points per additional word)
+        int bonusPoints = (usedWords.size() - 1) * 5;
+        
+        // Award total points
+        awardPoints(player, basePoints + bonusPoints, 
+                "Used " + usedWords.size() + " word(s) from the word bank: " + 
+                String.join(", ", usedWords));
+    }
+    
+    /**
+     * Award role-appropriate communication points
+     */
+    public void handleRoleAppropriateScoring(PlayerSessionEntity player, boolean isRoleAppropriate, 
+            ChatMessageEntity.MessageStatus grammarStatus) {
+        
+        if (isRoleAppropriate) {
+            int rolePoints = 10;
+            
+            // Extra points for perfect grammar with role-appropriate content
+            if (grammarStatus == ChatMessageEntity.MessageStatus.PERFECT) {
+                rolePoints += 5;
+            }
+            
+            awardPoints(player, rolePoints, "Role-appropriate communication");
+        }
+    }
+    
+    /**
+     * Award points for word length/complexity
+     */
+    public void handleMessageComplexity(PlayerSessionEntity player, String content) {
+        // Award points for detailed responses
+        if (content.length() > 50) {
+            awardPoints(player, 5, "Detailed response bonus");
+        }
+        
+        // Award bonus for very long, complex responses
+        if (content.length() > 100) {
+            awardPoints(player, 5, "Extended response bonus");
+        }
+    }
+    
+    /**
+     * Award exceptional contribution bonus (perfect grammar + word usage + role)
+     */
+    public void handleExceptionalContribution(Long sessionId, Long userId, String message) {
+        // Award special bonus for outstanding contributions
+        awardPoints(sessionId, userId, 5, "Exceptional contribution bonus");
+        
+        // Broadcast notification to all players
+        Map<String, Object> exceptionalNotice = new HashMap<>();
+        exceptionalNotice.put("type", "exceptionalContribution");
+        
+        List<PlayerSessionEntity> players = playerRepository.findBySessionIdAndUserId(sessionId, userId);
+        if (!players.isEmpty()) {
+            PlayerSessionEntity player = players.get(0);
+            
+            // Include player name and message in the notification
+            exceptionalNotice.put("playerName", player.getUser().getFname() + " " + 
+                               player.getUser().getLname());
+            exceptionalNotice.put("message", message);
+            
+            // Send notification to all players
+            messagingTemplate.convertAndSend(
+                "/topic/game/" + sessionId + "/updates", 
+                exceptionalNotice
+            );
+        }
+    }
+    
+    /**
+     * Award word bomb points
+     */
+    public void handleWordBomb(PlayerSessionEntity player, String wordBomb) {
+        awardPoints(player, 15, "Word bomb used: " + wordBomb);
+    }
+    
+    /**
+     * Award round completion bonus to all active players
+     */
+    public void awardRoundCompletionBonus(Long sessionId, int roundNumber) {
+        // Increasing bonus for later rounds
+        int baseBonus = 10 + (roundNumber * 5);
+        
+        List<PlayerSessionEntity> activePlayers = playerRepository.findBySessionIdAndIsActiveTrue(sessionId);
+        for (PlayerSessionEntity player : activePlayers) {
+            awardPoints(player, baseBonus, "Round " + roundNumber + " completion bonus");
+        }
+    }
+    
+    /**
+     * Get session leaderboard
+     */
+    public List<Map<String, Object>> getSessionLeaderboard(Long sessionId) {
+        List<Object[]> totalScores = scoreRepository.getTotalScoresByUser(sessionId);
+        
+        return totalScores.stream()
+            .map(score -> {
+                Map<String, Object> entry = new HashMap<>();
+                entry.put("playerId", score[0]);
+                entry.put("score", score[1]);
+                return entry;
+            })
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get player score breakdown - score by reason
+     */
+    public List<Map<String, Object>> getPlayerScoreBreakdown(Long sessionId, Long playerId) {
+        List<Object[]> breakdown = scoreRepository.getScoreBreakdown(sessionId, playerId);
+        
+        return breakdown.stream()
+            .map(entry -> {
+                Map<String, Object> item = new HashMap<>();
+                item.put("reason", entry[0]);
+                item.put("points", entry[1]);
+                return item;
+            })
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get all score records for a session
+     */
+    public List<ScoreRecordEntity> getSessionScoreHistory(Long sessionId) {
+        return scoreRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+    }
+}

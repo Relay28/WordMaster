@@ -12,8 +12,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class GrammarCheckerService {
+    private static final Logger logger = LoggerFactory.getLogger(GrammarCheckerService.class);
     private final AIService aiService;
 
     @Autowired
@@ -53,9 +57,12 @@ public class GrammarCheckerService {
                 request.put("context", contextDescription);
 
                 String roleCheckResponse = aiService.callAIModel(request).getResult();
+                
+                // Check for "APPROPRIATE" at the start of the response
                 isRoleAppropriate = roleCheckResponse != null && 
-                    roleCheckResponse.toLowerCase().contains("appropriate") &&
-                    !roleCheckResponse.toLowerCase().contains("not appropriate");
+                    (roleCheckResponse.startsWith("APPROPRIATE") || 
+                     roleCheckResponse.toLowerCase().startsWith("appropriate"));
+                    
                 roleFeedback = roleCheckResponse != null ? roleCheckResponse : "";
             } else {
                 // If no role or context, assume appropriate
@@ -70,21 +77,35 @@ public class GrammarCheckerService {
 
             return new GrammarCheckResult(status, enhancedFeedback, isRoleAppropriate);
         } catch (Exception e) {
-            // If any error occurs, provide a default result
-            System.err.println("Error checking grammar: " + e.getMessage());
+            // Better error handling
+            logger.error("Error checking grammar: " + e.getMessage(), e);
             return new GrammarCheckResult(MessageStatus.MINOR_ERRORS, 
                 "Grammar check encountered an error. Please try again.", false);
         }
     }    private MessageStatus determineStatusFromFeedback(String feedback) {
-        // Implement logic to determine severity based on AI feedback
         if (feedback == null) {
             return MessageStatus.MINOR_ERRORS;
         }
         
         String lowerFeedback = feedback.toLowerCase();
-        if (lowerFeedback.contains("no errors")) {
+        
+        // First check for exact match of the classification at the beginning
+        if (feedback.startsWith("NO ERRORS") || lowerFeedback.startsWith("no errors")) {
             return MessageStatus.PERFECT;
-        } else if (lowerFeedback.contains("minor errors")) {
+        } else if (feedback.startsWith("MINOR ERRORS") || lowerFeedback.startsWith("minor errors")) {
+            return MessageStatus.MINOR_ERRORS;
+        } else if (feedback.startsWith("MAJOR ERRORS") || lowerFeedback.startsWith("major errors")) {
+            return MessageStatus.MAJOR_ERRORS;
+        }
+        
+        // Fall back to contains check if no exact match at beginning
+        if (lowerFeedback.contains("no errors") || 
+            lowerFeedback.contains("perfect") || 
+            lowerFeedback.contains("correct")) {
+            return MessageStatus.PERFECT;
+        } else if (lowerFeedback.contains("minor errors") || 
+                   lowerFeedback.contains("small issues") || 
+                   lowerFeedback.contains("slight mistakes")) {
             return MessageStatus.MINOR_ERRORS;
         } else {
             return MessageStatus.MAJOR_ERRORS;
