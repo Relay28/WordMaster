@@ -9,9 +9,16 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Random;
+
 @Configuration
 public class AppConfig implements WebMvcConfigurer {
 
+
+    @Bean
+    public Random random() {
+        return new Random();
+    }
     @Bean
     public RestTemplate restTemplate() {
         ClientHttpRequestFactory factory = new BufferingClientHttpRequestFactory(
