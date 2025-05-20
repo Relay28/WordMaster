@@ -102,10 +102,13 @@ public class ChatService {
         // Score service handles word bank usage
         List<WordBankItem> sessionWordBank = wordBankItemRepository.findByContentData(session.getContent().getContentData());
         List<String> usedWordsFromBank = new ArrayList<>();
-        
+
         for (WordBankItem item : sessionWordBank) {
             String word = item.getWord().toLowerCase();
-            if (content.toLowerCase().contains(word)) {
+            // Use word boundary check for more accurate matching
+            // This prevents "car" matching in "carpet" for example
+            String regex = "\\b" + word + "\\b";
+            if (content.toLowerCase().matches(".*" + regex + ".*")) {
                 usedWordsFromBank.add(item.getWord());
             }
         }

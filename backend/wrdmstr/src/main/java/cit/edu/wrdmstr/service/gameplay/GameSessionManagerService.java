@@ -134,9 +134,11 @@ public class GameSessionManagerService {
         // Get the game config from the content
         GameConfig gameConfig = session.getContent().getGameConfig();
         
-        // Use turn cycles directly from config without multiplying by player count
-        int totalTurns = gameConfig.getTurnCycles();
-        System.out.println("Setting total turns to: " + totalTurns + " (from config turnCycles)");
+        // Calculate total turns as: cycles × players (one turn per player per cycle)
+        List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
+        int totalTurns = gameConfig.getTurnCycles() * players.size();
+        System.out.println("Setting total turns to: " + totalTurns + " (from " + gameConfig.getTurnCycles() + 
+                           " cycles × " + players.size() + " players)");
         session.setTotalTurns(totalTurns);
         
         // Make sure gameState also gets updated
@@ -153,7 +155,6 @@ public class GameSessionManagerService {
         session.setCurrentCycle(1);
         
         // RESTORE THIS CODE: Assign roles if they exist
-        List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
         List<Role> roles = roleRepository.findByContentDataContentId(session.getContent().getId());
         if (!roles.isEmpty()) {
             assignRoles(players, roles);
@@ -435,6 +436,26 @@ public class GameSessionManagerService {
         logger.debug("Adding word '{}' to used words list for session {}", lowercaseWord, sessionId);
         // Add to used words
         gameState.getUsedWords().add(lowercaseWord);
+
+        // In the submitWord method:
+        GameSessionEntity session = gameSessionRepository.findById(sessionId)
+        .orElseThrow(() -> new RuntimeException("Game session not found"));
+
+        // Before you add just the lowercaseWord, modify to detect all word bank items
+        List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(
+            session.getContent().getContentData());
+
+        // Find all words from the word bank in the submission
+        List<String> usedWordsFromBank = new ArrayList<>();
+        for (WordBankItem item : wordBankItems) {
+            String word = item.getWord().toLowerCase();
+            if (submission.getWord().toLowerCase().contains(word)) {
+                usedWordsFromBank.add(word);
+            }
+        }
+
+        // Add all detected words to the used words list
+        gameState.getUsedWords().addAll(usedWordsFromBank);
 
         try {
             logger.debug("Sending word via chat service for session {}", sessionId);
