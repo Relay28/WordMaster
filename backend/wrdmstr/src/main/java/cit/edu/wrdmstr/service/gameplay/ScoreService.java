@@ -158,10 +158,21 @@ public class ScoreService {
         // Bonus for using multiple words (5 points per additional word)
         int bonusPoints = (usedWords.size() - 1) * 5;
         
-        // Award total points
-        awardPoints(player, basePoints + bonusPoints, 
-                "Used " + usedWords.size() + " word(s) from the word bank: " + 
-                String.join(", ", usedWords));
+        if (usedWords.size() > 2) {
+            // Award special bonus for using many words at once
+            int specialBonus = 10;
+            awardPoints(player, specialBonus, "Amazing! Used " + usedWords.size() + " words at once!");
+        }
+        
+        // Award total points with individual feedback for each word
+        for (String word : usedWords) {
+            awardPoints(player, basePoints, "Used word bank item: " + word);
+        }
+        
+        // Bonus for using multiple words
+        if (usedWords.size() > 1) {
+            awardPoints(player, bonusPoints, "Multiple word bonus (" + usedWords.size() + " words)");
+        }
     }
     
     /**
