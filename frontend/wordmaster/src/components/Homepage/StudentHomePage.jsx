@@ -22,12 +22,16 @@ import {
   MenuItem,
   ListItemIcon,
   Snackbar,
-  Pagination
+  Pagination,
+  useMediaQuery,
+  useTheme
 } from "@mui/material";
-import { Close, ExitToApp, Add, Class, Person, CheckCircle } from "@mui/icons-material";
+import { Close, ExitToApp, Add, Class, Person, CheckCircle, PersonOutline } from "@mui/icons-material";
 import { useUserAuth } from '../context/UserAuthContext';
 import { useHomePage } from './HomePageFunctions';
-import logo from '../../assets/WOMS.png'
+import logo from '../../assets/LOGO.png'
+import picbg from '../../assets/picbg.png'
+import '@fontsource/press-start-2p';
 
 const StudentHomePage = () => {
   const { authChecked, user, getToken, login, logout } = useUserAuth();
@@ -55,6 +59,29 @@ const StudentHomePage = () => {
     avatarInitials
   } = useHomePage(authChecked, user, getToken, login, logout);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '12px' : '14px',
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
+  const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,7 +106,21 @@ const StudentHomePage = () => {
       display: 'flex',
       flexDirection: 'column',
       minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
+      // backgroundColor: '#f9f9f9'
+      background: `
+    linear-gradient(to bottom, 
+      rgba(249, 249, 249, 10) 0%, 
+      rgba(249, 249, 249, 10) 40%, 
+       
+     
+     
+      rgba(249, 249, 249, 0.1) 100%),
+    url(${picbg})`,
+    backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed',
+  imageRendering: 'pixelated',
     }}>
       {/* Header */}
       <Box sx={{ 
@@ -89,34 +130,40 @@ const StudentHomePage = () => {
         px: { xs: 2, md: 6 }
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Box display="flex" alignItems="center" gap={4}>
+          <Box display="flex" alignItems="center" gap={isMobile ? 2 : 4}>
             <img 
               src={logo}
               alt="WordMaster Logo"
               style={{
-                height: '50px',
+                height: isMobile ? '40px' : '50px',
                 width: 'auto',
                 objectFit: 'contain'
               }}
             />
-            <Typography variant="h5" fontWeight="bold" color="#5F4B8B">
+            <Typography sx={{ 
+              ...pixelHeading,
+              color: '#5F4B8B',
+              fontSize: isMobile ? '14px' : '16px'
+            }}>
               WordMaster
             </Typography>
           </Box>
           <Box display="flex" alignItems="center" gap={2}>
-            <Box textAlign="right">
-              <Typography variant="subtitle2" color="text.secondary">
-                {displayName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {roleDisplay}
-              </Typography>
-            </Box>
+            {!isMobile && (
+              <Box textAlign="right">
+                <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+                  {displayName}
+                </Typography>
+                <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+                  {roleDisplay}
+                </Typography>
+              </Box>
+            )}
             <IconButton onClick={handleMenuOpen} size="small" sx={{ p: 0 }}>
               <Avatar 
                 sx={{ 
-                  width: 40, 
-                  height: 40, 
+                  width: isMobile ? 32 : 40, 
+                  height: isMobile ? 32 : 40, 
                   bgcolor: '#5F4B8B',
                   color: 'white'
                 }}
@@ -158,14 +205,14 @@ const StudentHomePage = () => {
               transformOrigin={{ horizontal: 'right', vertical: 'top' }}
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-              <MenuItem onClick={handleProfileClick}>
+              <MenuItem onClick={handleProfileClick} sx={pixelText}>
                 <ListItemIcon>
                   <Person fontSize="small" />
                 </ListItemIcon>
                 Profile
               </MenuItem>
               <Divider />
-              <MenuItem onClick={handleLogout}>
+              <MenuItem onClick={handleLogout} sx={pixelText}>
                 <ListItemIcon>
                   <ExitToApp fontSize="small" />
                 </ListItemIcon>
@@ -178,49 +225,84 @@ const StudentHomePage = () => {
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Typography variant="h5" fontWeight="bold" color="text.primary">
-            Your Classes
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
+          <Typography sx={{ ...pixelHeading, color: 'text.primary' }}>
+            YOUR CLASSES
           </Typography>
-          <Box display="flex" gap={2}>
-            <Button
-              variant="contained"
-              onClick={() => navigate('/game')}
-              sx={{
-                backgroundColor: '#6c63ff',
-                '&:hover': { backgroundColor: '#5a52e0' },
-                textTransform: 'none',
-                borderRadius: '8px',
-                px: 3,
-                py: 1
-              }}
-            >
-              Join Game
-            </Button>
-            
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setJoinClassOpen(true)}
-              sx={{
-                backgroundColor: '#5F4B8B',
-                '&:hover': { backgroundColor: '#4a3a6d' },
-                textTransform: 'none',
-                borderRadius: '8px',
-                px: 3,
-                py: 1
-              }}
-            >
-              Join Class
-            </Button>
-          </Box>
+          <Box display="flex" gap={2} width={isMobile ? '100%' : 'auto'} sx={{ '& button': { position: 'relative' } }}>
+  {/* JOIN GAME Button */}
+  <Button
+    variant="contained"
+    onClick={() => navigate('/game')}
+    sx={{
+      ...pixelButton,
+      backgroundColor: '#6c63ff',
+      '&:hover': { 
+        backgroundColor: '#5a52e0',
+        transform: 'translateY(-2px)'
+      },
+      borderRadius: '4',
+      px: 3,
+      py: 1,
+      minWidth: isMobile ? 'auto' : '120px',
+     
+      borderStyle: 'outset',
+      boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+      textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+      transition: 'all 0.1s ease',
+      '&:active': {
+        transform: 'translateY(1px)',
+        boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+        borderStyle: 'inset'
+      },
+      
+    }}
+  >
+    ▶ JOIN GAME
+  </Button>
+  
+  {/* JOIN CLASS Button */}
+  <Button
+    variant="contained"
+    startIcon={<Add sx={{ 
+      fontSize: isMobile ? '12px' : '14px',
+      filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
+    }} />}
+    onClick={() => setJoinClassOpen(true)}
+    sx={{
+      ...pixelButton,
+      backgroundColor: '#5F4B8B',
+      '&:hover': { 
+        backgroundColor: '#4a3a6d',
+        transform: 'translateY(-2px)'
+      },
+      borderRadius: '4',
+      px: 3,
+      py: 1,
+      minWidth: isMobile ? 'auto' : '140px',
+    
+      borderStyle: 'outset',
+      boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+      textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+      transition: 'all 0.1s ease',
+      '&:active': {
+        transform: 'translateY(1px)',
+        boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+        borderStyle: 'inset'
+      },
+      
+    }}
+  >
+    JOIN CLASS
+  </Button>
+</Box>
         </Box>
         <Divider sx={{ my: 3 }} />
 
         {/* Error message */}
         {error && (
           <Box mb={3}>
-            <Alert severity="error" onClose={() => setError(null)}>
+            <Alert severity="error" onClose={() => setError(null)} sx={pixelText}>
               {error}
             </Alert>
           </Box>
@@ -237,31 +319,31 @@ const StudentHomePage = () => {
             py={4}
             sx={{
               backgroundColor: 'white',
-              borderRadius: '12px',
+              borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
               p: 4
             }}
           >
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              You're not enrolled in any classes yet
+            <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 2 }}>
+              NO CLASSES FOUND
             </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Join a class to get started with WordMaster
+            <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
+              JOIN A CLASS TO GET STARTED
             </Typography>
             <Button
               variant="contained"
-              startIcon={<Add />}
+              startIcon={<Add sx={{ fontSize: isMobile ? '12px' : '14px' }} />}
               onClick={() => setJoinClassOpen(true)}
               sx={{
+                ...pixelButton,
                 backgroundColor: '#5F4B8B',
                 '&:hover': { backgroundColor: '#4a3a6d' },
-                textTransform: 'none',
-                borderRadius: '8px',
+                borderRadius: '4px',
                 px: 3,
                 py: 1
               }}
             >
-              Join Your First Class
+              JOIN CLASS
             </Button>
           </Box>
         ) : (
@@ -272,6 +354,9 @@ const StudentHomePage = () => {
                   key={classroom.id} 
                   classroom={classroom}
                   onClick={() => navigate(`/classroom/${classroom.id}`)}
+                  pixelText={pixelText}
+                  pixelHeading={pixelHeading}
+                  isMobile={isMobile}
                 />
               ))}
             </Box>
@@ -283,9 +368,9 @@ const StudentHomePage = () => {
                   count={totalPages}
                   page={currentPage}
                   onChange={(event, page) => setCurrentPage(page)}
-                  color="primary"
                   sx={{
                     '& .MuiPaginationItem-root': {
+                      ...pixelText,
                       color: '#5F4B8B',
                       '&.Mui-selected': {
                         backgroundColor: '#5F4B8B',
@@ -311,6 +396,9 @@ const StudentHomePage = () => {
         }}
         onChange={(e) => setClassCode(e.target.value)}
         onSubmit={handleJoinClass}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+        isMobile={isMobile}
       />
 
       {/* Success Snackbar */}
@@ -319,12 +407,6 @@ const StudentHomePage = () => {
         autoHideDuration={2000}
         onClose={() => setJoinSuccess(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        sx={{ 
-          '& .MuiSnackbar-root': {
-            bottom: '24px !important',
-            right: '24px !important'
-          }
-        }}
       >
         <Alert
           onClose={() => setJoinSuccess(false)}
@@ -334,114 +416,306 @@ const StudentHomePage = () => {
             width: '100%',
             backgroundColor: '#4caf50',
             color: 'white',
-            '& .MuiAlert-icon': { color: 'white' }
+            '& .MuiAlert-icon': { color: 'white' },
+            ...pixelText
           }}
         >
-          Successfully joined the class!
+          CLASS JOINED!
         </Alert>
       </Snackbar>
     </Box>
   );
 };
 
-const ClassroomCard = ({ classroom, onClick }) => (
+const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }) => (
   <Card 
     sx={{ 
-      borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+      borderRadius: '10px',
+      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
+      border: '1px solid rgba(255,255,255,0.3)',
       transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255,255,255,0.7)',
+      backdropFilter: 'blur(8px)',
+      position: 'relative',
+      overflow: 'hidden',
       '&:hover': { 
         transform: 'translateY(-4px)',
-        boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+        boxShadow: '0 12px 40px rgba(31, 38, 135, 0.15)',
         cursor: 'pointer'
+      },
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '6px',
+        background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
+        opacity: 0.8
       }
     }}
     onClick={onClick}
   >
-    <CardContent sx={{ p: 3 }}>
-      <Box display="flex" alignItems="center" mb={2}>
-        <Class sx={{ color: '#5F4B8B', mr: 2 }} />
-        <Typography variant="h6" fontWeight="medium">
-          {classroom.name || `Class ${classroom.id}`}
+    <CardContent sx={{ p: isMobile ? 1 : 2, pt: isMobile ? 1 : 2}}>
+      <Box display="flex" alignItems="center" mb={1}>
+        <Box sx={{
+          p: 0.5,
+          mr: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <Class sx={{ 
+            color: '#5F4B8B', 
+            fontSize: isMobile ? '20px' : '22px'
+          }} />
+      </Box>
+        <Typography sx={{ 
+          ...pixelHeading, 
+          color: '#2d3748',
+          fontSize: isMobile ? '14px' : '16px',
+          fontWeight: 700,
+          lineHeight: 2,
+          letterSpacing: '-0.5px'
+        }}>
+          {classroom.name || `CLASS ${classroom.id}`}
         </Typography>
       </Box>
-      <Typography variant="body2" color="text.secondary" mb={3}>
-        Teacher: {classroom.teacher.fname +" "+classroom.teacher.lname || 'Unknown Teacher'}
-      </Typography>
+      
+      <Box sx={{
+        backgroundColor: 'rgba(245, 245, 247, 0.7)',
+        borderRadius: '12px',
+        p: 1,
+        mb: 2,
+        border: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          mb: 0.5
+        }}>
+          <PersonOutline sx={{ 
+            fontSize: '18px', 
+            color: '#5F4B8B',
+            mr: 1 
+          }} />
+          <Typography sx={{ 
+            ...pixelText, 
+            color: '#4a5568',
+            fontSize: '14px',
+            fontWeight: 100
+          }}>
+            Teacher
+          </Typography>
+        </Box>
+        <Typography sx={{ 
+          color: '#2d3748',
+          fontSize: '14px',
+          fontWeight: 500,
+          pl: '26px' // Align with icon
+        }}>
+          {classroom.teacher.fname + " " + classroom.teacher.lname || 'UNKNOWN'}
+        </Typography>
+      </Box>
+      
+      {/* Keep your existing button exactly as is */}
       <Button
         fullWidth
-        variant="outlined"
+        variant="contained"
         onClick={(e) => {
           e.stopPropagation();
           onClick();
         }}
         sx={{
-          borderColor: '#5F4B8B',
-          color: '#5F4B8B',
+          ...pixelText,
+          background: 'linear-gradient(135deg, #6c63ff, #5F4B8B)',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
+          textTransform: 'none',
+          fontSize: isMobile ? '8px' : '10px',
+          fontWeight: 150,
+          height: isMobile ? '20px' : '30px',
           '&:hover': { 
-            backgroundColor: '#f0edf5',
-            borderColor: '#4a3a6d'
+            background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
+            boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',
+            transform: 'translateY(-2px)'
+          },
+          '&:active': {
+            transform: 'translateY(0)',
+            boxShadow: '0 2px 4px rgba(95, 75, 139, 0.3)'
+          },
+          transition: 'all 0.2s ease',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: 'linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent)',
+            transform: 'rotate(45deg)',
+            transition: 'all 0.5s ease'
+          },
+          '&:hover::after': {
+            left: '100%'
           }
         }}
       >
-        Enter Class
+        ENTER CLASS
       </Button>
     </CardContent>
   </Card>
 );
 
-const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit }) => (
+const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit, pixelText, pixelHeading, isMobile }) => (
   <Dialog 
     open={open} 
     onClose={onClose}
-    PaperProps={{ sx: { borderRadius: '12px' } }}
+    PaperProps={{ 
+      sx: { 
+        borderRadius: '12px',
+        width: isMobile ? '90vw' : '440px',
+        maxWidth: 'none',
+        boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.12)'
+      } 
+    }}
   >
     <DialogTitle sx={{ 
+      px: 3.5,
+      py: 2,
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      backgroundColor: '#f5f3fa',
-      borderBottom: '1px solid #e0e0e0'
+      backgroundColor: 'transparent',
+      borderBottom: 'none',
+      fontSize: '1.25rem',
+      fontWeight: 300,
+      color: 'text.primary',
+      ...pixelHeading
     }}>
-      <Typography fontWeight="bold">Join Class</Typography>
-      <IconButton onClick={onClose}>
+      Join a Class
+      <IconButton 
+        onClick={onClose}
+        sx={{
+          color: 'text.secondary',
+          '&:hover': {
+            backgroundColor: 'action.hover'
+          }
+        }}
+      >
         <Close />
       </IconButton>
     </DialogTitle>
-    
-    <DialogContent sx={{ py: 3, px: 3 }}>
-      <Typography variant="body1" mb={2}>
-        Enter the class code provided by your teacher
+    <Divider sx={{ my: 0.1 }} />
+    <DialogContent sx={{ px: 3, py: 1 }}>
+      <Typography 
+        variant="body1" 
+        sx={{ 
+          mb: 1.5,
+          color: 'text.secondary',
+          fontSize: '0.875rem',
+          ...pixelText 
+        }}
+      >
+        Enter the class code provided by your instructor
       </Typography>
       <TextField
         fullWidth
         variant="outlined"
-        placeholder="e.g. A1B2C3"
+        placeholder="e.g. A1B2C3D4"
         value={classCode}
         onChange={onChange}
         sx={{ 
           '& .MuiOutlinedInput-root': {
-            borderRadius: '8px'
+            borderRadius: '8px',
+            '& fieldset': {
+              borderColor: 'divider'
+            },
+            '&:hover fieldset': {
+              borderColor: 'primary.main'
+            },
+            '&.Mui-focused fieldset': {
+              borderWidth: '1px'
+            }
+          },
+          '& .MuiInputBase-input': {
+            py: 2,
+            ...pixelText
+          }
+        }}
+        InputProps={{
+          style: {
+            ...pixelText
           }
         }}
       />
     </DialogContent>
     
-    <DialogActions sx={{ px: 3, py: 2 }}>
+    <DialogActions sx={{ px: 3, py: 3 }}>
       <Button
         fullWidth
         variant="contained"
         onClick={onSubmit}
         disabled={loading}
         sx={{
-          backgroundColor: '#5F4B8B',
-          '&:hover': { backgroundColor: '#4a3a6d' },
+          ...pixelText,
+          background: 'linear-gradient(135deg, #6c63ff, #5F4B8B)',
+          color: '#fff',
+          border: 'none',
           borderRadius: '8px',
-          py: 1,
-          textTransform: 'none'
+          boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
+          textTransform: 'none',
+          fontSize: isMobile ? '14px' : '16px',
+          fontWeight: 500,
+          height: isMobile ? '36px' : '48px',
+          '&:hover': { 
+            background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
+            boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',
+            transform: 'translateY(-2px)',
+            '&::after': {
+              left: '100%'
+            }
+          },
+          '&:active': {
+            transform: 'translateY(0)',
+            boxShadow: '0 2px 4px rgba(95, 75, 139, 0.3)'
+          },
+          '&.Mui-disabled': {
+            background: '#e0e0e0',
+            color: '#a0a0a0',
+            transform: 'none',
+            boxShadow: 'none'
+          },
+          transition: 'all 0.2s ease',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: 'linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent)',
+            transform: 'rotate(45deg)',
+            transition: 'all 0.5s ease'
+          }
         }}
       >
-        {loading ? <CircularProgress size={24} color="inherit" /> : 'Join Class'}
+        {loading ? (
+          <CircularProgress 
+            size={24} 
+            color="inherit" 
+            thickness={4}
+            sx={{ color: 'inherit' }}
+          />
+        ) : (
+          'Join Class'
+        )}
       </Button>
     </DialogActions>
   </Dialog>
