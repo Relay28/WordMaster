@@ -20,6 +20,29 @@ public class ContentData {
     @OneToMany(mappedBy = "contentData", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Role> roles = new ArrayList<>();
 
+    @OneToMany(mappedBy = "contentData", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PowerupCard> powerupCards = new ArrayList<>();
+
+    // ... existing methods ...
+
+    // Add these methods for managing power-up cards
+    public List<PowerupCard> getPowerupCards() {
+        return powerupCards;
+    }
+
+    public void setPowerupCards(List<PowerupCard> powerupCards) {
+        this.powerupCards = powerupCards;
+    }
+
+    public void addPowerupCard(PowerupCard card) {
+        powerupCards.add(card);
+        card.setContentData(this);
+    }
+
+    public void removePowerupCard(PowerupCard card) {
+        powerupCards.remove(card);
+        card.setContentData(null);
+    }
     // Helper methods for managing relationships
     public void addWord(String word) {
         WordBankItem item = new WordBankItem(word, this);
