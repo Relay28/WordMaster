@@ -27,7 +27,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const { sessionId } = useParams(); // Ensure sessionId is available if used directly for subscriptions
-  const { user } = useUserAuth();
+  const { user, getToken } = useUserAuth();
   const [sentence, setSentence] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [storyPrompt, setStoryPrompt] = useState(''); // For AI-generated story prompts
@@ -159,41 +159,52 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
     setSentence(e.target.value);
   };
 
+  
   const handleSubmit = async () => {
-    if (!sentence.trim() || submitting || !gameState.sessionId) return;
-    
+    if (!sentence.trim() || submitting || !gameState.sessionId || !isMyTurn) {
+      console.log('Submission prevented: Sentence empty, already submitting, no session, or not my turn.');
+      return;
+    }
+
     setSubmitting(true);
+    console.log('[GamePlay Debug] Attempting to submit sentence:', sentence.trim());
+
     try {
-      // The backend expects 'sentence' and optionally 'word' if you extract it.
-      // For simplicity, sending the whole sentence. Backend can parse if needed.
-      const response = await sendMessage(
-        `/app/game/${gameState.sessionId}/submit`, 
-        { sentence: sentence.trim() } // Ensure you send what the backend expects
-      );
-      
-      if (response.ok) {
-        // Add the word to local used words list for immediate UI feedback
-        const usedWord = sentence.split(' ').find(word => 
-          gameState.wordBank && gameState.wordBank.includes(word)
-        );
-        
-        if (usedWord) {
-          setGameState(prev => ({
-            ...prev,
-            usedWords: [...(prev.usedWords || []), usedWord.toLowerCase()]
-          }));
-        }
-        
-        setSentence('');
+      // Get the authentication token
+      const token = await getToken();
+      if (!token) {
+        console.error('No authentication token found. Cannot submit sentence.');
         setSubmitting(false);
+        alert('Authentication error. Please log in again.');
+        return;
       }
+
+      // Define headers, including the Authorization Bearer token
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      // Call sendMessage with the destination, message body, and headers
+      // Note: Your sendMessage function needs to be able to accept headers
+      // If your current sendMessage doesn't, you'll need to adjust it (see explanation below)
+      sendMessage(
+        `/app/game/${gameState.sessionId}/word`, // Use '/submit' as per your backend controller
+        { word: sentence.trim() }, // Sending as an object with 'sentence'
+        headers // Pass the headers here
+      );
+
+      console.log('[GamePlay Debug] Sentence sent to backend with token. Clearing input.');
+      setSentence(''); // Clear input immediately on successful send
+      // The state update (like used words, turn advance) will come from the WebSocket subscriptions
+      // when the backend broadcasts them.
+
     } catch (error) {
-      console.error('Error submitting sentence:', error);
+      console.error('Error sending sentence via WebSocket:', error);
+      alert('Failed to send sentence. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
-
   return (
     <Box sx={{ py: 4 }}>
       <Grid container spacing={3}>

@@ -2,7 +2,7 @@ package cit.edu.wrdmstr.dto;
 
 public class WordSubmissionDTO {
     private String word;
-    private String sentence;
+
     private Long sessionId;
     private Long playerId;
 
@@ -15,13 +15,7 @@ public class WordSubmissionDTO {
         this.word = word;
     }
 
-    public String getSentence() {
-        return sentence;
-    }
 
-    public void setSentence(String sentence) {
-        this.sentence = sentence;
-    }
 
     public Long getSessionId() {
         return sessionId;

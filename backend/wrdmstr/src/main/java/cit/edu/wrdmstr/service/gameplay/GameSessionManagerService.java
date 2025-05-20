@@ -80,7 +80,7 @@ public class GameSessionManagerService {
         gameSessionRepository.save(session);
 
         // Get players
-        List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId);
+        List<PlayerSessionEntity> players = session.getPlayers();
         if (players.isEmpty()) {
             throw new IllegalStateException("Cannot start a game with no players");
         }
@@ -331,36 +331,63 @@ public class GameSessionManagerService {
         gameState.setLastTurnTime(System.currentTimeMillis());
     }
 
+    @Transactional
     public boolean submitWord(Long sessionId, Long userId, WordSubmissionDTO submission) {
+        logger.info("Attempting to submit word for session {} by user {}: {}", sessionId, userId, submission.getWord());
+
         GameState gameState = activeGames.get(sessionId);
-        if (gameState == null || gameState.getStatus() != GameState.Status.TURN_IN_PROGRESS) {
+        if (gameState == null) {
+            logger.warn("Submit word failed - no active game state found for session {}", sessionId);
+            return false;
+        }
+
+        if (gameState.getStatus() != GameState.Status.TURN_IN_PROGRESS) {
+            logger.warn("Submit word failed - game is not in progress (current status: {}) for session {}",
+                    gameState.getStatus(), sessionId);
             return false;
         }
 
         // Verify it's the user's turn
         PlayerSessionEntity currentPlayer = playerRepository.findById(gameState.getCurrentPlayerId())
-                .orElseThrow(() -> new RuntimeException("Current player not found"));
+                .orElseThrow(() -> {
+                    logger.error("Current player not found for game state with player ID {}",
+                            gameState.getCurrentPlayerId());
+                    return new RuntimeException("Current player not found");
+                });
 
-        if (!(currentPlayer.getUser().getId() == userId)) {
+        if (!(currentPlayer.getUser().getId() ==(userId))) {
+            logger.warn("Submit word failed - it's not user {}'s turn (current player: {})",
+                    userId, currentPlayer.getUser().getId());
             return false;
         }
 
         // Check if word already used
-        if (gameState.getUsedWords().contains(submission.getWord().toLowerCase())) {
+        String lowercaseWord = submission.getWord().toLowerCase();
+        if (gameState.getUsedWords().contains(lowercaseWord)) {
+            logger.warn("Submit word failed - word '{}' has already been used in session {}",
+                    lowercaseWord, sessionId);
             return false;
         }
 
+        logger.debug("Adding word '{}' to used words list for session {}", lowercaseWord, sessionId);
         // Add to used words
-        gameState.getUsedWords().add(submission.getWord().toLowerCase());
+        gameState.getUsedWords().add(lowercaseWord);
 
-        // Send message via chat service (which handles word bomb checking and scoring)
-        chatService.sendMessage(sessionId, userId, submission.getSentence());
+        try {
+            logger.debug("Sending word via chat service for session {}", sessionId);
+            // Send message via chat service (which handles word bomb checking and scoring)
+            chatService.sendMessage(sessionId, userId, submission.getWord());
+        } catch (Exception e) {
+            logger.error("Error sending word via chat service for session {}: {}", sessionId, e.getMessage(), e);
+            return false;
+        }
 
+        logger.info("Successfully processed word submission '{}' for session {} by user {}, advancing to next player",
+                submission.getWord(), sessionId, userId);
         // Advance to next player's turn
         advanceToNextPlayer(sessionId);
         return true;
     }
-
     @Transactional(propagation = Propagation.REQUIRED)
     private void advanceToNextPlayer(Long sessionId) {
         GameState gameState = activeGames.get(sessionId);
@@ -386,12 +413,12 @@ public class GameSessionManagerService {
         // Move to next player
         int nextIndex = (currentIndex + 1) % players.size();
         gameState.setCurrentPlayerId(players.get(nextIndex).getId());
-        
+
         // If we've completed a full cycle through all players
         if (nextIndex == 0) {
             gameState.setCurrentCycle(gameState.getCurrentCycle() + 1);
         }
-        
+
         gameState.setCurrentTurn(gameState.getCurrentTurn() + 1);
 
         // Start next turn
@@ -527,7 +554,9 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
     }
 
     public List<Map<String, Object>> getSessionLeaderboard(Long sessionId) {
-        List<PlayerSessionEntity> players = playerRepository.findBySessionIdOrderByTotalScoreDesc(sessionId);
+
+        GameSessionEntity session = gameSessionRepository.findById(sessionId).get();
+        List<PlayerSessionEntity> players = session.getPlayers();
         
         return players.stream().map(p -> {
             Map<String, Object> playerData = new HashMap<>();

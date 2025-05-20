@@ -94,7 +94,7 @@ public class WaitingRoomService {
             GameSessionEntity session = gameSessionService.createSession(contentId, auth);
             session.setStatus(GameSessionEntity.SessionStatus.PENDING);
             session.setStartedAt(new Date());
-
+            session.setContent(content);
 
             // Add students to session
             for (UserDto studentDto : groupStudents) {
