@@ -574,6 +574,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         dto.setStatus(gameState.getStatus().toString());
         dto.setCurrentTurn(gameState.getCurrentTurn());
         dto.setTotalTurns(gameState.getTotalTurns());
+        dto.setLeaderboard(getSessionLeaderboard(sessionId));
         dto.setTimePerTurn(session.getTimePerTurn()); // Make sure this field exists in GameStateDTO
         
         // Add this code to set the word bank for active games
