@@ -111,9 +111,6 @@ const StudentHomePage = () => {
     linear-gradient(to bottom, 
       rgba(249, 249, 249, 10) 0%, 
       rgba(249, 249, 249, 10) 40%, 
-       
-     
-     
       rgba(249, 249, 249, 0.1) 100%),
     url(${picbg})`,
     backgroundSize: 'cover',

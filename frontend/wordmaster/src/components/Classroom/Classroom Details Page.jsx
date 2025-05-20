@@ -1,4 +1,3 @@
-// src/pages/ClassroomDetailsPage.js
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -29,6 +28,8 @@ import { useClassroomDetails } from './ClassroomDetailFunctions';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ContentList from '../content/ContentList';
 import contentService from '../../services/contentService';
+import '@fontsource/press-start-2p';
+import picbg from '../../assets/picbg.png';
 
 const ClassroomDetailsPage = () => {
   const { authChecked, user, getToken } = useUserAuth();
@@ -55,6 +56,28 @@ const ClassroomDetailsPage = () => {
   const [loadingContent, setLoadingContent] = useState(false);
   const [contentError, setContentError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add this line
+  const isMobile = window.innerWidth < 768;
+
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '12px' : '14px',
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
+  const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
 
   // Handler for tab change
   const handleTabChange = (event, newValue) => {
@@ -178,26 +201,51 @@ const ClassroomDetailsPage = () => {
     );
   }
 
-  return (
+return (
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
       minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
+      background: `
+        linear-gradient(to bottom, 
+          rgba(249, 249, 249, 10) 0%, 
+          rgba(249, 249, 249, 10) 40%, 
+          rgba(249, 249, 249, 0.1) 100%),
+        url(${picbg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
     }}>
       {/* Header */}
       <Box sx={{ 
-        backgroundColor: 'white',
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         py: 2,
-        px: { xs: 2, md: 6 }
+        px: { xs: 2, md: 6 },
+        backdropFilter: 'blur(8px)'
       }}>
         <Box display="flex" alignItems="center">
-          <IconButton onClick={() => navigate('/homepage')} sx={{ mr: 2 }}> 
+          <IconButton 
+            onClick={() => navigate('/homepage')} 
+            sx={{ 
+              mr: 2,
+              '&:hover': {
+                transform: 'translateX(-2px)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
             <ArrowBack />
           </IconButton>
-          <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
-            Classroom Details
+          <Typography sx={{ 
+            ...pixelHeading,
+            color: '#5F4B8B',
+            fontSize: isMobile ? '14px' : '18px',
+            textShadow: '1px 1px 0px rgba(255,255,255,0.8)'
+          }}>
+            CLASSROOM DETAILS
           </Typography>
         </Box>
       </Box>
@@ -207,14 +255,33 @@ const ClassroomDetailsPage = () => {
         {/* Error display */}
         {error && (
           <Box mb={3}>
-            <Alert severity="error" onClose={() => setError(null)}>
+            <Alert severity="error" onClose={() => setError(null)} sx={pixelText}>
               {error}
             </Alert>
           </Box>
         )}
 
         {/* Classroom Info Section */}
-        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+        <Paper elevation={0} sx={{ 
+          p: 3, 
+          mb: 3,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)',
+          border: '4px solid #5F4B8B',
+          
+          borderRadius: '6px',
+          position: 'relative',
+            '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '6px',
+          background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
+          opacity: 0.8
+      },
+        }}>
           <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
             {editMode ? (
               <Box sx={{ width: '100%' }}>
@@ -226,6 +293,8 @@ const ClassroomDetailsPage = () => {
                   onChange={handleDataChange}
                   variant="outlined"
                   sx={{ mb: 2 }}
+                  InputProps={{ style: pixelText }}
+                  InputLabelProps={{ style: pixelText }}
                 />
                 <TextField
                   fullWidth
@@ -236,15 +305,17 @@ const ClassroomDetailsPage = () => {
                   variant="outlined"
                   multiline
                   rows={3}
+                  InputProps={{ style: pixelText }}
+                  InputLabelProps={{ style: pixelText }}
                 />
               </Box>
             ) : (
               <Box>
-                <Typography variant="h3" component="h1" gutterBottom>
+                <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px', mb: 1 }}>
                   {classroom.name}
                 </Typography>
                 {classroom.description && (
-                  <Typography variant="body1" paragraph>
+                  <Typography sx={{ ...pixelText, color: '#4a5568' }}>
                     {classroom.description}
                   </Typography>
                 )}
@@ -259,6 +330,7 @@ const ClassroomDetailsPage = () => {
                       color="primary" 
                       onClick={handleUpdateClassroom}
                       disabled={loading}
+                      sx={{ '&:hover': { transform: 'scale(1.1)' }, transition: 'all 0.2s ease' }}
                     >
                       <Save />
                     </IconButton>
@@ -266,6 +338,7 @@ const ClassroomDetailsPage = () => {
                       color="secondary" 
                       onClick={() => setEditMode(false)}
                       disabled={loading}
+                      sx={{ '&:hover': { transform: 'scale(1.1)' }, transition: 'all 0.2s ease' }}
                     >
                       <Cancel />
                     </IconButton>
@@ -275,6 +348,7 @@ const ClassroomDetailsPage = () => {
                     <IconButton 
                       color="primary" 
                       onClick={() => setEditMode(true)}
+                      sx={{ '&:hover': { transform: 'scale(1.1)' }, transition: 'all 0.2s ease' }}
                     >
                       <Edit />
                     </IconButton>
@@ -282,6 +356,7 @@ const ClassroomDetailsPage = () => {
                       color="error" 
                       onClick={handleDeleteClassroom}
                       disabled={loading}
+                      sx={{ '&:hover': { transform: 'scale(1.1)' }, transition: 'all 0.2s ease' }}
                     >
                       <Delete />
                     </IconButton>
@@ -291,38 +366,56 @@ const ClassroomDetailsPage = () => {
             )}
           </Box>
 
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 2.5, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={4}>
-              <Box display="flex" alignItems="center">
-                <Class color="action" sx={{ mr: 1 }} />
-                <Typography variant="body1">
-                  <strong>Enrollment Code:</strong> {classroom.enrollmentCode}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <Box display="flex" alignItems="center">
-                <Person color="action" sx={{ mr: 1 }} />
-                <Typography variant="body1">
-                  <strong>Teacher:</strong> {classroom.teacher.fname} {classroom.teacher.lname}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6} md={4}>
-              <Box display="flex" alignItems="center">
-                <Description color="action" sx={{ mr: 1 }} />
-                <Typography variant="body1">
-                  <strong>Students:</strong> {classroom.studentCount}
-                </Typography>
-              </Box>
-            </Grid>
+          <Grid container spacing={28} sx={{ mt: 1, mb: 0.3 }}>
+          <Grid item xs={12} sm={6} md={4}>
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <Class sx={{ color: '#5F4B8B', fontSize: '20px' }} />
+              <Typography sx={{ ...pixelText }}>
+                <strong>CODE:</strong> {classroom.enrollmentCode}
+              </Typography>
+            </Box>
           </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <Person sx={{ color: '#5F4B8B', fontSize: '20px' }} />
+              <Typography sx={{ ...pixelText }}>
+                <strong>TEACHER:</strong> {classroom.teacher.fname} {classroom.teacher.lname}
+              </Typography>
+            </Box>
+          </Grid>
+          <Grid item xs={12} sm={6} md={4}>
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <Description sx={{ color: '#5F4B8B', fontSize: '20px' }} />
+              <Typography sx={{ ...pixelText }}>
+                <strong>STUDENTS:</strong> {classroom.studentCount}
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
         </Paper>
 
         {/* Tabs for Members and Content */}
-        <Paper elevation={3} sx={{ p: 3 }}>
+        <Paper elevation={0} sx={{ 
+          p: 3,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)',
+          border: '4px solid #5F4B8B',
+          borderRadius: '6px',
+          position: 'relative',
+           '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '6px',
+              background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
+              opacity: 0.8
+          },
+          
+        }}>
           <Tabs 
             value={tabValue} 
             onChange={handleTabChange}
@@ -331,63 +424,106 @@ const ClassroomDetailsPage = () => {
               borderColor: 'divider',
               mb: 2,
               '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
+              '& .MuiTab-root': { ...pixelHeading, fontSize: isMobile ? '10px' : '12px', },
               '& .Mui-selected': { color: '#5F4B8B !important' }
             }}
           >
-            <Tab label="Members" />
-            <Tab label="Learning Content" />
+            <Tab label="MEMBERS" />
+            <Tab label="LEARNING CONTENT" />
           </Tabs>
 
           {/* Members Tab */}
           {tabValue === 0 && (
             <Box>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h5">Members</Typography>
+              {/* <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                
                 <Chip 
-                  label={`${classroom.studentCount + 1} total`} 
+                  label={`${classroom.studentCount + 1} TOTAL`} 
                   color="primary"
                   size="small"
+                  sx={{pixelText, fontSize: isMobile ? '10px' : '12px',}}
                 />
               </Box>
-              <Divider sx={{ mb: 2 }} />
-              
+              <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
+               */}
               {/* Teacher Card */}
               <List>
-                <ListItem sx={{ backgroundColor: '#f5f5f5', borderRadius: 1 }}>
+                <ListItem sx={{ 
+                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  borderRadius: '4px',
+                  mb: 1
+                }}>
                   <ListItemAvatar>
-                    <Avatar>
+                    <Avatar sx={{ bgcolor: '#5F4B8B' }}>
                       {classroom.teacher.fname?.charAt(0)}{classroom.teacher.lname?.charAt(0)}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={`${classroom.teacher.fname} ${classroom.teacher.lname}`}
-                    secondary="Teacher"
+                    primary={
+                      <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>
+                        {`${classroom.teacher.fname} ${classroom.teacher.lname}`}
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                        TEACHER
+                      </Typography>
+                    }
                   />
-                  <Chip label="Owner" color="primary" size="small" />
+                  <Chip 
+                    label="OWNER" 
+                    color="primary" 
+                    size="small" 
+                    sx={{ 
+                      ...pixelText,
+                      fontSize: '8px',
+                      height: '20px'
+                    }} 
+                  />
                 </ListItem>
 
                 {/* Students List */}
                 {members.length > 0 ? (
                   members.map((member) => (
-                    <ListItem key={member.id}>
+                    <ListItem 
+                      key={member.id}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'rgba(95, 75, 139, 0.05)'
+                        }
+                      }}
+                    >
                       <ListItemAvatar>
-                        <Avatar>
+                        <Avatar sx={{ bgcolor: '#6c63ff' }}>
                           {member.fname?.charAt(0)}{member.lname?.charAt(0)}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText
-                        primary={`${member.fname} ${member.lname}`}
-                        secondary="Student"
+                        primary={
+                          <Typography sx={{ ...pixelText }}>
+                            {`${member.fname} ${member.lname}`}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                            STUDENT
+                          </Typography>
+                        }
                       />
                       {isClassroomTeacher && (
                         <ListItemSecondaryAction>
                           <Tooltip title="Remove student">
                             <IconButton 
                               edge="end" 
-                              aria-label="remove" 
                               onClick={() => handleRemoveStudent(member.id)}
-                              color="error"
-                              size="large"
+                              sx={{
+                                color: '#ff5252',
+                                '&:hover': {
+                                  transform: 'scale(1.1)',
+                                  backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                                },
+                                transition: 'all 0.2s ease'
+                              }}
                             >
                               <PersonRemove />
                             </IconButton>
@@ -397,8 +533,8 @@ const ClassroomDetailsPage = () => {
                     </ListItem>
                   ))
                 ) : (
-                  <Typography variant="body1" color="text.secondary" sx={{ p: 2 }}>
-                    No students enrolled yet
+                  <Typography sx={{ ...pixelText, color: 'text.secondary', p: 2 }}>
+                    NO STUDENTS ENROLLED YET
                   </Typography>
                 )}
               </List>
@@ -408,44 +544,61 @@ const ClassroomDetailsPage = () => {
           {/* Content Tab */}
           {tabValue === 1 && (
             <Box>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h5">Learning Content</Typography>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+      
                 
                 {isClassroomTeacher && (
-                  <Box>
+                  <Box display="flex" gap={1}>
                     <Button
                       variant="contained"
                       startIcon={<Add />}
                       onClick={handleCreateContent}
                       sx={{
+                        ...pixelButton,
                         backgroundColor: '#5F4B8B',
-                        '&:hover': { backgroundColor: '#4a3a6d' },
-                        textTransform: 'none',
-                        borderRadius: '8px',
-                        mr: 2
+                        '&:hover': { 
+                          backgroundColor: '#4a3a6d',
+                          transform: 'translateY(-2px)'
+                        },
+                        boxShadow: '0 4px 0 #4a3a6d',
+                        '&:active': {
+                          transform: 'translateY(0)',
+                          boxShadow: '0 2px 0 #4a3a6d'
+                        },
+                        transition: 'all 0.2s ease',
+                        height: '32px'
                       }}
                     >
-                      Create Content
+                      CREATE
                     </Button>
                     <Button
                       variant="contained"
                       startIcon={<Add />}
                       onClick={handleGenerateAIContent}
                       sx={{
-                        backgroundColor: '#5F4B8B',
-                        '&:hover': { backgroundColor: '#4a3a6d' },
-                        textTransform: 'none',
-                        borderRadius: '8px',
+                        ...pixelButton,
+                        backgroundColor: '#6c63ff',
+                        '&:hover': { 
+                          backgroundColor: '#5a52e0',
+                          transform: 'translateY(-2px)'
+                        },
+                        boxShadow: '0 4px 0 #5a52e0',
+                        '&:active': {
+                          transform: 'translateY(0)',
+                          boxShadow: '0 2px 0 #5a52e0'
+                        },
+                        transition: 'all 0.2s ease',
+                        height: '32px'
                       }}
                     >
-                      Generate AI Content
+                      AI GENERATE
                     </Button>
                   </Box>
                 )}
               </Box>
               
               {contentError && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setContentError(null)}>
+                <Alert severity="error" sx={{ mb: 2, ...pixelText }} onClose={() => setContentError(null)}>
                   {contentError}
                 </Alert>
               )}
@@ -460,15 +613,16 @@ const ClassroomDetailsPage = () => {
                   sx={{ 
                     p: 4, 
                     textAlign: 'center',
-                    backgroundColor: '#f5f5f5',
-                    borderRadius: '12px'
+                    backgroundColor: 'rgba(245, 245, 247, 0.7)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(0,0,0,0.05)'
                   }}
                 >
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    No content available yet
+                  <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
+                    NO CONTENT AVAILABLE
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" mb={3}>
-                    Create your first content for this classroom
+                  <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
+                    CREATE YOUR FIRST CONTENT
                   </Typography>
                   {isClassroomTeacher && (
                     <Button
@@ -476,13 +630,22 @@ const ClassroomDetailsPage = () => {
                       startIcon={<Add />}
                       onClick={handleCreateContent}
                       sx={{
+                        ...pixelButton,
                         backgroundColor: '#5F4B8B',
-                        '&:hover': { backgroundColor: '#4a3a6d' },
-                        textTransform: 'none',
-                        borderRadius: '8px',
+                        '&:hover': { 
+                          backgroundColor: '#4a3a6d',
+                          transform: 'translateY(-2px)'
+                        },
+                        boxShadow: '0 4px 0 #4a3a6d',
+                        '&:active': {
+                          transform: 'translateY(0)',
+                          boxShadow: '0 2px 0 #4a3a6d'
+                        },
+                        transition: 'all 0.2s ease',
+                        height: '32px'
                       }}
                     >
-                      Create Content
+                      CREATE CONTENT
                     </Button>
                   )}
                 </Paper>
@@ -494,6 +657,8 @@ const ClassroomDetailsPage = () => {
                   onDelete={handleDeleteContent}
                   onPublishToggle={handlePublishToggle}
                   disableActions={!isClassroomTeacher}
+                  pixelText={pixelText}
+                  pixelHeading={pixelHeading}
                 />
               )}
             </Box>
