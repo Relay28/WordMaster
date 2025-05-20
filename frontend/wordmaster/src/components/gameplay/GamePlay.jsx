@@ -22,6 +22,73 @@ import {
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
 
+const PowerUpCard = ({ card, isSelected, onSelect, isMyTurn }) => {
+  return (
+    <Card 
+      sx={{ 
+        width: 150, 
+        height: 200,
+        cursor: isMyTurn && !card.used ? 'pointer' : 'default',
+        opacity: card.used ? 0.6 : 1,
+        transform: isSelected ? 'scale(1.05)' : 'none',
+        transition: 'transform 0.2s, opacity 0.2s',
+        position: 'relative',
+        overflow: 'visible',
+        bgcolor: card.used ? '#f5f5f5' : '#ffffff'
+      }}
+      onClick={() => isMyTurn && !card.used && onSelect(card)}
+    >
+      <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ 
+          position: 'absolute', 
+          top: -10, 
+          right: -10, 
+          width: 30, 
+          height: 30, 
+          borderRadius: '50%', 
+          bgcolor: '#5F4B8B', 
+          color: 'black',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 'bold',
+          fontSize: '0.875rem'
+        }}>
+          +{card.pointsBonus}
+        </Box>
+        
+        <Typography variant="h6" component="div" sx={{ 
+          fontWeight: 'bold', 
+          fontSize: '1rem',
+          mb: 1,
+          color: card.used ? 'text.secondary' : 'text.primary'
+        }}>
+          {card.name}
+        </Typography>
+        
+        <Typography variant="body2" sx={{ 
+          flexGrow: 1,
+          color: card.used ? 'text.secondary' : 'text.primary'
+        }}>
+          {card.description}
+        </Typography>
+        
+        {card.used && (
+          <Chip 
+            label="Used" 
+            size="small" 
+            sx={{ 
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              fontSize: '0.6rem'
+            }} 
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -35,6 +102,37 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const [pointsNotification, setPointsNotification] = useState(false);
   const [pointsData, setPointsData] = useState({ points: 0, reason: '' });
   const chatEndRef = useRef(null);
+  const [leaderboard, setLeaderboard] = useState([]); 
+  const [playerCards, setPlayerCards] = useState([]);
+const [selectedCard, setSelectedCard] = useState(null);
+const [cardError, setCardError] = useState(null);
+
+// Add this useEffect to fetch cards when the game starts
+useEffect(() => {
+  const fetchPlayerCards = async () => {
+    if (!gameState.sessionId || !user?.id) return;
+    
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/api/cards/player/${gameState.players?.find(p => p.userId === user.id)?.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+   
+      if (!response.ok) throw new Error('Failed to fetch cards');
+      
+      const data = await response.json();
+      setPlayerCards(data);
+    } catch (err) {
+      console.error('Error fetching player cards:', err);
+      setCardError('Could not load power-up cards');
+    }
+  };
+
+  fetchPlayerCards();
+}, [gameState.sessionId, user?.id, gameState.players]);
+
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -48,6 +146,46 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
       setStoryPrompt(gameState.storyPrompt);
     }
   }, [gameState]);
+
+   useEffect(() => {
+    const fetchLeaderboard = async () => {
+      if (!sessionId) {
+        console.log('No sessionId available for leaderboard fetch.');
+        return;
+      }
+
+      try {
+        const token = await getToken();
+        if (!token) {
+          console.error('No authentication token found. Cannot fetch leaderboard.');
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/api/game/${sessionId}/leaderboard`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setLeaderboard(data);
+        console.log('Leaderboard fetched:', data);
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+      }
+    };
+
+    fetchLeaderboard();
+    // Fetch periodically or when a game state update suggests scores might have changed significantly
+    const interval = setInterval(fetchLeaderboard, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [sessionId, getToken, gameState.currentTurn]); // Re-fetch when session changes or turn advances (as scores might change)
+
 
   // Subscription for AI-generated story prompts
   useEffect(() => {
@@ -168,50 +306,51 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
 
   
   const handleSubmit = async () => {
-    if (!sentence.trim() || submitting || !gameState.sessionId || !isMyTurn) {
-      console.log('Submission prevented: Sentence empty, already submitting, no session, or not my turn.');
+  if (!sentence.trim() || submitting || !gameState.sessionId || !isMyTurn) {
+    console.log('Submission prevented: Sentence empty, already submitting, no session, or not my turn.');
+    return;
+  }
+
+  setSubmitting(true);
+
+  try {
+    const token = await getToken();
+    if (!token) {
+      console.error('No authentication token found.');
+      setSubmitting(false);
       return;
     }
 
-    setSubmitting(true);
-    console.log('[GamePlay Debug] Attempting to submit sentence:', sentence.trim());
+    // Prepare the request body
+    const requestBody = {
+      word: sentence.trim(),
+      cardId: selectedCard?.id || null
+    };
 
-    try {
-      // Get the authentication token
-      const token = await getToken();
-      if (!token) {
-        console.error('No authentication token found. Cannot submit sentence.');
-        setSubmitting(false);
-        alert('Authentication error. Please log in again.');
-        return;
-      }
+    // Call sendMessage with the destination, message body, and headers
+    sendMessage(
+      `/app/game/${gameState.sessionId}/word`,
+      requestBody,
+      { 'Authorization': `Bearer ${token}` }
+    );
 
-      // Define headers, including the Authorization Bearer token
-      const headers = {
-        'Authorization': `Bearer ${token}`
-      };
-
-      // Call sendMessage with the destination, message body, and headers
-      // Note: Your sendMessage function needs to be able to accept headers
-      // If your current sendMessage doesn't, you'll need to adjust it (see explanation below)
-      sendMessage(
-        `/app/game/${gameState.sessionId}/word`, // Use '/submit' as per your backend controller
-        { word: sentence.trim() }, // Sending as an object with 'sentence'
-        headers // Pass the headers here
-      );
-
-      console.log('[GamePlay Debug] Sentence sent to backend with token. Clearing input.');
-      setSentence(''); // Clear input immediately on successful send
-      // The state update (like used words, turn advance) will come from the WebSocket subscriptions
-      // when the backend broadcasts them.
-
-    } catch (error) {
-      console.error('Error sending sentence via WebSocket:', error);
-      alert('Failed to send sentence. Please try again.');
-    } finally {
-      setSubmitting(false);
+    // Clear selection after submit
+    if (selectedCard) {
+      setSelectedCard(null);
+      // Optimistically update cards state
+      setPlayerCards(prev => prev.map(card => 
+        card.id === selectedCard.id ? {...card, used: true} : card
+      ));
     }
-  };
+
+    setSentence('');
+  } catch (error) {
+    console.error('Error sending sentence:', error);
+  } finally {
+    setSubmitting(false);
+  }
+};
+
   return (
     <Box sx={{ py: 4 }}>
       <Grid container spacing={3}>
@@ -343,6 +482,62 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
               <div ref={chatEndRef} />
             </Box>
             
+            {/* Power-up Cards Section */}
+            {console.log('Rendering cards section - isMyTurn:', isMyTurn, 'playerCards:', playerCards)}
+{isMyTurn && playerCards.length > 0 && (
+  <Box sx={{ 
+    p: 2, 
+    mb: 2,
+    bgcolor: '#f5f5f5',
+    borderRadius: '8px',
+    border: '1px solid #e0e0e0'
+  }}>
+    <Typography variant="subtitle1" fontWeight="bold" mb={1}>
+      Power-up Cards
+    </Typography>
+    <Typography variant="body2" color="text.secondary" mb={2}>
+      Select a card before submitting to earn bonus points!
+    </Typography>
+    
+    <Box sx={{ 
+      display: 'flex', 
+      gap: 2,
+      overflowX: 'auto',
+      pb: 1,
+      '&::-webkit-scrollbar': {
+        height: '6px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#5F4B8B',
+        borderRadius: '3px',
+      }
+    }}>
+      {playerCards.map(card => (
+        <PowerUpCard
+          key={card.id}
+          card={card}
+          isSelected={selectedCard?.id === card.id}
+          onSelect={setSelectedCard}
+          isMyTurn={isMyTurn}
+        />
+      ))}
+    </Box>
+    
+    {selectedCard && (
+      <Box mt={1} p={1} bgcolor="#e8f5e9" borderRadius="4px">
+        <Typography variant="body2">
+          Selected: <b>{selectedCard.name}</b> - {selectedCard.description}
+        </Typography>
+      </Box>
+    )}
+    
+    {cardError && (
+      <Alert severity="error" sx={{ mt: 1 }}>
+        {cardError}
+      </Alert>
+    )}
+  </Box>
+)}
             {/* Input area */}
             <Box sx={{ p: 2, bgcolor: gameState.backgroundImage ? 'rgba(0,0,0,0.6)' : 'rgba(245,245,245,1)', position: 'relative', zIndex: 1, borderTop: gameState.backgroundImage ? '1px solid rgba(255,255,255,0.2)' : '1px solid #ddd' }}>
               {isMyTurn ? (
@@ -359,7 +554,7 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
                       textAlign: 'center' 
                     }}
                   >
-                    It's your turn! Type your sentence using the word bank.
+                     It's your turn! {selectedCard && `+${selectedCard.pointsBonus} points for: ${selectedCard.name}`}
                   </Typography>
                   <Box display="flex" alignItems="center">
                     <TextField
@@ -428,8 +623,8 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
           <Paper sx={{ p: 2, mb: 3, borderRadius: '8px' }}>
             <Typography variant="h6" mb={2}>Leaderboard</Typography>
             <List dense disablePadding>
-              {gameState.leaderboard && gameState.leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
-                <ListItem key={player.id || player.userId || index} divider={index < gameState.leaderboard.length - 1}>
+               {leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
+                <ListItem key={player.id || player.userId || index} divider={index < leaderboard.length - 1}>
                   <Avatar sx={{ bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B', mr: 2, width: 30, height: 30, fontSize: '0.875rem' }}>
                     {index + 1}
                   </Avatar>
@@ -442,8 +637,8 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
                   </Typography>
                 </ListItem>
               ))}
-              {(!gameState.leaderboard || gameState.leaderboard.length === 0) && (
-                 <Typography variant="body2" color="text.secondary">Leaderboard is empty.</Typography>
+              {(!leaderboard || leaderboard.length === 0) && (
+                  <Typography variant="body2" color="text.secondary">Leaderboard is empty.</Typography>
               )}
             </List>
           </Paper>

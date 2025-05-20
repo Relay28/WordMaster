@@ -45,6 +45,15 @@ public class PlayerSessionEntity {
     @Column(name = "group_number")
     private Integer groupNumber;
 
+    private boolean isCardsDrawn =  false;
+
+    public boolean isCardsDrawn() {
+        return isCardsDrawn;
+    }
+    public void setCardsDrawn(boolean cardsDrawn) {
+        isCardsDrawn = cardsDrawn;
+    }
+
     public Integer getGroupNumber() {
         return groupNumber;
     }

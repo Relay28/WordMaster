@@ -7,6 +7,7 @@ import cit.edu.wrdmstr.dto.WordSubmissionDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
+import cit.edu.wrdmstr.service.CardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,8 @@ public class GameSessionManagerService {
     private final ScoreRecordEntityRepository scoreRepository;
     private final ChatService chatService;
     private final GameSessionService gameSessionService;
+
+    @Autowired private CardService cardService;
     private final GrammarCheckerService grammarCheckerService;
     private final PlayerSessionEntityRepository playerSessionEntityRepository;
     private final AIService aiService;
@@ -80,6 +83,7 @@ public class GameSessionManagerService {
         session.setStartedAt(new Date());
         gameSessionRepository.save(session);
 
+
         // Get players
         List<PlayerSessionEntity> players = session.getPlayers();
         if (players.isEmpty()) {
@@ -117,6 +121,10 @@ public class GameSessionManagerService {
         // Store game state
         activeGames.put(sessionId, gameState);
 
+        //Cards
+        for (PlayerSessionEntity player : players) {
+            cardService.drawCardsForPlayer(player.getId());
+        }
         // Initialize game
         initializeGame(session);
 
