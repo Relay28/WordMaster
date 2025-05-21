@@ -8,10 +8,12 @@ import {
   Menu,
   MenuItem,
   Divider,
-  ListItemIcon
+  ListItemIcon,
+  Button
 } from "@mui/material";
 import { ExitToApp, Person } from "@mui/icons-material";
-import logo from '../../assets/LOGO.png'
+import { useNavigate } from 'react-router-dom';
+import logo from '../../assets/LOGO.png';
 
 const HomepageHeader = ({ 
   displayName,
@@ -27,6 +29,12 @@ const HomepageHeader = ({
   handleProfileClick,
   handleLogout
 }) => {
+  const navigate = useNavigate();
+
+  const handleLogoClick = () => {
+    navigate('/homepage');
+  };
+
   return (
     <Box sx={{ 
       backgroundColor: 'white',
@@ -35,7 +43,20 @@ const HomepageHeader = ({
       px: { xs: 2, md: 6 }
     }}>
       <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Box display="flex" alignItems="center" gap={isMobile ? 2 : 4}>
+        <Box 
+          display="flex" 
+          alignItems="center" 
+          gap={isMobile ? 2 : 4}
+          component={Button} // Make the whole container a clickable button
+          onClick={handleLogoClick}
+          sx={{
+            textTransform: 'none', // Prevent uppercase transformation
+            p: 0, // Remove padding
+            '&:hover': {
+              backgroundColor: 'transparent' // Remove hover background
+            }
+          }}
+        >
           <img 
             src={logo}
             alt="WordMaster Logo"
@@ -48,7 +69,10 @@ const HomepageHeader = ({
           <Typography sx={{ 
             ...pixelHeading,
             color: '#5F4B8B',
-            fontSize: isMobile ? '14px' : '16px'
+            fontSize: isMobile ? '14px' : '16px',
+            '&:hover': {
+              color: '#6c63ff' // Add hover effect
+            }
           }}>
             WordMaster
           </Typography>

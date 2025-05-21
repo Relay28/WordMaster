@@ -39,9 +39,9 @@ public class ChatService {
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
-        PlayerSessionEntity player = players.isEmpty() ? 
-            null : players.get(0);
-            
+        PlayerSessionEntity player = players.isEmpty() ?
+                null : players.get(0);
+
         if (player == null) {
             throw new ResourceNotFoundException("Player not found in session");
         }
@@ -52,19 +52,9 @@ public class ChatService {
         String contextDesc = session.getContent() != null ? session.getContent().getDescription() : "";
 
         // Grammar check with role assessment
-        GrammarCheckerService.GrammarCheckResult grammarResult = 
-            grammarCheckerService.checkGrammar(content, roleName, contextDesc);
+        GrammarCheckerService.GrammarCheckResult grammarResult =
+                grammarCheckerService.checkGrammar(content, roleName, contextDesc);
 
-        // Send role prompt if available
-        String rolePrompt = generateRolePrompt(player);
-        if (rolePrompt != null) {
-            messagingTemplate.convertAndSendToUser(
-                player.getUser().getEmail(),
-                "/queue/responses",
-                Collections.singletonMap("rolePrompt", rolePrompt)
-            );
-        }
-        
         // Create message with all necessary info
         ChatMessageEntity message = new ChatMessageEntity();
         message.setSession(session);
@@ -72,62 +62,78 @@ public class ChatService {
         message.setPlayerSession(player);
         message.setContent(content);
         message.setGrammarStatus(grammarResult.getStatus());
-        message.setTimestamp(new Date()); // Add this line to set the timestamp
+        message.setTimestamp(new Date());
 
-        
-        // Truncate grammar feedback if too long (for example, limit to 1000 chars)
+        // Truncate grammar feedback if too long
         String feedback = grammarResult.getFeedback();
         if (feedback != null && feedback.length() > 2000) {
-            feedback = feedback.substring(0, 997) + "...";
+            feedback = feedback.substring(0, 1997) + "...";
         }
-        
         message.setGrammarFeedback(feedback);
-        
+
         // Check word bomb
         if (!player.isWordBombUsed() &&
                 player.getCurrentWordBomb() != null &&
                 !player.getCurrentWordBomb().isEmpty() &&
                 content.toLowerCase().contains(player.getCurrentWordBomb().toLowerCase())) {
-            
+
             message.setContainsWordBomb(true);
             player.setWordBombUsed(true);
-            
-            // Use score service for word bomb points
             scoreService.handleWordBomb(player, player.getCurrentWordBomb());
         }
 
-        // Let score service handle grammar scoring and streaks
+        // Handle scoring
         scoreService.handleGrammarScoring(player, grammarResult.getStatus());
-        
-        // Score service handles word bank usage
+
+        // Check for word bank usage
         List<WordBankItem> sessionWordBank = wordBankItemRepository.findByContentData(session.getContent().getContentData());
         List<String> usedWordsFromBank = new ArrayList<>();
 
         for (WordBankItem item : sessionWordBank) {
             String word = item.getWord().toLowerCase();
-            // Use word boundary check for more accurate matching
-            // This prevents "car" matching in "carpet" for example
             String regex = "\\b" + word + "\\b";
             if (content.toLowerCase().matches(".*" + regex + ".*")) {
                 usedWordsFromBank.add(item.getWord());
             }
         }
-        
+
         if (!usedWordsFromBank.isEmpty()) {
             scoreService.handleWordBankUsage(player, usedWordsFromBank);
             message.setWordUsed(String.join(", ", usedWordsFromBank));
         }
 
-        // Score service handles role-appropriate communication
-        scoreService.handleRoleAppropriateScoring(player, grammarResult.isRoleAppropriate(), 
+        scoreService.handleRoleAppropriateScoring(player, grammarResult.isRoleAppropriate(),
                 grammarResult.getStatus());
-
-        // Score service handles message complexity/length
         scoreService.handleMessageComplexity(player, content);
-        
-        // Save and return the message
-        return chatMessageRepository.save(message);
+
+        // Save the message
+        ChatMessageEntity savedMessage = chatMessageRepository.save(message);
+
+        // Broadcast the message to all players
+        broadcastChatMessage(savedMessage);
+
+        return savedMessage;
     }
+
+    private void broadcastChatMessage(ChatMessageEntity message) {
+        Map<String, Object> chatMessage = new HashMap<>();
+        chatMessage.put("id", message.getId());
+        chatMessage.put("senderId", message.getSender().getId());
+        chatMessage.put("senderName", message.getSender().getFname() + " " + message.getSender().getLname());
+        chatMessage.put("content", message.getContent());
+        chatMessage.put("timestamp", message.getTimestamp());
+        chatMessage.put("grammarStatus", message.getGrammarStatus().toString());
+        chatMessage.put("grammarFeedback", message.getGrammarFeedback());
+        chatMessage.put("containsWordBomb", message.isContainsWordBomb());
+        chatMessage.put("wordUsed", message.getWordUsed());
+
+        if (message.getPlayerSession() != null && message.getPlayerSession().getRole() != null) {
+            chatMessage.put("role", message.getPlayerSession().getRole().getName());
+        }
+
+        messagingTemplate.convertAndSend("/topic/game/" + message.getSession().getId() + "/chat", chatMessage);
+    }
+
 
     public MessageReactionEntity addReaction(Long messageId, Long userId, String emoji) {
         try {
