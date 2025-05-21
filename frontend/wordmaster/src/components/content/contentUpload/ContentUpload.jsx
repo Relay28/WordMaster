@@ -1,5 +1,5 @@
 // ContentUpload.jsx - Main component
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Box, Button, CircularProgress, Alert, IconButton, Typography } from '@mui/material';
 import { ArrowBack, Save } from '@mui/icons-material';
@@ -20,9 +20,42 @@ const ContentUpload = () => {
   const { user, getToken } = useUserAuth();
   console.log("Token Presnet "+getToken())
   
-  // Get classroom ID from URL query parameters if it exists
+  // Get classroom ID and student count from URL query parameters
   const queryParams = new URLSearchParams(location.search);
   const classroomId = queryParams.get('classroomId');
+  const studentCount = queryParams.get('studentCount');
+  const [classroomInfo, setClassroomInfo] = useState({
+    id: classroomId,
+    studentCount: studentCount ? parseInt(studentCount) : 0
+  });
+  
+  // If studentCount wasn't passed, fetch it
+  useEffect(() => {
+    if (classroomId && !studentCount) {
+      const fetchClassroomInfo = async () => {
+        try {
+          const token = await getToken();
+          const response = await fetch(`/api/classrooms/${classroomId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setClassroomInfo({
+              id: classroomId,
+              studentCount: data.studentCount || 0
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching classroom info:", error);
+        }
+      };
+      
+      fetchClassroomInfo();
+    }
+  }, [classroomId, studentCount, getToken]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -184,6 +217,7 @@ const ContentUpload = () => {
         imagePreview={imagePreview}
         setImagePreview={setImagePreview}
         handleSubmit={handleSubmit}
+        classroomInfo={classroomInfo}
       />
     </Box>
   );

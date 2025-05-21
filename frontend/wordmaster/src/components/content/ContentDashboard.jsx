@@ -176,9 +176,12 @@ const ContentDashboard = () => {
     if (!window.confirm('Are you sure you want to delete this content?')) return;
     
     try {
+      setLoading(true);
       const token = await getToken();
       await contentService.deleteContent(id, token);
-      setContent(content.filter(item => item.id !== id));
+      
+      // Remove the deleted item from the state
+      setContent(prevContent => prevContent.filter(item => item.id !== id));
       setNotification({
         open: true,
         message: 'Content deleted successfully',
@@ -186,7 +189,14 @@ const ContentDashboard = () => {
       });
     } catch (err) {
       console.error("Error deleting content:", err);
-      setError("Failed to delete content. Please try again.");
+      const errorMessage = err.response?.data?.message || "Failed to delete content. Please try again.";
+      setNotification({
+        open: true, 
+        message: errorMessage,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
