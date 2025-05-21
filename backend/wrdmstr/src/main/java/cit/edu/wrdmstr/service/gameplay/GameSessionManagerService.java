@@ -3,6 +3,7 @@ package cit.edu.wrdmstr.service.gameplay;
 import cit.edu.wrdmstr.dto.GameStateDTO;
 import cit.edu.wrdmstr.dto.PlayerSessionDTO;
 import cit.edu.wrdmstr.dto.TurnInfoDTO;
+import cit.edu.wrdmstr.dto.WordBankItemDTO;
 import cit.edu.wrdmstr.dto.WordSubmissionDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
@@ -348,11 +349,6 @@ public class GameSessionManagerService {
             throw new IllegalStateException("Game session not active");
         }
 
-        // Check if game should end
-        if (gameState.getCurrentTurn() > gameState.getTotalTurns()) {
-            endGame(sessionId);
-            return;
-        }
 
         // Generate and add story element
     GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
@@ -530,14 +526,73 @@ public class GameSessionManagerService {
         // Move to next player
         int nextIndex = (currentIndex + 1) % players.size();
         gameState.setCurrentPlayerId(players.get(nextIndex).getId());
-
-        // If we've completed a full cycle through all players
-        if (nextIndex == 0) {
-            gameState.setCurrentCycle(gameState.getCurrentCycle() + 1);
+        
+        // Log for debugging
+        System.out.println("Current player index: " + currentIndex + ", Next player index: " + nextIndex +
+                      ", Current cycle: " + gameState.getCurrentCycle());
+        
+        // Check if we've just completed a cycle (looped back to the first player)
+        // BUT ONLY if we have multiple players! Single player needs special handling
+        if (nextIndex == 0 && players.size() > 1) {
+            int newCycle = gameState.getCurrentCycle() + 1;
+            
+            // Get game config to check total cycles
+            GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
+            int totalCycles = session != null && session.getContent() != null && 
+                             session.getContent().getGameConfig() != null ? 
+                             session.getContent().getGameConfig().getTurnCycles() : 3;
+            
+            System.out.println("Completed a full cycle. New cycle: " + newCycle + " of " + totalCycles);
+            
+            // End game only if we've completed ALL cycles
+            if (newCycle > totalCycles) {
+                System.out.println("All cycles completed. Ending game.");
+                endGame(sessionId);
+                return;
+            }
+            
+            // Update the cycle in both GameState and the session entity
+            gameState.setCurrentCycle(newCycle);
+            session.setCurrentCycle(newCycle);
+            gameSessionRepository.save(session);
+            
+            // Notify clients of cycle change
+            Map<String, Object> cycleUpdate = new HashMap<>();
+            cycleUpdate.put("type", "cycleChange");
+            cycleUpdate.put("cycle", newCycle);
+            messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", cycleUpdate);
         }
-
+        // For single player games, decide when to increment cycle based on turn count
+        else if (players.size() == 1) {
+            // Get cycle configuration from game settings instead of using player count
+            GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
+            int turnsPerCycle = 3; // Default value - you could make this configurable
+            
+            if (gameState.getCurrentTurn() > 0 && gameState.getCurrentTurn() % turnsPerCycle == 0) {
+                int newCycle = gameState.getCurrentCycle() + 1;
+                
+                // Get game config to check total cycles
+                int totalCycles = session != null && session.getContent() != null && 
+                                 session.getContent().getGameConfig() != null ? 
+                                 session.getContent().getGameConfig().getTurnCycles() : 3;
+                
+                System.out.println("Completed a full cycle. New cycle: " + newCycle + " of " + totalCycles);
+                
+                // End game only if we've completed ALL cycles
+                if (newCycle > totalCycles) {
+                    System.out.println("All cycles completed. Ending game.");
+                    endGame(sessionId);
+                    return;
+                }
+                
+                // Otherwise, set the new cycle and continue
+                gameState.setCurrentCycle(newCycle);
+            }
+        }
+        
+        // Increment turn counter regardless of cycle change
         gameState.setCurrentTurn(gameState.getCurrentTurn() + 1);
-
+        
         // Start next turn
         startNextTurn(sessionId);
     }
@@ -615,10 +670,15 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
             // Add word bank to DTO
             if (session.getContent() != null && session.getContent().getContentData() != null) {
                 List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(session.getContent().getContentData());
-                List<String> words = wordBankItems.stream()
-                    .map(WordBankItem::getWord)
+                List<WordBankItemDTO> wordBankDTOs = wordBankItems.stream()
+                    .map(item -> new WordBankItemDTO(
+                        item.getId(), 
+                        item.getWord(),
+                        item.getDescription(),   // Include the description
+                        item.getExampleUsage()   // Include the example usage
+                    ))
                     .collect(Collectors.toList());
-                dto.setWordBank(words);
+                dto.setWordBank(wordBankDTOs);
             }
             
             // Set leaderboard
@@ -642,14 +702,21 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         dto.setLeaderboard(getSessionLeaderboard(sessionId));
         dto.setTimePerTurn(session.getTimePerTurn()); // Make sure this field exists in GameStateDTO
         
-        // Add this code to set the word bank for active games
-        if (session.getContent() != null && session.getContent().getContentData() != null) {
-            List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(session.getContent().getContentData());
-            List<String> words = wordBankItems.stream()
-                .map(WordBankItem::getWord)
-                .collect(Collectors.toList());
-            dto.setWordBank(words);
-        }
+            // Add this code to set the word bank for active games
+            if (session.getContent() != null && session.getContent().getContentData() != null) {
+                List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(session.getContent().getContentData());
+                // Updated to create full WordBankItemDTO objects instead of just strings
+                List<WordBankItemDTO> wordBankDTOs = wordBankItems.stream()
+                    .map(item -> new WordBankItemDTO(
+                        item.getId(),
+                        item.getWord(),
+                        item.getDescription(),
+                        item.getExampleUsage()
+                    ))
+                    .collect(Collectors.toList());
+                dto.setWordBank(wordBankDTOs);
+            }
+            
           // Set current player info with role
         if (gameState.getCurrentPlayerId() != null) {
             PlayerSessionEntity currentPlayer = playerRepository.findById(gameState.getCurrentPlayerId()).orElse(null);

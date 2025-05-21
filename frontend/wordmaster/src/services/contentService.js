@@ -102,9 +102,11 @@ const contentService = {
           'Authorization': `Bearer ${token}`
         }
       });
+      // Return true on successful deletion
       return true;
     } catch (error) {
-      console.error(`Error deleting content with ID ${id}:`, error.response?.data || error.message);
+      console.error(`Error deleting content with ID ${id}:`, error);
+      // Re-throw the error for the component to handle
       throw error;
     }
   },

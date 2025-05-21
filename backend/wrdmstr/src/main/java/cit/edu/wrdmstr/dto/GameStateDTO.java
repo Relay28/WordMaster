@@ -21,7 +21,7 @@ public class GameStateDTO {
     private int currentCycle;
 
     // Add this field to the class
-    private List<String> wordBank;
+    private List<WordBankItemDTO> wordBank;
 
     // Add these fields if they don't exist
     private int timePerTurn;
@@ -141,11 +141,11 @@ public class GameStateDTO {
         this.currentCycle = currentCycle;
     }
 
-    public List<String> getWordBank() {
+    public List<WordBankItemDTO> getWordBank() {
         return wordBank;
     }
 
-    public void setWordBank(List<String> wordBank) {
+    public void setWordBank(List<WordBankItemDTO> wordBank) {
         this.wordBank = wordBank;
     }
 

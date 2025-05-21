@@ -16,7 +16,8 @@ import {
   ListItem,
   ListItemText,
   Card,
-  CardContent
+  CardContent,
+  Tooltip
 } from '@mui/material';
 import { 
   ArrowBack, 
@@ -110,6 +111,12 @@ const ContentDetails = () => {
       setError("Failed to update content status. Please try again.");
     }
   };
+
+  useEffect(() => {
+    if (content && content.contentData && content.contentData.wordBank) {
+      console.log("Word bank items:", content.contentData.wordBank);
+    }
+  }, [content]);
 
   if (loading) {
     return (
@@ -394,16 +401,37 @@ const ContentDetails = () => {
               {content.contentData?.wordBank?.length > 0 ? (
                 <List dense sx={{ maxHeight: '300px', overflow: 'auto' }}>
                   {content.contentData.wordBank.map((word, index) => (
-                    <ListItem
+                    <Tooltip
                       key={index}
-                      sx={{
-                        backgroundColor: '#f9f9f9',
-                        mb: 1,
-                        borderRadius: '8px',
-                      }}
+                      title={
+                        <React.Fragment>
+                          <Typography color="inherit" variant="subtitle2">Description:</Typography>
+                          <Typography variant="body2">
+                            {word.description ? word.description : "No description available"}
+                          </Typography>
+                          <Typography color="inherit" variant="subtitle2" sx={{ mt: 1 }}>Example:</Typography>
+                          <Typography variant="body2" fontStyle="italic">
+                            "{word.exampleUsage ? word.exampleUsage : "No example available"}"
+                          </Typography>
+                        </React.Fragment>
+                      }
+                      arrow
+                      placement="top"
                     >
-                      <ListItemText primary={word.word} />
-                    </ListItem>
+                      <ListItem
+                        sx={{
+                          backgroundColor: '#f9f9f9',
+                          mb: 1,
+                          borderRadius: '8px',
+                          cursor: 'help',
+                        }}
+                      >
+                        <ListItemText 
+                          primary={word.word} 
+                          secondary={word.description ? word.description.substring(0, 30) + "..." : null}
+                        />
+                      </ListItem>
+                    </Tooltip>
                   ))}
                 </List>
               ) : (

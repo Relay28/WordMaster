@@ -43,11 +43,19 @@ public class ContentData {
         powerupCards.remove(card);
         card.setContentData(null);
     }
-    // Helper methods for managing relationships
     public void addWord(String word) {
+        // Create WordBankItem with a default complexity of 1
         WordBankItem item = new WordBankItem(word, this);
+        item.setComplexity(1); // Set a default complexity
         wordBank.add(item);
     }
+
+    public void addWord(String word, String description, String exampleUsage) {
+    WordBankItem item = new WordBankItem(word, this, description, exampleUsage);
+    item.setComplexity(1);
+    item.setRarity("COMMON");
+    wordBank.add(item);
+}
 
     public List<WordBankItem> getWordBank() {
         return wordBank;

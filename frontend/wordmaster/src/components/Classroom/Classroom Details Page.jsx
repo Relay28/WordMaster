@@ -132,10 +132,11 @@ const ClassroomDetailsPage = () => {
   // Update the handleGenerateAIContent function
   const handleGenerateAIContent = () => {
     if (!classroom) return;
-    navigate(`/content/ai-generate?classroomId=${classroom.id}`, {
+    navigate(`/content/ai-generate?classroomId=${classroom.id}&studentCount=${classroom.studentCount}`, {
       state: { 
         returnTo: `/classroom/${classroom.id}`,
-        refreshOnReturn: true
+        refreshOnReturn: true,
+        studentCount: classroom.studentCount // Pass student count in state too
       }
     });
   };

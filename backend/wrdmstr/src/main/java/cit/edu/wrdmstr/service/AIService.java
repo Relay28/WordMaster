@@ -201,17 +201,42 @@ public class AIService {
                     return "Generate one challenging vocabulary word appropriate for a " 
                         + request.get("difficulty") + " difficulty level in the context: " 
                         + request.get("context") + ". Reply with just the word itself.";
-                case "content_generation":
-            return "Generate exactly 10 vocabulary words and exactly 4 role names for a language learning game about: " 
+        case "content_generation":
+            // Get the requested number of roles (default to 4 if not specified)
+            int roleCount = 4;
+            if (request.containsKey("roleCount")) {
+                roleCount = ((Number) request.get("roleCount")).intValue();
+            }
+            
+            return "Generate exactly 10 vocabulary words and exactly " + roleCount + " role names for a language learning game about: " 
                 + request.get("topic") + ".\n\n"
+                + "For EACH word, include a brief definition and example sentence.\n\n"
                 + "You MUST format your response EXACTLY as follows (including the exact headers and bullet points):\n\n"
-                + "WORDS:\n- word1\n- word2\n- word3\n- word4\n- word5\n- word6\n- word7\n- word8\n- word9\n- word10\n\n"
-                + "ROLES:\n- role1\n- role2\n- role3\n- role4\n\n"
-                + "Replace the placeholders with actual words and roles relevant to the topic. Do not include any other text or explanations.";
+                + "WORDS:\n"
+                + "- word1 | Brief definition of word1 | Example sentence using word1\n"
+                + "- word2 | Brief definition of word2 | Example sentence using word2\n"
+                + "- word3 | Brief definition of word3 | Example sentence using word3\n"
+                + "- word4 | Brief definition of word4 | Example sentence using word4\n"
+                + "- word5 | Brief definition of word5 | Example sentence using word5\n"
+                + "- word6 | Brief definition of word6 | Example sentence using word6\n"
+                + "- word7 | Brief definition of word7 | Example sentence using word7\n"
+                + "- word8 | Brief definition of word8 | Example sentence using word8\n"
+                + "- word9 | Brief definition of word9 | Example sentence using word9\n"
+                + "- word10 | Brief definition of word10 | Example sentence using word10\n\n"
+                + "ROLES:\n" + buildRoleBulletPoints(roleCount) + "\n\n";
                 default:
                     return "Provide a response to: " + request;
             }
         }
+
+        // Helper method to build bullet points for roles
+        private String buildRoleBulletPoints(int count) {
+        StringBuilder bullets = new StringBuilder();
+        for (int i = 1; i <= count; i++) {
+            bullets.append("- role").append(i).append("\n");
+        }
+        return bullets.toString();
+     }
 
     // Make the inner class public so it's accessible from other packages
     public static class AIResponse {
