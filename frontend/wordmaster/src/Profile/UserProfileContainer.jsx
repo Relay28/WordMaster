@@ -32,6 +32,19 @@ import wizard from '../assets/ch-wizard.png';
 
 const UserProfileContainer = () => {
   const { user, authChecked, logout, getToken } = useUserAuth();
+
+  const handleImageSelect = async (imgPath) => {
+    try {
+      const response = await fetch(imgPath);
+      const blob = await response.blob();
+      const file = new File([blob], imgPath.split('/').pop(), { type: blob.type });
+      await uploadProfilePicture(file);
+      setDialogOpen(false);
+    } catch (error) {
+      console.error('Error selecting image:', error);
+    }
+  };
+  
   const {
     editMode,
     isDeactivating,
@@ -91,44 +104,95 @@ const UserProfileContainer = () => {
       </Box>
 
       {/* Main Content */}
-      <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
-        {loading && !editMode ? (
-          <Box display="flex" justifyContent="center">
-            <CircularProgress />
-          </Box>
-        ) : (
-          <Box display="flex" flexDirection="column" alignItems="center">
+      <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'white' }}>
+        {/* Left Column */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'top',
+            background: 'white',
+            borderRight: '1px solid #eee',
+            p: 4,
+            mt: 8
+          }}
+        >
+          <Typography variant="h5" fontWeight="bold" mb={2}>
+            Choose Character
+          </Typography>
+          <Grid container spacing={4} justifyContent="center">
+            {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
+              <Grid item xs={4} key={index} display="flex" justifyContent="center">
+                <img
+                  src={src}
+                  alt={`Option ${index + 1}`}
+                  style={{
+                    width: 180,
+                    height: 180,
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    border: formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent',
+                    transition: 'border 0.2s',
+                    opacity: 1,
+                  }}
+                  onClick={() => uploadProfilePicture && handleImageSelect(src)}
+                  onMouseOver={e => (e.currentTarget.style.border = '2px solid #5F4B8B')}
+                  onMouseOut={e => (e.currentTarget.style.border = formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent')}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+
+        {/* Right Column */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'top',
+            background: '#faf7ff',
+            p: 4,
+          }}
+        >
+          {/* Reserve space for alert */}
+          <Box sx={{ height: 56, mb: 2, width: '100%' }}>
             {error && (
-              <Alert severity="error" sx={{ mb: 3, width: '100%' }} onClose={() => setError(null)}>
+              <Alert severity="error" sx={{ width: '100%' }} onClose={() => setError(null)}>
                 {error}
               </Alert>
             )}
             {success && (
-              <Alert severity="success" sx={{ mb: 3, width: '100%' }} onClose={() => setSuccess(null)}>
+              <Alert severity="success" sx={{ width: '100%' }} onClose={() => setSuccess(null)}>
                 {success}
               </Alert>
             )}
-
-            <ProfilePicture 
-              firstName={formData.firstName} 
-              lastName={formData.lastName}
-              profilePicture={formData.profilePicture}
-              editMode={editMode}
-              uploadProfilePicture={uploadProfilePicture}
-              loading={loading}
-            />
-
-            <PersonalInformation 
-              formData={formData}
-              editMode={editMode}
-              handleChange={handleChange}
-              handleSubmit={handleSubmit}
-              setEditMode={setEditMode}
-              loading={loading}
-            />
           </Box>
-        )}
-      </Container>
+
+          <ProfilePicture 
+            firstName={formData.firstName} 
+            lastName={formData.lastName}
+            profilePicture={formData.profilePicture}
+            editMode={editMode}
+            uploadProfilePicture={uploadProfilePicture}
+            loading={loading}
+            handleImageSelect={handleImageSelect}
+          />
+
+          <PersonalInformation 
+            formData={formData}
+            editMode={editMode}
+            handleChange={handleChange}
+            handleSubmit={handleSubmit}
+            setEditMode={setEditMode}
+            loading={loading}
+          />
+        </Box>
+      </Box>
 
       <DeactivateDialog 
         open={deactivateDialogOpen}
@@ -148,7 +212,8 @@ const ProfilePicture = ({
   profilePicture,
   editMode,
   uploadProfilePicture,
-  loading
+  loading,
+  handleImageSelect
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -162,18 +227,6 @@ const ProfilePicture = ({
     wizard,
   ];
 
-  const handleImageSelect = async (imgPath) => {
-    try {
-      const response = await fetch(imgPath);
-      const blob = await response.blob();
-      const file = new File([blob], imgPath.split('/').pop(), { type: blob.type });
-      await uploadProfilePicture(file);
-      setDialogOpen(false);
-    } catch (error) {
-      console.error('Error selecting image:', error);
-    }
-  };
-
   return (
     <Box position="relative" mb={4} textAlign="center">
       <Box
@@ -181,15 +234,16 @@ const ProfilePicture = ({
         src={profilePicture || '/images/default.png'}
         alt="Profile"
         sx={{
-          width: 120,
-          height: 120,
+          width: 200,
+          height: 200,
           objectFit: 'cover',
           borderRadius: '50%',
           border: '2px solid #5F4B8B',
           backgroundColor: '#ddd',
         }}
       />
-      {editMode && (
+      {/*
+       {editMode && (
         <IconButton
           onClick={() => setDialogOpen(true)}
           disabled={loading}
@@ -211,7 +265,7 @@ const ProfilePicture = ({
           {loading ? <CircularProgress size={24} color="inherit" /> : <CameraAlt />}
         </IconButton>
       )}
-
+      */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Select a Profile Character</DialogTitle>
         <DialogContent>
@@ -249,7 +303,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
   <Paper 
     elevation={3} 
     sx={{ 
-      width: '100%', 
+      width: '80%', 
       p: 4, 
       borderRadius: '12px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
