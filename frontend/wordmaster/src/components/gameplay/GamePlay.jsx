@@ -43,6 +43,7 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const [cycleTransitionActive, setCycleTransitionActive] = useState(false);
   const [showCycleTransition, setShowCycleTransition] = useState(false);
   const [previousCycle, setPreviousCycle] = useState(null);
+    const [leaderboard, setLeaderboard] = useState([]);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -108,6 +109,8 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
     }
   }, [stompClient, user]);
 
+
+  
   // Subscription for score updates
   useEffect(() => {
     if (stompClient && stompClient.connected && user && user.id) {
@@ -130,6 +133,46 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
       return () => subscription.unsubscribe();
     }
   }, [stompClient, user]);
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      if (!sessionId) {
+        console.log('No sessionId available for leaderboard fetch.');
+        return;
+      }
+
+      try {
+        const token = await getToken();
+        if (!token) {
+          console.error('No authentication token found. Cannot fetch leaderboard.');
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/api/game/${sessionId}/leaderboard`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setLeaderboard(data);
+        console.log('Leaderboard fetched:', data);
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+      }
+    };
+
+    fetchLeaderboard();
+    // Fetch periodically or when a game state update suggests scores might have changed significantly
+    const interval = setInterval(fetchLeaderboard, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, [sessionId, getToken, gameState.currentTurn]); // Re-fetch when session changes or turn advances (as scores might change)
+
 
   // Determine if it's the current user's turn
   const currentUserInPlayers = gameState.players?.find(p => p.userId === user?.id);
@@ -611,23 +654,24 @@ const isLastCycle = gameState.currentCycle === totalCycles;
             <Paper sx={{ p: 2, mb: 3, borderRadius: '8px' }}>
               <Typography variant="h6" mb={2}>Leaderboard</Typography>
               <List dense disablePadding>
-                {gameState.leaderboard && gameState.leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
-                  <ListItem key={player.id || player.userId || index} divider={index < gameState.leaderboard.length - 1}>
-                    <Avatar sx={{ bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B', mr: 2, width: 30, height: 30, fontSize: '0.875rem' }}>
-                      {index + 1}
-                    </Avatar>
-                    <ListItemText 
-                      primary={player.name || 'Player'} 
-                      secondary={player.role || 'Role N/A'} 
-                    />
-                    <Typography variant="body1" fontWeight="bold">
-                      {player.score}
-                    </Typography>
-                  </ListItem>
-                ))}
-                {(!gameState.leaderboard || gameState.leaderboard.length === 0) && (
-                   <Typography variant="body2" color="text.secondary">Leaderboard is empty.</Typography>
-                )}
+                {/* Use the `leaderboard` state here instead of `gameState.leaderboard` */}
+              {leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
+                <ListItem key={player.id || player.userId || index} divider={index < leaderboard.length - 1}>
+                  <Avatar sx={{ bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B', mr: 2, width: 30, height: 30, fontSize: '0.875rem' }}>
+                    {index + 1}
+                  </Avatar>
+                  <ListItemText 
+                    primary={player.name || 'Player'} 
+                    secondary={player.role || 'Role N/A'} 
+                  />
+                  <Typography variant="body1" fontWeight="bold">
+                    {player.score}
+                  </Typography>
+                </ListItem>
+              ))}
+              {(!leaderboard || leaderboard.length === 0) && (
+                  <Typography variant="body2" color="text.secondary">Leaderboard is empty.</Typography>
+              )}
               </List>
             </Paper>
             
