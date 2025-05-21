@@ -79,15 +79,28 @@ const EditContent = () => {
       let parsedGameConfig = {};
       
       try {
+        // Check if data.contentData is a string or already an object
         if (data.contentData) {
-          parsedContentData = JSON.parse(data.contentData);
+          if (typeof data.contentData === 'string') {
+            parsedContentData = JSON.parse(data.contentData);
+          } else {
+            // It's already an object, use it directly
+            parsedContentData = data.contentData;
+          }
         }
-        if (data.gameElementConfig) {
-          parsedGameConfig = JSON.parse(data.gameElementConfig);
+        
+        // Same for gameConfig
+        if (data.gameElementConfig || data.gameConfig) {
+          const configData = data.gameElementConfig || data.gameConfig;
+          if (typeof configData === 'string') {
+            parsedGameConfig = JSON.parse(configData);
+          } else {
+            parsedGameConfig = configData;
+          }
         }
       } catch (err) {
-        console.error("Error parsing JSON data:", err);
-        setError("Error parsing content data. Some information may not display correctly.");
+        console.error("Error processing content data:", err);
+        setError("Error loading content data. Some information may not display correctly.");
       }
       
       const contentState = {
@@ -99,9 +112,15 @@ const EditContent = () => {
       
       const scenarioState = {
         studentsPerGroup: parsedGameConfig.studentsPerGroup || 5,
-        roles: parsedContentData.roles || [],
+        // Convert role objects to strings if needed
+        roles: parsedContentData.roles ? parsedContentData.roles.map(role => 
+          typeof role === 'object' ? role.name || role.toString() : role
+        ) : [],
         timePerTurn: parsedGameConfig.timePerTurn || 30,
-        wordBank: parsedContentData.wordBank || [],
+        // Convert word objects to strings if needed
+        wordBank: parsedContentData.wordBank ? parsedContentData.wordBank.map(word => 
+          typeof word === 'object' ? word.word || word.name || word.toString() : word
+        ) : [],
         turnCycles: parsedGameConfig.turnCycles || 3,
       };
       
@@ -236,19 +255,32 @@ const EditContent = () => {
   };
 
   const prepareContentData = () => {
-    return JSON.stringify({
-      wordBank: scenarioSettings.wordBank,
-      roles: scenarioSettings.roles,
+    // Map each word string to a WordBankItemDTO-compatible object
+    const wordBankItems = scenarioSettings.wordBank.map(word => ({
+      word: word,
+      description: "No description available", // Default description
+      exampleUsage: "No example available" // Default example
+    }));
+
+    // Map each role string to a RoleDTO-compatible object
+    const roleItems = scenarioSettings.roles.map(role => ({
+      name: role
+    }));
+
+    return {
+      wordBank: wordBankItems,
+      roles: roleItems,
       backgroundImage: imagePreview
-    });
+    };
   };
 
   const prepareGameConfig = () => {
-    return JSON.stringify({
+    // Return an object directly instead of stringifying it
+    return {
       studentsPerGroup: scenarioSettings.studentsPerGroup,
       timePerTurn: scenarioSettings.timePerTurn,
       turnCycles: scenarioSettings.turnCycles
-    });
+    };
   };
 
   const handleSave = async (publish = null) => {
@@ -261,7 +293,7 @@ const EditContent = () => {
       const dataToSubmit = { 
         ...formData,
         contentData: prepareContentData(),
-        gameElementConfig: prepareGameConfig()
+        gameConfig: prepareGameConfig() // Note: changed gameElementConfig to gameConfig for consistent naming
       };
       
       if (publish !== null) {

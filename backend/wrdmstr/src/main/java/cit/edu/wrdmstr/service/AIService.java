@@ -203,7 +203,7 @@ public class AIService {
                         + request.get("context") + ". Reply with just the word itself.";
         case "content_generation":
             // Get the requested number of roles (default to 4 if not specified)
-            int roleCount = 4;
+            int roleCount = 5;
             if (request.containsKey("roleCount")) {
                 roleCount = ((Number) request.get("roleCount")).intValue();
             }
@@ -224,6 +224,13 @@ public class AIService {
                 + "- word9 | Brief definition of word9 | Example sentence using word9\n"
                 + "- word10 | Brief definition of word10 | Example sentence using word10\n\n"
                 + "ROLES:\n" + buildRoleBulletPoints(roleCount) + "\n\n";
+                case "role_generation":
+                    int newRoleCount = ((Number) request.get("roleCount")).intValue();
+                    return "Generate " + newRoleCount + " unique role names for a language learning game about: " 
+                        + request.get("topic") + ".\n\n"
+                        + "Each role should be appropriate for students playing in a conversation scenario. Be creative and diverse.\n"
+                        + "Format your response as a bullet point list with exactly " + newRoleCount + " roles:\n"
+                        + buildRoleBulletPoints(newRoleCount) + "\n";
                 default:
                     return "Provide a response to: " + request;
             }

@@ -2,10 +2,16 @@ package cit.edu.wrdmstr.service;
 
 import cit.edu.wrdmstr.dto.*;
 import cit.edu.wrdmstr.entity.*;
+import cit.edu.wrdmstr.repository.ChatMessageEntityRepository;
 import cit.edu.wrdmstr.repository.ClassroomRepository;
 import cit.edu.wrdmstr.repository.ContentRepository;
+import cit.edu.wrdmstr.repository.GameSessionEntityRepository;
+import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
+import cit.edu.wrdmstr.repository.RoleRepository;
+import cit.edu.wrdmstr.repository.ScoreRecordEntityRepository;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.repository.UserRepository;
+import cit.edu.wrdmstr.repository.WordBankItemRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -30,12 +36,32 @@ public class ContentService {
     private final ContentRepository contentRepository;
     private final UserRepository userRepository;
     private final ClassroomRepository classroomRepository;
+    private final GameSessionEntityRepository gameSessionRepository;
+    private final PlayerSessionEntityRepository playerSessionRepository;
+    private final ChatMessageEntityRepository chatMessageRepository;
+    private final ScoreRecordEntityRepository scoreRecordRepository;
+    private final WordBankItemRepository wordBankItemRepository;
+    private final RoleRepository roleRepository;
+    private final ContentRepository contentDataRepository;
     
     @Autowired
     public ContentService(ContentRepository contentRepository,
                           UserRepository userRepository,
                           ClassroomRepository classroomRepository,
-                          AIService aiService) {
+                          AIService aiService, GameSessionEntityRepository gameSessionRepository,
+                          PlayerSessionEntityRepository playerSessionRepository,
+                          ChatMessageEntityRepository chatMessageRepository, 
+                          ScoreRecordEntityRepository scoreRecordRepository,
+                          WordBankItemRepository wordBankItemRepository,
+                          RoleRepository roleRepository,
+                          ContentRepository contentDataRepository) {
+        this.gameSessionRepository = gameSessionRepository;
+        this.playerSessionRepository = playerSessionRepository;
+        this.chatMessageRepository = chatMessageRepository;
+        this.scoreRecordRepository = scoreRecordRepository;
+        this.wordBankItemRepository = wordBankItemRepository;
+        this.roleRepository = roleRepository;
+        this.contentDataRepository = contentDataRepository;
         this.contentRepository = contentRepository;
         this.userRepository = userRepository;
         this.classroomRepository = classroomRepository;
@@ -136,6 +162,10 @@ public class ContentService {
             throw new AccessDeniedException("You don't have permission to update this content");
         }
 
+        // Store original group size before updating
+        int originalGroupSize = content.getGameConfig().getStudentsPerGroup();
+        
+        // Update basic content fields
         content.setTitle(contentDTO.getTitle());
         content.setDescription(contentDTO.getDescription());
         content.setBackgroundTheme(contentDTO.getBackgroundTheme());
@@ -153,7 +183,15 @@ public class ContentService {
             }
         }
 
-        // Update roles
+        // Keep existing roles
+        List<String> existingRoleNames = new ArrayList<>();
+        if (contentData.getRoles() != null) {
+            existingRoleNames = contentData.getRoles().stream()
+                    .map(Role::getName)
+                    .collect(Collectors.toList());
+        }
+
+        // Update roles with provided roles
         contentData.getRoles().clear();
         if (contentDTO.getContentData().getRoles() != null) {
             for (RoleDTO roleDTO : contentDTO.getContentData().getRoles()) {
@@ -164,9 +202,33 @@ public class ContentService {
         // Update GameConfig
         GameConfig gameConfig = content.getGameConfig();
         GameConfigDTO gameConfigDTO = contentDTO.getGameConfig();
-        gameConfig.setStudentsPerGroup(gameConfigDTO.getStudentsPerGroup());
+        int newGroupSize = gameConfigDTO.getStudentsPerGroup();
+        gameConfig.setStudentsPerGroup(newGroupSize);
         gameConfig.setTimePerTurn(gameConfigDTO.getTimePerTurn());
         gameConfig.setTurnCycles(gameConfigDTO.getTurnCycles());
+        
+        // Check if group size increased and generate additional roles if needed
+        if (newGroupSize > originalGroupSize) {
+            int currentRoleCount = contentData.getRoles().size();
+            int rolesNeeded = (int)Math.ceil(newGroupSize * 1.25); // Generate 25% more roles than students
+            
+            if (currentRoleCount < rolesNeeded) {
+                int additionalRolesNeeded = rolesNeeded - currentRoleCount;
+                logger.info("Group size changed from {} to {}. Generating {} additional roles", 
+                    originalGroupSize, newGroupSize, additionalRolesNeeded);
+                
+                // Generate additional roles using AI
+                List<String> newRoles = generateAdditionalRoles(content.getDescription(), additionalRolesNeeded);
+                
+                // Add the new roles
+                for (String roleName : newRoles) {
+                    // Avoid duplicating roles that might already exist
+                    if (!contentData.getRoles().stream().anyMatch(r -> r.getName().equalsIgnoreCase(roleName))) {
+                        contentData.addRole(roleName);
+                    }
+                }
+            }
+        }
 
         ContentEntity updatedContent = contentRepository.save(content);
         return convertToDTO(updatedContent);
@@ -178,41 +240,79 @@ public class ContentService {
         ContentEntity content = contentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content not found with id: " + id));
 
+        // Permission check
         if (!(content.getCreator().getId() == (user.getId())) &&
                 (content.getClassroom() == null || !(content.getClassroom().getTeacher().getId() == (user.getId())))) {
             throw new AccessDeniedException("You don't have permission to delete this content");
         }
 
-        // Clear references to avoid constraint violations
-        if (content.getContentData() != null) {
-            // Clear word bank items
-            if (content.getContentData().getWordBank() != null) {
-                content.getContentData().getWordBank().clear();
+        logger.info("Starting deletion of content ID: {}", id);
+
+        try {
+            // Get all game sessions associated with this content
+            List<GameSessionEntity> sessions = gameSessionRepository.findByContentId(content.getId());
+            
+            // Delete all game sessions first
+            for (GameSessionEntity session : sessions) {
+                // Delete player sessions and their references
+                for (PlayerSessionEntity player : new ArrayList<>(session.getPlayers())) {
+                    // Clean up chat messages
+                    chatMessageRepository.deleteAll(player.getMessages());
+                    
+                    // Remove role reference - very important to avoid circular references
+                    player.setRole(null);
+                    playerSessionRepository.save(player);
+                }
+                
+                // Delete score records
+                scoreRecordRepository.deleteAll(session.getScores());
+                
+                // Delete messages
+                chatMessageRepository.deleteAll(session.getMessages());
+                
+                // Clear references and set defaults for primitive fields
+                session.setCurrentPlayer(null);
+                session.setContent(null);
+                
+                // IMPORTANT: Set primitive fields to their default values, NOT null
+                session.setCurrentCycle(0);  // This was causing the error
+                session.setCurrentTurn(0);
+                session.setTotalTurns(0);
+                session.setTimePerTurn(60);  // Default value
+                
+                // Save these changes before deletion
+                gameSessionRepository.save(session);
+                
+                // Now delete the session
+                gameSessionRepository.delete(session);
             }
             
-            // Clear roles
-            if (content.getContentData().getRoles() != null) {
-                content.getContentData().getRoles().clear();
+            // Now delete the content and related data
+            if (content.getContentData() != null) {
+                ContentData contentData = content.getContentData();
+                
+                // Clear word bank items and roles
+                if (contentData.getWordBank() != null && !contentData.getWordBank().isEmpty()) {
+                    wordBankItemRepository.deleteAll(contentData.getWordBank());
+                }
+                
+                if (contentData.getRoles() != null && !contentData.getRoles().isEmpty()) {
+                    roleRepository.deleteAll(contentData.getRoles());
+                }
+                
+                if (contentData.getPowerupCards() != null && !contentData.getPowerupCards().isEmpty()) {
+                    // Clean up cards if they exist
+                    contentData.setPowerupCards(new ArrayList<>());
+                }
             }
             
-            // Clear powerup cards if they exist
-            if (content.getContentData().getPowerupCards() != null) {
-                content.getContentData().getPowerupCards().clear();
-            }
+            // Delete the content itself
+            contentRepository.delete(content);
+            logger.info("Content with ID: {} deleted successfully", id);
+        } catch (Exception e) {
+            logger.error("Error deleting content with ID: {}", id, e);
+            throw e;
         }
-        
-        // Clear game sessions
-        if (content.getGameSessions() != null) {
-            content.getGameSessions().clear();
-        }
-        
-        // Save the cleared entity before deletion to update relationships
-        contentRepository.save(content);
-        
-        // Now delete
-        contentRepository.delete(content);
-        
-        logger.info("Content with ID: {} deleted successfully", id);
     }
 
     @Transactional
@@ -336,17 +436,11 @@ public class ContentService {
             throw new AccessDeniedException("Only classroom teacher can create content for this classroom");
         }
 
-        // Get the student count to determine number of roles needed
-        int studentCount = classroom.getStudents().size();
-        // Ensure at least 2 roles, then add more based on class size (1 role per 2-3 students)
-        int rolesNeeded = Math.max(2, (int)Math.ceil(studentCount / 2.0));
-        logger.info("Creating content with {} roles for {} students", rolesNeeded, studentCount);
         
         // Get AI response with dynamic role count
         Map<String, Object> request = new HashMap<>();
         request.put("task", "content_generation");
         request.put("topic", topic);
-        request.put("roleCount", rolesNeeded); // Pass roleCount to the AI service
         
         String aiResponse = aiService.callAIModel(request).getResult();
         
@@ -414,11 +508,20 @@ public class ContentService {
 
         // Create and set GameConfig
         GameConfig gameConfig = new GameConfig();
-        gameConfig.setStudentsPerGroup(4);
+        gameConfig.setStudentsPerGroup(5); // This is your default group size
         gameConfig.setTimePerTurn(60);
         gameConfig.setTurnCycles(3);
         content.setGameConfig(gameConfig);
         gameConfig.setContent(content);
+
+        // Now calculate roles based on group size rather than classroom size
+        int studentsPerGroup = gameConfig.getStudentsPerGroup();
+        // Ensure we have enough diverse roles for each group
+        // Typically you'd want at least 2-3 different roles per group
+        int rolesNeeded = Math.max(2, (int)Math.ceil(studentsPerGroup * 0.75)); // About 3/4 of group size as roles
+
+        // Update the AI request with the new rolesNeeded value
+        request.put("roleCount", rolesNeeded);
 
         // Now add all the parsed words with their descriptions and examples
         for (WordData wordData : parsedWords) {
@@ -612,5 +715,49 @@ public class ContentService {
             this.description = description;
             this.example = example;
         }
+    }
+
+    /**
+     * Helper method to generate additional roles using AI
+     */
+    private List<String> generateAdditionalRoles(String contentDescription, int count) {
+        List<String> generatedRoles = new ArrayList<>();
+        
+        try {
+            // Prepare request for AI
+            Map<String, Object> request = new HashMap<>();
+            request.put("task", "role_generation");
+            request.put("topic", contentDescription);
+            request.put("roleCount", count);
+            
+            // Call AI service
+            String aiResponse = aiService.callAIModel(request).getResult();
+            logger.info("Received AI response for additional roles: {}", aiResponse);
+            
+            // Parse the response - expecting one role per line with bullet/dash prefix
+            for (String line : aiResponse.split("\n")) {
+                line = line.trim();
+                if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
+                    String roleName = line.substring(2).trim();
+                    if (!roleName.isEmpty()) {
+                        generatedRoles.add(roleName);
+                    }
+                }
+            }
+            
+            // Add fallback roles if we didn't get enough
+            while (generatedRoles.size() < count) {
+                generatedRoles.add("Additional Role " + (generatedRoles.size() + 1));
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error generating additional roles: {}", e.getMessage());
+            // Add fallback roles if the AI call fails
+            for (int i = 0; i < count; i++) {
+                generatedRoles.add("Additional Role " + (i + 1));
+            }
+        }
+        
+        return generatedRoles;
     }
 }
