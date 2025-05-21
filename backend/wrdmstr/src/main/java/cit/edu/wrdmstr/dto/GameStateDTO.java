@@ -16,7 +16,19 @@ public class GameStateDTO {
     private String backgroundImage;
     private List<Map<String, Object>> leaderboard;
     private String storyPrompt; // Added field for story prompt
-    
+
+
+    private List<Map<String, Object>> chatHistory;
+
+    // ... getters and setters ...
+
+    public List<Map<String, Object>> getChatHistory() {
+        return chatHistory;
+    }
+
+    public void setChatHistory(List<Map<String, Object>> chatHistory) {
+        this.chatHistory = chatHistory;
+    }
     // Add current cycle field
     private int currentCycle;
 

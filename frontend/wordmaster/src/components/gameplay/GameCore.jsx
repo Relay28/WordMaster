@@ -60,7 +60,7 @@ const GameCore = () => {
             client.subscribe(`/topic/game/${sessionId}/scores`, handleScoreUpdate);
             client.subscribe(`/topic/game/${sessionId}/players`, handlePlayerUpdate);
             client.subscribe(`/topic/game/${sessionId}/updates`, handleGameUpdates);
-            
+            client.subscribe(`/topic/game/${sessionId}/chat`, handleChatMessage); 
             // Subscribe to user-specific queue
             if (user && user.id) {
               client.subscribe(`/user/queue/responses`, handlePersonalResponses);
@@ -107,6 +107,38 @@ const GameCore = () => {
       }
     };
   }, [sessionId, getToken, user]);
+// In GameCore.js
+const handleChatMessage = (message) => {
+  try {
+    const chatData = JSON.parse(message.body);
+    
+    // Add a unique identifier if not present
+    if (!chatData.id) {
+      chatData.id = `${chatData.senderId}-${chatData.timestamp}-${Math.random().toString(36).substr(2, 9)}`;
+    }
+    
+    setGameState(prev => {
+      // Check if message already exists in state
+      const messageExists = prev.messages?.some(msg => 
+        msg.id === chatData.id || 
+        (msg.senderId === chatData.senderId && 
+         msg.content === chatData.content && 
+         msg.timestamp === chatData.timestamp)
+      );
+      
+      if (!messageExists) {
+        return {
+          ...prev,
+          messages: [...(prev.messages || []), chatData]
+        };
+      }
+      return prev; // Return previous state if message exists
+    });
+  } catch (error) {
+    console.error('Error handling chat message:', error);
+  }
+};
+
   
   // Fetch game state from the backend
   const fetchGameState = useCallback(async () => {
@@ -139,8 +171,13 @@ const GameCore = () => {
       }
 
       const data = await response.json();
-      console.log('Game state data received:', data); // Add this line to see the actual data
-      setGameState(data);
+    console.log('Game state data received:', data);
+    
+    // Ensure messages array exists in game state
+    setGameState({
+      ...data,
+      messages: data.chatHistory || [] // Map chatHistory to messages
+    });
       setLoading(false);
     } catch (err) {
       setError('Error loading game state');
