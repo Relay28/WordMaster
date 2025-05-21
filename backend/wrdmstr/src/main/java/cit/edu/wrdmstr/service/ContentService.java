@@ -175,11 +175,15 @@ public class ContentService {
         ContentData contentData = content.getContentData();
         contentData.setBackgroundImage(contentDTO.getContentData().getBackgroundImage());
 
-        // Update word bank
+        // Update word bank while preserving descriptions and examples
         contentData.getWordBank().clear();
         if (contentDTO.getContentData().getWordBank() != null) {
             for (WordBankItemDTO wordDTO : contentDTO.getContentData().getWordBank()) {
-                contentData.addWord(wordDTO.getWord());
+                contentData.addWord(
+                    wordDTO.getWord(),
+                    wordDTO.getDescription() != null ? wordDTO.getDescription() : "No description available",
+                    wordDTO.getExampleUsage() != null ? wordDTO.getExampleUsage() : "No example available"
+                );
             }
         }
 
@@ -454,7 +458,7 @@ public class ContentService {
         logger.info("Parsing AI response: {}", aiResponse);
 
         // Parse the AI response
-        List<WordData> parsedWords = new ArrayList<>(); // Create a temporary structure to hold the parsed words
+        List<WordData> parsedWords = new ArrayList<>(); // Create a temporary structure
 
         for (String line : aiResponse.split("\n")) {
             line = line.trim();
@@ -472,7 +476,7 @@ public class ContentService {
                 continue;
             }
             
-            // Extract words with descriptions and examples
+            // Check for item with various prefixes
             if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
                 String item = line.substring(2).trim();
                 if (parsingWords && !item.isEmpty()) {
@@ -481,10 +485,9 @@ public class ContentService {
                     String description = parts.length > 1 ? parts[1].trim() : "No description available";
                     String example = parts.length > 2 ? parts[2].trim() : "No example available";
                     
-                    logger.debug("Found word: {} with description and example", word);
-                    // Store the word data for later use
                     generatedWords.add(word);
                     parsedWords.add(new WordData(word, description, example));
+                    logger.debug("Found word: {} with description and example", word);
                 } else if (parsingRoles && !item.isEmpty()) {
                     generatedRoles.add(item);
                     logger.debug("Added role: {}", item);

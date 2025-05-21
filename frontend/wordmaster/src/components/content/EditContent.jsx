@@ -117,10 +117,8 @@ const EditContent = () => {
           typeof role === 'object' ? role.name || role.toString() : role
         ) : [],
         timePerTurn: parsedGameConfig.timePerTurn || 30,
-        // Convert word objects to strings if needed
-        wordBank: parsedContentData.wordBank ? parsedContentData.wordBank.map(word => 
-          typeof word === 'object' ? word.word || word.name || word.toString() : word
-        ) : [],
+        // Preserve full word objects
+        wordBank: parsedContentData.wordBank || [],
         turnCycles: parsedGameConfig.turnCycles || 3,
       };
       
@@ -179,7 +177,8 @@ const EditContent = () => {
     if (newWord.trim() !== '') {
       setScenarioSettings({
         ...scenarioSettings,
-        wordBank: [...scenarioSettings.wordBank, newWord.trim()]
+        // Add new words as strings, or as objects if you plan to edit their descriptions/examples in UI
+        wordBank: [...scenarioSettings.wordBank, newWord.trim()] 
       });
       setNewWord('');
     }
@@ -255,12 +254,23 @@ const EditContent = () => {
   };
 
   const prepareContentData = () => {
-    // Map each word string to a WordBankItemDTO-compatible object
-    const wordBankItems = scenarioSettings.wordBank.map(word => ({
-      word: word,
-      description: "No description available", // Default description
-      exampleUsage: "No example available" // Default example
-    }));
+    // Map each word object to ensure it has the required fields, preserving existing data
+    const wordBankItems = scenarioSettings.wordBank.map(item => {
+      if (typeof item === 'string') {
+        // This case handles words added manually in the UI after initial load
+        return {
+          word: item,
+          description: "No description available", 
+          exampleUsage: "No example available"
+        };
+      }
+      // This case handles words loaded from the backend
+      return {
+        word: item.word,
+        description: item.description || "No description available",
+        exampleUsage: item.exampleUsage || "No example available"
+      };
+    });
 
     // Map each role string to a RoleDTO-compatible object
     const roleItems = scenarioSettings.roles.map(role => ({
@@ -671,7 +681,7 @@ const EditContent = () => {
           
           {scenarioSettings.wordBank.length > 0 ? (
             <List sx={{ maxHeight: '300px', overflow: 'auto' }}>
-              {scenarioSettings.wordBank.map((word, index) => (
+              {scenarioSettings.wordBank.map((item, index) => (
                 <ListItem
                   key={index}
                   sx={{
@@ -680,7 +690,7 @@ const EditContent = () => {
                     borderRadius: '8px',
                   }}
                 >
-                  <ListItemText primary={word} />
+                  <ListItemText primary={typeof item === 'object' ? item.word : item} />
                   <ListItemSecondaryAction>
                     <IconButton edge="end" onClick={() => handleDeleteWord(index)} color="error">
                       <Delete />
