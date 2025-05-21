@@ -45,12 +45,19 @@ public class WaitingRoomService {
         // Only allow students to join waiting room
         if ("USER_STUDENT".equals(user.getRole())) {
             waitingRooms.putIfAbsent(contentId, ConcurrentHashMap.newKeySet());
+            Set<UserDto> studentsInRoom = waitingRooms.get(contentId);
+
             UserDto userDto = new UserDto();
             userDto.setId(userId);
             userDto.setFname(userName);
             userDto.setRole(user.getRole());
-            waitingRooms.get(contentId).add(userDto);
-            notifyWaitingRoomUpdate(contentId);
+
+            // Check if the user is already in the waiting room
+            // This relies on the UserDto's equals and hashCode methods to correctly identify duplicates
+            if (!studentsInRoom.contains(userDto)) {
+                studentsInRoom.add(userDto);
+                notifyWaitingRoomUpdate(contentId);
+            }
         }
     }
 
@@ -113,7 +120,7 @@ public class WaitingRoomService {
 
             sessions.add(session);
             // Notify participants of this group
-              gameSessionManagerService.startGame(session.getId());
+            gameSessionManagerService.startGame(session.getId());
             messagingTemplate.convertAndSend("/topic/game-start/" + contentId,
                     Map.of("sessionId", session.getId(), "groupNumber", sessions.size()));
             session = gameSessionEntityRepository.save(session);

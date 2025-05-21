@@ -14,7 +14,7 @@ public class RoleDTO {
         this.name=name;
     }
     public RoleDTO(){
-        
+
     }
 
     public Long getId() {
