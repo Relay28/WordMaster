@@ -61,6 +61,7 @@ const GameCore = () => {
             client.subscribe(`/topic/game/${sessionId}/players`, handlePlayerUpdate);
             client.subscribe(`/topic/game/${sessionId}/updates`, handleGameUpdates);
             client.subscribe(`/topic/game/${sessionId}/chat`, handleChatMessage); 
+            
             // Subscribe to user-specific queue
             if (user && user.id) {
               client.subscribe(`/user/queue/responses`, handlePersonalResponses);

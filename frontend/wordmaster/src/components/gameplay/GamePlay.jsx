@@ -459,39 +459,72 @@ const isLastCycle = gameState.currentCycle === totalCycles;
               {gameState.backgroundImage && (
                 <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} />
               )}
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3, position: 'relative', zIndex: 1 }}>
-                {gameState.messages && gameState.messages.map((msg, index) => (
-                  <Box 
-                    key={index}
-                    sx={{ 
-                      mb: 2,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: msg.userId === user?.id ? 'flex-end' : 'flex-start'
-                    }}
-                  >
-                    <Box 
-                      sx={{
-                        bgcolor: msg.userId === user?.id ? '#5F4B8B' : (gameState.backgroundImage ? 'rgba(255, 255, 255, 0.9)' : '#e0e0e0'),
-                        color: msg.userId === user?.id ? 'white' : 'inherit',
-                        p: 1.5,
-                        borderRadius: '12px',
-                        maxWidth: '80%',
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                      }}
-                    >
-                      <Typography variant="subtitle2" fontWeight="bold">
-                        {msg.playerName || 'Player'} {msg.roleName ? `(${msg.roleName})` : ''}:
-                      </Typography>
-                      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{msg.content}</Typography>
-                    </Box>
-                    {msg.wordUsed && (
-                      <Chip label={`Used word: ${msg.wordUsed}`} size="small" sx={{ mt: 0.5, alignSelf: msg.userId === user?.id ? 'flex-end' : 'flex-start' }} />
-                    )}
-                  </Box>
-                ))}
-                <div ref={chatEndRef} />
-              </Box>
+           <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3, position: 'relative', zIndex: 1 }}>
+             {gameState.messages && gameState.messages.map((msg, index) => (
+               <Box 
+                 key={index}
+                 sx={{ 
+                   mb: 2,
+                   display: 'flex',
+                   flexDirection: 'column',
+                   alignItems: msg.senderId === user?.id ? 'flex-end' : 'flex-start'
+                 }}
+               >
+                 <Box 
+                   sx={{
+                     bgcolor: msg.senderId === user?.id ? '#5F4B8B' : (gameState.backgroundImage ? 'rgba(255, 255, 255, 0.9)' : '#e0e0e0'),
+                     color: msg.senderId === user?.id ? 'white' : 'inherit',
+                     p: 1.5,
+                     borderRadius: '12px',
+                     maxWidth: '80%',
+                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                   }}
+                 >
+                   <Box display="flex" alignItems="center" mb={1}>
+                     <Avatar 
+                       sx={{ 
+                         width: 24, 
+                         height: 24, 
+                         mr: 1,
+                         fontSize: '0.75rem',
+                         bgcolor: msg.senderId === user?.id ? '#4a3a6d' : '#9e9e9e'
+                       }}
+                     >
+                       {msg.senderName?.charAt(0) || 'P'}
+                     </Avatar>
+                     <Typography variant="subtitle2" fontWeight="bold">
+                       {msg.senderName || 'Player'} 
+                       {msg.role && ` (${msg.role})`}
+                     </Typography>
+                   </Box>
+                   <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{msg.content}</Typography>
+                   <Box mt={1} display="flex" justifyContent="flex-end" alignItems="center">
+                     {msg.containsWordBomb && (
+                       <Chip 
+                         label="Word Bomb!" 
+                         size="small" 
+                         color="error"
+                         sx={{ mr: 1, fontSize: '0.6rem' }}
+                       />
+                     )}
+                     {msg.wordUsed && (
+                       <Chip 
+                         label={`Used: ${msg.wordUsed}`} 
+                         size="small" 
+                         color="success"
+                         sx={{ fontSize: '0.6rem' }}
+                       />
+                     )}
+                   </Box>
+                 </Box>
+                 <Typography variant="caption" sx={{ mt: 0.5, color: gameState.backgroundImage ? 'rgba(255,255,255,0.7)' : 'text.secondary' }}>
+                   {new Date(msg.timestamp).toLocaleTimeString()}
+                 </Typography>
+               </Box>
+             ))}
+             <div ref={chatEndRef} />
+           </Box>
+                       
               
               {/* Input area */}
               <Box sx={{ p: 2, bgcolor: gameState.backgroundImage ? 'rgba(0,0,0,0.6)' : 'rgba(245,245,245,1)', position: 'relative', zIndex: 1, borderTop: gameState.backgroundImage ? '1px solid rgba(255,255,255,0.2)' : '1px solid #ddd' }}>
