@@ -11,6 +11,7 @@ import { useUserAuth } from '../context/UserAuthContext';
 import { useLocation } from 'react-router-dom';
 import { Class, PersonOutline } from "@mui/icons-material";
 import picbg from '../../assets/picbg.png';
+import API_URL from '../../services/apiConfig';
 
 const CreateGameSession = () => {
   const { getToken } = useUserAuth();
@@ -96,51 +97,38 @@ const CreateGameSession = () => {
 
   // Create game session - functionality remains the same
   const handleCreateSession = async () => {
-    if (!selectedContent) {
-      setError('Please select content first');
-      return;
+  
+  if (!selectedContent) {
+    setError('Please select content first');
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const token = await getToken();
+    const response = await fetch(`${API_URL}/api/waiting-room/content/${selectedContent}/join`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to join game: ${response.status}`);
     }
 
-    try {
-      setCreating(true);
-      const token = await getToken();
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-      const contentIdValue = parseInt(selectedContent, 10);
-
-      const response = await fetch(`${apiUrl}/api/sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ contentId: contentIdValue })
-      });
-
-      const responseText = await response.text();
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (jsonErr) {
-        throw new Error(`Server returned invalid JSON: ${responseText}`);
-      }
-
-      if (!response.ok) {
-        const errorMsg = data && data.error ? data.error : `Failed to create session: ${response.status} ${response.statusText}`;
-        throw new Error(errorMsg);
-      }
-
-      if (!data || !data.id) {
-        throw new Error('Malformed session response from server');
-      }
-
-      navigate(`/game/${data.id}`);
-    } catch (err) {
-      console.error('Session creation error:', err);
-      setError(err.message || 'Failed to create game session. Please try again.');
-    } finally {
-      setCreating(false);
-    }
-  };
+    // Assuming the backend returns the waiting room ID in the response
+    // const data = await response.json();
+    navigate(`/waiting-room/${selectedContent}`);
+    
+  } catch (err) {
+    console.error('Error joining game:', err);
+    setError(err.message || 'Failed to join game session');
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (
