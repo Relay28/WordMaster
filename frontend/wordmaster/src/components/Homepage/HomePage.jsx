@@ -466,7 +466,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
           fontWeight: 500,
           pl: '26px' // Align with icon
         }}>
-          {classroom.students?.length || 0} enrolled
+          {classroom.studentCount || 0} enrolled
         </Typography>
       </Box>
       
