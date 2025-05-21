@@ -68,13 +68,6 @@ const ContentList = ({
     letterSpacing: '1px'
   };
 
-  const pixelButton = {
-    fontFamily: '"Press Start 2P", cursive',
-    fontSize: '10px',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase'
-  };
-
   // Format date function
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -105,6 +98,7 @@ const ContentList = ({
 
   return (
     <Box>
+      
       <Grid container spacing={2}>
         {content.map(item => (
           <Grid item xs={12} key={item.id}>

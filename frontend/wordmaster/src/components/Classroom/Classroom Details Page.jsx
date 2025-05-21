@@ -220,7 +220,8 @@ return (
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
+      height: '100vh', // Use fixed height instead of minHeight
+      overflow: 'hidden',
       background: `
         linear-gradient(to bottom, 
           rgba(249, 249, 249, 10) 0%, 
@@ -249,8 +250,27 @@ return (
         handleLogout={handleLogout}
       />
 
+<Box sx={{ 
+      flex: 1,
+      width: '100%',
+      overflow: 'auto',
+      // Custom scrollbar styling
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'rgba(95, 75, 139, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#5F4B8B',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#4a3a6d',
+        },
+      },
+    }}>
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
+      <Container maxWidth="lg" sx={{ py: 4, flex: 1,  }}>
         {/* Error display */}
         {error && (
           <Box mb={3}>
@@ -664,6 +684,7 @@ return (
           )}
         </Paper>
       </Container>
+    </Box>
     </Box>
   );
 };

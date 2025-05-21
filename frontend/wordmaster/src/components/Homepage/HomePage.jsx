@@ -104,7 +104,8 @@ const HomePage = () => {
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
+      height: '100vh',
+     overflow: 'hidden',
       background: `
         linear-gradient(to bottom, 
           rgba(249, 249, 249, 10) 0%, 
@@ -132,7 +133,25 @@ const HomePage = () => {
         handleProfileClick={handleProfileClick}
         handleLogout={handleLogout}
       />
-
+<Box sx={{ 
+      flex: 1,
+      width: '100%',
+      overflow: 'auto',
+      // Custom scrollbar styling
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'rgba(95, 75, 139, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#5F4B8B',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#4a3a6d',
+        },
+      },
+    }}>
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
@@ -356,6 +375,7 @@ const HomePage = () => {
         </Alert>
       </Snackbar>
     </Box>
+</Box>
   );
 };
 

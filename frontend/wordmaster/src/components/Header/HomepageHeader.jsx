@@ -40,7 +40,8 @@ const HomepageHeader = ({
       backgroundColor: 'white',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       py: 2,
-      px: { xs: 2, md: 6 }
+      px: { xs: 2, md: 6 },
+       overflow: 'hidden',
     }}>
       <Box display="flex" justifyContent="space-between" alignItems="center">
         <Box 
