@@ -41,7 +41,7 @@ public class GameSessionService {
         (content.getClassroom() == null || !(content.getClassroom().getTeacher().getId() == teacher.getId()))) {
             throw new AccessDeniedException("You don't have permission to create a game with this content");
         }
-    
+
         GameSessionEntity session = new GameSessionEntity();
         session.setContent(content);
         session.setTeacher(teacher);
@@ -59,7 +59,9 @@ public class GameSessionService {
         
         return savedSession;
     }
-
+    public List<GameSessionEntity> getSessionsByStudentId(Long studentId) {
+        return gameSessionRepository.findSessionsByPlayerId(studentId);
+    }
     public UserEntity getAuthenticatedUser(Authentication authentication) {
         String email = authentication.getName();
         return userRepository.findByEmail(email)
