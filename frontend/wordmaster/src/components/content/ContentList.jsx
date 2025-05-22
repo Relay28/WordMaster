@@ -145,59 +145,59 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                   </Typography>
                 )}
                 {/* Bottom Info Section */}
-<Box sx={{ 
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  width: '100%'
-}}>
-  {/* Classroom Tag */}
-  {item.classroomName && (
-    <Box display="flex" alignItems="center">
-      <Class sx={{ color: '#5F4B8B', fontSize: 16, mr: 1 }} />
-      <Typography sx={{
-        fontFamily: '"Press Start 2P", cursive',
-        fontSize: '8px',
-        color: '#5F4B8B',
-        maxWidth: '120px', // Limit width
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap'
-      }}>
-        {item.classroomName}
-      </Typography>
-    </Box>
-  )}
+                  <Box sx={{ 
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    width: '100%'
+                  }}>
+                    {/* Classroom Tag */}
+                    {item.classroomName && (
+                      <Box display="flex" alignItems="center">
+                        <Class sx={{ color: '#5F4B8B', fontSize: 16, mr: 1 }} />
+                        <Typography sx={{
+                          fontFamily: '"Press Start 2P", cursive',
+                          fontSize: '8px',
+                          color: '#5F4B8B',
+                          maxWidth: '120px', // Limit width
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {item.classroomName}
+                        </Typography>
+                      </Box>
+                    )}
 
-  {/* Creator Info */}
-  <Box display="flex" alignItems="center" gap={1}>
-    <Avatar sx={{ 
-      width: 24, 
-      height: 24, 
-      bgcolor: '#5F4B8B',
-      fontSize: '10px',
-      fontFamily: '"Press Start 2P", cursive',
-    }}>
-      {item.creatorName?.charAt(0)}
-    </Avatar>
-    <Box>
-      <Typography sx={{
-        fontFamily: '"Press Start 2P", cursive',
-        fontSize: '8px',
-        color: '#2D3748',
-      }}>
-        {item.creatorName}
-      </Typography>
-      <Typography sx={{
-        fontFamily: '"Press Start 2P", cursive',
-        fontSize: '7px',
-        color: '#718096',
-      }}>
-        Updated: {new Date(item.updatedAt || item.createdAt).toLocaleDateString()}
-      </Typography>
-    </Box>
-  </Box>
-</Box>
+                    {/* Creator Info */}
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Avatar sx={{ 
+                        width: 24, 
+                        height: 24, 
+                        bgcolor: '#5F4B8B',
+                        fontSize: '10px',
+                        fontFamily: '"Press Start 2P", cursive',
+                      }}>
+                        {item.creatorName?.charAt(0)}
+                      </Avatar>
+                      <Box>
+                        <Typography sx={{
+                          fontFamily: '"Press Start 2P", cursive',
+                          fontSize: '8px',
+                          color: '#2D3748',
+                        }}>
+                          {item.creatorName}
+                        </Typography>
+                        <Typography sx={{
+                          fontFamily: '"Press Start 2P", cursive',
+                          fontSize: '7px',
+                          color: '#718096',
+                        }}>
+                          Updated: {new Date(item.updatedAt || item.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
                 {/* Action Buttons */}
                 <ActionButtons className="action-buttons">
                   <Tooltip title="View">

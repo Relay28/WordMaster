@@ -69,7 +69,7 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
       </Box>
 
       <Grid container spacing={20} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={8} width={400} sx={{ pr: 10 }}>
           <FormControl fullWidth>
             <InputLabel>Number of Students per Group</InputLabel>
             <Select

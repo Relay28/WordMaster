@@ -289,7 +289,7 @@ const ContentDashboard = () => {
       },
     }}>
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ py: 4, flex: 1, px: { xs: 2, sm: 3, md: 4 }, maxWidth: '170vh !important' }}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
           <Typography sx={{ 
             ...pixelHeading,
@@ -364,119 +364,165 @@ const ContentDashboard = () => {
             </Button>
           </Box>
         </Box>
-
         {/* Filter Section */}
         <Box 
           sx={{ 
-            backgroundColor: 'rgba(255,255,255,0.7)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: '12px',
-            p: 3,
+            backgroundColor: 'rgba(255,255,255,0.8)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '16px',
+            pt: 3,
+            pl: 3,
+            pb: 2,
             mb: 3,
-            border: '1px solid rgba(255,255,255,0.3)',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+            border: '2px solid rgba(95, 75, 139, 0.2)',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+            transition: 'all 0.3s ease'
           }}
         >
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <Box mb={2}>
-                <Typography sx={{ ...pixelText, mb: 1, color: '#5F4B8B' }}>
-                  CONTENT STATUS
-                </Typography>
-                <Box display="flex" gap={1} flexWrap="wrap">
-                  <Chip
-                    label="All"
-                    clickable
-                    onClick={() => setContentFilter('all')}
-                    sx={{
-                      ...pixelText,
-                      backgroundColor: contentFilter === 'all' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
-                      color: contentFilter === 'all' ? 'white' : '#5F4B8B',
-                      '&:hover': {
-                        backgroundColor: contentFilter === 'all' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.2)'
-                      }
-                    }}
-                  />
-                  <Chip
-                    label="Published"
-                    clickable
-                    onClick={() => setContentFilter('published')}
-                    sx={{
-                      ...pixelText,
-                      backgroundColor: contentFilter === 'published' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
-                      color: contentFilter === 'published' ? 'white' : '#5F4B8B',
-                      '&:hover': {
-                        backgroundColor: contentFilter === 'published' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.2)'
-                      }
-                    }}
-                  />
-                  <Chip
-                    label="Drafts"
-                    clickable
-                    onClick={() => setContentFilter('drafts')}
-                    sx={{
-                      ...pixelText,
-                      backgroundColor: contentFilter === 'drafts' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
-                      color: contentFilter === 'drafts' ? 'white' : '#5F4B8B',
-                      '&:hover': {
-                        backgroundColor: contentFilter === 'drafts' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.2)'
-                      }
-                    }}
-                  />
-                </Box>
+          <Grid container spacing={3}>
+            {/* Content Status Section */}
+            <Grid item xs={12}>
+              <Typography 
+                sx={{ 
+                  ...pixelHeading, 
+                  color: '#5F4B8B',
+                  mb: 2,
+                  pt: 1.4,
+                  textAlign: 'center',
+                  textShadow: '2px 2px 0px rgba(0,0,0,0.1)'
+                }}
+              >
+                FILTER OPTIONS
+              </Typography>
+            </Grid>
+            
+            {/* Status Chips */}
+            <Grid item xs={12} sx={{ mb: 3 }}>
+              <Box 
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 2,
+                  flexWrap: 'wrap'
+                }}
+              >
+                <Chip
+                  label="All Content"
+                  clickable
+                  onClick={() => setContentFilter('all')}
+                  sx={{
+                    ...pixelText,
+                    backgroundColor: contentFilter === 'all' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
+                    color: contentFilter === 'all' ? 'white' : '#5F4B8B',
+                    padding: '20px 24px',
+                    '&:hover': {
+                      backgroundColor: contentFilter === 'all' ? '#4a3a6d' : 'rgba(95, 75, 139, 0.2)',
+                      transform: 'translateY(-2px)'
+                    },
+                    transition: 'all 0.2s ease',
+                    boxShadow: contentFilter === 'all' ? '0 4px 8px rgba(0,0,0,0.2)' : 'none'
+                  }}
+                />
+                <Chip
+                  label="Published"
+                  clickable
+                  onClick={() => setContentFilter('published')}
+                  sx={{
+                    ...pixelText,
+                    backgroundColor: contentFilter === 'published' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
+                    color: contentFilter === 'published' ? 'white' : '#5F4B8B',
+                    padding: '20px 24px',
+                    '&:hover': {
+                      backgroundColor: contentFilter === 'published' ? '#4a3a6d' : 'rgba(95, 75, 139, 0.2)',
+                      transform: 'translateY(-2px)'
+                    },
+                    transition: 'all 0.2s ease',
+                    boxShadow: contentFilter === 'published' ? '0 4px 8px rgba(0,0,0,0.2)' : 'none'
+                  }}
+                />
+                <Chip
+                  label="Drafts"
+                  clickable
+                  onClick={() => setContentFilter('drafts')}
+                  sx={{
+                    ...pixelText,
+                    backgroundColor: contentFilter === 'drafts' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
+                    color: contentFilter === 'drafts' ? 'white' : '#5F4B8B',
+                    padding: '20px 24px',
+                    '&:hover': {
+                      backgroundColor: contentFilter === 'drafts' ? '#4a3a6d' : 'rgba(95, 75, 139, 0.2)',
+                      transform: 'translateY(-2px)'
+                    },
+                    transition: 'all 0.2s ease',
+                    boxShadow: contentFilter === 'drafts' ? '0 4px 8px rgba(0,0,0,0.2)' : 'none'
+                  }}
+                />
               </Box>
             </Grid>
-            
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
-                <InputLabel sx={pixelText}>Filter by Classroom</InputLabel>
-                <Select
-                  value={selectedClassroom}
-                  onChange={(e) => setSelectedClassroom(e.target.value)}
-                  label="Filter by Classroom"
-                  sx={{
-                    '& .MuiSelect-select': {
+
+            {/* Dropdown Filters */}
+            <Grid container item spacing={2} xs={12} justifyContent="center">
+              <Grid item xs={12} md={5}>
+                <FormControl fullWidth>
+                  <InputLabel sx={{ ...pixelText, color: '#5F4B8B' }}>
+                    Classroom
+                  </InputLabel>
+                  <Select
+                    value={selectedClassroom}
+                    onChange={(e) => setSelectedClassroom(e.target.value)}
+                    label="Classroom"
+                    sx={{
                       ...pixelText,
-                      py: isMobile ? 1 : 1.5
-                    },
-                    backgroundColor: 'rgba(255,255,255,0.7)',
-                    backdropFilter: 'blur(8px)',
-                    borderRadius: '8px'
-                  }}
-                >
-                  <MenuItem value="all" sx={pixelText}>All Classrooms</MenuItem>
-                  {classrooms.map((classroom) => (
-                    <MenuItem key={classroom.id} value={classroom.id} sx={pixelText}>
-                      {classroom.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
-                <InputLabel sx={pixelText}>Time Period</InputLabel>
-                <Select
-                  value={selectedTimeFrame}
-                  onChange={(e) => setSelectedTimeFrame(e.target.value)}
-                  label="Time Period"
-                  sx={{
-                    '& .MuiSelect-select': {
+                      '& .MuiSelect-select': {
+                        py: 1.5
+                      },
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                      borderRadius: '8px',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,1)'
+                      },
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <MenuItem value="all" sx={pixelText}>All Classrooms</MenuItem>
+                    {classrooms.map((classroom) => (
+                      <MenuItem key={classroom.id} value={classroom.id} sx={pixelText}>
+                        {classroom.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={5}>
+                <FormControl fullWidth>
+                  <InputLabel sx={{ ...pixelText, color: '#5F4B8B' }}>
+                    Time Period
+                  </InputLabel>
+                  <Select
+                    value={selectedTimeFrame}
+                    onChange={(e) => setSelectedTimeFrame(e.target.value)}
+                    label="Time Period"
+                    sx={{
                       ...pixelText,
-                      py: isMobile ? 1 : 1.5
-                    },
-                    backgroundColor: 'rgba(255,255,255,0.7)',
-                    backdropFilter: 'blur(8px)',
-                    borderRadius: '8px'
-                  }}
-                >
-                  <MenuItem value="all" sx={pixelText}>All Time</MenuItem>
-                  <MenuItem value="week" sx={pixelText}>Last 7 Days</MenuItem>
-                  <MenuItem value="month" sx={pixelText}>Last 30 Days</MenuItem>
-                  <MenuItem value="year" sx={pixelText}>This Year</MenuItem>
-                </Select>
-              </FormControl>
+                      '& .MuiSelect-select': {
+                        py: 1.5
+                      },
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                      borderRadius: '8px',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,1)'
+                      },
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <MenuItem value="all" sx={pixelText}>All Time</MenuItem>
+                    <MenuItem value="week" sx={pixelText}>Last 7 Days</MenuItem>
+                    <MenuItem value="month" sx={pixelText}>Last 30 Days</MenuItem>
+                    <MenuItem value="year" sx={pixelText}>This Year</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
           </Grid>
         </Box>
@@ -539,15 +585,30 @@ const ContentDashboard = () => {
             </Button>
           </Paper>
         ) : (
-          <ContentList 
-            content={content}
-            onEdit={(id) => navigate(`/content/edit/${id}`)}
-            onView={(id) => navigate(`/content/${id}`)}
-            onDelete={handleDelete}
-            onPublishToggle={handlePublishToggle}
-            pixelText={pixelText}
-            pixelHeading={pixelHeading}
-          />
+          <Grid container spacing={3} sx={{pl: 4.5}}>
+    <Grid item xs={12} md={5}>
+      <ContentList 
+        content={content.filter((_, index) => index % 2 === 0)}
+        onEdit={(id) => navigate(`/content/edit/${id}`)}
+        onView={(id) => navigate(`/content/${id}`)}
+        onDelete={handleDelete}
+        onPublishToggle={handlePublishToggle}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+      />
+    </Grid>
+    <Grid item xs={12} md={6}>
+      <ContentList 
+        content={content.filter((_, index) => index % 2 === 1)}
+        onEdit={(id) => navigate(`/content/edit/${id}`)}
+        onView={(id) => navigate(`/content/${id}`)}
+        onDelete={handleDelete}
+        onPublishToggle={handlePublishToggle}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+      />
+    </Grid>
+  </Grid>
         )}
       </Container>
       
