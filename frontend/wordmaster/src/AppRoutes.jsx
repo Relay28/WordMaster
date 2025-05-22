@@ -24,6 +24,8 @@ import  ContentUpload from './components/content/contentUpload/ContentUpload';
 import { useUserAuth } from './components/context/UserAuthContext';
 import WaitingRoomPage from './components/WaitingRoom/WaitingRoomPage';
 import AIContentGenerator from './components/content/AIContentGenerator';
+import StudentReportPage from './components/Reports/StudentReportPage';
+import StudentFeedbackPage from './components/Reports/StudentFeedbackPage';
 
 
 // Create a wrapper component for role-based routing
@@ -55,6 +57,8 @@ const AppRoutes = () => {
       <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
       <Route path="/game" element={<GamePage />} />
       <Route path="/content/ai-generate" element={<AIContentGenerator />} />
+      <Route path="/student-report/:sessionId/:studentId" element={<StudentReportPage />} />
+      <Route path="/student-feedback/:sessionId/:studentId" element={<StudentFeedbackPage />} />
       <Route path="/game/create" element={<CreateGameSession />} />
       <Route path="/game/:sessionId" element={<GameCore />} />
       <Route path="/login" element={<Login />} />

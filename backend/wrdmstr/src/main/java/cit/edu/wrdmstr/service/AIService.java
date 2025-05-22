@@ -231,6 +231,84 @@ public class AIService {
                         + "Each role should be appropriate for students playing in a conversation scenario. Be creative and diverse.\n"
                         + "Format your response as a bullet point list with exactly " + newRoleCount + " roles:\n"
                         + buildRoleBulletPoints(newRoleCount) + "\n";
+                case "generate_feedback":
+                    StringBuilder feedbackPrompt = new StringBuilder();
+                    feedbackPrompt.append("You are a language teacher providing feedback to a student after a language learning game.\n\n");
+                    
+                    //Add more emphasis on using student's actual name
+                    String studentName = (String)request.get("studentName");
+                    feedbackPrompt.append("Student name: ").append(studentName).append("\n");
+                    feedbackPrompt.append("Student role in game: ").append(request.get("role")).append("\n");
+                    feedbackPrompt.append("Performance metrics:\n");
+                    feedbackPrompt.append("- Total score: ").append(request.get("totalScore")).append("\n");
+                    feedbackPrompt.append("- Messages sent: ").append(request.get("messageCount")).append("\n");
+                    feedbackPrompt.append("- Perfect grammar messages: ").append(request.get("perfectGrammarCount")).append("\n");
+                    feedbackPrompt.append("- Word bank usage: ").append(request.get("wordBankUsageCount")).append("\n\n");
+                    
+                    feedbackPrompt.append("Sample messages from student:\n");
+                    List<String> sampleMessages = (List<String>) request.get("sampleMessages");
+                    for (int i = 0; i < sampleMessages.size(); i++) {
+                        feedbackPrompt.append(i+1).append(". ").append(sampleMessages.get(i)).append("\n");
+                    }
+                    
+                    feedbackPrompt.append("\nProvide constructive feedback addressing:\n");
+                    feedbackPrompt.append("1. Language use (grammar, vocabulary)\n");
+                    feedbackPrompt.append("2. Role adherence and character consistency\n");
+                    feedbackPrompt.append("3. Participation level\n");
+                    feedbackPrompt.append("4. Strengths and areas for improvement\n\n");
+                    
+                    // Add instruction to use student's name and provide scores
+                    feedbackPrompt.append("IMPORTANT INSTRUCTIONS:\n");
+                    feedbackPrompt.append("- Address the student by name \"" + studentName + "\" directly in your feedback\n");
+                    feedbackPrompt.append("- DO NOT use placeholders like [Student Name]\n");
+                    feedbackPrompt.append("- Include specific scores (on a scale of 1-5) for each of these areas:\n");
+                    feedbackPrompt.append("  * Comprehension Score: (1-5)\n");
+                    feedbackPrompt.append("  * Participation Score: (1-5)\n");
+                    feedbackPrompt.append("  * Language Use Score: (1-5)\n");
+                    feedbackPrompt.append("  * Role Adherence Score: (1-5)\n");
+                    feedbackPrompt.append("  * Overall Letter Grade: (A-F)\n\n");
+                    
+                    feedbackPrompt.append("Format: Start with positive feedback, then areas for improvement, end with encouragement, and finally list all scores.\n");
+                    
+                    return feedbackPrompt.toString();
+                case "generate_comprehension_questions":
+                    StringBuilder questionsPrompt = new StringBuilder();
+                    questionsPrompt.append("You are an expert language teacher creating a comprehension quiz to assess a student's understanding.\n\n");
+                    questionsPrompt.append("Please create 5 questions based on the following context:\n\n");
+                    questionsPrompt.append(request.get("context")).append("\n\n");
+                    questionsPrompt.append("Student: ").append(request.get("studentName")).append("\n");
+                    questionsPrompt.append("Student's Role: ").append(request.get("studentRole")).append("\n\n");
+                    
+                    questionsPrompt.append("Generate 5 questions with the following format:\n");
+                    questionsPrompt.append("1. First multiple choice question?\n");
+                    questionsPrompt.append("A. Option 1\n");
+                    questionsPrompt.append("B. Option 2\n");
+                    questionsPrompt.append("C. Option 3\n");
+                    questionsPrompt.append("D. Option 4\n");
+                    questionsPrompt.append("Correct Answer: B\n\n");
+                    
+                    questionsPrompt.append("2. Second true/false question?\n");
+                    questionsPrompt.append("A. True\n");
+                    questionsPrompt.append("B. False\n");
+                    questionsPrompt.append("Correct Answer: A\n\n");
+                    
+                    questionsPrompt.append("Mix multiple choice, true/false, and short answer questions.\n");
+                    questionsPrompt.append("Make sure questions test comprehension of the content, conversation context, and the student's role.\n");
+                    questionsPrompt.append("Include questions about key vocabulary when appropriate.\n");
+                    
+                    return questionsPrompt.toString();
+                case "evaluate_short_answer":
+                    StringBuilder evaluationPrompt = new StringBuilder();
+                    evaluationPrompt.append("You are evaluating a student's short answer response.\n\n");
+                    evaluationPrompt.append("Question: ").append(request.get("question")).append("\n");
+                    evaluationPrompt.append("Expected Answer: ").append(request.get("expectedAnswer")).append("\n");
+                    evaluationPrompt.append("Student's Answer: ").append(request.get("studentAnswer")).append("\n\n");
+                    
+                    evaluationPrompt.append("Evaluate if the student's answer demonstrates understanding of the concept.\n");
+                    evaluationPrompt.append("Response should start with either CORRECT or INCORRECT, followed by a brief explanation.\n");
+                    evaluationPrompt.append("Consider semantic similarity rather than exact wording.\n");
+                    
+                    return evaluationPrompt.toString();
                 default:
                     return "Provide a response to: " + request;
             }

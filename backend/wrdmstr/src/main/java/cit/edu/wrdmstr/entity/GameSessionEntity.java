@@ -52,16 +52,16 @@ public class GameSessionEntity {
     private List<ScoreRecordEntity> scores = new ArrayList<>();
 
     @Column(name = "current_turn")
-    private int currentTurn = 0;
+    private Integer currentTurn = 0;
 
     @Column(name = "total_turns")
-    private int totalTurns = 0;
+    private Integer totalTurns = 0;
 
     @Column(name = "current_cycle")
-    private int currentCycle = 0;
+    private Integer currentCycle = 0;
 
     @Column(name = "time_per_turn")
-    private int timePerTurn = 60; // Default 60 seconds
+    private Integer timePerTurn = 60; // Default 60 seconds
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "current_player_id")
@@ -163,35 +163,35 @@ public class GameSessionEntity {
         this.scores = scores;
     }
 
-    public int getCurrentTurn() {
+    public Integer getCurrentTurn() {
         return currentTurn;
     }
 
-    public void setCurrentTurn(int currentTurn) {
+    public void setCurrentTurn(Integer currentTurn) {
         this.currentTurn = currentTurn;
     }
 
-    public int getTotalTurns() {
+    public Integer getTotalTurns() {
         return totalTurns;
     }
 
-    public void setTotalTurns(int totalTurns) {
+    public void setTotalTurns(Integer totalTurns) {
         this.totalTurns = totalTurns;
     }
 
-    public int getCurrentCycle() {
+    public Integer getCurrentCycle() {
         return currentCycle;
     }
 
-    public void setCurrentCycle(int currentCycle) {
+    public void setCurrentCycle(Integer currentCycle) {
         this.currentCycle = currentCycle;
     }
 
-    public int getTimePerTurn() {
+    public Integer getTimePerTurn() {
         return timePerTurn;
     }
 
-    public void setTimePerTurn(int timePerTurn) {
+    public void setTimePerTurn(Integer timePerTurn) {
         this.timePerTurn = timePerTurn;
     }
 

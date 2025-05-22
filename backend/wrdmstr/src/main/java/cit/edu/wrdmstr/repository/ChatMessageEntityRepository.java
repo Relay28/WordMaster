@@ -10,6 +10,11 @@ import java.util.List;
 public interface ChatMessageEntityRepository extends JpaRepository<ChatMessageEntity, Long> {
     List<ChatMessageEntity> findBySessionIdOrderByTimestampAsc(Long sessionId);
 
+    List<ChatMessageEntity> findBySessionIdAndSenderIdOrderByTimestampAsc(Long sessionId, Long senderId);
+    
+    // Add a method to find by session and sender without ordering
+    List<ChatMessageEntity> findBySessionIdAndSenderId(Long sessionId, Long senderId);
+
     @Query("SELECT cm FROM ChatMessageEntity cm WHERE cm.session.id = :sessionId AND cm.containsWordBomb = true")
     List<ChatMessageEntity> findWordBombMessages(@Param("sessionId") Long sessionId);
 
