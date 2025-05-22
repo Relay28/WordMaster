@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors; // Import Collectors for toSet()
 
 @Service
 public class WaitingRoomService {
@@ -56,21 +57,27 @@ public class WaitingRoomService {
             // This relies on the UserDto's equals and hashCode methods to correctly identify duplicates
             if (!studentsInRoom.contains(userDto)) {
                 studentsInRoom.add(userDto);
+                // Notify all subscribed clients about the update
                 notifyWaitingRoomUpdate(contentId);
             }
         }
     }
 
     private void notifyWaitingRoomUpdate(Long contentId) {
-        List<UserDto> students = new ArrayList<>(waitingRooms.get(contentId));
-        messagingTemplate.convertAndSend("/topic/waiting-room/" + contentId, students);
+        // Ensure the list is not null, send an empty list if no one is in the room
+        List<UserDto> students = new ArrayList<>(waitingRooms.getOrDefault(contentId, Collections.emptySet()));
+        messagingTemplate.convertAndSend("/topic/waiting-room/" + contentId + "/updates", students);
     }
 
     public synchronized void removeFromWaitingRoom(Long contentId, Long userId) {
         Set<UserDto> students = waitingRooms.get(contentId);
         if (students != null) {
-            students.removeIf(student -> student.getId().equals(userId));
-            notifyWaitingRoomUpdate(contentId);
+            // Use stream to remove and ensure it's mutable if it was copied from elsewhere
+            boolean removed = students.removeIf(student -> student.getId().equals(userId));
+            if (removed) {
+                // Notify all subscribed clients about the update
+                notifyWaitingRoomUpdate(contentId);
+            }
         }
     }
 
@@ -129,6 +136,8 @@ public class WaitingRoomService {
 
         // Clear waiting room after all sessions are created
         waitingRooms.remove(contentId);
+        // Crucial: Notify about the cleared waiting room
+        notifyWaitingRoomUpdate(contentId);
 
         return sessions;
     }

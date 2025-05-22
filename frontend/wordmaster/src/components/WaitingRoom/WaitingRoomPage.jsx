@@ -97,6 +97,10 @@ const WaitingRoomPage = () => {
                 navigate(`/game/${sessionData.sessionId}`);
               }
             });
+            client.subscribe(`/topic/waiting-room/${contentId}`, (message) => {
+              const updatedStudents = JSON.parse(message.body);
+              setStudents(updatedStudents);
+            });
           },
           onStompError: (frame) => {
             console.error('STOMP error', frame);
