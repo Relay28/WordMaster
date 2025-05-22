@@ -31,7 +31,7 @@ import teacher from '../assets/ch-teacher.png';
 import wizard from '../assets/ch-wizard.png';
 
 const UserProfileContainer = () => {
-  const { user, authChecked, logout, getToken } = useUserAuth();
+  const { user, authChecked, logout, getToken, setUser } = useUserAuth();
 
   const handleImageSelect = async (imgPath) => {
     try {
@@ -39,6 +39,14 @@ const UserProfileContainer = () => {
       const blob = await response.blob();
       const file = new File([blob], imgPath.split('/').pop(), { type: blob.type });
       await uploadProfilePicture(file);
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      setUser(userData); // This updates the context and triggers a re-render
+
+      setFormData((prev) => ({
+        ...prev,
+        profilePicture: userData.profilePicture
+      }));
+
       setDialogOpen(false);
     } catch (error) {
       console.error('Error selecting image:', error);
@@ -53,6 +61,7 @@ const UserProfileContainer = () => {
     error,
     success,
     formData,
+    setFormData,
     setEditMode,
     setDeactivateDialogOpen,
     setError, // Make sure to destructure these
