@@ -1,3 +1,4 @@
+// filepath: backend/wrdmstr/src/main/java/cit/edu/wrdmstr/dto/GameStateDTO.java
 package cit.edu.wrdmstr.dto;
 
 import java.util.List;
@@ -5,177 +6,57 @@ import java.util.Map;
 
 public class GameStateDTO {
     private Long sessionId;
-    private String sessionCode; // Add this field
+    private String sessionCode;
     private String status;
     private int currentTurn;
     private int totalTurns;
-    private Map<String, Object> currentPlayer;
+    private Map<String, Object> currentPlayer; // Should contain id, name, role
+    private List<PlayerSessionDTO> players; // Add this field
     private int timeRemaining;
     private List<String> usedWords;
-    private Map<String, Object> contentInfo;
+    private Map<String, Object> contentInfo; // e.g., title, description
     private String backgroundImage;
     private List<Map<String, Object>> leaderboard;
-    private String storyPrompt; // Added field for story prompt
-
-
-    private List<Map<String, Object>> chatHistory;
-
-    // ... getters and setters ...
-
-    public List<Map<String, Object>> getChatHistory() {
-        return chatHistory;
-    }
-
-    public void setChatHistory(List<Map<String, Object>> chatHistory) {
-        this.chatHistory = chatHistory;
-    }
-    // Add current cycle field
+    private String storyPrompt;
     private int currentCycle;
-
-    // Add this field to the class
     private List<WordBankItemDTO> wordBank;
-
-    // Add these fields if they don't exist
     private int timePerTurn;
+    private int turnCyclesConfig; // To store the configured number of cycles/rounds
 
-    // Getters and setters
-    public Long getSessionId() {
-        return sessionId;
-    }
+    // Getters and Setters for all fields including turnCyclesConfig
 
-        public void setSessionId(Long sessionId) {
-            this.sessionId = sessionId;
-        }
-        private List<PlayerSessionDTO> players;
-
-        public List<PlayerSessionDTO> getPlayers() {
-            return players;
-        }
-
-    // Make sure the PlayerSessionDTO includes role information
-    public void setPlayers(List<PlayerSessionDTO> players) {
-        this.players = players;
-        // Add debug logging
-        if (players != null) {
-            for (PlayerSessionDTO player : players) {
-                System.out.println("Player: " + player.getPlayerName() + ", Role: " + player.getRole());
-            }
-        }
-    }
-        
-    // Add these methods
-    public String getSessionCode() {
-        return sessionCode;
-    }
-
-    public void setSessionCode(String sessionCode) {
-        this.sessionCode = sessionCode;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public int getCurrentTurn() {
-        return currentTurn;
-    }
-
-    public void setCurrentTurn(int currentTurn) {
-        this.currentTurn = currentTurn;
-    }
-
-    public int getTotalTurns() {
-        return totalTurns;
-    }
-
-    public void setTotalTurns(int totalTurns) {
-        this.totalTurns = totalTurns;
-    }
-
-    public Map<String, Object> getCurrentPlayer() {
-        return currentPlayer;
-    }
-
-    public void setCurrentPlayer(Map<String, Object> currentPlayer) {
-        this.currentPlayer = currentPlayer;
-    }
-
-    public int getTimeRemaining() {
-        return timeRemaining;
-    }
-
-    public void setTimeRemaining(int timeRemaining) {
-        this.timeRemaining = timeRemaining;
-    }
-
-    public List<String> getUsedWords() {
-        return usedWords;
-    }
-
-    public void setUsedWords(List<String> usedWords) {
-        this.usedWords = usedWords;
-    }
-
-    public Map<String, Object> getContentInfo() {
-        return contentInfo;
-    }
-
-    public void setContentInfo(Map<String, Object> contentInfo) {
-        this.contentInfo = contentInfo;
-    }
-
-    public String getBackgroundImage() {
-        return backgroundImage;
-    }
-
-    public void setBackgroundImage(String backgroundImage) {
-        this.backgroundImage = backgroundImage;
-    }
-
-    public List<Map<String, Object>> getLeaderboard() {
-        return leaderboard;
-    }
-
-    public void setLeaderboard(List<Map<String, Object>> leaderboard) {
-        this.leaderboard = leaderboard;
-    }
-
-    // Add getter and setter for current cycle
-    public int getCurrentCycle() {
-        return currentCycle;
-    }
-
-    public void setCurrentCycle(int currentCycle) {
-        this.currentCycle = currentCycle;
-    }
-
-    public List<WordBankItemDTO> getWordBank() {
-        return wordBank;
-    }
-
-    public void setWordBank(List<WordBankItemDTO> wordBank) {
-        this.wordBank = wordBank;
-    }
-
-    // Add these getter and setter methods
-    public int getTimePerTurn() {
-        return timePerTurn;
-    }
-
-    public void setTimePerTurn(int timePerTurn) {
-        this.timePerTurn = timePerTurn;
-    }
-    
-    // Getter and setter for story prompt
-    public String getStoryPrompt() {
-        return storyPrompt;
-    }
-    
-    public void setStoryPrompt(String storyPrompt) {
-        this.storyPrompt = storyPrompt;
-    }
+    public Long getSessionId() { return sessionId; }
+    public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
+    public String getSessionCode() { return sessionCode; }
+    public void setSessionCode(String sessionCode) { this.sessionCode = sessionCode; }
+    public String getStatus() { return status; }
+    public List<PlayerSessionDTO> getPlayers() { return players; } // Add getter
+    public void setPlayers(List<PlayerSessionDTO> players) { this.players = players; } // Add setter
+    public void setStatus(String status) { this.status = status; }
+    public int getCurrentTurn() { return currentTurn; }
+    public void setCurrentTurn(int currentTurn) { this.currentTurn = currentTurn; }
+    public int getTotalTurns() { return totalTurns; }
+    public void setTotalTurns(int totalTurns) { this.totalTurns = totalTurns; }
+    public Map<String, Object> getCurrentPlayer() { return currentPlayer; }
+    public void setCurrentPlayer(Map<String, Object> currentPlayer) { this.currentPlayer = currentPlayer; }
+    public int getTimeRemaining() { return timeRemaining; }
+    public void setTimeRemaining(int timeRemaining) { this.timeRemaining = timeRemaining; }
+    public List<String> getUsedWords() { return usedWords; }
+    public void setUsedWords(List<String> usedWords) { this.usedWords = usedWords; }
+    public Map<String, Object> getContentInfo() { return contentInfo; }
+    public void setContentInfo(Map<String, Object> contentInfo) { this.contentInfo = contentInfo; }
+    public String getBackgroundImage() { return backgroundImage; }
+    public void setBackgroundImage(String backgroundImage) { this.backgroundImage = backgroundImage; }
+    public List<Map<String, Object>> getLeaderboard() { return leaderboard; }
+    public void setLeaderboard(List<Map<String, Object>> leaderboard) { this.leaderboard = leaderboard; }
+    public String getStoryPrompt() { return storyPrompt; }
+    public void setStoryPrompt(String storyPrompt) { this.storyPrompt = storyPrompt; }
+    public int getCurrentCycle() { return currentCycle; }
+    public void setCurrentCycle(int currentCycle) { this.currentCycle = currentCycle; }
+    public List<WordBankItemDTO> getWordBank() { return wordBank; }
+    public void setWordBank(List<WordBankItemDTO> wordBank) { this.wordBank = wordBank; }
+    public int getTimePerTurn() { return timePerTurn; }
+    public void setTimePerTurn(int timePerTurn) { this.timePerTurn = timePerTurn; }
+    public int getTurnCyclesConfig() { return turnCyclesConfig; }
+    public void setTurnCyclesConfig(int turnCyclesConfig) { this.turnCyclesConfig = turnCyclesConfig; }
 }
