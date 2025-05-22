@@ -34,6 +34,30 @@ import {
 } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
+import picbg from '../../assets/picbg.png';
+
+const isMobile = window.innerWidth < 768;
+
+const pixelText = {
+  fontFamily: '"Press Start 2P", cursive',
+  fontSize: isMobile ? '8px' : '10px',
+  lineHeight: '1.5',
+  letterSpacing: '0.5px'
+};
+
+const pixelHeading = {
+  fontFamily: '"Press Start 2P", cursive',
+  fontSize: isMobile ? '12px' : '14px',
+  lineHeight: '1.5',
+  letterSpacing: '1px'
+};
+
+const pixelButton = {
+  fontFamily: '"Press Start 2P", cursive',
+  fontSize: isMobile ? '8px' : '10px',
+  letterSpacing: '0.5px',
+  textTransform: 'uppercase'
+};
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
@@ -156,328 +180,475 @@ const ContentDetails = () => {
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
-      backgroundColor: '#f9f9f9',
       height: '100vh',
-      overflowY: 'auto',
-      overflowX: 'hidden',
-      width: '100%'
+      overflow: 'hidden',
+      background: `
+        linear-gradient(to bottom, 
+          rgba(249, 249, 249, 10) 0%, 
+          rgba(249, 249, 249, 10) 40%, 
+          rgba(249, 249, 249, 0.1) 100%),
+        url(${picbg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
     }}>
       {/* Header */}
       <Box sx={{ 
-        backgroundColor: 'white',
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(8px)',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         py: 2,
         px: { xs: 2, md: 6 },
         position: 'sticky',
         top: 0,
-        zIndex: 1100
+        zIndex: 1100,
+        borderBottom: '1px solid rgba(255,255,255,0.3)'
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Box display="flex" alignItems="center">
-            <IconButton onClick={() => navigate('/content/dashboard')} sx={{ mr: 1 }}>
-              <ArrowBack />
+          <Box display="flex" alignItems="center" gap={2}>
+            <IconButton 
+              onClick={() => navigate('/content/dashboard')}
+              sx={{
+                color: '#5F4B8B',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                border: '2px solid #5F4B8B',
+                borderRadius: '4px',
+                width: '32px',
+                height: '32px',
+                '&:hover': {
+                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <ArrowBack fontSize="small" />
             </IconButton>
-            <Typography variant="h5" fontWeight="bold" color="#5F4B8B">
-              Scenario Details
+            <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+              SCENARIO DETAILS
             </Typography>
           </Box>
-          <Box>
+
+          <Box display="flex" gap={2}>
             <Button
-              variant="outlined"
+              variant="contained"
               startIcon={content.published ? <Unpublished /> : <Publish />}
               onClick={handlePublishToggle}
               sx={{
-                borderColor: content.published ? '#f57c00' : '#0a8043',
-                color: content.published ? '#f57c00' : '#0a8043',
-                mr: 2,
+                ...pixelButton,
+                backgroundColor: content.published ? '#f57c00' : '#4caf50',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                 '&:hover': { 
-                  backgroundColor: content.published ? '#fff8e1' : '#e6f7ed',
-                  borderColor: content.published ? '#f57c00' : '#0a8043'
+                  backgroundColor: content.published ? '#ef6c00' : '#388e3c',
+                  transform: 'translateY(-2px)'
                 },
-                textTransform: 'none',
-                borderRadius: '8px'
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                }
               }}
             >
-              {content.published ? 'Unpublish' : 'Publish'}
+              {content.published ? 'UNPUBLISH' : 'PUBLISH'}
             </Button>
+
             <Button
-              variant="outlined"
+              variant="contained"
               startIcon={<Edit />}
               onClick={() => navigate(`/content/edit/${id}`)}
               sx={{
-                borderColor: '#5F4B8B',
-                color: '#5F4B8B',
-                mr: 2,
-                '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
-                textTransform: 'none',
-                borderRadius: '8px'
+                ...pixelButton,
+                backgroundColor: '#5F4B8B',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                '&:hover': { 
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)'
+                }
               }}
             >
-              Edit
+              EDIT
             </Button>
+
             <Button
               variant="outlined"
               startIcon={<Delete />}
               onClick={handleDelete}
               sx={{
-                borderColor: '#d32f2f',
+                ...pixelButton,
                 color: '#d32f2f',
-                '&:hover': { backgroundColor: '#ffeaea', borderColor: '#b71c1c' },
-                textTransform: 'none',
-                borderRadius: '8px'
+                borderColor: '#d32f2f',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
+                '&:hover': {
+                  backgroundColor: '#ffeaea',
+                  borderColor: '#b71c1c',
+                  transform: 'translateY(-2px)'
+                }
               }}
             >
-              Delete
+              DELETE
             </Button>
           </Box>
         </Box>
       </Box>
 
-      {/* Main Content */}
-      <Container maxWidth="lg" sx={{ 
-        py: 4, 
+      {/* Main Content Area */}
+      <Box sx={{ 
         flex: 1,
         width: '100%',
-        mb: 4
+        overflow: 'auto',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: 'rgba(95, 75, 139, 0.1)',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: '#5F4B8B',
+          borderRadius: '4px',
+          '&:hover': {
+            backgroundColor: '#4a3a6d',
+          },
+        },
       }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-        
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mb: 4, backgroundColor: 'white' }}>
-          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
-            <Box>
-              <Typography variant="h4" fontWeight="bold" mb={1}>
-                {content.title}
-              </Typography>
-              <Box display="flex" alignItems="center" mb={1}>
-                <Chip 
-                  label={content.published ? 'Published' : 'Draft'} 
-                  size="small"
-                  sx={{ 
-                    backgroundColor: content.published ? '#e6f7ed' : '#f2f2f2',
-                    color: content.published ? '#0a8043' : '#666666',
-                    fontWeight: 500,
-                    mr: 2
-                  }}
-                />
-                {content.creatorName && (
-                  <Box display="flex" alignItems="center">
-                    <Person fontSize="small" sx={{ color: '#5F4B8B', mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      Created by: {content.creatorName}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </Box>
-            <Box>
-              <Box display="flex" alignItems="center" mb={1}>
-                <CalendarToday fontSize="small" sx={{ color: '#666', mr: 1 }} />
-                <Typography variant="body2" color="text.secondary">
-                  Created: {formatDate(content.createdAt)}
-                </Typography>
-              </Box>
-              <Box display="flex" alignItems="center">
-                <Update fontSize="small" sx={{ color: '#666', mr: 1 }} />
-                <Typography variant="body2" color="text.secondary">
-                  Updated: {formatDate(content.updatedAt)}
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-          
-          {content.description && (
-            <>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" fontWeight="bold" gutterBottom>
-                Description
-              </Typography>
-              <Typography variant="body1">
-                {content.description}
-              </Typography>
-            </>
+        <Container maxWidth="lg" sx={{ 
+          py: 4, 
+          flex: 1,
+          width: '100%',
+          mb: 4
+        }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
           )}
-        </Paper>
-        
-        {/* Game Settings */}
-        <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', mb: 4, backgroundColor: 'white' }}>
-          <Box p={3}>
-            <Typography variant="h6" fontWeight="bold" mb={3}>
-              Game Settings
-            </Typography>
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={4}>
-                <Card elevation={0} sx={{ backgroundColor: '#f9f9f9', height: '100%' }}>
-                  <CardContent>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <Group sx={{ color: '#5F4B8B', mr: 1 }} />
-                      <Typography variant="subtitle1" fontWeight="medium">
-                        Students per Group
-                      </Typography>
-                    </Box>
-                    <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
-                      {content.gameConfig?.studentsPerGroup || 'N/A'}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Card elevation={0} sx={{ backgroundColor: '#f9f9f9', height: '100%' }}>
-                  <CardContent>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <AccessTime sx={{ color: '#5F4B8B', mr: 1 }} />
-                      <Typography variant="subtitle1" fontWeight="medium">
-                        Time per Turn
-                      </Typography>
-                    </Box>
-                    <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
-                      {content.gameConfig?.timePerTurn || 'N/A'} seconds
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Card elevation={0} sx={{ backgroundColor: '#f9f9f9', height: '100%' }}>
-                  <CardContent>
-                    <Box display="flex" alignItems="center" mb={1}>
-                      <LoopRounded sx={{ color: '#5F4B8B', mr: 1 }} />
-                      <Typography variant="subtitle1" fontWeight="medium">
-                        Turn Cycles
-                      </Typography>
-                    </Box>
-                    <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
-                      {content.gameConfig?.turnCycles || 'N/A'}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </Box>
-        </Paper>
-        
-        {/* Roles and Word Bank */}
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, backgroundColor: 'white', height: '100%' }}>
-              <Typography variant="h6" fontWeight="bold" mb={3}>
-                Roles
-              </Typography>
-              
-              {content.contentData?.roles?.length > 0 ? (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {content.contentData.roles.map((role, index) => (
-                    <Chip
-                      key={index}
-                      label={role.name}
-                      sx={{
-                        backgroundColor: '#f0edf5',
-                        color: '#5F4B8B',
-                        m: 0.5
-                      }}
-                    />
-                  ))}
-                </Box>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No roles defined for this scenario.
-                </Typography>
-              )}
-            </Paper>
-          </Grid>
           
-          <Grid item xs={12} md={6}>
-            <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, backgroundColor: 'white', height: '100%' }}>
-              <Typography variant="h6" fontWeight="bold" mb={3}>
-                Word Bank
+          <Paper elevation={0} sx={{ borderRadius: '16px', p: 3, mb: 4, backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)', border: '1px solid rgba(255,255,255,0.3)' }}>
+            <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+              <Box>
+                <Typography sx={{ ...pixelHeading }} mb={1}>
+                  {content.title}
+                </Typography>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <Chip 
+                    label={content.published ? 'Published' : 'Draft'} 
+                    size="small"
+                    sx={{ 
+                      ...pixelText,
+                      backgroundColor: content.published ? '#e6f7ed' : '#f2f2f2',
+                      color: content.published ? '#0a8043' : '#666666',
+                      fontWeight: 500,
+                      mr: 2
+                    }}
+                  />
+                  {content.creatorName && (
+                    <Box display="flex" alignItems="center">
+                      <Person fontSize="small" sx={{ color: '#5F4B8B', mr: 0.5 }} />
+                      <Typography sx={{ ...pixelText }}>
+                        Created by: {content.creatorName}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+              <Box>
+                <Box display="flex" alignItems="center" mb={1}>
+                  <CalendarToday fontSize="small" sx={{ color: '#666', mr: 1 }} />
+                  <Typography sx={{ ...pixelText }}>
+                    Created: {formatDate(content.createdAt)}
+                  </Typography>
+                </Box>
+                <Box display="flex" alignItems="center">
+                  <Update fontSize="small" sx={{ color: '#666', mr: 1 }} />
+                  <Typography sx={{ ...pixelText }}>
+                    Updated: {formatDate(content.updatedAt)}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+            
+            {content.description && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Typography sx={{ ...pixelHeading }} gutterBottom>
+                  Description
+                </Typography>
+                <Typography sx={{ ...pixelText }}>
+                  {content.description}
+                </Typography>
+              </>
+            )}
+          </Paper>
+          
+          {/* Game Settings */}
+          <Paper elevation={0} sx={{ borderRadius: '16px', overflow: 'hidden', mb: 4, backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)', border: '1px solid rgba(255,255,255,0.3)' }}>
+            <Box p={3}>
+              <Typography sx={{ ...pixelHeading }} mb={3}>
+                Game Settings
               </Typography>
               
-              {content.contentData?.wordBank?.length > 0 ? (
-                <List dense sx={{ maxHeight: '300px', overflow: 'auto' }}>
-                  {content.contentData.wordBank.map((word, index) => (
-                    <Tooltip
-                      key={index}
-                      title={
-                        <React.Fragment>
-                          <Typography color="inherit" variant="subtitle2">Description:</Typography>
-                          <Typography variant="body2">
-                            {word.description ? word.description : "No description available"}
-                          </Typography>
-                          <Typography color="inherit" variant="subtitle2" sx={{ mt: 1 }}>Example:</Typography>
-                          <Typography variant="body2" fontStyle="italic">
-                            "{word.exampleUsage ? word.exampleUsage : "No example available"}"
-                          </Typography>
-                        </React.Fragment>
-                      }
-                      arrow
-                      placement="top"
-                    >
-                      <ListItem
-                        sx={{
-                          backgroundColor: '#f9f9f9',
-                          mb: 1,
-                          borderRadius: '8px',
-                          cursor: 'help',
-                        }}
-                      >
-                        <ListItemText 
-                          primary={word.word} 
-                          secondary={word.description ? word.description.substring(0, 30) + "..." : null}
-                        />
-                      </ListItem>
-                    </Tooltip>
-                  ))}
-                </List>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No words added to the word bank.
-                </Typography>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-        
-        {/* Background Image */}
-        {content.contentData?.backgroundImage && (
-          <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mt: 4, backgroundColor: 'white' }}>
-            <Typography variant="h6" fontWeight="bold" mb={3}>
-              Background Image
-            </Typography>
-            
-            <Box
-              sx={{
-                borderRadius: '8px',
-                overflow: 'hidden',
-                maxWidth: '100%',
-                textAlign: 'center'
-              }}
-            >
-              <img
-                src={getImageUrl(content.contentData.backgroundImage)}
-                alt="Scenario background"
-                style={{ 
-                  maxWidth: '100%', 
-                  maxHeight: '400px', 
-                  objectFit: 'contain',
-                  border: '1px solid #eee',
-                  borderRadius: '8px'
-                }}
-                onError={(e) => {
-                  console.error("Error loading image:", e);
-                  e.target.onerror = null;
-                  e.target.src = "https://via.placeholder.com/800x450?text=Image+Not+Available";
-                }}
-              />
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                  <Card elevation={0} sx={{ backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: '12px', border: '2px solid #5F4B8B', boxShadow: '4px 4px 0px rgba(0,0,0,0.2)', height: '100%' }}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" mb={1}>
+                        <Group sx={{ color: '#5F4B8B', mr: 1 }} />
+                        <Typography sx={{ ...pixelText }}>
+                          Students per Group
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+                        {content.gameConfig?.studentsPerGroup || 'N/A'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <Card elevation={0} sx={{ backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: '12px', border: '2px solid #5F4B8B', boxShadow: '4px 4px 0px rgba(0,0,0,0.2)', height: '100%' }}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" mb={1}>
+                        <AccessTime sx={{ color: '#5F4B8B', mr: 1 }} />
+                        <Typography sx={{ ...pixelText }}>
+                          Time per Turn
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+                        {content.gameConfig?.timePerTurn || 'N/A'} seconds
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} md={4}>
+                  <Card elevation={0} sx={{ backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: '12px', border: '2px solid #5F4B8B', boxShadow: '4px 4px 0px rgba(0,0,0,0.2)', height: '100%' }}>
+                    <CardContent>
+                      <Box display="flex" alignItems="center" mb={1}>
+                        <LoopRounded sx={{ color: '#5F4B8B', mr: 1 }} />
+                        <Typography sx={{ ...pixelText }}>
+                          Turn Cycles
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+                        {content.gameConfig?.turnCycles || 'N/A'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
             </Box>
           </Paper>
-        )}
-      </Container>
+          
+          {/* Roles and Word Bank */}
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={6}>
+              <Paper elevation={0} sx={{ borderRadius: '16px', p: 3, backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)', border: '1px solid rgba(255,255,255,0.3)', height: '100%' }}>
+                <Typography sx={{ ...pixelHeading }} mb={3}>
+                  Roles
+                </Typography>
+                
+                {content.contentData?.roles?.length > 0 ? (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {content.contentData.roles.map((role, index) => (
+                      <Chip
+                        key={index}
+                        label={role.name}
+                        sx={{
+                          ...pixelText,
+                          backgroundColor: '#f0edf5',
+                          color: '#5F4B8B',
+                          border: '2px solid #5F4B8B',
+                          borderRadius: '4px'
+                        }}
+                      />
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography sx={{ ...pixelText }}>
+                    No roles defined for this scenario.
+                  </Typography>
+                )}
+              </Paper>
+            </Grid>
+            
+            
+           
+          </Grid>
+
+
+           <Grid item xs={12} md={6} sx={{ pt: 11 }}>
+  <Paper elevation={0} sx={{ 
+    borderRadius: '16px', 
+    p: 3, 
+    backgroundColor: 'rgba(255,255,255,0.8)', 
+    backdropFilter: 'blur(8px)', 
+    height: '100%',
+    position: 'relative',
+   
+  }}>
+    <Box display="flex" alignItems="center" mb={3}>
+      <Typography sx={{ 
+        ...pixelHeading, 
+      }}>
+        Word Bank
+      </Typography>
+      <Chip
+        label={`${content.contentData?.wordBank?.length || 0} words`}
+        size="small"
+        sx={{
+          ...pixelText,
+          ml: 2,
+          backgroundColor: '#f0edf5',
+          color: '#5F4B8B',
+          border: '2px solid #5F4B8B',
+          borderRadius: '4px'
+        }}
+      />
+    </Box>
+    
+    {content.contentData?.wordBank?.length > 0 ? (
+      <List dense sx={{ 
+        maxHeight: '300px', 
+        overflow: 'auto',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: 'rgba(95, 75, 139, 0.1)',
+          borderRadius: '4px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: '#5F4B8B',
+          borderRadius: '4px',
+          '&:hover': {
+            backgroundColor: '#4a3a6d',
+          },
+        },
+      }}>
+        {content.contentData.wordBank.map((word, index) => (
+          <Tooltip
+            key={index}
+            title={
+              <Box sx={{ p: 1 }}>
+                <Typography sx={{ ...pixelText, color: '#fff', mb: 1 }}>
+                  Description:
+                </Typography>
+                <Typography sx={{ ...pixelText, color: '#fff', opacity: 0.9 }}>
+                  {word.description || "No description available"}
+                </Typography>
+                <Typography sx={{ ...pixelText, color: '#fff', mt: 2, mb: 1 }}>
+                  Example:
+                </Typography>
+                <Typography sx={{ ...pixelText, color: '#fff', opacity: 0.9, fontStyle: 'italic' }}>
+                  "{word.exampleUsage || "No example available"}"
+                </Typography>
+              </Box>
+            }
+            arrow
+            placement="top"
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  bgcolor: '#5F4B8B',
+                  '& .MuiTooltip-arrow': {
+                    color: '#5F4B8B'
+                  }
+                }
+              }
+            }}
+          >
+            <ListItem
+              sx={{
+                backgroundColor: 'rgba(255,255,255,0.9)',
+                mb: 1,
+                borderRadius: '8px',
+                cursor: 'help',
+                border: '2px solid #5F4B8B',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '6px 6px 0px rgba(0,0,0,0.1)',
+                  backgroundColor: '#f0edf5'
+                }
+              }}
+            >
+              <ListItemText 
+                primary={word.word}
+                secondary={word.description ? word.description.substring(0, 30) + "..." : null}
+                primaryTypographyProps={{
+                  sx: { ...pixelText, color: '#5F4B8B', fontWeight: 'bold' }
+                }}
+                secondaryTypographyProps={{
+                  sx: { ...pixelText, fontSize: '8px', color: '#666' }
+                }}
+              />
+            </ListItem>
+          </Tooltip>
+        ))}
+      </List>
+    ) : (
+      <Box sx={{
+        p: 4,
+        textAlign: 'center',
+        border: '2px dashed #5F4B8B',
+        borderRadius: '8px',
+        backgroundColor: 'rgba(95, 75, 139, 0.05)'
+      }}>
+        <Typography sx={{ 
+          ...pixelText,
+          color: '#5F4B8B',
+          textShadow: '1px 1px 0px rgba(0,0,0,0.1)'
+        }}>
+          No words added to the word bank.
+        </Typography>
+      </Box>
+    )}
+  </Paper>
+</Grid>
+          
+          {/* Background Image */}
+          {content.contentData?.backgroundImage && (
+            <Paper elevation={0} sx={{ borderRadius: '16px', p: 3, mt: 4, backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)', border: '1px solid rgba(255,255,255,0.3)' }}>
+              <Typography sx={{ ...pixelHeading }} mb={3}>
+                Background Image
+              </Typography>
+              
+              <Box
+                sx={{
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  maxWidth: '100%',
+                  textAlign: 'center'
+                }}
+              >
+                <img
+                  src={getImageUrl(content.contentData.backgroundImage)}
+                  alt="Scenario background"
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '400px', 
+                    objectFit: 'contain',
+                    border: '1px solid #eee',
+                    borderRadius: '8px'
+                  }}
+                  onError={(e) => {
+                    console.error("Error loading image:", e);
+                    e.target.onerror = null;
+                    e.target.src = "https://via.placeholder.com/800x450?text=Image+Not+Available";
+                  }}
+                />
+              </Box>
+            </Paper>
+          )}
+        </Container>
+      </Box>
     </Box>
   );
 };
