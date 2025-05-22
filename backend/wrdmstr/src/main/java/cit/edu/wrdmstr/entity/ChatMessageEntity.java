@@ -70,7 +70,17 @@ public class ChatMessageEntity {
     public UserEntity getSender() {
         return sender;
     }
+    @Column(name = "role_appropriate")
+    private boolean roleAppropriate;
 
+    // Getter and Setter
+    public boolean isRoleAppropriate() {
+        return roleAppropriate;
+    }
+
+    public void setRoleAppropriate(boolean roleAppropriate) {
+        this.roleAppropriate = roleAppropriate;
+    }
     public void setSender(UserEntity sender) {
         this.sender = sender;
     }

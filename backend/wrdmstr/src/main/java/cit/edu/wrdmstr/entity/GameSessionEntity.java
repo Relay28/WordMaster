@@ -67,6 +67,18 @@ public class GameSessionEntity {
     @JoinColumn(name = "current_player_id")
     private PlayerSessionEntity currentPlayer;
 
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudentProgress> studentProgressRecords = new ArrayList<>();
+
+    public List<StudentProgress> getStudentProgressRecords() {
+        return studentProgressRecords;
+    }
+
+    public void setStudentProgressRecords(List<StudentProgress> studentProgressRecords) {
+        this.studentProgressRecords = studentProgressRecords;
+    }
+
+
     // Getters and setters
 
     public Long getId() {

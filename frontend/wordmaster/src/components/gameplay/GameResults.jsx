@@ -23,7 +23,7 @@ import { useUserAuth } from '../context/UserAuthContext';
 const GameResults = ({ gameState }) => {
   const navigate = useNavigate();
   const { user } = useUserAuth();
-  
+ 
   const isTeacher = user?.role === 'USER_TEACHER';
   
   // Find top 3 players for podium
@@ -222,7 +222,46 @@ const GameResults = ({ gameState }) => {
           {isTeacher ? 'Back to Content' : 'Back to Homepage'}
         </Button>
       </Box>
+      {/* Navigation Buttons */}
+<Box display="flex" justifyContent="center" gap={2}>
+  <Button
+    variant="contained"
+    startIcon={<ArrowBack />}
+    onClick={() => navigate(isTeacher ? '/content/dashboard' : '/homepage')}
+    sx={{
+      bgcolor: '#5F4B8B',
+      px: 4,
+      py: 1.5,
+      '&:hover': { bgcolor: '#4a3a6d' },
+    }}
+  >
+    {isTeacher ? 'Back to Content' : 'Back to Homepage'}
+  </Button>
+
+  {/* View Session Progress Button */}
+
+    <Button
+      variant="outlined"
+      color="secondary"
+      onClick={() => navigate(`/results/${gameState.sessionId}`)}
+      sx={{
+        px: 4,
+        py: 1.5,
+        borderColor: '#5F4B8B',
+        color: '#5F4B8B',
+        '&:hover': {
+          bgcolor: '#f3f0fa',
+          borderColor: '#4a3a6d',
+        },
+      }}
+    >
+      View Session Progress
+    </Button>
+
+</Box>
+
     </Container>
+    
   );
 };
 

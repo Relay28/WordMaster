@@ -9,6 +9,7 @@ import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.CardService;
+import cit.edu.wrdmstr.service.ProgressTrackingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,8 @@ import java.util.stream.Collectors;
 @Service
 public class GameSessionManagerService {
     private static final Logger logger = LoggerFactory.getLogger(GameSessionManagerService.class);
-
+    @Autowired
+    private ProgressTrackingService progressTrackingService;
     private final SimpMessagingTemplate messagingTemplate;
     private final GameSessionEntityRepository gameSessionRepository;
     private final PlayerSessionEntityRepository playerRepository;
@@ -35,6 +37,7 @@ public class GameSessionManagerService {
     private final ChatService chatService;
     private final GameSessionService gameSessionService;
 
+   private final StudentProgressRepository progressRepository;
     @Autowired private CardService cardService;
     private final GrammarCheckerService grammarCheckerService;
     private final PlayerSessionEntityRepository playerSessionEntityRepository;
@@ -46,7 +49,7 @@ public class GameSessionManagerService {
 
     @Autowired
     public GameSessionManagerService(
-            SimpMessagingTemplate messagingTemplate,
+            ProgressTrackingService progressTrackingService, SimpMessagingTemplate messagingTemplate,
             GameSessionEntityRepository gameSessionRepository,
             PlayerSessionEntityRepository playerRepository,
             WordBankItemRepository wordBankRepository,
@@ -55,8 +58,9 @@ public class GameSessionManagerService {
             ChatService chatService,
             GrammarCheckerService grammarCheckerService,
             GameSessionService gameSessionService,
-            PlayerSessionEntityRepository playerSessionEntityRepository,
+            StudentProgressRepository progressRepository, PlayerSessionEntityRepository playerSessionEntityRepository,
             AIService aiService) {
+        this.progressTrackingService = progressTrackingService;
         this.messagingTemplate = messagingTemplate;
         this.gameSessionRepository = gameSessionRepository;
         this.playerRepository = playerRepository;
@@ -66,8 +70,55 @@ public class GameSessionManagerService {
         this.chatService = chatService;
         this.grammarCheckerService = grammarCheckerService;
         this.gameSessionService = gameSessionService;
+        this.progressRepository = progressRepository;
         this.playerSessionEntityRepository = playerSessionEntityRepository;
         this.aiService = aiService;
+    }
+
+    private void trackTurnCompletion(PlayerSessionEntity player, GameSessionEntity session) {
+        try {
+            long turnEndTime = System.currentTimeMillis();
+            GameState gameState = activeGames.get(session.getId());
+
+            if (gameState != null) {
+                // Calculate response time
+                long turnStartTime = gameState.getLastTurnTime();
+                double responseTime = (turnEndTime - turnStartTime) / 1000.0;
+
+                // Get or create progress record
+                StudentProgress progress = progressTrackingService.getStudentProgress(
+                        player.getUser().getId(), session.getId());
+
+                // Update turn counts and response time
+                progress.setTotalTurnsTaken(progress.getTotalTurnsTaken() + 1);
+                progress.setTotalResponseTime(progress.getTotalResponseTime() + responseTime);
+
+                // Calculate metrics
+                double turnCompletionRate = calculateTurnCompletionRate(progress, session);
+                double avgResponseTime = progress.getTotalTurnsTaken() > 0 ?
+                        progress.getTotalResponseTime() / progress.getTotalTurnsTaken() : 0;
+
+                // Update progress
+                progress.setTurnCompletionRate(turnCompletionRate);
+                progress.setAvgResponseTime(avgResponseTime);
+
+                progressRepository.save(progress);
+
+                // Track all metrics
+                progressTrackingService.trackTurnProgress(session.getId(), player.getId());
+            }
+        } catch (Exception e) {
+            logger.error("Error tracking turn completion for player {}: {}",
+                    player.getId(), e.getMessage());
+        }
+    }
+
+    private double calculateTurnCompletionRate(StudentProgress progress, GameSessionEntity session) {
+        if (session.getTotalTurns() <= 0) return 0;
+
+        // Calculate based on player's turns taken vs total possible turns
+        // Cap at 100% to prevent exceeding
+        return Math.min(100.0, (progress.getTotalTurnsTaken() * 100.0) / session.getTotalTurns());
     }
 
     @Transactional
@@ -181,7 +232,10 @@ public class GameSessionManagerService {
         if (currentGameState != null) {
             currentGameState.setStoryPrompt(initialStoryElement);
         }
-        
+        List<WordBankItem> wordBank = wordBankRepository.findByContentData(session.getContent().getContentData());
+        if (!wordBank.isEmpty()) {
+            assignWordBombs(players, wordBank); // Add this line
+        }
         messagingTemplate.convertAndSend(
             "/topic/game/" + session.getId() + "/updates",
             storyUpdate
@@ -465,10 +519,10 @@ public class GameSessionManagerService {
             logger.debug("Sending word via chat service for session {}", sessionId);
             // Send message via chat service (which handles word bomb checking and scoring)
             ChatMessageEntity message = chatService.sendMessage(sessionId, userId, submission.getWord());
-            
+
             // After submitting, check if this contribution was exceptional
             boolean wasExceptional = false;
-            
+
             // Check for exceptional contribution
             if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.PERFECT) {
                 if (message.getWordUsed() != null && !message.getWordUsed().isEmpty()) {
@@ -477,18 +531,19 @@ public class GameSessionManagerService {
                     wasExceptional = true;
                 }
             }
-            
+
             // Broadcast exceptional contributions to all players
             if (wasExceptional) {
                 Map<String, Object> exceptionalNotice = new HashMap<>();
                 exceptionalNotice.put("type", "exceptionalContribution");
-                exceptionalNotice.put("playerName", currentPlayer.getUser().getFname() + " " + 
+                exceptionalNotice.put("playerName", currentPlayer.getUser().getFname() + " " +
                                      currentPlayer.getUser().getLname());
                 exceptionalNotice.put("message", submission.getWord());
-                
-                messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", 
+
+                messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates",
                                                exceptionalNotice);
             }
+            trackTurnCompletion(currentPlayer, session);
         } catch (Exception e) {
             logger.error("Error sending word via chat service for session {}: {}", sessionId, e.getMessage(), e);
             return false;
@@ -496,7 +551,7 @@ public class GameSessionManagerService {
 
         logger.info("Successfully processed word submission '{}' for session {} by user {}, advancing to next player",
                 submission.getWord(), sessionId, userId);
-    
+
         // Advance to next player's turn
         advanceToNextPlayer(sessionId);
         return true;
@@ -620,6 +675,7 @@ public class GameSessionManagerService {
         endMessage.put("leaderboard", getSessionLeaderboard(sessionId));
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/status", endMessage);
 
+        progressTrackingService.trackSessionProgress(sessionId);
         // Clean up
         activeGames.remove(sessionId);
     }
