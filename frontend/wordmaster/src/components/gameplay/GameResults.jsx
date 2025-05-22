@@ -543,6 +543,32 @@ const ConfettiPiece = ({ color, left, delay, size, rotate }) => (
             >
               {isTeacher ? 'BACK TO DASHBOARD' : 'BACK TO HOMEPAGE'}
             </Button>
+             <Button
+              variant="contained"
+              startIcon={<ArrowBack />}
+             onClick={() => navigate(isTeacher ? '/content/dashboard' : `/results/${gameState.sessionId}`)}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#5F4B8B',
+                '&:hover': { 
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4px',
+                px: 3,
+                py: 1.5,
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
+                fontSize: isMobile ? '10px' : '12px'
+              }}
+            >RESULTS</Button>
           </Box>
         </Box>
       </Container>

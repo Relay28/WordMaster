@@ -46,7 +46,7 @@ public class PlayerSessionEntity {
     private Integer groupNumber;
 
     private boolean isCardsDrawn =  false;
-
+    private String profilePicture;
     public boolean isCardsDrawn() {
         return isCardsDrawn;
     }
@@ -63,6 +63,14 @@ public class PlayerSessionEntity {
     }
     // Getters and setters
 
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
+    }
 
     public Long getId() {
         return id;
