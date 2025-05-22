@@ -99,7 +99,7 @@ public class ProfileService {
         user.setProfilePicture(dataUrl);
         userRepository.save(user);
 
-        return "Profile picture uploaded successfully";
+        return dataUrl;
     }
 
     public String deactivateAuthenticatedUser(Authentication authentication) {
