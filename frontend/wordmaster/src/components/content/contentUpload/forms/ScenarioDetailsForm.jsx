@@ -29,8 +29,8 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
         </Typography>
       </Box>
       
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
+      <Grid container spacing={3} >
+        <Grid item xs={12} width={350}> 
           <TextField
             fullWidth
             label="Scenario Title"
@@ -50,7 +50,7 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
           />
         </Grid>
         
-        <Grid item xs={12} width={500}>
+        <Grid item xs={12} width={800}>
           <TextField
             fullWidth
             label="Scenario Description"

@@ -79,15 +79,28 @@ const EditContent = () => {
       let parsedGameConfig = {};
       
       try {
+        // Check if data.contentData is a string or already an object
         if (data.contentData) {
-          parsedContentData = JSON.parse(data.contentData);
+          if (typeof data.contentData === 'string') {
+            parsedContentData = JSON.parse(data.contentData);
+          } else {
+            // It's already an object, use it directly
+            parsedContentData = data.contentData;
+          }
         }
-        if (data.gameElementConfig) {
-          parsedGameConfig = JSON.parse(data.gameElementConfig);
+        
+        // Same for gameConfig
+        if (data.gameElementConfig || data.gameConfig) {
+          const configData = data.gameElementConfig || data.gameConfig;
+          if (typeof configData === 'string') {
+            parsedGameConfig = JSON.parse(configData);
+          } else {
+            parsedGameConfig = configData;
+          }
         }
       } catch (err) {
-        console.error("Error parsing JSON data:", err);
-        setError("Error parsing content data. Some information may not display correctly.");
+        console.error("Error processing content data:", err);
+        setError("Error loading content data. Some information may not display correctly.");
       }
       
       const contentState = {
@@ -99,8 +112,12 @@ const EditContent = () => {
       
       const scenarioState = {
         studentsPerGroup: parsedGameConfig.studentsPerGroup || 5,
-        roles: parsedContentData.roles || [],
+        // Convert role objects to strings if needed
+        roles: parsedContentData.roles ? parsedContentData.roles.map(role => 
+          typeof role === 'object' ? role.name || role.toString() : role
+        ) : [],
         timePerTurn: parsedGameConfig.timePerTurn || 30,
+        // Preserve full word objects
         wordBank: parsedContentData.wordBank || [],
         turnCycles: parsedGameConfig.turnCycles || 3,
       };
@@ -160,7 +177,8 @@ const EditContent = () => {
     if (newWord.trim() !== '') {
       setScenarioSettings({
         ...scenarioSettings,
-        wordBank: [...scenarioSettings.wordBank, newWord.trim()]
+        // Add new words as strings, or as objects if you plan to edit their descriptions/examples in UI
+        wordBank: [...scenarioSettings.wordBank, newWord.trim()] 
       });
       setNewWord('');
     }
@@ -236,19 +254,43 @@ const EditContent = () => {
   };
 
   const prepareContentData = () => {
-    return JSON.stringify({
-      wordBank: scenarioSettings.wordBank,
-      roles: scenarioSettings.roles,
-      backgroundImage: imagePreview
+    // Map each word object to ensure it has the required fields, preserving existing data
+    const wordBankItems = scenarioSettings.wordBank.map(item => {
+      if (typeof item === 'string') {
+        // This case handles words added manually in the UI after initial load
+        return {
+          word: item,
+          description: "No description available", 
+          exampleUsage: "No example available"
+        };
+      }
+      // This case handles words loaded from the backend
+      return {
+        word: item.word,
+        description: item.description || "No description available",
+        exampleUsage: item.exampleUsage || "No example available"
+      };
     });
+
+    // Map each role string to a RoleDTO-compatible object
+    const roleItems = scenarioSettings.roles.map(role => ({
+      name: role
+    }));
+
+    return {
+      wordBank: wordBankItems,
+      roles: roleItems,
+      backgroundImage: imagePreview
+    };
   };
 
   const prepareGameConfig = () => {
-    return JSON.stringify({
+    // Return an object directly instead of stringifying it
+    return {
       studentsPerGroup: scenarioSettings.studentsPerGroup,
       timePerTurn: scenarioSettings.timePerTurn,
       turnCycles: scenarioSettings.turnCycles
-    });
+    };
   };
 
   const handleSave = async (publish = null) => {
@@ -261,7 +303,7 @@ const EditContent = () => {
       const dataToSubmit = { 
         ...formData,
         contentData: prepareContentData(),
-        gameElementConfig: prepareGameConfig()
+        gameConfig: prepareGameConfig() // Note: changed gameElementConfig to gameConfig for consistent naming
       };
       
       if (publish !== null) {
@@ -639,7 +681,7 @@ const EditContent = () => {
           
           {scenarioSettings.wordBank.length > 0 ? (
             <List sx={{ maxHeight: '300px', overflow: 'auto' }}>
-              {scenarioSettings.wordBank.map((word, index) => (
+              {scenarioSettings.wordBank.map((item, index) => (
                 <ListItem
                   key={index}
                   sx={{
@@ -648,7 +690,7 @@ const EditContent = () => {
                     borderRadius: '8px',
                   }}
                 >
-                  <ListItemText primary={word} />
+                  <ListItemText primary={typeof item === 'object' ? item.word : item} />
                   <ListItemSecondaryAction>
                     <IconButton edge="end" onClick={() => handleDeleteWord(index)} color="error">
                       <Delete />

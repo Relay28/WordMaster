@@ -116,18 +116,23 @@ const ContentUpload = () => {
 
   // Prepare data for submission
   const prepareContentData = () => {
-    return {
-      backgroundImage: imagePreview,
-      wordBank: scenarioSettings.wordBank.map((word, index) => ({
-        id: index + 1,
-        word: word
-      })),
-      roles: scenarioSettings.roles.map((role, index) => ({
-        id: index + 1,
-        name: role
-      }))
-    };
+  return {
+    backgroundImage: imagePreview,
+    wordBank: scenarioSettings.wordBank.map((word, index) => ({
+      id: index + 1,
+      word: word
+    })),
+    roles: scenarioSettings.roles.map((role, index) => ({
+      id: index + 1,
+      name: role
+    })),
+    // Add classroom information if classroomId exists
+    ...(classroomId && {
+      classroomId: classroomId,
+      classroomName: classroomInfo?.name // Make sure to fetch classroom name
+    })
   };
+};
 
   const prepareGameConfig = () => {
     return {
@@ -195,9 +200,11 @@ const ContentUpload = () => {
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
+      height: '100vh',
+      overflow: 'hidden',
       backgroundColor: '#f9f9f9',
     }}>
+    
       {/* Header */}
       <PageHeader 
         title={classroomId ? "Create Classroom Content" : "Create New Content"}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Box, Typography, Button, Avatar, List, ListItem, 
   ListItemAvatar, ListItemText, CircularProgress,
@@ -20,9 +20,20 @@ const WaitingRoomPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stompClient, setStompClient] = useState(null);
+  const [gameStarted, setGameStarted] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const location = useLocation();
+  const classroomId = location.state?.classroomId;
+
+  const handleBackClick = () => {
+    if (classroomId) {
+      navigate(`/classroom/${classroomId}`);
+    } else {
+      navigate(-1);
+    }
+  };
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -81,7 +92,8 @@ const WaitingRoomPage = () => {
           onConnect: () => {
             client.subscribe(`/topic/game-start/${contentId}`, (message) => {
               const sessionData = JSON.parse(message.body);
-              if (user?.role !== 'USER_TEACHER') {
+              setGameStarted(true);
+              if (user?.role === 'USER_STUDENT') {
                 navigate(`/game/${sessionData.sessionId}`);
               }
             });
@@ -116,10 +128,11 @@ const WaitingRoomPage = () => {
         }
       });
       if (!response.ok) throw new Error('Failed to start game');
+      setGameStarted(true);
+      setLoading(false);
     } catch (error) {
       console.error("Error starting game:", error);
       setError(error.message);
-    } finally {
       setLoading(false);
     }
   };
@@ -148,26 +161,26 @@ const WaitingRoomPage = () => {
       backdropFilter: 'blur(2px)'
     }}>
       <IconButton 
-              onClick={() => navigate('/homepage') }
-              sx={{
-                position: 'absolute',
-                top: 8,
-                left: 8,
-                color: '#5F4B8B',
-                backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                border: '2px solid #5F4B8B',
-                borderRadius: '4px',
-                width: '32px',
-                height: '32px',
-                '&:hover': {
-                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
-                  transform: 'translateY(-1px)'
-                },
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <ChevronLeftIcon fontSize="small" />
-            </IconButton>
+        onClick={handleBackClick}
+        sx={{
+          position: 'absolute',
+          top: 8,
+          left: 8,
+          color: '#5F4B8B',
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          border: '2px solid #5F4B8B',
+          borderRadius: '4px',
+          width: '32px',
+          height: '32px',
+          '&:hover': {
+            backgroundColor: 'rgba(95, 75, 139, 0.1)',
+            transform: 'translateY(-1px)'
+          },
+          transition: 'all 0.2s ease'
+        }}
+      >
+        <ChevronLeftIcon fontSize="small" />
+      </IconButton>
       <Box sx={{
         width: '100%',
         maxWidth: '600px',
@@ -250,7 +263,7 @@ const WaitingRoomPage = () => {
                       height: isMobile ? 32 : 40,
                       ...pixelText
                     }}>
-                      {/* {student.fname.charAt(0)}{student.lname.charAt(0)} */}
+                      {student.fname?.charAt(0)}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText 
@@ -261,61 +274,100 @@ const WaitingRoomPage = () => {
               ))}
             </List>
 
-            <Typography sx={{ 
-              ...pixelText,
-              textAlign: 'center',
-              mb: 2,
-              color: '#5F4B8B'
-            }}>
-              {students.length} PLAYER{students.length !== 1 ? 'S' : ''} READY
-            </Typography>
+            {!gameStarted ? (
+              <>
+                <Typography sx={{ 
+                  ...pixelText,
+                  textAlign: 'center',
+                  mb: 2,
+                  color: '#5F4B8B'
+                }}>
+                  {students.length} PLAYER{students.length !== 1 ? 'S' : ''} READY
+                </Typography>
 
-            {user?.role === 'USER_TEACHER' && (
-              <Box textAlign="center">
-                <Button
-                  variant="contained"
-                  onClick={handleStartGame}
-                  disabled={loading}
-                  sx={{
-                    ...pixelButton,
-                    backgroundColor: '#6c63ff',
-                    '&:hover': { 
-                      backgroundColor: '#5a52e0',
-                      transform: 'translateY(-2px)'
-                    },
-                    borderRadius: '4px',
-                    px: 3,
-                    py: isMobile ? 1 : 1.5,
-                    minWidth: '200px',
-                    borderStyle: 'outset',
-                    boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
-                    textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
-                    transition: 'all 0.1s ease',
-                    '&:active': {
-                      transform: 'translateY(1px)',
-                      boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
-                      borderStyle: 'inset'
-                    },
-                    '&.Mui-disabled': {
-                      backgroundColor: '#e0e0e0',
-                      color: '#a0a0a0',
-                      borderStyle: 'none',
-                      boxShadow: 'none'
-                    }
-                  }}
-                >
-                  {loading ? (
-                    <CircularProgress 
-                      size={24} 
-                      sx={{ 
-                        color: 'inherit',
-                        filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
-                      }} 
-                    />
-                  ) : (
-                    'START GAME'
-                  )}
-                </Button>
+                {user?.role === 'USER_TEACHER' && (
+                  <Box textAlign="center">
+                    <Button
+                      variant="contained"
+                      onClick={handleStartGame}
+                      disabled={loading}
+                      sx={{
+                        ...pixelButton,
+                        backgroundColor: '#6c63ff',
+                        '&:hover': { 
+                          backgroundColor: '#5a52e0',
+                          transform: 'translateY(-2px)'
+                        },
+                        borderRadius: '4px',
+                        px: 3,
+                        py: isMobile ? 1 : 1.5,
+                        minWidth: '200px',
+                        borderStyle: 'outset',
+                        boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                        textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                        transition: 'all 0.1s ease',
+                        '&:active': {
+                          transform: 'translateY(1px)',
+                          boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                          borderStyle: 'inset'
+                        },
+                        '&.Mui-disabled': {
+                          backgroundColor: '#e0e0e0',
+                          color: '#a0a0a0',
+                          borderStyle: 'none',
+                          boxShadow: 'none'
+                        }
+                      }}
+                    >
+                      {loading ? (
+                        <CircularProgress 
+                          size={24} 
+                          sx={{ 
+                            color: 'inherit',
+                            filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
+                          }} 
+                        />
+                      ) : (
+                        'START GAME'
+                      )}
+                    </Button>
+                  </Box>
+                )}
+              </>
+            ) : (
+              <Box sx={{ 
+                mb: 3,
+                p: 2,
+                backgroundColor: 'rgba(108, 99, 255, 0.1)',
+                borderRadius: '8px',
+                border: '2px solid #6c63ff',
+                textAlign: 'center'
+              }}>
+                <Typography sx={{ 
+                  ...pixelHeading,
+                  color: '#6c63ff',
+                  mb: 1,
+                  fontSize: isMobile ? '12px' : '14px'
+                }}>
+                  GAME IN PROGRESS
+                </Typography>
+                {user?.role === 'USER_TEACHER' ? (
+                  <Typography sx={{ 
+                    ...pixelText,
+                    color: '#5F4B8B',
+                    fontSize: isMobile ? '8px' : '10px'
+                  }}>
+                    Students have been redirected to the game session
+                  </Typography>
+                ) : (
+                  <Typography sx={{ 
+                    ...pixelText,
+                    color: '#5F4B8B',
+                    fontSize: isMobile ? '8px' : '10px'
+                  }}>
+                    Redirecting to game session...
+                  </Typography>
+                )}
               </Box>
             )}
           </>

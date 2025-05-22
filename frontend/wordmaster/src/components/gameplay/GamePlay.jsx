@@ -33,7 +33,7 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const { user, getToken } = useUserAuth();
   const [sentence, setSentence] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [storyPrompt, setStoryPrompt] = useState(''); // For AI-generated story prompts
+  const [storyPrompt, setStoryPrompt] = useState(gameState?.storyPrompt || ''); // For AI-generated story prompts
   const [rolePrompt, setRolePrompt] = useState('');   // For AI-generated role-specific hints
   const [pointsNotification, setPointsNotification] = useState(false);
   const [pointsData, setPointsData] = useState({ points: 0, reason: '' });
@@ -42,10 +42,12 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const [usedWordMessage, setUsedWordMessage] = useState('');
   const [cycleTransitionActive, setCycleTransitionActive] = useState(false);
   const [showCycleTransition, setShowCycleTransition] = useState(false);
-  const [previousCycle, setPreviousCycle] = useState(null);
-    const [leaderboard, setLeaderboard] = useState([]);
+  const [previousCycle, setPreviousCycle] = useState(gameState?.currentCycle || null); // Already present
+  const [leaderboard, setLeaderboard] = useState([]); // Already present
   const chatEndRef = useRef(null);
 
+  const isSinglePlayer = gameState.players?.length === 1;
+  
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -57,7 +59,7 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
       console.log('[GamePlay Debug] Initial story prompt from gameState:', gameState.storyPrompt);
       setStoryPrompt(gameState.storyPrompt);
     }
-  }, [gameState]);
+  }, [gameState?.storyPrompt]);
 
   // Subscription for AI-generated story prompts
   useEffect(() => {
@@ -178,7 +180,7 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const currentUserInPlayers = gameState.players?.find(p => p.userId === user?.id);
  // Fix the isMyTurn comparison by ensuring type consistency
   const isMyTurn = !!(gameState.currentPlayer && currentUserInPlayers && user &&
-                 String(gameState.currentPlayer.id) === String(currentUserInPlayers.id));
+                 String(gameState.currentPlayer.userId) === String(user?.id)); // Compare with user.id from context
 
   // Debugging for isMyTurn calculation and related states
   useEffect(() => {
@@ -304,31 +306,42 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
 
   // Add this effect to detect cycle changes
   useEffect(() => {
-    if (previousCycle !== null && 
-        gameState.currentCycle && 
-        gameState.currentCycle > previousCycle) {
-      
-      // Show transition overlay when cycle changes
-      setShowCycleTransition(true);
-      console.log(`Transitioning from cycle ${previousCycle} to ${gameState.currentCycle}`);
-      
-      // Hide after 3 seconds
-      const timer = setTimeout(() => {
+    if (gameState.currentCycle !== null && previousCycle !== null && gameState.currentCycle > previousCycle) {
+      console.log(`[GamePlay Debug] Cycle changed from ${previousCycle} to ${gameState.currentCycle}`);
+      setCycleTransitionActive(true); // Show full-screen overlay
+      setShowCycleTransition(true);   // Show top banner notification
+
+      // Hide full-screen overlay after a delay
+      const fullScreenTimer = setTimeout(() => {
+        setCycleTransitionActive(false);
+      }, 4000); // Duration for full-screen overlay
+
+      // Hide top banner after a shorter delay
+      const bannerTimer = setTimeout(() => {
         setShowCycleTransition(false);
-      }, 3000);
-      
-      return () => clearTimeout(timer);
-    }
-    
-    // Track previous cycle
-    if (gameState.currentCycle) {
+      }, 5000); // Duration for top banner
+
+      setPreviousCycle(gameState.currentCycle);
+
+      return () => {
+        clearTimeout(fullScreenTimer);
+        clearTimeout(bannerTimer);
+      };
+    } else if (previousCycle === null && gameState.currentCycle !== null) {
+      // Initialize previousCycle if it's the first time we get a cycle number
       setPreviousCycle(gameState.currentCycle);
     }
   }, [gameState.currentCycle, previousCycle]);
 
   // In the game status header
-const totalCycles = Math.ceil(gameState.totalTurns / (gameState.players?.length || 1));
-const isLastCycle = gameState.currentCycle === totalCycles;
+  const totalCycles = gameState.turnCyclesConfig || Math.ceil(gameState.totalTurns / (gameState.players?.length || 1));
+  const isLastCycle = gameState.currentCycle === totalCycles;
+
+  const cycleDisplayString = isSinglePlayer 
+    ? `Turn: ${gameState.currentTurn || 0} / ${gameState.totalTurns || 0}`
+    : `Cycle: ${gameState.currentCycle || 0} / ${totalCycles || 0}`;
+
+  const turnDisplayString = `Turn: ${gameState.currentTurn || 0} / ${gameState.totalTurns || 0}`;
 
   return (
     <>
@@ -347,22 +360,28 @@ const isLastCycle = gameState.currentCycle === totalCycles;
                   {gameState.contentInfo?.title || 'Game Session'}
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Chip 
-                    label={`Cycle ${gameState.currentCycle || 1} of ${totalCycles || '?'}`} 
-                    color={isLastCycle ? "error" : "secondary"}
-                    size="medium"
-                    variant="outlined"
-                    sx={{ 
-                      fontWeight: 'bold',
-                      ...(isLastCycle && { animation: 'pulse 2s infinite' })
-                    }}
-                  />
-                  <Chip 
-                    label={`Turn ${gameState.currentTurn || '?'} of ${gameState.totalTurns || '?'}`} 
-                    color="primary" 
-                    size="medium"
-                    sx={{ fontWeight: 'bold' }}
-                  />
+                  <Tooltip title={isSinglePlayer ? "Current Turn / Total Turns" : "Current Cycle / Total Cycles"}>
+                    <Chip 
+                      label={cycleDisplayString} // Use the new display string
+                      color={isLastCycle ? "error" : "secondary"}
+                      size="medium"
+                      variant="outlined"
+                      sx={{ 
+                        fontWeight: 'bold',
+                        ...(isLastCycle && { animation: 'pulse 2s infinite' })
+                      }}
+                    />
+                  </Tooltip>
+                  {!isSinglePlayer && ( // Optionally show overall turn for multiplayer
+                     <Tooltip title="Overall Turn Progress">
+                        <Chip 
+                            label={turnDisplayString}
+                            color="primary" 
+                            size="medium"
+                            sx={{ fontWeight: 'bold' }}
+                        />
+                     </Tooltip>
+                  )}
                 </Box>
               </Box>
               
@@ -374,15 +393,17 @@ const isLastCycle = gameState.currentCycle === totalCycles;
                     mr: 2
                   }}
                 >
-                  {gameState.currentPlayer?.name?.charAt(0) || '?'}
+                  {gameState.currentPlayer?.name?.charAt(0)?.toUpperCase() || '?'}
                 </Avatar>
                 <Box>
                   <Typography variant="subtitle1" fontWeight={isMyTurn ? 'bold' : 'medium'}>
                     {isMyTurn ? "Your turn!" : `${gameState.currentPlayer?.name || 'Waiting for player'}'s turn`}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {gameState.currentPlayer?.role && `Role: ${gameState.currentPlayer.role}`}
-                  </Typography>
+                  {gameState.currentPlayer?.role && (
+                    <Typography variant="caption" color="text.secondary">
+                      Role: {gameState.currentPlayer.role}
+                    </Typography>
+                  )}
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
                   <Typography variant="subtitle1" mr={1}>
@@ -406,71 +427,62 @@ const isLastCycle = gameState.currentCycle === totalCycles;
           </Grid>
 
           {/* User's role display and AI Role Hint */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2, mb: 2, borderRadius: '8px', bgcolor: '#f8f5ff' }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="h6">Your Role</Typography>
-                  <Chip 
-                    label={gameState.players?.find(p => p.userId === user?.id)?.role || 'No role assigned'} 
-                    color="primary"
-                    size="medium"
-                    sx={{ fontWeight: 'bold' }}
-                  />
-                </Box>
-                
-                {rolePrompt && (
-                  <Box mt={1} p={2} bgcolor="#e3f2fd" borderRadius="8px" borderLeft="4px solid #2196f3">
-                    <Typography variant="subtitle2" fontWeight="bold" color="#1e88e5">Role Hint:</Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                      {rolePrompt}
-                    </Typography>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                      <Chip 
-                        size="small" 
-                        label={`Updated for Cycle ${gameState.currentCycle}`} 
-                        color="info" 
-                        variant="outlined"
-                      />
-                    </Box>
+          {isMyTurn && (
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2, mb: 2, borderRadius: '8px', bgcolor: '#f8f5ff' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="h6">Your Role</Typography>
+                    <Chip 
+                      label={gameState.players?.find(p => p.userId === user?.id)?.role || 'No role assigned'} 
+                      color="primary"
+                      size="medium"
+                      sx={{ fontWeight: 'bold' }}
+                    />
                   </Box>
-                )}
-                
-                <Typography variant="body2" mt={rolePrompt ? 1 : 0}>
-                  Play according to your role to earn more points! Your role may change between cycles.
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
+                  {rolePrompt && (
+                    <Box mt={1} p={2} bgcolor="#e3f2fd" borderRadius="8px" borderLeft="4px solid #2196f3">
+                      <Typography variant="subtitle2" fontWeight="bold" color="#1e88e5">Role Hint:</Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                        {rolePrompt}
+                      </Typography>
+                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                        <Chip 
+                            size="small" 
+                            label={`Updated for ${isSinglePlayer ? `Turn ${gameState.currentTurn}` : `Cycle ${gameState.currentCycle}`}`}
+                            color="info" 
+                            variant="outlined"
+                        />
+                        </Box>
+                    </Box>
+                  )}
+                  <Typography variant="body2" mt={rolePrompt ? 1 : 0}>
+                    Play according to your role to earn more points!
+                  </Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          )}
 
           {/* AI Story Prompt */}
           {storyPrompt && (
             <Grid item xs={12}>
               <Paper sx={{ 
-                p: 2, 
-                mb: 2, 
-                borderRadius: '8px', 
-                bgcolor: '#fff8e1',
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'all 0.3s ease'
+                p: 2, mb: 2, borderRadius: '8px', bgcolor: '#fff8e1',
+                position: 'relative', overflow: 'hidden',
               }}>
-                <Box sx={{ position: 'relative', zIndex: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                 <Box sx={{ position: 'relative', zIndex: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Typography variant="h6" color="#f57c00">Story Prompt:</Typography>
                     <Chip 
-                      label={`Cycle ${gameState.currentCycle}`} 
-                      color="warning" 
-                      size="small"
+                        label={`${isSinglePlayer ? `Turn ${gameState.currentTurn}` : `Cycle ${gameState.currentCycle}`}`}
+                        color="warning" 
+                        size="small"
                     />
-                  </Box>
-                  <Typography variant="body1" sx={{ 
-                    fontStyle: 'italic', 
-                    whiteSpace: 'pre-wrap',
-                    lineHeight: 1.6 
-                  }}>
+                    </Box>
+                    <Typography variant="body1" sx={{ fontStyle: 'italic', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                     {storyPrompt}
-                  </Typography>
+                    </Typography>
                 </Box>
                 <Box sx={{ 
                   position: 'absolute', 

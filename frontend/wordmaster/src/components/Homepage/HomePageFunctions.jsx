@@ -63,7 +63,7 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
     };
 
     fetchUserProfile();
-  }, [authChecked, user, getToken, login, logout, navigate]);
+  }, [authChecked, getToken, login, logout, navigate]);
 
   useEffect(() => {
     const fetchClassrooms = async () => {
@@ -162,7 +162,7 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
     handleCreateClass,
     
     // Derived values
-    displayName: `${user?.fname || ''} ${user?.lname || ''}`.trim() || user?.email || '',
+    displayName: `${user?.fname || ''} ${user?.lname || ''}`.trim(),
     roleDisplay: user?.role === "USER_TEACHER" ? "Teacher" : user?.role === "USER_STUDENT" ? "Student" : "Unknown",
     avatarInitials: user?.fname && user?.lname 
       ? `${user.fname.charAt(0)}${user.lname.charAt(0)}`

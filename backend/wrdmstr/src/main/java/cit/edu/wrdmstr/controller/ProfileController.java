@@ -54,8 +54,9 @@ public class ProfileController {
         Map<String, String> response = new HashMap<>();
 
         try {
-            String message = profileService.uploadProfilePicture(authentication, file);
-            response.put("message", message);
+            String profilePictureUrl = profileService.uploadProfilePicture(authentication, file);
+            response.put("profilePicture", profilePictureUrl);
+            response.put("message", "Profile picture uploaded successfully");
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             response.put("error", e.getMessage());

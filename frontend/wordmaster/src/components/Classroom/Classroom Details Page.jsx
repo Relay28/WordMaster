@@ -20,7 +20,9 @@ import {
   Grid,
   Tabs,
   Tab,
-  Tooltip
+  Tooltip,
+  Pagination,
+  Stack
 } from '@mui/material';
 import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
@@ -32,6 +34,7 @@ import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import ClassroomDetailHeader from '../Header/ClassroomDetailHeader';
 import { useHomePage } from '../Homepage/HomePageFunctions';
+
 
 const ClassroomDetailsPage = () => {
   const { authChecked, user, getToken, logout, login } = useUserAuth();
@@ -72,6 +75,21 @@ const ClassroomDetailsPage = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add this line
   const isMobile = window.innerWidth < 768;
 
+  const [page, setPage] = useState(1);
+  const [itemsPerPage] = useState(2); 
+
+  const handlePageChange = (event, value) => {
+    setPage(value);
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  const indexOfLastItem = page * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = contentList.slice(indexOfFirstItem, indexOfLastItem);
+
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
     fontSize: isMobile ? '8px' : '10px',
@@ -97,6 +115,8 @@ const ClassroomDetailsPage = () => {
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
+
+  
 
   // Fetch classroom content
   useEffect(() => {
@@ -220,7 +240,8 @@ return (
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
+      height: '100vh', // Use fixed height instead of minHeight
+      overflow: 'hidden',
       background: `
         linear-gradient(to bottom, 
           rgba(249, 249, 249, 10) 0%, 
@@ -249,8 +270,27 @@ return (
         handleLogout={handleLogout}
       />
 
+<Box sx={{ 
+      flex: 1,
+      width: '100%',
+      overflow: 'auto',
+      // Custom scrollbar styling
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'rgba(95, 75, 139, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#5F4B8B',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#4a3a6d',
+        },
+      },
+    }}>
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
+      <Container maxWidth="lg" sx={{ py: 4, flex: 1,  }}>
         {/* Error display */}
         {error && (
           <Box mb={3}>
@@ -427,12 +467,12 @@ return (
               '& .Mui-selected': { color: '#5F4B8B !important' }
             }}
           >
-            <Tab label="MEMBERS" />
             <Tab label="LEARNING CONTENT" />
+            <Tab label="MEMBERS" />
           </Tabs>
 
           {/* Members Tab */}
-          {tabValue === 0 && (
+          {tabValue === 1 && (
             <Box>
               {/* <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 
@@ -541,11 +581,9 @@ return (
           )}
 
           {/* Content Tab */}
-          {tabValue === 1 && (
+          {tabValue === 0 && (
             <Box>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-      
-                
                 {isClassroomTeacher && (
                   <Box display="flex" gap={1}>
                     <Button
@@ -649,21 +687,70 @@ return (
                   )}
                 </Paper>
               ) : (
-                <ContentList 
-                  content={contentList}
-                  onEdit={handleEditContent}
-                  onView={handleViewContent}
-                  onDelete={handleDeleteContent}
-                  onPublishToggle={handlePublishToggle}
-                  disableActions={!isClassroomTeacher}
-                  pixelText={pixelText}
-                  pixelHeading={pixelHeading}
-                />
-              )}
+                <Stack spacing={3}>
+            <ContentList 
+              content={currentItems}
+              onEdit={handleEditContent}
+              onView={handleViewContent}
+              onDelete={handleDeleteContent}
+              onPublishToggle={handlePublishToggle}
+              disableActions={!isClassroomTeacher}
+              pixelText={pixelText}
+              pixelHeading={pixelHeading}
+            />
+
+            {/* Pagination Controls */}
+            <Box 
+              display="flex" 
+              justifyContent="center" 
+              sx={{
+                mt: 4,
+                pb: 2,
+                '& .MuiPagination-ul': {
+                  ...pixelText,
+                  gap: 1
+                },
+                '& .MuiPaginationItem-root': {
+                  fontFamily: '"Press Start 2P", cursive',
+                  fontSize: '10px',
+                  color: '#5F4B8B',
+                  border: '2px solid #5F4B8B',
+                  borderRadius: '4px',
+                  margin: '0 4px',
+                  minWidth: '32px',
+                  height: '32px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  },
+                  '&.Mui-selected': {
+                    backgroundColor: '#5F4B8B',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: '#4a3a6d',
+                    }
+                  }
+                }
+              }}
+            >
+              <Pagination 
+                count={Math.ceil(contentList.length / itemsPerPage)}
+                page={page}
+                onChange={handlePageChange}
+                variant="outlined"
+                shape="rounded"
+                size={isMobile ? "small" : "medium"}
+                siblingCount={isMobile ? 0 : 1}
+                boundaryCount={isMobile ? 1 : 2}
+              />
             </Box>
-          )}
+          </Stack>
+        )}
+      </Box>
+    )}
+            
         </Paper>
       </Container>
+    </Box>
     </Box>
   );
 };
