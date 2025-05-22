@@ -4,7 +4,7 @@ import {
   Box, Typography, Container, Button, 
   Paper, CircularProgress, Alert, 
   FormControl, InputLabel, Select, MenuItem,
-  useMediaQuery,
+  useMediaQuery, IconButton,
   useTheme
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
@@ -12,6 +12,7 @@ import { useLocation } from 'react-router-dom';
 import { Class, PersonOutline } from "@mui/icons-material";
 import picbg from '../../assets/picbg.png';
 import API_URL from '../../services/apiConfig';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 const CreateGameSession = () => {
   const { getToken } = useUserAuth();
@@ -182,6 +183,28 @@ const CreateGameSession = () => {
       p: 2,
       backdropFilter: 'blur(2px)'
     }}>
+      {/* Back Button */}
+            <IconButton 
+              onClick={() => navigate('/homepage')}
+              sx={{
+                position: 'absolute',
+                top: 8,
+                left: 8,
+                color: '#5F4B8B',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                border: '2px solid #5F4B8B',
+                borderRadius: '4px',
+                width: '32px',
+                height: '32px',
+                '&:hover': {
+                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <ChevronLeftIcon fontSize="small" />
+            </IconButton>
       <Container maxWidth="md">
         <Paper elevation={3} sx={{ 
           p: isMobile ? 2 : 4, 
