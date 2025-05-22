@@ -45,10 +45,10 @@ public class ProgressTrackingService {
 
         // Get all messages for this player
         List<ChatMessageEntity> messages = chatMessageRepository.findByPlayerSessionId(playerId);
-
+       ContentData contentData = session.getContent().getContentData();
         // Calculate metrics
         double grammarAccuracy = calculateGrammarAccuracy(messages);
-        double wordBombUsageRate = calculateWordBombUsageRate(messages);
+        double wordBombUsageRate = calculateWordBombUsageRate(messages, contentData);
         double comprehensionScore = calculateComprehensionScore(messages);
         double turnCompletionRate = calculateTurnCompletionRate(player, session);
 
@@ -90,14 +90,14 @@ public class ProgressTrackingService {
         return (perfectCount * 100.0) / messages.size();
     }
 
-    private double calculateWordBombUsageRate(List<ChatMessageEntity> messages) {
+    private double calculateWordBombUsageRate(List<ChatMessageEntity> messages,ContentData contentData) {
         if (messages.isEmpty()) return 0.0;
 
         long wordBombCount = messages.stream()
                 .filter(ChatMessageEntity::isContainsWordBomb)
                 .count();
 
-        return (wordBombCount * 100.0) / messages.size();
+        return (wordBombCount * 100.0) / contentData.getWordBank().size();
     }
 
     private double calculateComprehensionScore(List<ChatMessageEntity> messages) {
@@ -106,9 +106,8 @@ public class ProgressTrackingService {
         // This is a simplified version - you might want to implement more sophisticated
         // comprehension scoring based on message content analysis
         long relevantCount = messages.stream()
-                .filter(m -> m.getContent().length() > 10) // Simple heuristic
+                .filter(m -> m.isRoleAppropriate())
                 .count();
-
         return (relevantCount * 100.0) / messages.size();
     }
 
