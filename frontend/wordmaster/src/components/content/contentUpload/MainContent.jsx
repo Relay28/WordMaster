@@ -19,6 +19,8 @@ import GameSettingsForm from './forms/GameSettingsForm';
 import WordBankForm from './forms/WordBankForm';
 import BackgroundImageForm from './forms/BackgroundImageForm';
 import picbg from '../../../assets/picbg.png';
+import PageHeader from './PageHeader'; 
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const steps = [
   'Scenario Details',
@@ -37,7 +39,10 @@ const MainContent = ({
   handleScenarioSettingChange,
   imagePreview,
   setImagePreview,
-  handleSubmit
+  handleSubmit,
+  handleCancel,  // Add this prop
+  loading,       // Add this prop
+  title
 }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [stepErrors, setStepErrors] = useState({});
@@ -142,6 +147,12 @@ const MainContent = ({
     }
   };
 
+  const location = useLocation(); // Add this
+  const navigate = useNavigate(); // Add this
+
+  const queryParams = new URLSearchParams(location.search);
+  const classroomId = queryParams.get('classroomId');
+
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
     fontSize: '10px',
@@ -170,6 +181,12 @@ const MainContent = ({
         display: 'flex',
               flexDirection: 'column',
               height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
               overflow: 'hidden',
               background: `
                 linear-gradient(to bottom, 
@@ -182,6 +199,7 @@ const MainContent = ({
               backgroundRepeat: 'no-repeat',
               backgroundAttachment: 'fixed',
               imageRendering: 'pixelated',
+              
       }}
     >
       <Box sx={{ 
@@ -203,6 +221,14 @@ const MainContent = ({
               },
             },
           }}>
+
+        {/* Header */}
+              <PageHeader 
+                title={classroomId ? "Create Classroom Content" : "Create New Content"}
+                loading={loading}
+                handleCancel={() => navigate(-1)}
+                handleSubmit={handleSubmit}
+              />
       <Container maxWidth="xl">
         {error && (
           <Alert 

@@ -17,7 +17,7 @@ import {
   ListItemText,
   Card,
   CardContent,
-  Tooltip
+  Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText
 } from '@mui/material';
 import { 
   ArrowBack, 
@@ -37,6 +37,7 @@ import contentService from '../../services/contentService';
 import picbg from '../../assets/picbg.png';
 
 const isMobile = window.innerWidth < 768;
+
 
 const pixelText = {
   fontFamily: '"Press Start 2P", cursive',
@@ -82,6 +83,7 @@ const ContentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   useEffect(() => {
     loadContent();
   }, [id]);
@@ -101,23 +103,25 @@ const ContentDetails = () => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this content?')) return;
-    
-    try {
-      const token = await getToken();
-      await contentService.deleteContent(id, token);
-      navigate('/content/dashboard', {
-        state: {
-          message: 'Content deleted successfully',
-          success: true
-        }
-      });
-    } catch (err) {
-      console.error("Error deleting content:", err);
-      setError("Failed to delete content. Please try again.");
-    }
-  };
-
+  setDeleteDialogOpen(true);
+};
+const confirmDelete = async () => {
+  try {
+    const token = await getToken();
+    await contentService.deleteContent(id, token);
+    setDeleteDialogOpen(false);
+    navigate('/content/dashboard', {
+      state: {
+        message: 'Content deleted successfully',
+        success: true
+      }
+    });
+  } catch (err) {
+    console.error("Error deleting content:", err);
+    setError("Failed to delete content. Please try again.");
+    setDeleteDialogOpen(false);
+  }
+};
   const handlePublishToggle = async () => {
     try {
       const token = await getToken();
@@ -178,22 +182,28 @@ const ContentDetails = () => {
 
   return (
     <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      overflow: 'hidden',
-      background: `
-        linear-gradient(to bottom, 
-          rgba(249, 249, 249, 10) 0%, 
-          rgba(249, 249, 249, 10) 40%, 
-          rgba(249, 249, 249, 0.1) 100%),
-        url(${picbg})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed',
-      imageRendering: 'pixelated',
-    }}>
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  overflow: 'hidden',
+  background: `
+    linear-gradient(to bottom, 
+      rgba(249, 249, 249, 10) 0%, 
+      rgba(249, 249, 249, 10) 40%, 
+      rgba(249, 249, 249, 0.1) 100%),
+    url(${picbg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed',
+  imageRendering: 'pixelated',
+}}>
       {/* Header */}
       <Box sx={{ 
         backgroundColor: 'rgba(255,255,255,0.8)',
@@ -276,24 +286,23 @@ const ContentDetails = () => {
             </Button>
 
             <Button
-              variant="outlined"
-              startIcon={<Delete />}
-              onClick={handleDelete}
-              sx={{
-                ...pixelButton,
-                color: '#d32f2f',
-                borderColor: '#d32f2f',
-                borderStyle: 'outset',
-                boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
-                '&:hover': {
-                  backgroundColor: '#ffeaea',
-                  borderColor: '#b71c1c',
-                  transform: 'translateY(-2px)'
-                }
-              }}
-            >
-              DELETE
-            </Button>
+    variant="contained"
+    startIcon={<Delete />}
+    onClick={handleDelete}
+    sx={{
+      ...pixelButton,
+      backgroundColor: '#d32f2f',
+      borderStyle: 'outset',
+      boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+      textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+      '&:hover': { 
+        backgroundColor: '#b71c1c',
+        transform: 'translateY(-2px)'
+      }
+    }}
+  >
+    DELETE
+  </Button>
           </Box>
         </Box>
       </Box>
@@ -649,6 +658,59 @@ const ContentDetails = () => {
           )}
         </Container>
       </Box>
+      <Dialog
+      open={deleteDialogOpen}
+      onClose={() => setDeleteDialogOpen(false)}
+      PaperProps={{
+        sx: {
+          borderRadius: '16px',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 8px 32px rgba(31, 38, 135, 0.2)',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+        }
+      }}
+    >
+      <DialogTitle sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+        Delete Scenario
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText sx={{ ...pixelText, color: '#666' }}>
+          Are you sure you want to delete this scenario? This action cannot be undone.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions sx={{ p: 2, gap: 1 }}>
+        <Button
+          onClick={() => setDeleteDialogOpen(false)}
+          variant="outlined"
+          sx={{
+            ...pixelButton,
+            color: '#5F4B8B',
+            borderColor: '#5F4B8B',
+            '&:hover': {
+              borderColor: '#4a3a6d',
+              backgroundColor: 'rgba(95, 75, 139, 0.1)'
+            }
+          }}
+        >
+          CANCEL
+        </Button>
+        <Button
+          onClick={confirmDelete}
+          variant="contained"
+          sx={{
+            ...pixelButton,
+            backgroundColor: '#d32f2f',
+            color: 'white',
+            '&:hover': {
+              backgroundColor: '#b71c1c'
+            }
+          }}
+        >
+          DELETE
+        </Button>
+      </DialogActions>
+    </Dialog>
     </Box>
   );
 };

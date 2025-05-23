@@ -116,21 +116,28 @@ const AIContentGenerator = () => {
   
   return (
     <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      background: `
-        linear-gradient(to bottom, 
-          rgba(249, 249, 249, 10) 0%, 
-          rgba(249, 249, 249, 10) 40%, 
-          rgba(249, 249, 249, 0.1) 100%),
-        url(${picbg})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed',
-      imageRendering: 'pixelated',
-    }}>
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  overflow: 'hidden',
+  background: `
+    linear-gradient(to bottom, 
+      rgba(249, 249, 249, 10) 0%, 
+      rgba(249, 249, 249, 10) 40%, 
+      rgba(249, 249, 249, 0.1) 100%),
+    url(${picbg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed',
+  imageRendering: 'pixelated',
+}}>
       {/* Header */}
       <Box sx={{ 
         backgroundColor: 'white',
@@ -140,7 +147,7 @@ const AIContentGenerator = () => {
       }}>
         <Box display="flex" alignItems="center">
           <IconButton 
-            onClick={() => navigate('/homepage')}
+            onClick={handleCancel}
             sx={{
               color: '#5F4B8B',
               backgroundColor: 'rgba(255, 255, 255, 0.7)',

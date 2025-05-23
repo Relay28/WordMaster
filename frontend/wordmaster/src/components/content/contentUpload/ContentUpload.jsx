@@ -12,7 +12,6 @@ import GroupSettingsForm from './forms/GroupSettingsForm';
 import GameSettingsForm from './forms/GameSettingsForm';
 import WordBankForm from './forms/WordBankForm';
 import BackgroundImageForm from './forms/BackgroundImageForm';
-import PageHeader from './PageHeader';
 import MainContent from './MainContent';
 const ContentUpload = () => {
   const navigate = useNavigate();
@@ -211,13 +210,7 @@ const ContentUpload = () => {
       backgroundColor: '#f9f9f9',
     }}>
     
-      {/* Header */}
-      <PageHeader 
-        title={classroomId ? "Create Classroom Content" : "Create New Content"}
-        loading={loading}
-        handleCancel={handleCancel}
-        handleSubmit={handleSubmit}
-      />
+      
 
       {/* Main Content */}
       <MainContent

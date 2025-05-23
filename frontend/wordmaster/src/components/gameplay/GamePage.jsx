@@ -133,7 +133,6 @@ const GamePage = ({
   try {
     setLoading(true);
     const token = await getToken();
-    alert(selectedContent)
     const response = await fetch(`${API_URL}/api/waiting-room/content/${selectedContent}/join`, {
       method: 'POST',
       headers: {

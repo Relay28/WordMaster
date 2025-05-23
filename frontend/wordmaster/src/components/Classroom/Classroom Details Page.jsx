@@ -22,7 +22,7 @@ import {
   Tab,
   Tooltip,
   Pagination,
-  Stack
+  Stack, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from '@mui/material';
 import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
@@ -51,11 +51,16 @@ const ClassroomDetailsPage = () => {
     handleDeleteClassroom,
     handleRemoveStudent,
     isTeacher,
-    isClassroomTeacher
+    isClassroomTeacher,
+    deleteDialogOpen,
+    setDeleteDialogOpen,
+    removeStudentDialogOpen,
+    setRemoveStudentDialogOpen,
+    confirmRemoveStudent,
+    confirmDeleteClassroom
   } = useClassroomDetails(authChecked, user, getToken);
   
   const {
-
       anchorEl,
       handleMenuOpen,
       handleMenuClose,
@@ -66,6 +71,10 @@ const ClassroomDetailsPage = () => {
       avatarInitials
     } = useHomePage(authChecked, user, getToken, logout, login);
 
+  const [deleteSessionDialogOpen, setDeleteSessionDialogOpen] = useState(false);
+const [sessionToDelete, setSessionToDelete] = useState(null);
+const [deleteContentDialogOpen, setDeleteContentDialogOpen] = useState(false);
+const [contentToDelete, setContentToDelete] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [tabValue, setTabValue] = useState(0);
@@ -247,18 +256,23 @@ const ClassroomDetailsPage = () => {
         navigate(`/content/${contentId}`);    
   };
 
-  const handleDeleteContent = async (contentId) => {
-    try {
-      if (!window.confirm("Are you sure you want to delete this content?")) return;
-      
-      const token = await getToken();
-      await contentService.deleteContent(contentId, token);
-      setContentList(contentList.filter(item => item.id !== contentId));
-    } catch (err) {
-      console.error("Error deleting content:", err);
-      setContentError("Failed to delete content. Please try again.");
-    }
-  };
+  const handleDeleteContent = (contentId) => {
+  setContentToDelete(contentId);
+  setDeleteContentDialogOpen(true);
+};
+
+const confirmDeleteContent = async () => {
+  try {
+    const token = await getToken();
+    await contentService.deleteContent(contentToDelete, token);
+    setContentList(prev => prev.filter(content => content.id !== contentToDelete));
+    setDeleteContentDialogOpen(false);
+    setContentToDelete(null);
+  } catch (err) {
+    setContentError("Failed to delete content. Please try again.");
+    console.error("Error deleting content:", err);
+  }
+};
 
   const handlePublishToggle = async (contentId, currentStatus) => {
     try {
@@ -349,45 +363,45 @@ const ClassroomDetailsPage = () => {
     fetchStudentFeedback();
   }, [classroom, user?.id, getToken]);
 
-  const handleDeleteSession = async (sessionId, event) => {
-    // Stop event propagation to prevent selecting the session when clicking delete
-    event.stopPropagation();
+  const handleDeleteSession = (sessionId, event) => {
+  event.stopPropagation();
+  setSessionToDelete(sessionId);
+  setDeleteSessionDialogOpen(true);
+};
+
+// Add this new function
+const confirmDeleteSession = async () => {
+  try {
+    setLoadingGameSessions(true);
+    const token = await getToken();
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
     
-    if (!window.confirm("Are you sure you want to delete this game session? This will remove all student data and feedback for this session.")) {
-      return;
+    const response = await fetch(`${API_URL}/api/sessions/${sessionToDelete}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to delete game session (${response.status})`);
     }
     
-    try {
-      setLoadingGameSessions(true);
-      const token = await getToken();
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-      
-      const response = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to delete game session (${response.status})`);
-      }
-      
-      // Update the game sessions list by removing the deleted session
-      setGameSessions(gameSessions.filter(session => session.id !== sessionId));
-      
-      // If the deleted session was selected, clear the selection
-      if (selectedSession === sessionId) {
-        setSelectedSession(null);
-        setStudentReports([]);
-      }
-    } catch (err) {
-      console.error("Error deleting game session:", err);
-      setGameSessionsError(err.message || "Failed to delete game session");
-    } finally {
-      setLoadingGameSessions(false);
+    setGameSessions(gameSessions.filter(session => session.id !== sessionToDelete));
+    
+    if (selectedSession === sessionToDelete) {
+      setSelectedSession(null);
+      setStudentReports([]);
     }
-  };
+  } catch (err) {
+    console.error("Error deleting game session:", err);
+    setGameSessionsError(err.message || "Failed to delete game session");
+  } finally {
+    setLoadingGameSessions(false);
+    setDeleteSessionDialogOpen(false);
+    setSessionToDelete(null);
+  }
+};
 
   if (!authChecked || loading) {
     return (
@@ -407,22 +421,28 @@ const ClassroomDetailsPage = () => {
 
 return (
     <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh', // Use fixed height instead of minHeight
-      overflow: 'hidden',
-      background: `
-        linear-gradient(to bottom, 
-          rgba(249, 249, 249, 10) 0%, 
-          rgba(249, 249, 249, 10) 40%, 
-          rgba(249, 249, 249, 0.1) 100%),
-        url(${picbg})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed',
-      imageRendering: 'pixelated',
-    }}>
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  overflow: 'hidden',
+  background: `
+    linear-gradient(to bottom, 
+      rgba(249, 249, 249, 10) 0%, 
+      rgba(249, 249, 249, 10) 40%, 
+      rgba(249, 249, 249, 0.1) 100%),
+    url(${picbg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed',
+  imageRendering: 'pixelated',
+}}>
       {/* Header */}
       <ClassroomDetailHeader 
         displayName={displayName}
@@ -1203,6 +1223,222 @@ return (
         </Paper>
       </Container>
     </Box>
+    <Dialog
+  open={deleteSessionDialogOpen}
+  onClose={() => setDeleteSessionDialogOpen(false)}
+  PaperProps={{
+    sx: {
+      borderRadius: '16px',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(8px)',
+      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.2)',
+      border: '1px solid rgba(255, 255, 255, 0.3)',
+    }
+  }}
+>
+  <DialogTitle sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+    Delete Game Session
+  </DialogTitle>
+  <DialogContent>
+    <DialogContentText sx={{ ...pixelText, color: '#666' }}>
+      Are you sure you want to delete this game session? This will remove all student data and feedback for this session.
+    </DialogContentText>
+  </DialogContent>
+  <DialogActions sx={{ p: 2, gap: 1 }}>
+    <Button
+      onClick={() => setDeleteSessionDialogOpen(false)}
+      variant="outlined"
+      sx={{
+        ...pixelButton,
+        color: '#5F4B8B',
+        borderColor: '#5F4B8B',
+        '&:hover': {
+          borderColor: '#4a3a6d',
+          backgroundColor: 'rgba(95, 75, 139, 0.1)'
+        }
+      }}
+    >
+      CANCEL
+    </Button>
+    <Button
+      onClick={confirmDeleteSession}
+      variant="contained"
+      sx={{
+        ...pixelButton,
+        backgroundColor: '#d32f2f',
+        color: 'white',
+        '&:hover': {
+          backgroundColor: '#b71c1c'
+        }
+      }}
+    >
+      DELETE
+    </Button>
+  </DialogActions>
+</Dialog>
+
+<Dialog
+  open={deleteDialogOpen}
+  onClose={() => setDeleteDialogOpen(false)}
+  PaperProps={{
+    sx: {
+      borderRadius: '16px',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(8px)',
+      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.2)',
+      border: '1px solid rgba(255, 255, 255, 0.3)',
+    }
+  }}
+>
+  <DialogTitle sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+    Delete Classroom
+  </DialogTitle>
+  <DialogContent>
+    <DialogContentText sx={{ ...pixelText, color: '#666' }}>
+      Are you sure you want to delete this classroom? This action cannot be undone.
+    </DialogContentText>
+  </DialogContent>
+  <DialogActions sx={{ p: 2, gap: 1 }}>
+    <Button
+      onClick={() => setDeleteDialogOpen(false)}
+      variant="outlined"
+      sx={{
+        ...pixelButton,
+        color: '#5F4B8B',
+        borderColor: '#5F4B8B',
+        '&:hover': {
+          borderColor: '#4a3a6d',
+          backgroundColor: 'rgba(95, 75, 139, 0.1)'
+        }
+      }}
+    >
+      CANCEL
+    </Button>
+    <Button
+      onClick={confirmDeleteClassroom}
+      variant="contained"
+      sx={{
+        ...pixelButton,
+        backgroundColor: '#d32f2f',
+        color: 'white',
+        '&:hover': {
+          backgroundColor: '#b71c1c'
+        }
+      }}
+    >
+      DELETE
+    </Button>
+  </DialogActions>
+</Dialog>
+
+<Dialog
+  open={removeStudentDialogOpen}
+  onClose={() => setRemoveStudentDialogOpen(false)}
+  PaperProps={{
+    sx: {
+      borderRadius: '16px',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(8px)',
+      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.2)',
+      border: '1px solid rgba(255, 255, 255, 0.3)',
+    }
+  }}
+>
+  <DialogTitle sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+    Remove Student
+  </DialogTitle>
+  <DialogContent>
+    <DialogContentText sx={{ ...pixelText, color: '#666' }}>
+      Are you sure you want to remove this student from the classroom?
+    </DialogContentText>
+  </DialogContent>
+  <DialogActions sx={{ p: 2, gap: 1 }}>
+    <Button
+      onClick={() => setRemoveStudentDialogOpen(false)}
+      variant="outlined"
+      sx={{
+        ...pixelButton,
+        color: '#5F4B8B',
+        borderColor: '#5F4B8B',
+        '&:hover': {
+          borderColor: '#4a3a6d',
+          backgroundColor: 'rgba(95, 75, 139, 0.1)'
+        }
+      }}
+    >
+      CANCEL
+    </Button>
+    <Button
+      onClick={confirmRemoveStudent}
+      variant="contained"
+      sx={{
+        ...pixelButton,
+        backgroundColor: '#d32f2f',
+        color: 'white',
+        '&:hover': {
+          backgroundColor: '#b71c1c'
+        }
+      }}
+    >
+      REMOVE
+    </Button>
+  </DialogActions>
+</Dialog>
+<Dialog
+  open={deleteContentDialogOpen}
+  onClose={() => setDeleteContentDialogOpen(false)}
+  PaperProps={{
+    sx: {
+      borderRadius: '16px',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(8px)',
+      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.2)',
+      border: '1px solid rgba(255, 255, 255, 0.3)',
+    }
+  }}
+>
+  <DialogTitle sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+    Delete Content
+  </DialogTitle>
+  <DialogContent>
+    <DialogContentText sx={{ ...pixelText, color: '#666' }}>
+      Are you sure you want to delete this content? This action cannot be undone.
+    </DialogContentText>
+  </DialogContent>
+  <DialogActions sx={{ p: 2, gap: 1 }}>
+    <Button
+      onClick={() => setDeleteContentDialogOpen(false)}
+      variant="outlined"
+      sx={{
+        ...pixelButton,
+        color: '#5F4B8B',
+        borderColor: '#5F4B8B',
+        '&:hover': {
+          borderColor: '#4a3a6d',
+          backgroundColor: 'rgba(95, 75, 139, 0.1)'
+        }
+      }}
+    >
+      CANCEL
+    </Button>
+    <Button
+      onClick={confirmDeleteContent}
+      variant="contained"
+      sx={{
+        ...pixelButton,
+        backgroundColor: '#d32f2f',
+        color: 'white',
+        '&:hover': {
+          backgroundColor: '#b71c1c'
+        }
+      }}
+    >
+      DELETE
+    </Button>
+  </DialogActions>
+</Dialog>
+
+
     </Box>
   );
 };

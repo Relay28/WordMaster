@@ -423,6 +423,12 @@ const EditContent = () => {
       display: 'flex',
       flexDirection: 'column',
       height: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
       overflow: 'hidden',
       background: `
         linear-gradient(to bottom, 
