@@ -653,8 +653,25 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         dto.setSessionId(sessionId);
         dto.setSessionCode(session.getSessionCode());
         dto.setStatus(session.getStatus().toString());
-        
-        List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId);
+
+
+        List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId).stream()
+                .map(player -> {
+                    PlayerSessionDTO playerDTO = new PlayerSessionDTO();
+                    playerDTO.setId(player.getId());
+                    playerDTO.setUserId(player.getUserId());
+                    playerDTO.setPlayerName(player.getPlayerName());
+                    playerDTO.setRole(player.getRole());
+                    playerDTO.setTotalScore(player.getTotalScore());
+                    playerDTO.setActive(player.isActive());
+                    // Set the profile picture properly
+                    playerDTO.setProfilePicture(playerRepository.findById(player.getId())
+                            .map(PlayerSessionEntity::getUser)
+                            .map(UserEntity::getProfilePicture)
+                            .orElse(null));
+                    return playerDTO;
+                })
+                .collect(Collectors.toList());
         dto.setPlayers(playerDTOs);
 
         if (session.getContent() != null) {

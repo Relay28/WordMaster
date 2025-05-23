@@ -169,7 +169,7 @@ public class AIService {
                         "- 'NO ERRORS' if the text is completely correct grammatically\n" +
                         "- 'MINOR ERRORS' if there are small issues that don't impact understanding\n" +
                         "- 'MAJOR ERRORS' if there are significant issues affecting clarity\n\n" +
-                        "Start your response with one of these classifications, then provide a brief explanation.";
+                        "Start your response with one of these classifications, then provide a brief explanation. After that , provide a Did you mean to say {example correct sentence} which is the correct sentence supposedly";
 
                 case "role_check":
                     return "You are evaluating if a student's message is appropriate for their assigned role in a language learning game.\n" +

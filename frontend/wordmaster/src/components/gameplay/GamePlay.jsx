@@ -32,7 +32,7 @@ import {
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import { BagClosed, BagOpen } from '../../assets/BagIcons';
-import { Close } from '@mui/icons-material';
+import { Close, Games } from '@mui/icons-material';
 
 
 // Add API URL configuration
@@ -482,7 +482,9 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
                       bgcolor: '#9575CD',
                       border: '2px solid white'
                     }}
+                     src={player.profilePicture || undefined}
                   >
+                   
                     {player.name?.charAt(0)}
                   </Avatar>
                 );

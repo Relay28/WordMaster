@@ -52,7 +52,7 @@ public class WaitingRoomService {
             userDto.setId(userId);
             userDto.setFname(userName);
             userDto.setRole(user.getRole());
-
+            userDto.setProfilePicture(user.getProfilePicture());
             // Check if the user is already in the waiting room
             // This relies on the UserDto's equals and hashCode methods to correctly identify duplicates
             if (!studentsInRoom.contains(userDto)) {

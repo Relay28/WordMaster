@@ -260,16 +260,21 @@ const WaitingRoomPage = () => {
                     '&:last-child': { mb: 0 }
                   }}
                 >
-                  <ListItemAvatar>
-                    <Avatar sx={{ 
-                      bgcolor: '#5F4B8B',
-                      width: isMobile ? 32 : 40,
-                      height: isMobile ? 32 : 40,
-                      ...pixelText
-                    }}>
-                      {student.fname?.charAt(0)}
-                    </Avatar>
-                  </ListItemAvatar>
+             
+<ListItemAvatar>
+  <Avatar 
+    sx={{ 
+      bgcolor: '#5F4B8B',
+      width: isMobile ? 32 : 40,
+      height: isMobile ? 32 : 40,
+      color: 'white'
+    }}
+    src={student.profilePicture || undefined}
+  >
+    {!student.profilePicture && student.fname?.charAt(0)}
+  </Avatar>
+</ListItemAvatar>
+
                   <ListItemText 
                     primary={`${student.fname}`} 
                     primaryTypographyProps={{ sx: pixelText }}
