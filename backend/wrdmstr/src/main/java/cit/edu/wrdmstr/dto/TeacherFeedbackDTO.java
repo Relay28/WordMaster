@@ -26,6 +26,8 @@ public class TeacherFeedbackDTO {
     private Integer messageCount;
     private Integer perfectGrammarCount;
     private Integer wordBankUsageCount;
+    private Integer vocabularyScore;
+
     
     // Comprehension check data
     private List<Map<String, Object>> comprehensionQuestions;
@@ -228,5 +230,13 @@ public class TeacherFeedbackDTO {
     
     public void setMessageAnalysis(List<Map<String, Object>> messageAnalysis) {
         this.messageAnalysis = messageAnalysis;
+    }
+
+    public Integer getVocabularyScore() {
+        return vocabularyScore;
+    }
+
+    public void setVocabularyScore(Integer vocabularyScore) {
+        this.vocabularyScore = vocabularyScore;
     }
 }

@@ -570,6 +570,28 @@ public class TeacherFeedbackService {
         analytics.put("sessionDate", session.getStartedAt());
         analytics.put("contentTitle", session.getContent().getTitle());
         
+        // Add used words analysis
+        List<String> usedWords = new ArrayList<>();
+        List<String> usedAdvancedWords = new ArrayList<>();
+
+        for (ChatMessageEntity message : messages) {
+            if (message.getWordUsed() != null && !message.getWordUsed().isEmpty()) {
+                List<String> words = Arrays.asList(message.getWordUsed().split(", "));
+                usedWords.addAll(words);
+                
+                // Analyze which words are considered advanced
+                for (String word : words) {
+                    if (word.length() > 7) {  // Simple criterion for advanced words
+                        usedAdvancedWords.add(word);
+                    }
+                }
+            }
+        }
+
+        analytics.put("usedWords", usedWords);
+        analytics.put("usedAdvancedWords", usedAdvancedWords);
+        analytics.put("vocabularyScore", feedback != null ? feedback.getVocabularyScore() : null);
+        
         return analytics;
     }
 

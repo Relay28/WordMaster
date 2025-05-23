@@ -315,6 +315,38 @@ public class AIService {
                         request.get("word") + ".\n\n" +
                         "Format your response exactly as follows with no prefix labels:\n" +
                         "[definition] | [example sentence using the word]";
+                case "vocabulary_check":
+                    StringBuilder vocabPrompt = new StringBuilder();
+                    vocabPrompt.append("You are an expert language teacher analyzing a student's vocabulary usage.\n\n");
+                    vocabPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n\n");
+                    
+                    List<String> usedWords2 = (List<String>) request.get("usedWords");
+                    if (usedWords2 != null && !usedWords2.isEmpty()) {
+                        vocabPrompt.append("Word bank words used: ").append(String.join(", ", usedWords2)).append("\n\n");
+                    }
+                    
+                    vocabPrompt.append("Please provide feedback on:\n");
+                    vocabPrompt.append("1. Overall vocabulary richness\n");
+                    vocabPrompt.append("2. Appropriateness of word choices\n");
+                    vocabPrompt.append("3. Suggestions for vocabulary improvement\n\n");
+                    vocabPrompt.append("Format your response to be encouraging and constructive.");
+                    
+                    return vocabPrompt.toString();
+                case "generate_vocabulary_exercises":
+                    StringBuilder exercisesPrompt = new StringBuilder();
+                    exercisesPrompt.append("You are creating vocabulary exercises for a language learning game.\n\n");
+                    
+                    exercisesPrompt.append("Word bank: ").append(request.get("wordBank")).append("\n\n");
+                    exercisesPrompt.append("Words already used by student: ").append(request.get("usedWords")).append("\n\n");
+                    exercisesPrompt.append("Student name: ").append(request.get("studentName")).append("\n\n");
+                    
+                    exercisesPrompt.append("Create 3 vocabulary exercises:\n");
+                    exercisesPrompt.append("1. A fill-in-the-blank exercise\n");
+                    exercisesPrompt.append("2. A word matching exercise\n");
+                    exercisesPrompt.append("3. A sentence completion exercise\n\n");
+                    exercisesPrompt.append("Focus on words the student hasn't used yet. Format as JSON for easy parsing.");
+                    
+                    return exercisesPrompt.toString();
                 default:
                     return "Provide a response to: " + request;
             }

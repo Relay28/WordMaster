@@ -41,6 +41,9 @@ public class TeacherFeedbackEntity {
     @Column(name = "overall_grade")
     private String overallGrade; // A, B, C, etc. or numeric
 
+    @Column(name = "vocabulary_score")
+    private Integer vocabularyScore;
+
     @Column(name = "created_at")
     private Date createdAt;
     
@@ -186,6 +189,14 @@ public class TeacherFeedbackEntity {
 
     public void setComprehensionPercentage(Double comprehensionPercentage) {
         this.comprehensionPercentage = comprehensionPercentage;
+    }
+
+    public Integer getVocabularyScore() {
+        return vocabularyScore;
+    }
+    
+    public void setVocabularyScore(Integer vocabularyScore) {
+        this.vocabularyScore = vocabularyScore;
     }
 
     @PrePersist

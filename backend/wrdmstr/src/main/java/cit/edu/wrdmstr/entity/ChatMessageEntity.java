@@ -48,6 +48,13 @@ public class ChatMessageEntity {
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MessageReactionEntity> reactions = new ArrayList<>();
 
+    @Column(name = "vocabulary_score")
+    private Integer vocabularyScore;
+
+    @Lob
+    @Column(name = "vocabulary_feedback", columnDefinition = "TEXT")
+    private String vocabularyFeedback;
+
     // Getters and setters
 
 
@@ -141,5 +148,21 @@ public class ChatMessageEntity {
 
     public void setWordUsed(String wordUsed) {
         this.wordUsed = wordUsed;
+    }
+
+    public Integer getVocabularyScore() {
+        return vocabularyScore;
+    }
+
+    public void setVocabularyScore(Integer vocabularyScore) {
+        this.vocabularyScore = vocabularyScore;
+    }
+
+    public String getVocabularyFeedback() {
+        return vocabularyFeedback;
+    }
+
+    public void setVocabularyFeedback(String vocabularyFeedback) {
+        this.vocabularyFeedback = vocabularyFeedback;
     }
 }

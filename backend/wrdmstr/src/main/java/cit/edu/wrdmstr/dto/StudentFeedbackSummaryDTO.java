@@ -16,7 +16,7 @@ public class StudentFeedbackSummaryDTO {
     private int roleAdherenceScore;
     private String overallGrade;
     private Date createdAt;
-    
+    private int vocabularyScore;
     // Getters and setters
     public Long getId() {
         return id;
@@ -120,5 +120,13 @@ public class StudentFeedbackSummaryDTO {
     
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public int getVocabularyScore() {
+        return vocabularyScore;
+    }
+
+    public void setVocabularyScore(int vocabularyScore) {
+        this.vocabularyScore = vocabularyScore;
     }
 }
