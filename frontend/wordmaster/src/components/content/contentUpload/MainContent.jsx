@@ -169,7 +169,8 @@ const MainContent = ({
       sx={{
         display: 'flex',
               flexDirection: 'column',
-              minHeight: '100vh',
+              height: '100vh',
+              overflow: 'hidden',
               background: `
                 linear-gradient(to bottom, 
                   rgba(249, 249, 249, 10) 0%, 
@@ -183,7 +184,26 @@ const MainContent = ({
               imageRendering: 'pixelated',
       }}
     >
-      <Container maxWidth="lg">
+      <Box sx={{ 
+            flex: 1,
+            width: '100%',
+            overflow: 'auto',
+            // Custom scrollbar styling
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(95, 75, 139, 0.1)',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#5F4B8B',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: '#4a3a6d',
+              },
+            },
+          }}>
+      <Container maxWidth="xl">
         {error && (
           <Alert 
             severity="error" 
@@ -364,6 +384,7 @@ const MainContent = ({
           </Paper>
         </form>
       </Container>
+    </Box>
     </Box>
   );
 };

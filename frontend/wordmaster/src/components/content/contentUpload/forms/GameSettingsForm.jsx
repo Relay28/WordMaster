@@ -13,8 +13,8 @@ const GameSettingsForm = ({ scenarioSettings, handleScenarioSettingChange }) => 
         Configure timing and duration for the game.
       </Typography>
       </Box>
-      <Grid container spacing={3}> {/* Adjusted spacing */}
-        <Grid item xs={12} md={6}>
+      <Grid container spacing={6} sx={{p:1}}> {/* Adjusted spacing */}
+        <Grid item xs={12} md={6} width={650}>
           <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
             <InputLabel id="time-per-turn-label">Time per Turn (Seconds)</InputLabel>
             <Select
@@ -33,7 +33,7 @@ const GameSettingsForm = ({ scenarioSettings, handleScenarioSettingChange }) => 
           </FormControl>
         </Grid>
         
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} width={650}>
           <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
             <InputLabel id="turn-cycles-label">Rounds / Total Turns</InputLabel> {/* Updated Label */}
             <Tooltip title="For multiplayer, this is 'Number of Rounds'. For single-player, this is 'Total Turns'.">

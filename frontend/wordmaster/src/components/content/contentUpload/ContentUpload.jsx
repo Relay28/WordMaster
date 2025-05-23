@@ -116,6 +116,8 @@ const ContentUpload = () => {
 
   // Prepare data for submission
   const prepareContentData = () => {
+
+ 
     return {
       backgroundImage: imagePreview,
       wordBank: scenarioSettings.wordBank.map(item => {
@@ -134,7 +136,9 @@ const ContentUpload = () => {
         name: role
       }))
     };
+
   };
+};
 
   const prepareGameConfig = () => {
     return {
@@ -202,9 +206,11 @@ const ContentUpload = () => {
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
+      height: '100vh',
+      overflow: 'hidden',
       backgroundColor: '#f9f9f9',
     }}>
+    
       {/* Header */}
       <PageHeader 
         title={classroomId ? "Create Classroom Content" : "Create New Content"}

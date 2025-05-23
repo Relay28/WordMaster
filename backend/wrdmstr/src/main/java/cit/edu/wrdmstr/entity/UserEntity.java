@@ -44,6 +44,17 @@ public class UserEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<MessageReactionEntity> reactions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudentProgress> studentProgressRecords = new ArrayList<>();
+
+    public List<StudentProgress> getStudentProgressRecords() {
+        return studentProgressRecords;
+    }
+
+    public void setStudentProgressRecords(List<StudentProgress> studentProgressRecords) {
+        this.studentProgressRecords = studentProgressRecords;
+    }
+
     public List<ChatMessageEntity> getSentMessages() {
         return sentMessages;
     }

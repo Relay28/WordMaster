@@ -24,6 +24,8 @@ import  ContentUpload from './components/content/contentUpload/ContentUpload';
 import { useUserAuth } from './components/context/UserAuthContext';
 import WaitingRoomPage from './components/WaitingRoom/WaitingRoomPage';
 import AIContentGenerator from './components/content/AIContentGenerator';
+import SessionProgressView from './components/gameplay/SessionProgressView';
+import TeacherContentSessions from './components/gameplay/SessionManager';
 import StudentReportPage from './components/Reports/StudentReportPage';
 import StudentFeedbackPage from './components/Reports/StudentFeedbackPage';
 
@@ -66,6 +68,8 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
       <Route path="/waiting-room/:contentId" element={<WaitingRoomPage />} />
+      <Route path="/results/:sessionId" element={<SessionProgressView/>} />
+      <Route path="/session/:contentId" element={<TeacherContentSessions />} />
       {/* Content Management Routes */}
       <Route element={<ProtectedTeacherRoute />}>
         <Route path="/content/dashboard" element={<ContentDashboard />} />

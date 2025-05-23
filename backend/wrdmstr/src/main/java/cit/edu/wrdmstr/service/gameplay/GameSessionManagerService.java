@@ -9,10 +9,10 @@ import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.CardService;
+import cit.edu.wrdmstr.service.ProgressTrackingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.SecurityProperties.User;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -41,8 +41,11 @@ public class GameSessionManagerService {
     private final GrammarCheckerService grammarCheckerService;
     private final AIService aiService;
     @Autowired private ScoreService scoreService;
-    
+  private final StudentProgressRepository progressRepository;
     // In-memory game state tracking
+
+    @Autowired
+    private ProgressTrackingService progressTrackingService;
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
 
     @Autowired
@@ -57,7 +60,7 @@ public class GameSessionManagerService {
             GrammarCheckerService grammarCheckerService,
             GameSessionService gameSessionService,
             AIService aiService,
-            UserRepository userRepository) {
+            UserRepository userRepository, StudentProgressRepository progressRepository) {
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
         this.gameSessionRepository = gameSessionRepository;
@@ -69,6 +72,7 @@ public class GameSessionManagerService {
         this.grammarCheckerService = grammarCheckerService;
         this.gameSessionService = gameSessionService;
         this.aiService = aiService;
+        this.progressRepository = progressRepository;
     }
 
     @Transactional
@@ -127,6 +131,44 @@ public class GameSessionManagerService {
 
         // Broadcast first turn
         startNextTurn(sessionId);
+    }
+
+    private void trackTurnCompletion(PlayerSessionEntity player, GameSessionEntity session) {
+        try {
+            long turnEndTime = System.currentTimeMillis();
+            GameState gameState = activeGames.get(session.getId());
+
+            if (gameState != null) {
+                // Calculate response time
+                long turnStartTime = gameState.getLastTurnTime();
+                double responseTime = (turnEndTime - turnStartTime) / 1000.0;
+
+                // Get or create progress record
+                StudentProgress progress = progressTrackingService.getStudentProgress(
+                        player.getUser().getId(), session.getId());
+
+                // Update turn counts and response time
+                progress.setTotalTurnsTaken(progress.getTotalTurnsTaken() + 1);
+                progress.setTotalResponseTime(progress.getTotalResponseTime() + responseTime);
+
+                // Calculate metrics
+                double turnCompletionRate = calculateTurnCompletionRate(progress, session);
+                double avgResponseTime = progress.getTotalTurnsTaken() > 0 ?
+                        progress.getTotalResponseTime() / progress.getTotalTurnsTaken() : 0;
+
+                // Update progress
+                progress.setTurnCompletionRate(turnCompletionRate);
+                progress.setAvgResponseTime(avgResponseTime);
+
+                progressRepository.save(progress);
+
+                // Track all metrics
+                progressTrackingService.trackTurnProgress(session.getId(), player.getId());
+            }
+        } catch (Exception e) {
+            logger.error("Error tracking turn completion for player {}: {}",
+                    player.getId(), e.getMessage());
+        }
     }
 
     private void initializeGame(GameSessionEntity session, GameState gameState, List<PlayerSessionEntity> players) {
@@ -468,7 +510,7 @@ public class GameSessionManagerService {
             logger.error("Error sending word via chat service for session {}: {}", sessionId, e.getMessage(), e);
             return false;
         }
-
+        trackTurnCompletion(currentPlayer, session);
         logger.info("Successfully processed word submission '{}' for session {} by user {}, advancing to next player",
                 submission.getWord(), sessionId, userId);
     
@@ -476,6 +518,8 @@ public class GameSessionManagerService {
         advanceToNextPlayer(sessionId);
         return true;
     }
+
+
 
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -551,6 +595,14 @@ public class GameSessionManagerService {
         startNextTurn(sessionId); // Start the new turn
     }
 
+
+    private double calculateTurnCompletionRate(StudentProgress progress, GameSessionEntity session) {
+        if (session.getTotalTurns() <= 0) return 0;
+
+        // Calculate based on player's turns taken vs total possible turns
+        // Cap at 100% to prevent exceeding
+        return Math.min(100.0, (progress.getTotalTurnsTaken() * 100.0) / session.getTotalTurns());
+    }
     public void endGame(Long sessionId) {
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
@@ -601,8 +653,25 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         dto.setSessionId(sessionId);
         dto.setSessionCode(session.getSessionCode());
         dto.setStatus(session.getStatus().toString());
-        
-        List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId);
+
+
+        List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId).stream()
+                .map(player -> {
+                    PlayerSessionDTO playerDTO = new PlayerSessionDTO();
+                    playerDTO.setId(player.getId());
+                    playerDTO.setUserId(player.getUserId());
+                    playerDTO.setPlayerName(player.getPlayerName());
+                    playerDTO.setRole(player.getRole());
+                    playerDTO.setTotalScore(player.getTotalScore());
+                    playerDTO.setActive(player.isActive());
+                    // Set the profile picture properly
+                    playerDTO.setProfilePicture(playerRepository.findById(player.getId())
+                            .map(PlayerSessionEntity::getUser)
+                            .map(UserEntity::getProfilePicture)
+                            .orElse(null));
+                    return playerDTO;
+                })
+                .collect(Collectors.toList());
         dto.setPlayers(playerDTOs);
 
         if (session.getContent() != null) {

@@ -189,12 +189,26 @@ const ClassroomDetailsPage = () => {
   };
   
   // Fetch classroom content
-  useEffect(() => {
-    const fetchClassroomContent = async () => {
-      if (!classroom) return;
+ // Fetch classroom content
+useEffect(() => {
+  const fetchClassroomContent = async () => {
+    if (!classroom) return;
+    
+    console.log("Fetching content for classroom ID:", classroom.id);
+    setLoadingContent(true);
+    
+    try {
+      const token = await getToken();
+      let data;
       
-      console.log("Fetching content for classroom ID:", classroom.id); // Debug logging
-      
+
+      if (user.role === 'USER_STUDENT') {
+        // Fetch only published content for students
+        data = await contentService.getPublishedContentByClassroom(classroom.id, token);
+      } else {
+        // Fetch all content for teachers
+        data = await contentService.getContentByClassroom(classroom.id, token);
+
       setLoadingContent(true);
       try {
         const token = await getToken();
@@ -216,12 +230,22 @@ const ClassroomDetailsPage = () => {
         setContentError("Failed to load content for this classroom.");
       } finally {
         setLoadingContent(false);
+
       }
-    };
+      
+      console.log("Classroom content data:", data);
+      setContentList(data);
+      setContentError(null);
+    } catch (err) {
+      console.error("Error loading classroom content:", err);
+      setContentError("Failed to load content for this classroom.");
+    } finally {
+      setLoadingContent(false);
+    }
+  };
 
-    fetchClassroomContent();
-  }, [classroom, getToken, refreshTrigger]); // Add refreshTrigger here
-
+  fetchClassroomContent();
+}, [classroom, getToken, refreshTrigger]); // Add user.role to dependencies
   const handleCreateContent = () => {
     if (!classroom) return;
     console.log("Navigating to create content with classroom:", classroom.id); // Debug logging
@@ -273,7 +297,7 @@ const ClassroomDetailsPage = () => {
           const token = await getToken();
           await contentService.publishContent(contentId, token);
           // Redirect to waiting room after successful publish
-          navigate(`/waiting-room/${contentId}`);
+        
         } catch (error) {
           console.error("Error publishing content:", error);
           // Handle error
@@ -929,8 +953,16 @@ return (
                   mb: 1
                 }}>
                   <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: '#5F4B8B' }}>
-                      {classroom.teacher.fname?.charAt(0)}{classroom.teacher.lname?.charAt(0)}
+                    <Avatar
+                      src={classroom.teacher.profilePicture || undefined}
+                      sx={{ bgcolor: '#5F4B8B' }}
+                    >
+                      {!classroom.teacher.profilePicture && (
+                        <>
+                          {classroom.teacher.fname?.charAt(0)}
+                          {classroom.teacher.lname?.charAt(0)}
+                        </>
+                      )}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
@@ -969,8 +1001,16 @@ return (
                       }}
                     >
                       <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: '#6c63ff' }}>
-                          {member.fname?.charAt(0)}{member.lname?.charAt(0)}
+                        <Avatar
+                          src={member.profilePicture || undefined}
+                          sx={{ bgcolor: '#6c63ff' }}
+                        >
+                          {!member.profilePicture && (
+                            <>
+                              {member.fname?.charAt(0)}
+                              {member.lname?.charAt(0)}
+                            </>
+                          )}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText

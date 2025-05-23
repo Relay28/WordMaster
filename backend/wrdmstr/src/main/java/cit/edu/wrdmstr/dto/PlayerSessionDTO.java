@@ -6,8 +6,23 @@ public class PlayerSessionDTO {
     private String playerName;
     private String role;
     private int totalScore;
+
+    private String profilePicture;
+
     private boolean active;
-    
+
+    public void setPlayerName(String playerName) {
+        this.playerName = playerName;
+    }
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
+    }
+
     // Getters and setters
     public Long getId() {
         return id;

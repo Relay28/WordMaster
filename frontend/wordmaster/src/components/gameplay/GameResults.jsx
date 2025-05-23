@@ -233,6 +233,126 @@ const GameResults = ({ gameState }) => {
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
                       <Typography sx={pixelText}>You didn't participate in this game.</Typography>
                     </Box>
+
+                  </Box>
+                )}
+              </Box>
+            )}
+          
+          {/* Leaderboard */}
+          <Paper elevation={0} sx={{ 
+            mb: 4, 
+            borderRadius: '8px',
+            border: '3px solid #5F4B8B',
+            overflow: 'hidden',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)'
+          }}>
+            <Box sx={{ 
+              bgcolor: '#5F4B8B', 
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <EmojiEvents sx={{ mr: 1, color: '#FFD700' }} />
+              <Typography sx={{ 
+                ...pixelHeading, 
+                color: 'white',
+                fontSize: isMobile ? '14px' : '16px'
+              }}>
+                LEADERBOARD
+              </Typography>
+            </Box>
+            
+            <List sx={{ p: 0 }}>
+              {gameState.leaderboard?.map((player, index) => (
+                <ListItem 
+                  key={player.id}
+                  sx={{
+                    borderBottom: '1px solid rgba(95, 75, 139, 0.2)',
+                    backgroundColor: player.userId === user?.id ? 'rgba(95, 75, 139, 0.1)' : 'inherit',
+                    '&:last-child': { borderBottom: 'none' },
+                    px: isMobile ? 1 : 2,
+                    py: 1.5
+                  }}
+                >
+                  <ListItemAvatar>
+                    <Avatar 
+                      sx={{ 
+                        width: isMobile ? 28 : 32, 
+                        height: isMobile ? 28 : 32, 
+                        bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B',
+                        fontSize: isMobile ? '0.8rem' : '0.9rem'
+                      }}
+                    >
+                      {index + 1}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ 
+                        ...pixelText,
+                        fontSize: isMobile ? '9px' : '10px',
+                        fontWeight: player.userId === user?.id ? 'bold' : 'normal'
+                      }}>
+                        {player.name}
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography sx={{ 
+                        ...pixelText, 
+                        color: '#5F4B8B',
+                        fontSize: isMobile ? '8px' : '9px'
+                      }}>
+                        {player.role || 'Player'}
+                      </Typography>
+                    }
+                    sx={{ my: 0 }}
+                  />
+                  <Typography sx={{ 
+                    ...pixelHeading, 
+                    fontWeight: 'bold',
+                    fontSize: isMobile ? '12px' : '14px'
+                  }}>
+                    {player.score} pts
+                  </Typography>
+                </ListItem>
+              ))}
+            </List>
+          </Paper>
+          
+          {/* Navigation Button */}
+          <Box display="flex" justifyContent="center">
+            <Button
+              variant="contained"
+              startIcon={<ArrowBack />}
+              onClick={() => navigate(isTeacher ? '/content/dashboard' : '/homepage')}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#5F4B8B',
+                '&:hover': { 
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4px',
+                px: 3,
+                py: 1.5,
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
+                fontSize: isMobile ? '10px' : '12px'
+              }}
+            >
+              {isTeacher ? 'BACK TO DASHBOARD' : 'BACK TO HOMEPAGE'}
+            </Button>
+          </Box>
+        </Box>
                   )}
                 </Paper>
               </Grid>

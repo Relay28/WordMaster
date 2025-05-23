@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useUserAuth } from '../components/context/UserAuthContext';
+
 
 export const useUserProfile = (user, authChecked, logout, getToken) => {
   const [editMode, setEditMode] = useState(false);
@@ -24,7 +26,9 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
     if (authChecked && user) {
       fetchUserProfile();
     }
-  }, [authChecked, user]);
+  }, [authChecked]);
+
+  const { setUser } = useUserAuth();
 
   const uploadProfilePicture = async (file) => {
     try {
@@ -44,9 +48,16 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
           }
         }
       );
-      
+      console.log('Upload response:', response.data);
       setSuccess('Profile picture updated successfully');
-      await fetchUserProfile(); // Refresh profile data to get the new picture
+
+      // Update localStorage userData with new profile picture
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      userData.profilePicture = response.data.profilePicture; // Use the new URL from backend
+      localStorage.setItem('userData', JSON.stringify(userData));
+
+      setUser(userData);
+
       setLoading(false);
       return response.data;
     } catch (err) {
@@ -72,13 +83,25 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
       });
       
       setFormData({
-        firstName: response.data.firstName || '',
-        lastName: response.data.lastName || '',
+        firstName: response.data.fname || response.data.firstName || '',
+        lastName: response.data.lname || response.data.lastName || '',
         email: response.data.email || '',
         profilePicture: response.data.profilePicture || '',
         currentPassword: '',
         newPassword: '' // Reset new password field when fetching profile
       });
+
+
+      const userObj = {
+        ...user,
+        fname: response.data.fname || response.data.firstName || '',
+        lname: response.data.lname || response.data.lastName || '',
+        email: response.data.email || '',
+        profilePicture: response.data.profilePicture || ''
+      };
+      localStorage.setItem('userData', JSON.stringify(userObj));
+      setUser(userObj);
+
     } catch (err) {
       setError('Failed to load profile data');
       console.error('Error fetching profile:', err);
@@ -106,7 +129,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
         fname: formData.firstName,
         lname: formData.lastName,
         email: formData.email,
-        currentPassword: formData.currentPassword // Sent as 'password' to backend
+        // currentPassword: formData.currentPassword // Sent as 'password' to backend
       };
 
       const response = await axios.put('http://localhost:8080/api/profile', updateDto, {
@@ -120,9 +143,11 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
         ...user,
         fname: response.data.fname,
         lname: response.data.lname,
-        email: response.data.email
+        email: response.data.email,
+        profilePicture: response.data.profilePicture
       };
       localStorage.setItem('userData', JSON.stringify(updatedUser));
+      setUser(updatedUser);
 
       setSuccess('Profile updated successfully');
       setEditMode(false);
@@ -172,6 +197,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
     loading,
     error,
     success,
+    setFormData,
     formData,
     setEditMode,
     setDeactivateDialogOpen,

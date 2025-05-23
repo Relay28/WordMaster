@@ -8,6 +8,7 @@ import cit.edu.wrdmstr.entity.PlayerSessionEntity;
 import cit.edu.wrdmstr.service.gameplay.GameSessionManagerService;
 import cit.edu.wrdmstr.service.gameplay.GameSessionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -64,6 +65,21 @@ public class GameSessionController {
         Long userId = gameSessionService.getUserIdByEmail(email);
         PlayerSessionEntity player = gameSessionService.joinSession(sessionId, userId);
         return ResponseEntity.ok(player);
+    }
+
+    @GetMapping("/teacher/sessions/content/{contentId}/active")
+    public ResponseEntity<List<Map<String, Object>>> getActiveSessionsByContent(
+            @PathVariable Long contentId,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        Long teacherId = gameSessionService.getUserIdByEmail(email);
+
+        // Verify teacher access to the content
+
+
+        List<Map<String, Object>> activeSessions = gameSessionService.getActiveSessionsWithDetails(contentId);
+        return ResponseEntity.ok(activeSessions);
     }
 
     @PostMapping("/{sessionId}/end")

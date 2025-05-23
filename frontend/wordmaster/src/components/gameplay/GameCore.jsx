@@ -7,7 +7,7 @@ import GamePlay from './GamePlay';
 import GameResults from './GameResults';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
-
+import picbg from '../../assets/picbg.png';
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -109,37 +109,50 @@ const GameCore = () => {
     };
   }, [sessionId, getToken, user]);
 // In GameCore.js
+// Replace the existing handleChatMessage function
+
 const handleChatMessage = (message) => {
   try {
     const chatData = JSON.parse(message.body);
-    
-    // Add a unique identifier if not present
-    if (!chatData.id) {
-      chatData.id = `${chatData.senderId}-${chatData.timestamp}-${Math.random().toString(36).substr(2, 9)}`;
-    }
-    
-    setGameState(prev => {
-      // Check if message already exists in state
-      const messageExists = prev.messages?.some(msg => 
-        msg.id === chatData.id || 
-        (msg.senderId === chatData.senderId && 
-         msg.content === chatData.content && 
-         msg.timestamp === chatData.timestamp)
-      );
-      
-      if (!messageExists) {
-        return {
-          ...prev,
-          messages: [...(prev.messages || []), chatData]
-        };
-      }
-      return prev; // Return previous state if message exists
-    });
+    console.log('Chat message received:', chatData);
+    // Fetch latest messages when a new message arrives
+    fetchSessionMessages();
   } catch (error) {
     console.error('Error handling chat message:', error);
   }
 };
+// Add this after the fetchGameState function
 
+const fetchSessionMessages = useCallback(async () => {
+  try {
+    const token = await getToken();
+    if (!token) {
+      console.error('Authentication token not available');
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/api/chat/sessions/${sessionId}/messages`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chat messages: ${response.status}`);
+    }
+
+    const messages = await response.json();
+    console.log('Chat messages received:', messages);
+    setGameState(prev => ({
+      ...prev,
+      messages: messages
+    }));
+  } catch (error) {
+    console.error('Error fetching chat messages:', error);
+  }
+}, [sessionId, getToken]);
   
   // Fetch game state from the backend
   const fetchGameState = useCallback(async () => {
@@ -176,8 +189,7 @@ const handleChatMessage = (message) => {
     
     // Ensure messages array exists in game state
     setGameState({
-      ...data,
-      messages: data.chatHistory || [] // Map chatHistory to messages
+      ...data, // Map chatHistory to messages
     });
       setLoading(false);
     } catch (err) {
@@ -185,6 +197,20 @@ const handleChatMessage = (message) => {
       console.error('Game state fetch error:', err);
     }
   }, [sessionId, getToken]);
+
+  // Add this after the first useEffect
+
+useEffect(() => {
+  // Fetch messages initially
+  fetchSessionMessages();
+
+  // Set up periodic refresh
+  const refreshInterval = setInterval(fetchSessionMessages, 10000); // Refresh every 10 seconds
+
+  return () => {
+    clearInterval(refreshInterval);
+  };
+}, [fetchSessionMessages]);
   
   // WebSocket message handlers
   const handleGameStatus = (message) => {
@@ -367,11 +393,50 @@ const handleChatMessage = (message) => {
     );
   }
 
-  return (
-    <Container maxWidth="lg">
-      {renderGameContent()}
-    </Container>
-  );
+  // Replace the return statement in GameCore component
+return (
+  <Box sx={{ 
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    overflow: 'hidden',
+    background: `
+      linear-gradient(to bottom, 
+        rgba(249, 249, 249, 10) 0%, 
+        rgba(249, 249, 249, 10) 40%, 
+        rgba(249, 249, 249, 0.1) 100%),
+      url(${picbg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
+    imageRendering: 'pixelated',
+  }}>
+    <Box sx={{ 
+      flex: 1,
+      width: '100%',
+      overflow: 'auto',
+      // Custom scrollbar styling
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'rgba(95, 75, 139, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#5F4B8B',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#4a3a6d',
+        },
+      },
+    }}>
+      <Container maxWidth="2xl">
+        {renderGameContent()}
+      </Container>
+    </Box>
+  </Box>
+);
 };
 
 export default GameCore;

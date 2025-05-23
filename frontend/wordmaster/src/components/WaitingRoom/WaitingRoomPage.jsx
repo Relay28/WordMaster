@@ -78,37 +78,49 @@ const WaitingRoomPage = () => {
 
     fetchStudents();
 
-    const initializeWebSocket = async () => {
-      try {
-        const token = await getToken();
-        const socket = new SockJS(`${API_URL}/ws?token=${token}`);
-        const client = new Client({
-          webSocketFactory: () => socket,
-          connectHeaders: {
-            'Authorization': `Bearer ${token}`
-          },
-          debug: (str) => console.log('STOMP: ' + str),
-          reconnectDelay: 5000,
-          onConnect: () => {
-            client.subscribe(`/topic/game-start/${contentId}`, (message) => {
-              const sessionData = JSON.parse(message.body);
-              setGameStarted(true);
-              if (user?.role === 'USER_STUDENT') {
-                navigate(`/game/${sessionData.sessionId}`);
-              }
-            });
-          },
-          onStompError: (frame) => {
-            console.error('STOMP error', frame);
-          },
+  const initializeWebSocket = async () => {
+  try {
+    const token = await getToken();
+    const socket = new SockJS(`${API_URL}/ws?token=${token}`);
+    const client = new Client({
+      webSocketFactory: () => socket,
+      connectHeaders: {
+        'Authorization': `Bearer ${token}`
+      },
+      debug: (str) => console.log('STOMP: ' + str),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        // Subscribe to game start notifications
+        client.subscribe(`/topic/game-start/${contentId}`, (message) => {
+          const sessionData = JSON.parse(message.body);
+          setGameStarted(true);
+          if (user?.role === 'USER_STUDENT') {
+            navigate(`/game/${sessionData.sessionId}`);
+          }
         });
 
-        client.activate();
-        setStompClient(client);
-      } catch (error) {
-        console.error('WebSocket initialization error:', error);
-      }
-    };
+        // Subscribe to waiting room updates
+        client.subscribe(`/topic/waiting-room/${contentId}/updates`, (message) => {
+          const updatedStudents = JSON.parse(message.body);
+          setStudents(updatedStudents);
+        });
+
+        // Join the waiting room when connected
+        //joinWaitingRoom(client, token);
+      },
+      onStompError: (frame) => {
+        console.error('STOMP error', frame);
+        setError('Failed to connect to game server');
+      },
+    });
+
+    client.activate();
+    setStompClient(client);
+  } catch (error) {
+    console.error('WebSocket initialization error:', error);
+    setError('Failed to initialize connection');
+  }
+};
 
     initializeWebSocket();
 
@@ -127,6 +139,10 @@ const WaitingRoomPage = () => {
           'Authorization': `Bearer ${token}`
         }
       });
+       if (user?.role === 'USER_TEACHER') {
+        navigate(`/session/${contentId}`);
+      }
+      
       if (!response.ok) throw new Error('Failed to start game');
       setGameStarted(true);
       setLoading(false);
@@ -256,16 +272,21 @@ const WaitingRoomPage = () => {
                     '&:last-child': { mb: 0 }
                   }}
                 >
-                  <ListItemAvatar>
-                    <Avatar sx={{ 
-                      bgcolor: '#5F4B8B',
-                      width: isMobile ? 32 : 40,
-                      height: isMobile ? 32 : 40,
-                      ...pixelText
-                    }}>
-                      {student.fname?.charAt(0)}
-                    </Avatar>
-                  </ListItemAvatar>
+             
+<ListItemAvatar>
+  <Avatar 
+    sx={{ 
+      bgcolor: '#5F4B8B',
+      width: isMobile ? 32 : 40,
+      height: isMobile ? 32 : 40,
+      color: 'white'
+    }}
+    src={student.profilePicture || undefined}
+  >
+    {!student.profilePicture && student.fname?.charAt(0)}
+  </Avatar>
+</ListItemAvatar>
+
                   <ListItemText 
                     primary={`${student.fname}`} 
                     primaryTypographyProps={{ sx: pixelText }}

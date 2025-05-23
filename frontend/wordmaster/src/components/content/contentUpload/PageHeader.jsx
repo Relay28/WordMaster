@@ -2,8 +2,10 @@
 import React from 'react';
 import { Box, Button, CircularProgress, IconButton, Typography } from '@mui/material';
 import { ArrowBack, Save } from '@mui/icons-material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 const PageHeader = ({ title, loading, handleCancel, handleSubmit }) => {
+  const isMobile = window.innerWidth < 768;
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
     fontSize: '10px',
@@ -30,28 +32,43 @@ const PageHeader = ({ title, loading, handleCancel, handleSubmit }) => {
       backgroundColor: 'rgba(255,255,255,0.8)',
       backdropFilter: 'blur(8px)',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      py: 2,
+      py: 2.15,
       px: { xs: 2, md: 6 },
       position: 'sticky',
       top: 0,
       zIndex: 1100,
       borderBottom: '1px solid rgba(255,255,255,0.3)'
     }}>
+
       <Box display="flex" justifyContent="space-between" alignItems="center">
         <Box display="flex" alignItems="center">
-          <IconButton 
-            onClick={handleCancel} 
-            sx={{ 
-              mr: 1,
-              backgroundColor: 'rgba(95, 75, 139, 0.1)',
+           {/* Back Button */}
+           <IconButton 
+            onClick={handleCancel}
+            sx={{
+              color: '#5F4B8B',
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              border: '2px solid #5F4B8B',
+              borderRadius: '4px',
+              width: '32px',
+              height: '32px',
               '&:hover': {
-                backgroundColor: 'rgba(95, 75, 139, 0.2)'
-              }
+                backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                transform: 'translateY(-1px)'
+              },
+              transition: 'all 0.2s ease'
             }}
           >
-            <ArrowBack sx={{ color: '#5F4B8B' }} />
+            <ChevronLeftIcon fontSize="small" />
           </IconButton>
-          <Typography variant="h5" sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+          <Typography sx={{ 
+            ...pixelHeading,
+            color: '#5F4B8B',
+            fontSize: isMobile ? '14px' : '16px',
+            marginLeft: '20px',
+            marginTop: '4px',
+          }}>
+   
             {title}
           </Typography>
         </Box>

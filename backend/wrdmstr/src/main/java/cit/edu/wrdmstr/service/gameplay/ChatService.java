@@ -1,13 +1,11 @@
 package cit.edu.wrdmstr.service.gameplay;
 
+import cit.edu.wrdmstr.dto.ChatMessageDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
-import cit.edu.wrdmstr.repository.ChatMessageEntityRepository;
-import cit.edu.wrdmstr.repository.MessageReactionEntityRepository;
-import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
-import cit.edu.wrdmstr.repository.ScoreRecordEntityRepository;
-import cit.edu.wrdmstr.repository.WordBankItemRepository;
+import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
+import cit.edu.wrdmstr.service.ProgressTrackingService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,7 +34,11 @@ public class ChatService {
     @Autowired private AIService aiService;
     @Autowired private WordBankItemRepository wordBankItemRepository;
     @Autowired private ScoreService scoreService;
+    @Autowired private ProgressTrackingService progressTrackingService;
+    @Autowired private StudentProgressRepository progressRepository;
+
     @Autowired private VocabularyCheckerService vocabularyCheckerService;
+
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
@@ -71,8 +73,11 @@ public class ChatService {
         message.setVocabularyScore(vocabResult.getScore());
         message.setVocabularyFeedback(vocabResult.getFeedback());
         message.setTimestamp(new Date());
+
+        message.setRoleAppropriate(grammarResult.isRoleAppropriate());
+
         message.setWordUsed(String.join(", ", vocabResult.getUsedWords()));
-        
+
         // Truncate grammar feedback if too long
         String grammarFeedback = grammarResult.getFeedback();
         if (grammarFeedback != null && grammarFeedback.length() > 2000) {
@@ -133,9 +138,54 @@ public class ChatService {
 
         // Broadcast the message to all players
         broadcastChatMessage(savedMessage);
+        updateProgressMetrics(player, message,session);
 
         return savedMessage;
     }
+
+    private void updateProgressMetrics(PlayerSessionEntity player, ChatMessageEntity message,GameSessionEntity session) {
+        StudentProgress progress = progressRepository.findByStudentIdAndSessionId(
+                        player.getUser().getId(), player.getSession().getId())
+                .orElseGet(() -> {
+                    StudentProgress newProgress = new StudentProgress();
+                    newProgress.setStudent(player.getUser());
+                    newProgress.setSession(player.getSession());
+                    return newProgress;
+                });
+
+        // Update counts
+        progress.setTotalMessages(progress.getTotalMessages() + 1);
+        progress.setTotalWordsUsed(progress.getTotalWordsUsed() +
+                message.getContent().split("\\s+").length);
+
+        if (message.getGrammarStatus() == MessageStatus.PERFECT) {
+            progress.setTotalPerfectGrammar(progress.getTotalPerfectGrammar() + 1);
+        }
+
+        if (message.isContainsWordBomb()) {
+            progress.setTotalWordBombsUsed(progress.getTotalWordBombsUsed() + 1);
+        }
+        progress.setComprehensionScore( progressTrackingService.calculateComprehensionScore(player, session));
+        // Recalculate percentages
+        if (progress.getTotalMessages() > 0) {
+            progress.setGrammarAccuracy(
+                    (progress.getTotalPerfectGrammar() * 100.0) / progress.getTotalMessages());
+            progress.setWordBombUsageRate(
+                    (progress.getTotalWordBombsUsed() * 100.0) / progress.getTotalMessages());
+
+            // Simple comprehension score based on message length and word usage
+            double comprehensionScore = Math.min(100.0,
+                    (message.getContent().length() > 20 ? 1 : 0) * 100.0 +
+                            (message.getWordUsed() != null ? 20 : 0));
+            progress.setComprehensionScore(
+                    (progress.getComprehensionScore() * (progress.getTotalMessages() - 1) + comprehensionScore)
+                            / progress.getTotalMessages());
+        }
+
+        progress.setUpdatedAt(new Date());
+        progressRepository.save(progress);
+    }
+
 
     private void broadcastChatMessage(ChatMessageEntity message) {
         Map<String, Object> chatMessage = new HashMap<>();
@@ -199,8 +249,29 @@ public class ChatService {
 
     // Removed the awardPoints method as it's now in ScoreService
 
-    public List<ChatMessageEntity> getSessionMessages(Long sessionId) {
-        return chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+    public List<ChatMessageDTO> getSessionMessages(Long sessionId) {
+        List<ChatMessageEntity> messages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+
+        List<ChatMessageDTO> messageDTOs = new ArrayList<>();
+        for (ChatMessageEntity message : messages) {
+            ChatMessageDTO dto = new ChatMessageDTO();
+            dto.setId(message.getId());
+            dto.setSenderId(message.getSender() != null ? message.getSender().getId() : null);
+            dto.setSenderName(message.getSender() != null ? message.getSender().getFname() + " " + message.getSender().getLname() : null);
+            dto.setContent(message.getContent());
+            dto.setTimestamp(message.getTimestamp());
+            dto.setGrammarStatus(message.getGrammarStatus() != null ? message.getGrammarStatus().toString() : null);
+            dto.setGrammarFeedback(message.getGrammarFeedback());
+            dto.setContainsWordBomb(message.isContainsWordBomb());
+            dto.setWordUsed(message.getWordUsed());
+            dto.setRole(message.getPlayerSession() != null && message.getPlayerSession().getRole() != null
+                    ? message.getPlayerSession().getRole().getName()
+                    : null);
+
+            messageDTOs.add(dto);
+        }
+
+        return messageDTOs;
     }
 
     // Add this method to generate role-specific prompts

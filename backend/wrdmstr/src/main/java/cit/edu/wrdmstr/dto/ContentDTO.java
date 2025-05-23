@@ -20,6 +20,7 @@ public class ContentDTO {
     private String classroomName;
     private ContentDataDTO contentData;
     private GameConfigDTO gameConfig;
+    private String creatorProfilePicture;
 
     public Long getId() {
         return id;
@@ -47,6 +48,14 @@ public class ContentDTO {
 
     public String getBackgroundTheme() {
         return backgroundTheme;
+    }
+
+    public String getCreatorProfilePicture() {
+        return creatorProfilePicture;
+    }
+
+    public void setCreatorProfilePicture(String creatorProfilePicture) {
+        this.creatorProfilePicture = creatorProfilePicture;
     }
 
     public void setBackgroundTheme(String backgroundTheme) {

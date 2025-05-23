@@ -25,6 +25,11 @@ public interface ChatMessageEntityRepository extends JpaRepository<ChatMessageEn
     @Query("SELECT cm FROM ChatMessageEntity cm WHERE cm.session.id = :sessionId AND cm.playerSession.role.id = :roleId")
     List<ChatMessageEntity> findByRoleId(@Param("sessionId") Long sessionId,
                                    @Param("roleId") Long roleId);
+    // New method to find chat messages by playerSessionId
+    List<ChatMessageEntity> findByPlayerSessionId(Long playerSessionId);
+
+    // New method to count chat messages by playerSessionId
+    int countByPlayerSessionId(Long playerSessionId);
 
     void deleteBySessionId(Long sessionId);
 

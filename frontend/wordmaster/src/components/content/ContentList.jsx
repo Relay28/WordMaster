@@ -70,11 +70,11 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
   const handleContentClick = async (contentId) => {
     try {
       const token = await getToken();
-      const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/join`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) navigate(`/waiting-room/${contentId}`);
+      // const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/join`, {
+      //   method: 'POST',
+      //   headers: { 'Authorization': `Bearer ${token}` }
+      // });
+     // if (response.ok) navigate(`/waiting-room/${contentId}`);
     } catch (error) {
       console.error("Error joining waiting room:", error);
     }
@@ -83,6 +83,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
   return (
     <Grid container spacing={3}>
       {content.map(item => (
+        console.log(item),
         <Grid item xs={12} sm={6} md={4} key={item.id}>
           <ContentCard>
             <CardActionArea onClick={() => handleContentClick(item.id)}>
@@ -109,7 +110,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
                   }}>
-                    {item.title}
+                    {item.title ? item.title : "Untitled"}
                   </Typography>
 
                   {/* Status Badge */}
@@ -145,61 +146,64 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                   </Typography>
                 )}
                 {/* Bottom Info Section */}
-<Box sx={{ 
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  width: '100%'
-}}>
-  {/* Classroom Tag */}
-  {item.classroomName && (
-    <Box display="flex" alignItems="center">
-      <Class sx={{ color: '#5F4B8B', fontSize: 16, mr: 1 }} />
-      <Typography sx={{
-        fontFamily: '"Press Start 2P", cursive',
-        fontSize: '8px',
-        color: '#5F4B8B',
-        maxWidth: '120px', // Limit width
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap'
-      }}>
-        {item.classroomName}
-      </Typography>
-    </Box>
-  )}
+                  <Box sx={{ 
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    width: '100%'
+                  }}>
+                    {/* Classroom Tag */}
+                    {item.classroomName && (
+                      <Box display="flex" alignItems="center">
+                        <Class sx={{ color: '#5F4B8B', fontSize: 16, mr: 1 }} />
+                        <Typography sx={{
+                          fontFamily: '"Press Start 2P", cursive',
+                          fontSize: '8px',
+                          color: '#5F4B8B',
+                          maxWidth: '120px', // Limit width
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {item.classroomName}
+                        </Typography>
+                      </Box>
+                    )}
 
-  {/* Creator Info */}
-  <Box display="flex" alignItems="center" gap={1}>
-    <Avatar sx={{ 
-      width: 24, 
-      height: 24, 
-      bgcolor: '#5F4B8B',
-      fontSize: '10px',
-      fontFamily: '"Press Start 2P", cursive',
-    }}>
-      {item.creatorName?.charAt(0)}
-    </Avatar>
-    <Box>
-      <Typography sx={{
-        fontFamily: '"Press Start 2P", cursive',
-        fontSize: '8px',
-        color: '#2D3748',
-      }}>
-        {item.creatorName}
-      </Typography>
-      <Typography sx={{
-        fontFamily: '"Press Start 2P", cursive',
-        fontSize: '7px',
-        color: '#718096',
-      }}>
-        Updated: {new Date(item.updatedAt || item.createdAt).toLocaleDateString()}
-      </Typography>
-    </Box>
-  </Box>
-</Box>
+                    {/* Creator Info */}
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Avatar 
+                        src={item.creatorProfilePicture || undefined}
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          bgcolor: '#5F4B8B',
+                          fontSize: '10px',
+                          fontFamily: '"Press Start 2P", cursive',
+                        }}>
+                        {!item.creatorProfilePicture && item.creatorName?.charAt(0)}
+                      </Avatar>
+                      <Box>
+                        <Typography sx={{
+                          fontFamily: '"Press Start 2P", cursive',
+                          fontSize: '8px',
+                          color: '#2D3748',
+                        }}>
+                          {item.creatorName}
+                        </Typography>
+                        <Typography sx={{
+                          fontFamily: '"Press Start 2P", cursive',
+                          fontSize: '7px',
+                          color: '#718096',
+                        }}>
+                          Updated: {new Date(item.updatedAt || item.createdAt).toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
                 {/* Action Buttons */}
                 <ActionButtons className="action-buttons">
+                  {!disableActions && (
                   <Tooltip title="View">
                     <IconButton size="small" onClick={(e) => {
                       e.stopPropagation();
@@ -208,7 +212,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                       <Visibility sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>
-
+                )}
                   {!disableActions && (
                     <>
                       <Tooltip title="Edit">

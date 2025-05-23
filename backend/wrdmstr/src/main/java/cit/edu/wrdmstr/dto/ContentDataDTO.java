@@ -1,10 +1,12 @@
 package cit.edu.wrdmstr.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Lob;
 import lombok.Data;
 
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ContentDataDTO {
     @Lob
     private String backgroundImage;

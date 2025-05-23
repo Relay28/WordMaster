@@ -5,7 +5,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import "../css/login.css";
 import { logout, isLoggedIn } from '../utils/authUtils';
-
+import { useUserAuth } from './context/UserAuthContext'; // Adjust the import path as necessary
 // API base URL - centralized for easy configuration
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -17,7 +17,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
-
+const { login } = useUserAuth(); // Add this line
   console.log("Check");;;
   
   useEffect(() => {
@@ -58,15 +58,16 @@ const Login = () => {
         
         // Save user data - using consistent keys with AuthProvider
         localStorage.setItem('userToken', response.data.token);
-        localStorage.setItem('userData', JSON.stringify({
+        login({
           id: response.data.id,
           email: response.data.email,
           fname: response.data.fname,
-          profilePicture: response.profilePicture,
           lname: response.data.lname,
+          profilePicture: response.data.profilePicture,
           role: response.data.role
-        }));
-        
+        }, response.data.token);
+
+              
        const val  =  localStorage.getItem('userToken')
         const setupResponse = await axios.get(`${API_BASE_URL}/profile/setup/status`, {
             headers: {

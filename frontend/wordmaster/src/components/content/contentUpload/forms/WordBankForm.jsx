@@ -59,10 +59,7 @@ const WordBankForm = ({ scenarioSettings, setScenarioSettings, errors }) => {
   };
 
   return (
-    <Paper elevation={0} sx={{ borderRadius: '12px', p: 3, mb: 4, backgroundColor: 'white' }}>
-      <Typography variant="h6" fontWeight="bold" mb={3}>
-        Word Bank
-      </Typography>
+    <Box>
       
       <Box display="flex" alignItems="center" mb={2}>
         <TextField 
@@ -132,10 +129,10 @@ const WordBankForm = ({ scenarioSettings, setScenarioSettings, errors }) => {
         </List>
       ) : (
         <Typography variant="body2" color="text.secondary">
-          No words added to the word bank yet. Students will need to come up with their own words.
+          No words added to the word bank yet. Please add atleast three words to proceed.
         </Typography>
       )}
-    </Paper>
+  </Box>
   );
 };
 
