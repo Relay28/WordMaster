@@ -300,21 +300,24 @@ const ProfilePicture = ({
     wizard,
   ];
 
+  const initials = `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
+
   return (
     <Box position="relative" mb={1} textAlign="center">
-      <Box
-        component="img"
-        src={profilePicture || '/images/default.png'}
-        alt="Profile"
+      <Avatar
+        src={profilePicture || undefined}
         sx={{
           width: 120,
           height: 120,
-          objectFit: 'cover',
-          borderRadius: '50%',
+          fontSize: 40,
+          bgcolor: '#5F4B8B',
           border: '2px solid #5F4B8B',
-          backgroundColor: '#ddd',
+          backgroundColor: 'white ',
+          color: "#5F4B8B",
         }}
-      />
+      >
+        {!profilePicture && initials}
+      </Avatar>
       {/*
        {editMode && (
         <IconButton
