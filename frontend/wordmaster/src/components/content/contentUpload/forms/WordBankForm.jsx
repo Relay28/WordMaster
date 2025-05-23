@@ -2,18 +2,48 @@
 import React, { useState } from 'react';
 import { 
   Paper, Typography, Box, TextField, Button, 
-  List, ListItem, ListItemText, ListItemSecondaryAction, IconButton 
+  List, ListItem, ListItemText, ListItemSecondaryAction, IconButton,
+  CircularProgress, Tooltip
 } from '@mui/material';
-import { Add, Delete } from '@mui/icons-material';
+import { Add, Delete, Info } from '@mui/icons-material';
+import axios from 'axios';
+import API_URL from '../../../../services/apiConfig';
+import { useUserAuth } from '../../../context/UserAuthContext';
 
 const WordBankForm = ({ scenarioSettings, setScenarioSettings, errors }) => {
   const [newWord, setNewWord] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { getToken } = useUserAuth();
 
-  const handleAddWord = () => {
+  const enrichWord = async (word) => {
+    try {
+      setLoading(true);
+      const token = await getToken();
+      const response = await axios.post(`${API_URL}/api/wordbank/enrich`, 
+        { word }, 
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      return {
+        word: response.data.word,
+        description: response.data.description,
+        exampleUsage: response.data.exampleUsage
+      };
+    } catch (error) {
+      console.error("Error enriching word:", error);
+      return { word, description: "No description available", exampleUsage: "No example available" };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddWord = async () => {
     if (newWord.trim() !== '') {
+      const enrichedWord = await enrichWord(newWord.trim());
+      
       setScenarioSettings({
         ...scenarioSettings,
-        wordBank: [...scenarioSettings.wordBank, newWord.trim()]
+        wordBank: [...scenarioSettings.wordBank, enrichedWord]
       });
       setNewWord('');
     }
@@ -55,29 +85,47 @@ const WordBankForm = ({ scenarioSettings, setScenarioSettings, errors }) => {
             '&:hover': { backgroundColor: '#4a3a6d' },
           }}
         >
-          Add Word
+          {loading ? <CircularProgress size={24} color="inherit" /> : 'Add Word'}
         </Button>
       </Box>
       
       {scenarioSettings.wordBank.length > 0 ? (
         <List>
-          {scenarioSettings.wordBank.map((word, index) => (
-            <ListItem
-              key={index}
-              sx={{
-                backgroundColor: '#f9f9f9',
-                mb: 1,
-                borderRadius: '8px',
-              }}
-            >
-              <ListItemText primary={word} />
-              <ListItemSecondaryAction>
-                <IconButton edge="end" onClick={() => handleDeleteWord(index)}>
-                  <Delete />
-                </IconButton>
-              </ListItemSecondaryAction>
-            </ListItem>
-          ))}
+          {scenarioSettings.wordBank.map((wordItem, index) => {
+            const word = typeof wordItem === 'string' ? wordItem : wordItem.word;
+            const description = wordItem.description || "No description available";
+            const example = wordItem.exampleUsage || "No example available";
+            
+            return (
+              <Tooltip
+                key={index}
+                title={
+                  <React.Fragment>
+                    <Typography color="inherit" variant="subtitle2">Description:</Typography>
+                    <Typography variant="body2">{description}</Typography>
+                    <Typography color="inherit" variant="subtitle2" sx={{ mt: 1 }}>Example:</Typography>
+                    <Typography variant="body2" fontStyle="italic">{example}</Typography>
+                  </React.Fragment>
+                }
+              >
+                <ListItem
+                  sx={{
+                    backgroundColor: '#f9f9f9',
+                    mb: 1,
+                    borderRadius: '8px',
+                    position: 'relative',
+                  }}
+                >
+                  <ListItemText primary={word} />
+                  <ListItemSecondaryAction>
+                    <IconButton edge="end" onClick={() => handleDeleteWord(index)}>
+                      <Delete />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              </Tooltip>
+            );
+          })}
         </List>
       ) : (
         <Typography variant="body2" color="text.secondary">

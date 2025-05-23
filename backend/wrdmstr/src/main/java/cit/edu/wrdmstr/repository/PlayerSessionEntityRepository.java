@@ -24,4 +24,7 @@ public interface PlayerSessionEntityRepository extends JpaRepository<PlayerSessi
     List<PlayerSessionEntity> findPlayersWithActiveWordBombs(@Param("sessionId") Long sessionId);
 
     List<PlayerSessionEntity> findBySessionIdOrderByTotalScoreDesc(Long sessionId);
+
+    void deleteBySessionId(Long sessionId);
+
 }

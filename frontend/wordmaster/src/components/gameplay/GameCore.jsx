@@ -318,6 +318,12 @@ useEffect(() => {
     }
   };
   
+  // Add this to GameCore.jsx
+  const handleGameStateUpdate = (updatedState) => {
+    // Update your game state here
+    setGameState(updatedState); // Assuming you have a state setter like this
+  };
+  
   // Function to send a message through WebSocket
   const sendMessage = useCallback(async (destination, body) => {
     if (!stompClient || !stompClient.connected) {
@@ -354,14 +360,21 @@ useEffect(() => {
       return <WaitingRoom gameState={gameState} isTeacher={user?.role === 'USER_TEACHER'} />;
     } else if (gameState.status === 'TURN_IN_PROGRESS' || gameState.status === 'WAITING_FOR_PLAYER' || 
                gameState.status === 'ACTIVE') {
-      return <GamePlay gameState={gameState} stompClient={stompClient} sendMessage={sendMessage} />;
+      return <GamePlay 
+        gameState={gameState} 
+        stompClient={stompClient} 
+        sendMessage={sendMessage}
+        onGameStateUpdate={handleGameStateUpdate}
+      />;
     } else if (gameState.status === 'COMPLETED') {
       return <GameResults gameState={gameState} />;
+    } else {
+      return (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+          <Typography variant="h6">Loading game or unknown status: {gameState.status}</Typography>
+        </Box>
+      );
     }
-    
-    // For debugging
-    console.log("Unrecognized game status:", gameState.status);
-    return <Typography>Unknown game state: {gameState.status}</Typography>;
   }
   
   if (loading) {

@@ -231,6 +231,122 @@ public class AIService {
                         + "Each role should be appropriate for students playing in a conversation scenario. Be creative and diverse.\n"
                         + "Format your response as a bullet point list with exactly " + newRoleCount + " roles:\n"
                         + buildRoleBulletPoints(newRoleCount) + "\n";
+                case "generate_feedback":
+                    StringBuilder feedbackPrompt = new StringBuilder();
+                    feedbackPrompt.append("You are a language teacher providing feedback to a student after a language learning game.\n\n");
+                    
+                    //Add more emphasis on using student's actual name
+                    String studentName = (String)request.get("studentName");
+                    feedbackPrompt.append("Student name: ").append(studentName).append("\n");
+                    feedbackPrompt.append("Student role in game: ").append(request.get("role")).append("\n");
+                    feedbackPrompt.append("Performance metrics:\n");
+                    feedbackPrompt.append("- Total score: ").append(request.get("totalScore")).append("\n");
+                    feedbackPrompt.append("- Messages sent: ").append(request.get("messageCount")).append("\n");
+                    feedbackPrompt.append("- Perfect grammar messages: ").append(request.get("perfectGrammarCount")).append("\n");
+                    feedbackPrompt.append("- Word bank usage: ").append(request.get("wordBankUsageCount")).append("\n\n");
+                    
+                    feedbackPrompt.append("Sample messages from student:\n");
+                    List<String> sampleMessages = (List<String>) request.get("sampleMessages");
+                    for (int i = 0; i < sampleMessages.size(); i++) {
+                        feedbackPrompt.append(i+1).append(". ").append(sampleMessages.get(i)).append("\n");
+                    }
+                    
+                    feedbackPrompt.append("\nProvide constructive feedback addressing:\n");
+                    feedbackPrompt.append("1. Language use (grammar, vocabulary)\n");
+                    feedbackPrompt.append("2. Role adherence and character consistency\n");
+                    feedbackPrompt.append("3. Participation level\n");
+                    feedbackPrompt.append("4. Strengths and areas for improvement\n\n");
+                    
+                    // Add instruction to use student's name and provide scores
+                    feedbackPrompt.append("IMPORTANT INSTRUCTIONS:\n");
+                    feedbackPrompt.append("- Address the student by name \"" + studentName + "\" directly in your feedback\n");
+                    feedbackPrompt.append("- DO NOT use placeholders like [Student Name]\n");
+                    feedbackPrompt.append("- Include specific scores (on a scale of 1-5) for each of these areas:\n");
+                    feedbackPrompt.append("  * Comprehension Score: (1-5)\n");
+                    feedbackPrompt.append("  * Participation Score: (1-5)\n");
+                    feedbackPrompt.append("  * Language Use Score: (1-5)\n");
+                    feedbackPrompt.append("  * Role Adherence Score: (1-5)\n");
+                    feedbackPrompt.append("  * Overall Letter Grade: (A-F)\n\n");
+                    
+                    feedbackPrompt.append("Format: Start with positive feedback, then areas for improvement, end with encouragement, and finally list all scores.\n");
+                    
+                    return feedbackPrompt.toString();
+                case "generate_comprehension_questions":
+                    StringBuilder questionsPrompt = new StringBuilder();
+                    questionsPrompt.append("You are an expert language teacher creating a comprehension quiz to assess a student's understanding.\n\n");
+                    questionsPrompt.append("Please create 5 questions based on the following context:\n\n");
+                    questionsPrompt.append(request.get("context")).append("\n\n");
+                    questionsPrompt.append("Student: ").append(request.get("studentName")).append("\n");
+                    questionsPrompt.append("Student's Role: ").append(request.get("studentRole")).append("\n\n");
+                    
+                    questionsPrompt.append("Generate 5 questions with the following format:\n");
+                    questionsPrompt.append("1. First multiple choice question?\n");
+                    questionsPrompt.append("A. Option 1\n");
+                    questionsPrompt.append("B. Option 2\n");
+                    questionsPrompt.append("C. Option 3\n");
+                    questionsPrompt.append("D. Option 4\n");
+                    questionsPrompt.append("Correct Answer: B\n\n");
+                    
+                    questionsPrompt.append("2. Second true/false question?\n");
+                    questionsPrompt.append("A. True\n");
+                    questionsPrompt.append("B. False\n");
+                    questionsPrompt.append("Correct Answer: A\n\n");
+                    
+                    questionsPrompt.append("Only create multiple choice and true/false questions. DO NOT create short answer questions.\n");
+                    questionsPrompt.append("Each question must have exactly 4 options for multiple choice or 2 options (True/False) for true/false questions.\n");
+                    questionsPrompt.append("Make sure questions test comprehension of the content, conversation context, and the student's role.\n");
+                    questionsPrompt.append("Include questions about key vocabulary when appropriate.\n");
+                    
+                    return questionsPrompt.toString();
+                case "evaluate_short_answer":
+                    StringBuilder evaluationPrompt = new StringBuilder();
+                    evaluationPrompt.append("You are evaluating a student's short answer response.\n\n");
+                    evaluationPrompt.append("Question: ").append(request.get("question")).append("\n");
+                    evaluationPrompt.append("Expected Answer: ").append(request.get("expectedAnswer")).append("\n");
+                    evaluationPrompt.append("Student's Answer: ").append(request.get("studentAnswer")).append("\n\n");
+                    
+                    evaluationPrompt.append("Evaluate if the student's answer demonstrates understanding of the concept.\n");
+                    evaluationPrompt.append("Response should start with either CORRECT or INCORRECT, followed by a brief explanation.\n");
+                    evaluationPrompt.append("Consider semantic similarity rather than exact wording.\n");
+                    
+                    return evaluationPrompt.toString();
+                case "word_enrichment":
+                    return "Generate a brief definition and an example sentence for the word: " + 
+                        request.get("word") + ".\n\n" +
+                        "Format your response exactly as follows with no prefix labels:\n" +
+                        "[definition] | [example sentence using the word]";
+                case "vocabulary_check":
+                    StringBuilder vocabPrompt = new StringBuilder();
+                    vocabPrompt.append("You are an expert language teacher analyzing a student's vocabulary usage.\n\n");
+                    vocabPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n\n");
+                    
+                    List<String> usedWords2 = (List<String>) request.get("usedWords");
+                    if (usedWords2 != null && !usedWords2.isEmpty()) {
+                        vocabPrompt.append("Word bank words used: ").append(String.join(", ", usedWords2)).append("\n\n");
+                    }
+                    
+                    vocabPrompt.append("Please provide feedback on:\n");
+                    vocabPrompt.append("1. Overall vocabulary richness\n");
+                    vocabPrompt.append("2. Appropriateness of word choices\n");
+                    vocabPrompt.append("3. Suggestions for vocabulary improvement\n\n");
+                    vocabPrompt.append("Format your response to be encouraging and constructive.");
+                    
+                    return vocabPrompt.toString();
+                case "generate_vocabulary_exercises":
+                    StringBuilder exercisesPrompt = new StringBuilder();
+                    exercisesPrompt.append("You are creating vocabulary exercises for a language learning game.\n\n");
+                    
+                    exercisesPrompt.append("Word bank: ").append(request.get("wordBank")).append("\n\n");
+                    exercisesPrompt.append("Words already used by student: ").append(request.get("usedWords")).append("\n\n");
+                    exercisesPrompt.append("Student name: ").append(request.get("studentName")).append("\n\n");
+                    
+                    exercisesPrompt.append("Create 3 vocabulary exercises:\n");
+                    exercisesPrompt.append("1. A fill-in-the-blank exercise\n");
+                    exercisesPrompt.append("2. A word matching exercise\n");
+                    exercisesPrompt.append("3. A sentence completion exercise\n\n");
+                    exercisesPrompt.append("Focus on words the student hasn't used yet. Format as JSON for easy parsing.");
+                    
+                    return exercisesPrompt.toString();
                 default:
                     return "Provide a response to: " + request;
             }

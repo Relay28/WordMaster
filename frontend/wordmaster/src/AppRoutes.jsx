@@ -26,6 +26,9 @@ import WaitingRoomPage from './components/WaitingRoom/WaitingRoomPage';
 import AIContentGenerator from './components/content/AIContentGenerator';
 import SessionProgressView from './components/gameplay/SessionProgressView';
 import TeacherContentSessions from './components/gameplay/SessionManager';
+import StudentReportPage from './components/Reports/StudentReportPage';
+import StudentFeedbackPage from './components/Reports/StudentFeedbackPage';
+
 
 // Create a wrapper component for role-based routing
 function HomePageRouter() {
@@ -56,6 +59,8 @@ const AppRoutes = () => {
       <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
       <Route path="/game" element={<GamePage />} />
       <Route path="/content/ai-generate" element={<AIContentGenerator />} />
+      <Route path="/student-report/:sessionId/:studentId" element={<StudentReportPage />} />
+      <Route path="/student-feedback/:sessionId/:studentId" element={<StudentFeedbackPage />} />
       <Route path="/game/create" element={<CreateGameSession />} />
       <Route path="/game/:sessionId" element={<GameCore />} />
       <Route path="/login" element={<Login />} />

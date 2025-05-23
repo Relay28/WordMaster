@@ -157,4 +157,13 @@ public class GameSessionController {
         List<Map<String, Object>> result = gameSessionService.assignWordBombs(sessionId);
         return ResponseEntity.ok(result);
     }
+
+    @DeleteMapping("/{sessionId}")
+    public ResponseEntity<Void> deleteSession(
+            @PathVariable Long sessionId,
+            Authentication authentication) {
+        gameSessionService.verifyTeacherAccess(sessionId, authentication);
+        gameSessionService.deleteSession(sessionId);
+        return ResponseEntity.ok().build();
+    }
 }

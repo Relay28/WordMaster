@@ -27,6 +27,9 @@ import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
 import PublishConfirmation from './PublishConfirmation';
 import picbg from '../../assets/picbg.png';
+import axios from 'axios';
+import API_URL from '../../services/apiConfig';
+
 
 const studentGroupSizes = [
   { value: 5, label: "Small Group (2-5 students)" },
@@ -198,14 +201,42 @@ const EditContent = () => {
     });
   };
 
-  const handleAddWord = () => {
+  const handleAddWord = async () => {
     if (newWord.trim() !== '') {
-      setScenarioSettings({
-        ...scenarioSettings,
-        // Add new words as strings, or as objects if you plan to edit their descriptions/examples in UI
-        wordBank: [...scenarioSettings.wordBank, newWord.trim()] 
-      });
-      setNewWord('');
+      try {
+        setLoading(true);
+        const token = await getToken();
+        const response = await axios.post(`${API_URL}/api/wordbank/enrich`, 
+          { word: newWord.trim() }, 
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        
+        const enrichedWord = {
+          word: response.data.word,
+          description: response.data.description,
+          exampleUsage: response.data.exampleUsage
+        };
+        
+        setScenarioSettings({
+          ...scenarioSettings,
+          wordBank: [...scenarioSettings.wordBank, enrichedWord]
+        });
+        setNewWord('');
+      } catch (error) {
+        console.error("Error enriching word:", error);
+        // Fallback to basic word without enrichment
+        setScenarioSettings({
+          ...scenarioSettings,
+          wordBank: [...scenarioSettings.wordBank, {
+            word: newWord.trim(),
+            description: "No description available",
+            exampleUsage: "No example available"
+          }]
+        });
+        setNewWord('');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -223,7 +254,8 @@ const EditContent = () => {
     if (file) {
       if (file.size > 5000000) {
         setError("Image size too large. Please select an image smaller than 5MB.");
-        return;
+        
+        ;
       }
       
       const reader = new FileReader();

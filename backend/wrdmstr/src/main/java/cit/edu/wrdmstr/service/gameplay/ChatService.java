@@ -37,6 +37,9 @@ public class ChatService {
     @Autowired private ProgressTrackingService progressTrackingService;
     @Autowired private StudentProgressRepository progressRepository;
 
+    @Autowired private VocabularyCheckerService vocabularyCheckerService;
+
+
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
         PlayerSessionEntity player = players.isEmpty() ?
@@ -51,10 +54,14 @@ public class ChatService {
         String roleName = player.getRole() != null ? player.getRole().getName() : null;
         String contextDesc = session.getContent() != null ? session.getContent().getDescription() : "";
 
-        // Grammar check with role assessment
-        GrammarCheckerService.GrammarCheckResult grammarResult =
+        // Grammar check
+        GrammarCheckerService.GrammarCheckResult grammarResult = 
                 grammarCheckerService.checkGrammar(content, roleName, contextDesc);
-
+        
+        // Add vocabulary check
+        VocabularyCheckerService.VocabularyCheckResult vocabResult = 
+                vocabularyCheckerService.checkVocabulary(content, sessionId, userId);
+        
         // Create message with all necessary info
         ChatMessageEntity message = new ChatMessageEntity();
         message.setSession(session);
@@ -62,16 +69,29 @@ public class ChatService {
         message.setPlayerSession(player);
         message.setContent(content);
         message.setGrammarStatus(grammarResult.getStatus());
+        message.setGrammarFeedback(grammarResult.getFeedback());
+        message.setVocabularyScore(vocabResult.getScore());
+        message.setVocabularyFeedback(vocabResult.getFeedback());
         message.setTimestamp(new Date());
-// In ChatService's sendMessage method
-        message.setRoleAppropriate(grammarResult.isRoleAppropriate());
-        // Truncate grammar feedback if too long
-        String feedback = grammarResult.getFeedback();
-        if (feedback != null && feedback.length() > 2000) {
-            feedback = feedback.substring(0, 1997) + "...";
-        }
-        message.setGrammarFeedback(feedback);
 
+        message.setRoleAppropriate(grammarResult.isRoleAppropriate());
+
+        message.setWordUsed(String.join(", ", vocabResult.getUsedWords()));
+
+        // Truncate grammar feedback if too long
+        String grammarFeedback = grammarResult.getFeedback();
+        if (grammarFeedback != null && grammarFeedback.length() > 2000) {
+            grammarFeedback = grammarFeedback.substring(0, 1997) + "...";
+        }
+        message.setGrammarFeedback(grammarFeedback);
+        
+        // Add truncation for vocabulary feedback too
+        String vocabFeedback = vocabResult.getFeedback();
+        if (vocabFeedback != null && vocabFeedback.length() > 2000) {
+            vocabFeedback = vocabFeedback.substring(0, 1997) + "...";
+        }
+        message.setVocabularyFeedback(vocabFeedback);
+        
         // Check word bomb
         if (!player.isWordBombUsed() &&
                 player.getCurrentWordBomb() != null &&
@@ -85,6 +105,12 @@ public class ChatService {
 
         // Handle scoring
         scoreService.handleGrammarScoring(player, grammarResult.getStatus());
+        // Award vocabulary points
+        scoreService.handleVocabularyScoring(
+            player, 
+            vocabResult.getScore(),
+            vocabResult.getUsedAdvancedWords()
+        );
 
         // Check for word bank usage
         List<WordBankItem> sessionWordBank = wordBankItemRepository.findByContentData(session.getContent().getContentData());

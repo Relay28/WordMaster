@@ -3,9 +3,11 @@ package cit.edu.wrdmstr.service.gameplay;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
+import cit.edu.wrdmstr.service.ComprehensionCheckService;
 import cit.edu.wrdmstr.dto.GameSessionDTO;
 import cit.edu.wrdmstr.dto.PlayerSessionDTO;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -19,6 +21,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class GameSessionService {
+    private static final Logger logger = LoggerFactory.getLogger(GameSessionService.class);
+
     @Autowired private GameSessionEntityRepository gameSessionRepository;
     @Autowired private ContentRepository contentRepository;
     @Autowired private UserRepository userRepository;
@@ -28,6 +32,9 @@ public class GameSessionService {
     @Autowired private WordBankItemRepository wordBankItemRepository;
     @Autowired private RoleRepository roleRepository;
     @Autowired private AIService aiService;
+    @Autowired private ChatMessageEntityRepository chatmessageRepository;
+    @Autowired private TeacherFeedbackRepository teacherfeedbackRepository;
+    @Autowired private ComprehensionCheckService comprehensionCheckService;
 
     public GameSessionEntity createSession(Long contentId, Authentication auth) {
         String email = auth.getName();
@@ -243,6 +250,28 @@ public class GameSessionService {
         return playerSessionRepository.findBySessionId(sessionId);
     }
 
+    @Transactional
+    public void deleteSession(Long sessionId) {
+        GameSessionEntity session = gameSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Game session not found"));
+        
+        // Break the circular reference first  
+        session.setCurrentPlayer(null);
+        gameSessionRepository.save(session);
+
+        // Delete all player sessions first to avoid foreign key constraints
+        playerSessionRepository.deleteBySessionId(sessionId);
+        
+        // Delete all messages associated with this session
+        chatmessageRepository.deleteBySessionId(sessionId);
+        
+        // Delete all feedback for this session
+        teacherfeedbackRepository.deleteByGameSessionId(sessionId);
+        
+        // Finally delete the session itself
+        gameSessionRepository.delete(session);
+    }
+
     // Ensure joinSession and other methods are correctly implemented
     // For example, the joinSession method provided in context:
     @Transactional
@@ -284,6 +313,52 @@ public class GameSessionService {
         session.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
         session.setEndedAt(new Date());
         return gameSessionRepository.save(session);
+    }
+
+    /**
+     * End a game session and optionally generate comprehension questions for all participants
+     * @param sessionId the ID of the session to end
+     * @param generateComprehension whether to generate comprehension questions
+     * @return Map containing session status and any generated comprehension data
+     */
+    @Transactional
+    public Map<String, Object> endSessionWithComprehension(Long sessionId, boolean generateComprehension) {
+        // End the session
+        GameSessionEntity session = endSession(sessionId);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "completed");
+        result.put("sessionId", sessionId);
+        
+        // If comprehension check requested, generate questions for all players
+        if (generateComprehension) {
+            Map<Long, List<Map<String, Object>>> playerQuestions = new HashMap<>();
+            
+            List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
+            for (PlayerSessionEntity player : players) {
+                try {
+                    Long studentId = player.getUser().getId();
+                    
+                    // Check if player had any messages in the session
+                    List<ChatMessageEntity> messages = chatmessageRepository
+                        .findBySessionIdAndSenderIdOrderByTimestampAsc(sessionId, studentId);
+                    
+                    if (!messages.isEmpty()) {
+                        List<Map<String, Object>> questions = 
+                            comprehensionCheckService.generateComprehensionQuestions(sessionId, studentId);
+                        
+                        playerQuestions.put(studentId, questions);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error generating comprehension questions for player {} in session {}: {}",
+                        player.getUser().getId(), sessionId, e.getMessage(), e);
+                }
+            }
+            
+            result.put("comprehensionQuestions", playerQuestions);
+        }
+        
+        return result;
     }
 
     public List<GameSessionEntity> getActiveGames() {

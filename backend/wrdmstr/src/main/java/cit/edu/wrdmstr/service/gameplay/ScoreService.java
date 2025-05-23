@@ -294,4 +294,35 @@ public class ScoreService {
     public List<ScoreRecordEntity> getSessionScoreHistory(Long sessionId) {
         return scoreRepository.findBySessionIdOrderByTimestampAsc(sessionId);
     }
+    
+    /**
+     * Award points for vocabulary usage quality
+     */
+    public void handleVocabularyScoring(PlayerSessionEntity player, int vocabularyScore, 
+                                        List<String> usedAdvancedWords) {
+        // Base vocabulary points
+        awardPoints(player, vocabularyScore, "Vocabulary quality");
+        
+        // Award points for advanced vocabulary
+        if (usedAdvancedWords != null && !usedAdvancedWords.isEmpty()) {
+            int advancedWordPoints = usedAdvancedWords.size() * 2;
+            awardPoints(player, advancedWordPoints, 
+                       "Advanced vocabulary: " + String.join(", ", usedAdvancedWords));
+        }
+        
+        // Streaks for consistent sophisticated vocabulary
+        // Could track vocabulary streaks similar to grammar streaks
+    }
+
+    /**
+     * Award points for vocabulary diversity over the game session
+     */
+    public void handleVocabularyDiversity(PlayerSessionEntity player, Set<String> uniqueWords) {
+        // Award points based on total unique words used
+        if (uniqueWords.size() > 20) {
+            awardPoints(player, 10, "Excellent vocabulary diversity");
+        } else if (uniqueWords.size() > 10) {
+            awardPoints(player, 5, "Good vocabulary diversity");
+        }
+    }
 }

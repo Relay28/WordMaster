@@ -24,7 +24,7 @@ import {
   Pagination,
   Stack
 } from '@mui/material';
-import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useClassroomDetails } from './ClassroomDetailFunctions';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -78,6 +78,16 @@ const ClassroomDetailsPage = () => {
   const [page, setPage] = useState(1);
   const [itemsPerPage] = useState(2); 
 
+  const [gameSessions, setGameSessions] = useState([]);
+  const [loadingGameSessions, setLoadingGameSessions] = useState(false);
+  const [gameSessionsError, setGameSessionsError] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [studentReports, setStudentReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(false);
+  const [studentFeedbacks, setStudentFeedbacks] = useState([]);
+  const [loadingStudentFeedback, setLoadingStudentFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState(null);
+
   const handlePageChange = (event, value) => {
     setPage(value);
     window.scrollTo({
@@ -116,8 +126,68 @@ const ClassroomDetailsPage = () => {
     setTabValue(newValue);
   };
 
+  const fetchGameSessions = async () => {
+  if (!classroom) return;
   
+  setLoadingGameSessions(true);
+  setGameSessionsError(null);
+  
+  try {
+    const token = await getToken();
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    
+    const response = await fetch(`${API_URL}/api/game/classroom/${classroom.id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Error response:", errorText);
+      throw new Error(`Failed to fetch game sessions (${response.status}): ${errorText || 'Unknown error'}`);
+    }
+    
+    const data = await response.json();
+    setGameSessions(data);
+  } catch (err) {
+    console.error("Error loading game sessions:", err);
+    setGameSessionsError(err.message || "Failed to load game sessions for this classroom.");
+  } finally {
+    setLoadingGameSessions(false);
+  }
+};
 
+  const fetchStudentReports = async (sessionId) => {
+    setLoadingReports(true);
+    
+    try {
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      // Change the endpoint to match the controller mapping
+      const response = await fetch(`${API_URL}/api/teacher-feedback/summary/${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`Failed to fetch student reports (${response.status}): ${errorText || 'Unknown error'}`);
+      }
+      
+      const data = await response.json();
+      setStudentReports(data);
+      setSelectedSession(sessionId);
+    } catch (err) {
+      console.error("Error loading student reports:", err);
+    } finally {
+      setLoadingReports(false);
+    }
+  };
+  
   // Fetch classroom content
  // Fetch classroom content
 useEffect(() => {
@@ -131,12 +201,36 @@ useEffect(() => {
       const token = await getToken();
       let data;
       
+
       if (user.role === 'USER_STUDENT') {
         // Fetch only published content for students
         data = await contentService.getPublishedContentByClassroom(classroom.id, token);
       } else {
         // Fetch all content for teachers
         data = await contentService.getContentByClassroom(classroom.id, token);
+
+      setLoadingContent(true);
+      try {
+        const token = await getToken();
+        let data;
+        
+        if (user?.role === 'USER_TEACHER') {
+          // Teachers see all content (drafts and published)
+          data = await contentService.getContentByClassroom(classroom.id, token);
+        } else {
+          // Students should only see published content
+          data = await contentService.getPublishedContentByClassroom(classroom.id, token);
+        }
+        setContentList(data);
+        
+        console.log("Classroom content data:", data); // Now data is in scope
+        setContentError(null);
+      } catch (err) {
+        console.error("Error loading classroom content:", err);
+        setContentError("Failed to load content for this classroom.");
+      } finally {
+        setLoadingContent(false);
+
       }
       
       console.log("Classroom content data:", data);
@@ -228,6 +322,96 @@ useEffect(() => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    if (tabValue === 2) {
+      if (user?.role === 'USER_TEACHER') {
+        fetchGameSessions();
+      } else {
+        fetchStudentFeedback();
+      }
+    }
+  }, [tabValue, classroom?.id, user?.role]);
+
+  // Fetch student feedback
+  const fetchStudentFeedback = async () => {
+    if (!classroom || user?.role === 'USER_TEACHER') return;
+    
+    setLoadingStudentFeedback(true);
+    setFeedbackError(null);
+    
+    try {
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      // Fix the URL path to include the /api/teacher-feedback prefix
+      const response = await fetch(
+        `${API_URL}/api/teacher-feedback/student-feedback/classroom/${classroom.id}/student/${user.id}`, 
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch feedback');
+      }
+      
+      const data = await response.json();
+      setStudentFeedbacks(data);
+    } catch (err) {
+      console.error("Error loading student feedback:", err);
+      setFeedbackError(err.message || 'Failed to load feedback data');
+    } finally {
+      setLoadingStudentFeedback(false);
+    }
+  };
+
+  // Fetch student feedback on mount and when classroom or user changes
+  useEffect(() => {
+    fetchStudentFeedback();
+  }, [classroom, user?.id, getToken]);
+
+  const handleDeleteSession = async (sessionId, event) => {
+    // Stop event propagation to prevent selecting the session when clicking delete
+    event.stopPropagation();
+    
+    if (!window.confirm("Are you sure you want to delete this game session? This will remove all student data and feedback for this session.")) {
+      return;
+    }
+    
+    try {
+      setLoadingGameSessions(true);
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const response = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete game session (${response.status})`);
+      }
+      
+      // Update the game sessions list by removing the deleted session
+      setGameSessions(gameSessions.filter(session => session.id !== sessionId));
+      
+      // If the deleted session was selected, clear the selection
+      if (selectedSession === sessionId) {
+        setSelectedSession(null);
+        setStudentReports([]);
+      }
+    } catch (err) {
+      console.error("Error deleting game session:", err);
+      setGameSessionsError(err.message || "Failed to delete game session");
+    } finally {
+      setLoadingGameSessions(false);
+    }
+  };
 
   if (!authChecked || loading) {
     return (
@@ -444,6 +628,268 @@ return (
         </Grid>
         </Paper>
 
+        {/* Student Reports Tab */}
+          {tabValue === 2 && user?.role === 'USER_TEACHER' && (
+            <Box>
+              {loadingGameSessions ? (
+                <Box display="flex" justifyContent="center" py={4}>
+                  <CircularProgress />
+                </Box>
+              ) : gameSessionsError ? (
+                <Alert severity="error" sx={{ mb: 2, ...pixelText }} onClose={() => setGameSessionsError(null)}>
+                  {gameSessionsError}
+                </Alert>
+              ) : gameSessions.length === 0 ? (
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 4, 
+                    textAlign: 'center',
+                    backgroundColor: 'rgba(245, 245, 247, 0.7)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(0,0,0,0.05)'
+                  }}
+                >
+                  <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
+                    NO GAME SESSIONS AVAILABLE
+                  </Typography>
+                  <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
+                    STUDENTS HAVEN'T PLAYED ANY GAMES YET
+                  </Typography>
+                </Paper>
+              ) : (
+                <Box>
+                  <Typography sx={{ ...pixelHeading, mb: 2 }}>SELECT A GAME SESSION:</Typography>
+                  <Grid container spacing={2} sx={{ mb: 4 }}>
+                    {gameSessions.map((session) => (
+                      <Grid item xs={12} sm={6} md={4} key={session.id}>
+                        <Paper
+                          elevation={selectedSession === session.id ? 3 : 1}
+                          sx={{
+                            p: 2,
+                            cursor: 'pointer',
+                            border: selectedSession === session.id ? '2px solid #5F4B8B' : '1px solid rgba(0,0,0,0.12)',
+                            transition: 'all 0.2s ease',
+                            position: 'relative', // Add this for positioning the delete button
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
+                            }
+                          }}
+                          onClick={() => fetchStudentReports(session.id)}
+                        >
+                          <Typography sx={{ ...pixelHeading, fontSize: '10px', color: '#5F4B8B' }}>
+                            {session.content?.title || 'Game Session'}
+                          </Typography>
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                            Date: {new Date(session.createdAt || session.startedAt).toLocaleDateString()}
+                          </Typography>
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                            Players: {session.playerCount || session.players?.length || 0}
+                          </Typography>
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                            Status: {session.status || 'Completed'}
+                          </Typography>
+                          
+                          {/* Delete Button */}
+                          <IconButton
+                            size="small"
+                            sx={{
+                              position: 'absolute',
+                              top: 4,
+                              right: 4,
+                              color: '#ff5252',
+                              '&:hover': {
+                                backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                              }
+                            }}
+                            onClick={(e) => handleDeleteSession(session.id, e)}
+                          >
+                            <DeleteOutline fontSize="small" />
+                          </IconButton>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+
+                  {selectedSession && (
+                    <>
+                      <Typography sx={{ ...pixelHeading, mb: 2 }}>STUDENT REPORTS:</Typography>
+                      {loadingReports ? (
+                        <Box display="flex" justifyContent="center" py={4}>
+                          <CircularProgress />
+                        </Box>
+                      ) : studentReports.length === 0 ? (
+                        <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+                          NO STUDENT DATA AVAILABLE FOR THIS SESSION
+                        </Typography>
+                      ) : (
+                        <Grid container spacing={2}>
+                          {studentReports.map((student) => (
+                            <Grid item xs={12} sm={6} md={4} key={student.userId}>
+                              <Paper
+                                elevation={1}
+                                sx={{
+                                  p: 2,
+                                  cursor: 'pointer',
+                                  borderRadius: '8px',
+                                  transition: 'all 0.2s ease',
+                                  '&:hover': {
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
+                                  }
+                                }}
+                                onClick={() => navigate(`/student-report/${selectedSession}/${student.userId}`)}
+                              >
+                                <Box display="flex" alignItems="center" mb={1}>
+                                  <Avatar sx={{ bgcolor: '#6c63ff', width: 30, height: 30, mr: 1, fontSize: '12px' }}>
+                                    {student.name.split(' ').map(n => n[0]).join('')}
+                                  </Avatar>
+                                  <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>
+                                    {student.name}
+                                  </Typography>
+                                </Box>
+                                <Box display="flex" justifyContent="space-between" mb={1}>
+                                  <Typography sx={{ ...pixelText, fontSize: '8px' }}>Role:</Typography>
+                                  <Typography sx={{ ...pixelText, fontSize: '8px', color: '#5F4B8B' }}>
+                                    {student.role || 'N/A'}
+                                  </Typography>
+                                </Box>
+                                <Box display="flex" justifyContent="space-between" mb={1}>
+                                  <Typography sx={{ ...pixelText, fontSize: '8px' }}>Score:</Typography>
+                                  <Typography sx={{ ...pixelText, fontSize: '8px', fontWeight: 'bold' }}>
+                                    {student.totalScore}
+                                  </Typography>
+                                </Box>
+                                <Box display="flex" justifyContent="space-between">
+                                  <Typography sx={{ ...pixelText, fontSize: '8px' }}>Feedback:</Typography>
+                                  <Chip 
+                                    size="small" 
+                                    label={student.hasFeedback ? "PROVIDED" : "NEEDED"} 
+                                    color={student.hasFeedback ? "success" : "warning"}
+                                    sx={{ 
+                                      height: '16px', 
+                                      '& .MuiChip-label': { 
+                                        ...pixelText, 
+                                        fontSize: '6px', 
+                                        px: 1 
+                                      } 
+                                    }}
+                                  />
+                                </Box>
+                              </Paper>
+                            </Grid>
+                          ))}
+                        </Grid>
+                      )}
+                    </>
+                  )}
+                </Box>
+              )}
+            </Box>
+          )}
+
+          {/* Grade Reports Tab for Students */}
+          {tabValue === 2 && user?.role !== 'USER_TEACHER' && (
+            <Box>
+              {/* Implement student's grade reports view here */}
+              <Typography sx={{ ...pixelHeading, mb: 2 }}>YOUR FEEDBACK REPORTS</Typography>
+              
+              {/* Add state and loading handling */}
+              {loadingStudentFeedback ? (
+                <Box display="flex" justifyContent="center" py={4}>
+                  <CircularProgress />
+                </Box>
+              ) : studentFeedbacks.length === 0 ? (
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 4, 
+                    textAlign: 'center',
+                    backgroundColor: 'rgba(245, 245, 247, 0.7)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(0,0,0,0.05)'
+                  }}
+                >
+                  <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
+                    NO FEEDBACK AVAILABLE YET
+                  </Typography>
+                  <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+                    YOUR TEACHER HASN'T PROVIDED ANY FEEDBACK YET
+                  </Typography>
+                </Paper>
+              ) : (
+                <Grid container spacing={2}>
+                  {studentFeedbacks.map((feedback) => (
+                    <Grid item xs={12} sm={6} md={4} key={feedback.id}>
+                      <Paper
+                        elevation={1}
+                        sx={{
+                          p: 2,
+                          borderRadius: '8px',
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
+                          }
+                        }}
+                      >
+                        <Typography sx={{ ...pixelHeading, fontSize: '12px', color: '#5F4B8B', mb: 1 }}>
+                          {feedback.gameTitle || 'Game Session'}
+                        </Typography>
+                        
+                        <Divider sx={{ my: 1 }} />
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>Date:</Typography>
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                            {new Date(feedback.createdAt).toLocaleDateString()}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>Teacher:</Typography>
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                            {feedback.teacherName}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>Overall Grade:</Typography>
+                          <Chip 
+                            label={feedback.overallGrade} 
+                            color="primary"
+                            size="small"
+                            sx={{ 
+                              height: '20px',
+                              '& .MuiChip-label': { ...pixelText, fontSize: '8px', px: 1 }
+                            }}
+                          />
+                        </Box>
+                        
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          size="small"
+                          onClick={() => navigate(`/student-feedback/${feedback.sessionId}/${user.id}`)}
+                          sx={{
+                            ...pixelButton,
+                            fontSize: '7px',
+                            mt: 1,
+                            borderColor: '#5F4B8B',
+                            color: '#5F4B8B',
+                            '&:hover': { backgroundColor: 'rgba(95, 75, 139, 0.1)' }
+                          }}
+                        >
+                          VIEW DETAILS
+                        </Button>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+          )}
         {/* Tabs for Members and Content */}
         <Paper elevation={0} sx={{ 
           p: 3,
@@ -478,6 +924,11 @@ return (
           >
             <Tab label="LEARNING CONTENT" />
             <Tab label="MEMBERS" />
+            {user?.role === 'USER_TEACHER' ? (
+              <Tab label="STUDENT REPORTS" />
+            ) : (
+              <Tab label="GRADE REPORTS" />
+            )}
           </Tabs>
 
           {/* Members Tab */}
