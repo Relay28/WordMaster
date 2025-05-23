@@ -21,6 +21,8 @@ import {
 import { ArrowBack, CameraAlt, Lock, Email, Close } from "@mui/icons-material";
 import { useUserAuth } from '../components/context/UserAuthContext';
 import { useUserProfile } from './UserProfileFunctions'; // Updated import to match the hook location
+import '@fontsource/press-start-2p'
+import picbg from '../assets/picbg.png';
 
 import farmer from '../assets/ch-farmer.png';
 import king from '../assets/ch-king.png';
@@ -72,20 +74,47 @@ const UserProfileContainer = () => {
     uploadProfilePicture // Make sure this is being properly destructured
   } = useUserProfile(user, authChecked, logout, getToken);
 
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: { xs: '8px', sm: '10px' },
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: { xs: '12px', sm: '14px' },
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
   if (!authChecked || !user) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box display="flex" justifyContent="center" alignItems="center" >
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ 
+    <Box sx={{
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
+      height: '100vh',
+      overflow: 'hidden',
+      background: `
+        linear-gradient(to bottom, 
+          rgba(249, 249, 249, 10) 0%, 
+          rgba(249, 249, 249, 10) 40%, 
+          rgba(249, 249, 249, 0.1) 100%),
+        url(${picbg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
+      width: '100%',
+      boxSizing: 'border-box',
     }}>
       {/* Header */}
       <Box sx={{ 
@@ -98,7 +127,7 @@ const UserProfileContainer = () => {
           <IconButton onClick={() => window.history.back()} sx={{ color: '#5F4B8B' }}>
             <ArrowBack />
           </IconButton>
-          <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
+          <Typography sx={{...pixelHeading, color:"#5F4B8B"}}>
             Profile
           </Typography>
           <Button
@@ -113,7 +142,15 @@ const UserProfileContainer = () => {
       </Box>
 
       {/* Main Content */}
-      <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'white' }}>
+      <Box sx={{ 
+        flex: 1,
+        width: '100%',
+        overflow: 'auto',
+        // Optional: custom scrollbar styling
+        '&::-webkit-scrollbar': { width: '8px' },
+        '&::-webkit-scrollbar-thumb': { backgroundColor: '#5F4B8B', borderRadius: '4px' }
+      }}>
+        <Box sx={{ display: 'flex', width: '100%', minHeight: '100%' }}>
         {/* Left Column */}
         <Box
           sx={{
@@ -122,40 +159,55 @@ const UserProfileContainer = () => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'top',
-            background: 'white',
-            borderRight: '1px solid #eee',
             p: 4,
-            mt: 8
+            mt: 1
           }}
         >
-          <Typography variant="h5" fontWeight="bold" mb={2}>
+          <Box
+            sx={{
+              background: 'rgba(95, 75, 139, 0.2)', // #5F4B8B with opacity
+              borderRadius: 4,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+              p: 3,
+              width: '100%',
+              maxWidth: 420,
+              mb: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              overflow: 'hidden'
+            }}
+          >
+          <Typography sx={{...pixelHeading, color:"Black"}}>
             Choose Character
           </Typography>
-          <Grid container spacing={4} justifyContent="center">
-            {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
-              <Grid item xs={4} key={index} display="flex" justifyContent="center">
-                <img
-                  src={src}
-                  alt={`Option ${index + 1}`}
-                  style={{
-                    width: 180,
-                    height: 180,
-                    objectFit: 'cover',
-                    borderRadius: '50%',
-                    cursor: 'pointer',
-                    border: formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent',
-                    transition: 'border 0.2s',
-                    opacity: 1,
-                  }}
-                  onClick={() => uploadProfilePicture && handleImageSelect(src)}
-                  onMouseOver={e => (e.currentTarget.style.border = '2px solid #5F4B8B')}
-                  onMouseOut={e => (e.currentTarget.style.border = formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent')}
-                />
-              </Grid>
-            ))}
-          </Grid>
+            <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+              {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
+                <Grid item xs={4} sm={4} md={4} key={index} display="flex" justifyContent="center"> 
+                  <img
+                    src={src}
+                    alt={`Option ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      maxWidth: 100,
+                      height: 'auto',
+                      aspectRatio: '1/1',
+                      objectFit: 'cover',
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      border: formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent',
+                      transition: 'border 0.2s',
+                      opacity: 1,
+                    }}
+                    onClick={() => uploadProfilePicture && handleImageSelect(src)}
+                    onMouseOver={e => (e.currentTarget.style.border = '2px solid #5F4B8B')}
+                    onMouseOut={e => (e.currentTarget.style.border = formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent')}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
         </Box>
-
         {/* Right Column */}
         <Box
           sx={{
@@ -164,19 +216,18 @@ const UserProfileContainer = () => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'top',
-            background: '#faf7ff',
-            p: 4,
+            p: 2,
           }}
         >
           {/* Reserve space for alert */}
-          <Box sx={{ height: 56, mb: 2, width: '100%' }}>
+          <Box sx={{ height: 32, mb: 3, width: '95%' }}>
             {error && (
-              <Alert severity="error" sx={{ width: '100%' }} onClose={() => setError(null)}>
+              <Alert severity="error" sx={{ width: '95%' }} onClose={() => setError(null)}>
                 {error}
               </Alert>
             )}
             {success && (
-              <Alert severity="success" sx={{ width: '100%' }} onClose={() => setSuccess(null)}>
+              <Alert severity="success" sx={{ width: '95%' }} onClose={() => setSuccess(null)}>
                 {success}
               </Alert>
             )}
@@ -202,7 +253,7 @@ const UserProfileContainer = () => {
           />
         </Box>
       </Box>
-
+      </Box>
       <DeactivateDialog 
         open={deactivateDialogOpen}
         onClose={() => setDeactivateDialogOpen(false)}
@@ -237,14 +288,14 @@ const ProfilePicture = ({
   ];
 
   return (
-    <Box position="relative" mb={4} textAlign="center">
+    <Box position="relative" mb={1} textAlign="center">
       <Box
         component="img"
         src={profilePicture || '/images/default.png'}
         alt="Profile"
         sx={{
-          width: 200,
-          height: 200,
+          width: 120,
+          height: 120,
           objectFit: 'cover',
           borderRadius: '50%',
           border: '2px solid #5F4B8B',
@@ -306,16 +357,16 @@ const ProfilePicture = ({
   );
 };
 
-
-// No changes needed for PersonalInformation component
 const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading }) => (
   <Paper 
     elevation={3} 
     sx={{ 
-      width: '80%', 
-      p: 4, 
+      width: '90%', 
+      p: 3, 
       borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+      maxHeight: 400,         // set a max height (adjust as needed)
+      overflow: 'auto'  
     }}
   >
     <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -324,7 +375,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
     <Divider sx={{ my: 2 }} />
 
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
-      <Box display="flex" gap={3} mb={3}>
+      <Box display="flex" gap={2} mb={2}>
         <TextField
           fullWidth
           label="First Name"
@@ -391,7 +442,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
 
       {editMode && (
         <>
-          <TextField
+          {/*<TextField
             fullWidth
             label="Current Password"
             name="currentPassword"
@@ -408,8 +459,8 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
             }}
             sx={{ mb: 2 }}
             required
-          />
-          <TextField
+          />*/}
+          {/*<TextField
             fullWidth
             label="New Password (for display only - not implemented)"
             name="newPassword"
@@ -426,7 +477,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
             }}
             sx={{ mb: 3 }}
             disabled // Optional: disable if you don't want users to interact with it
-          />
+          />*/}
         </>
       )}
       <FormActions 

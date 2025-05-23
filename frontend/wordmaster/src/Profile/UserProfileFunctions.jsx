@@ -129,7 +129,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
         fname: formData.firstName,
         lname: formData.lastName,
         email: formData.email,
-        currentPassword: formData.currentPassword // Sent as 'password' to backend
+        // currentPassword: formData.currentPassword // Sent as 'password' to backend
       };
 
       const response = await axios.put('http://localhost:8080/api/profile', updateDto, {
