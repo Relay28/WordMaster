@@ -54,6 +54,16 @@ const UserProfileContainer = () => {
       console.error('Error selecting image:', error);
     }
   };
+
+  const handleCancel = () => {
+    setFormData({
+      firstName: user.fname || "",
+      lastName: user.lname || "",
+      email: user.email || "",
+      profilePicture: user.profilePicture || "",
+    });
+    setEditMode(false);
+  };
   
   const {
     editMode,
@@ -250,6 +260,9 @@ const UserProfileContainer = () => {
             handleSubmit={handleSubmit}
             setEditMode={setEditMode}
             loading={loading}
+            pixelHeading={pixelHeading}
+            pixelText={pixelText}
+            handleCancel={handleCancel}
           />
         </Box>
       </Box>
@@ -357,7 +370,7 @@ const ProfilePicture = ({
   );
 };
 
-const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading }) => (
+const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading, pixelHeading, pixelText, handleCancel}) => (
   <Paper 
     elevation={3} 
     sx={{ 
@@ -365,11 +378,25 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
       p: 3, 
       borderRadius: '12px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-      maxHeight: 400,         // set a max height (adjust as needed)
-      overflow: 'auto'  
+      maxHeight: 400,
+      overflow: 'auto',
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '8px', // adjust height as needed
+        borderTopLeftRadius: '12px',
+        borderTopRightRadius: '12px',
+        background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
+        opacity: 0.9,
+        zIndex: 2
+      }
     }}
   >
-    <Typography variant="h5" fontWeight="bold" gutterBottom>
+    <Typography variant="h5" fontWeight="bold" gutterBottom sx={pixelHeading}>
       Personal Information
     </Typography>
     <Divider sx={{ my: 2 }} />
@@ -380,21 +407,27 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
           fullWidth
           label="First Name"
           name="firstName"
-          value={formData.firstName}
+          value={formData.firstName || ""}
           onChange={handleChange}
           disabled={!editMode}
           variant={editMode ? "outlined" : "filled"}
           required
+          sx={pixelText}
+          InputLabelProps={{ sx: pixelText }}
+          InputProps={{ sx: pixelText }}
         />
         <TextField
           fullWidth
           label="Last Name"
           name="lastName"
-          value={formData.lastName}
+          value={formData.lastName || ""}
           onChange={handleChange}
           disabled={!editMode}
           variant={editMode ? "outlined" : "filled"}
           required
+          sx={pixelText}
+          InputLabelProps={{ sx: pixelText }}
+          InputProps={{ sx: pixelText }}
         />
       </Box>
 
@@ -403,11 +436,13 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         label="Email"
         name="email"
         type="email"
-        value={formData.email}
+        value={formData.email || ""}
         onChange={handleChange}
         disabled={true} // Always disabled regardless of edit mode
         variant="filled"
+        InputLabelProps={{ sx: pixelText }}
         InputProps={{
+          sx: pixelText,
           startAdornment: (
             <InputAdornment position="start">
               <Email color="action" />
@@ -420,7 +455,9 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
           ),
           readOnly: true,
         }}
+        FormHelperTextProps={{ sx: pixelText }}
         sx={{ 
+          pixelText,
           mb: 3,
           backgroundColor: '#f5f5f5',
           '& .MuiInputBase-input': {
@@ -484,27 +521,43 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         editMode={editMode}
         setEditMode={setEditMode}
         loading={loading}
+        handleCancel={handleCancel}
       />
     </Box>
   </Paper>
 );
 
 // No changes needed for FormActions component
-const FormActions = ({ editMode, setEditMode, loading }) => (
-  <Box display="flex" justifyContent="flex-end" mt={4}>
+const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
+  <Box display="flex" justifyContent="flex-end" mt={2} gap={2}>
     {editMode ? (
       <>
         <Button
           variant="outlined"
-          onClick={() => setEditMode(false)}
+          onClick={handleCancel}
           sx={{
-            mr: 2,
-            borderColor: '#5F4B8B',
+            backgroundColor: '#fff',
             color: '#5F4B8B',
-            '&:hover': { 
+            borderColor: '#5F4B8B',
+            borderRadius: '4px',
+            px: 3,
+            py: 1,
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: { xs: '8px', sm: '10px' },
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+            transition: 'all 0.1s ease',
+            '&:hover': {
               backgroundColor: '#f0edf5',
-              borderColor: '#4a3a6d'
-            }
+              borderColor: '#4a3a6d',
+              transform: 'translateY(-2px)'
+            },
+            '&:active': {
+              transform: 'translateY(1px)',
+              boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+              borderStyle: 'inset'
+            },
           }}
           disabled={loading}
         >
@@ -516,8 +569,25 @@ const FormActions = ({ editMode, setEditMode, loading }) => (
           disabled={loading}
           sx={{
             backgroundColor: '#5F4B8B',
-            '&:hover': { backgroundColor: '#4a3a6d' },
-            textTransform: 'none',
+            color: '#fff',
+            borderRadius: '4px',
+            px: 3,
+            py: 1,
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: { xs: '8px', sm: '10px' },
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+            transition: 'all 0.1s ease',
+            '&:hover': {
+              backgroundColor: '#4a3a6d',
+              transform: 'translateY(-2px)'
+            },
+            '&:active': {
+              transform: 'translateY(1px)',
+              boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+              borderStyle: 'inset'
+            },
           }}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
@@ -529,8 +599,25 @@ const FormActions = ({ editMode, setEditMode, loading }) => (
         onClick={() => setEditMode(true)}
         sx={{
           backgroundColor: '#5F4B8B',
-          '&:hover': { backgroundColor: '#4a3a6d' },
-          textTransform: 'none',
+          color: '#fff',
+          borderRadius: '4px',
+          px: 3,
+          py: 1,
+          fontFamily: '"Press Start 2P", cursive',
+          fontSize: { xs: '8px', sm: '10px' },
+          letterSpacing: '0.5px',
+          textTransform: 'uppercase',
+          boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+          transition: 'all 0.1s ease',
+          '&:hover': {
+            backgroundColor: '#4a3a6d',
+            transform: 'translateY(-2px)'
+          },
+          '&:active': {
+            transform: 'translateY(1px)',
+            boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+            borderStyle: 'inset'
+          },
         }}
       >
         Edit Profile
