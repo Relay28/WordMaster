@@ -24,7 +24,7 @@ import {
   Pagination,
   Stack
 } from '@mui/material';
-import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useClassroomDetails } from './ClassroomDetailFunctions';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -198,9 +198,18 @@ const ClassroomDetailsPage = () => {
       setLoadingContent(true);
       try {
         const token = await getToken();
-        const data = await contentService.getContentByClassroom(classroom.id, token);
-        console.log("Classroom content data:", data); // Debug logging
+        let data;
+        
+        if (user?.role === 'USER_TEACHER') {
+          // Teachers see all content (drafts and published)
+          data = await contentService.getContentByClassroom(classroom.id, token);
+        } else {
+          // Students should only see published content
+          data = await contentService.getPublishedContentByClassroom(classroom.id, token);
+        }
         setContentList(data);
+        
+        console.log("Classroom content data:", data); // Now data is in scope
         setContentError(null);
       } catch (err) {
         console.error("Error loading classroom content:", err);
@@ -339,6 +348,46 @@ const ClassroomDetailsPage = () => {
   useEffect(() => {
     fetchStudentFeedback();
   }, [classroom, user?.id, getToken]);
+
+  const handleDeleteSession = async (sessionId, event) => {
+    // Stop event propagation to prevent selecting the session when clicking delete
+    event.stopPropagation();
+    
+    if (!window.confirm("Are you sure you want to delete this game session? This will remove all student data and feedback for this session.")) {
+      return;
+    }
+    
+    try {
+      setLoadingGameSessions(true);
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const response = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete game session (${response.status})`);
+      }
+      
+      // Update the game sessions list by removing the deleted session
+      setGameSessions(gameSessions.filter(session => session.id !== sessionId));
+      
+      // If the deleted session was selected, clear the selection
+      if (selectedSession === sessionId) {
+        setSelectedSession(null);
+        setStudentReports([]);
+      }
+    } catch (err) {
+      console.error("Error deleting game session:", err);
+      setGameSessionsError(err.message || "Failed to delete game session");
+    } finally {
+      setLoadingGameSessions(false);
+    }
+  };
 
   if (!authChecked || loading) {
     return (
@@ -597,6 +646,7 @@ return (
                             cursor: 'pointer',
                             border: selectedSession === session.id ? '2px solid #5F4B8B' : '1px solid rgba(0,0,0,0.12)',
                             transition: 'all 0.2s ease',
+                            position: 'relative', // Add this for positioning the delete button
                             '&:hover': {
                               transform: 'translateY(-2px)',
                               boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
@@ -616,6 +666,23 @@ return (
                           <Typography sx={{ ...pixelText, fontSize: '8px' }}>
                             Status: {session.status || 'Completed'}
                           </Typography>
+                          
+                          {/* Delete Button */}
+                          <IconButton
+                            size="small"
+                            sx={{
+                              position: 'absolute',
+                              top: 4,
+                              right: 4,
+                              color: '#ff5252',
+                              '&:hover': {
+                                backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                              }
+                            }}
+                            onClick={(e) => handleDeleteSession(session.id, e)}
+                          >
+                            <DeleteOutline fontSize="small" />
+                          </IconButton>
                         </Paper>
                       </Grid>
                     ))}

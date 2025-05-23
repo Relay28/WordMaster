@@ -27,6 +27,8 @@ public class GameSessionService {
     @Autowired private WordBankItemRepository wordBankItemRepository;
     @Autowired private RoleRepository roleRepository;
     @Autowired private AIService aiService;
+    @Autowired private ChatMessageEntityRepository chatmessageRepository;
+    @Autowired private TeacherFeedbackRepository teacherfeedbackRepository;
 
     public GameSessionEntity createSession(Long contentId, Authentication auth) {
         String email = auth.getName();
@@ -195,6 +197,28 @@ public class GameSessionService {
 
     public List<PlayerSessionEntity> getSessionPlayers(Long sessionId) {
         return playerSessionRepository.findBySessionId(sessionId);
+    }
+
+    @Transactional
+    public void deleteSession(Long sessionId) {
+        GameSessionEntity session = gameSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new ResourceNotFoundException("Game session not found"));
+        
+        // Break the circular reference first  
+        session.setCurrentPlayer(null);
+        gameSessionRepository.save(session);
+
+        // Delete all player sessions first to avoid foreign key constraints
+        playerSessionRepository.deleteBySessionId(sessionId);
+        
+        // Delete all messages associated with this session
+        chatmessageRepository.deleteBySessionId(sessionId);
+        
+        // Delete all feedback for this session
+        teacherfeedbackRepository.deleteByGameSessionId(sessionId);
+        
+        // Finally delete the session itself
+        gameSessionRepository.delete(session);
     }
 
     // Ensure joinSession and other methods are correctly implemented

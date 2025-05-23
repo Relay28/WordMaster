@@ -26,5 +26,6 @@ public interface ChatMessageEntityRepository extends JpaRepository<ChatMessageEn
     List<ChatMessageEntity> findByRoleId(@Param("sessionId") Long sessionId,
                                    @Param("roleId") Long roleId);
 
+    void deleteBySessionId(Long sessionId);
 
 }

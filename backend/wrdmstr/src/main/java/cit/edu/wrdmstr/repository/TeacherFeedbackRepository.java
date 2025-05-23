@@ -15,4 +15,5 @@ public interface TeacherFeedbackRepository extends JpaRepository<TeacherFeedback
     Optional<TeacherFeedbackEntity> findByGameSessionIdAndStudentId(Long gameSessionId, Long studentId);
     List<TeacherFeedbackEntity> findByGameSessionIdAndTeacherId(Long gameSessionId, Long teacherId);
     List<TeacherFeedbackEntity> findByGameSessionIdInAndStudentId(List<Long> sessionIds, Long studentId);
+    void deleteByGameSessionId(Long sessionId);
 }
