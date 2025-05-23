@@ -114,6 +114,7 @@ const TeacherContentSessions = () => {
           backdropFilter: 'blur(8px)',
           borderRadius: '12px',
           border: '4px solid #5F4B8B',
+          
         }
       }}
     >
@@ -124,7 +125,38 @@ const TeacherContentSessions = () => {
         <Grid container spacing={3}>
           {/* Session Information */}
           <Grid item xs={12}>
-            <Paper sx={{ p: 2, backgroundColor: 'rgba(95, 75, 139, 0.1)', borderRadius: '8px', mb: 3 }}>
+          // Update the Paper sx prop:
+<Paper sx={{
+  p: isMobile ? 2 : 3,
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  backdropFilter: 'blur(10px)',
+  borderRadius: '12px',
+  border: '4px solid #5F4B8B',
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+  transition: 'all 0.3s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 6px 25px rgba(95, 75, 139, 0.25)',
+  },
+  boxShadow: '0 4px 20px rgba(95, 75, 139, 0.15)',
+  margin: 1,
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: '8px',
+    border: '2px solid rgba(95, 75, 139, 0.1)',
+    margin: '8px',
+    pointerEvents: 'none'
+  }
+}}>
               <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
                 Session Information
               </Typography>
@@ -233,8 +265,6 @@ const TeacherContentSessions = () => {
 
 
   if (error) return <p>{error}</p>;
-
- 
 return (
   <Box sx={{
     position: 'fixed',
@@ -242,82 +272,124 @@ return (
     left: 0,
     right: 0,
     bottom: 0,
-    background: `linear-gradient(to bottom, 
-      rgba(249, 249, 249, 10) 0%, 
-      rgba(249, 249, 249, 10) 40%, 
-      rgba(249, 249, 249, 0.1) 100%),
-      url(${picbg})`,
+      background: `linear-gradient(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.8)), 
+                url(${picbg})`, // Keep your existing background
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    p: 4,
-    overflow: 'auto'
+    p: isMobile ? 2 : 4, // Responsive padding
+    overflow: 'auto',
+    display: 'flex', // Add flex container
+    flexDirection: 'column'
   }}>
-    <Box sx={{ maxWidth: '1200px', mx: 'auto', mb: 4 }}>
-      <Typography sx={{ ...pixelHeading, textAlign: 'center', mb: 4 }}>
+    <Box sx={{ 
+      flex: 1, // Take available space
+      width: '100%',
+      maxWidth: '1500px', // Increased max-width
+      mx: 'auto',
+      py: 4
+    }}>
+      <Typography sx={{ 
+        ...pixelHeading, 
+        textAlign: 'center', 
+        mb: isMobile ? 2 : 4, // Responsive margin
+        fontSize: isMobile ? '12px' : '16px' // Better mobile font size
+      }}>
         ACTIVE GAME SESSIONS
       </Typography>
 
-      <Grid container spacing={4}>
-    {sessions.length > 0 ? (
-      sessions.map((session) => (
-        <Grid item xs={12} sm={6} md={4} key={session.sessionId}>
-          <Paper sx={{
-            p: 4,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: '12px',
-            border: '4px solid #5F4B8B',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            transition: 'transform 0.2s ease-in-out',
-            '&:hover': {
-              transform: 'translateY(-4px)'
-            },
-            boxShadow: '0 4px 20px rgba(95, 75, 139, 0.15)'
-          }}>
-                <Box>
-                  <Typography sx={{ ...pixelText, mb: 2, color: '#5F4B8B' }}>
+      <Grid container spacing={isMobile ? 2 : 4}> {/* Responsive grid spacing */}
+        {sessions.length > 0 ? (
+          sessions.map((session) => (
+            <Grid item xs={12} sm={6} lg={4} xl={3} key={session.sessionId} // Added xl breakpoint
+              sx={{ display: 'flex' }} // Make grid items flex containers
+            >
+              <Paper sx={{
+                p: isMobile ? 2 : 3, // Responsive padding
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: '12px)',
+                border: '4px solid #5F4B8B)',
+                flex: 1, // Take full height of grid item
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                transition: 'transform 0.2s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-4px)'
+                },
+                boxShadow: '0 4px 20px rgba(95, 75, 139, 0.15))',
+                margin: 1 // Add margin around papers
+              }}>
+                {/* Content Section */}
+                <Box sx={{ mb: 2 }}>
+                  <Typography sx={{ 
+                    ...pixelText, 
+                    fontSize: isMobile ? '8px' : '10px',
+                    mb: 1 
+                  }}>
                     Session Code: {session.sessionCode}
                   </Typography>
-                  <Typography sx={{ ...pixelText, mb: 2 }}>
+                  <Typography sx={{ 
+                    ...pixelText, 
+                    fontSize: isMobile ? '8px' : '10px'
+                  }}>
                     Players: {session.players.length}
                   </Typography>
                 </Box>
 
-                <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-                  <Button
-                    variant="contained"
-                    onClick={() => handleViewDetails(session)}
-                    sx={{
-                      flex: 1,
-                      backgroundColor: '#6c63ff',
-                      ...pixelText,
-                      '&:hover': { backgroundColor: '#5a52e0' }
-                    }}
-                  >
-                    View Details
-                  </Button>
-                  <Button
-                    variant="contained"
-                    onClick={() => endSession(session.sessionId)}
-                    sx={{
-                      flex: 1,
-                      backgroundColor: '#ef5350',
-                      ...pixelText,
-                      '&:hover': { backgroundColor: '#d32f2f' }
-                    }}
-                  >
-                    End Session
-                  </Button>
+                {/* Buttons Section */}
+                <Box sx={{ 
+                  display: 'flex', 
+                  gap: 1,
+                  mt: 2,
+                  flexDirection: isMobile ? 'column' : 'row' // Stack buttons on mobile
+                }}>
+
+<Button
+  variant="contained"
+  onClick={() => handleViewDetails(session)}
+  sx={{
+    flex: 1,
+    py: isMobile ? 0.5 : 1,
+    fontSize: isMobile ? '8px' : '10px',
+    backgroundColor: '#5F4B8B',
+    color: 'white',
+    fontFamily: '"Press Start 2P", cursive',
+    '&:hover': {
+      backgroundColor: '#4A3B6B',
+      transform: 'scale(1.02)',
+    },
+    transition: 'all 0.2s ease-in-out'
+  }}
+>
+  View Details
+</Button>
+<Button
+  variant="contained"
+  onClick={() => endSession(session.sessionId)}
+  sx={{
+    flex: 1,
+    py: isMobile ? 0.5 : 1,
+    fontSize: isMobile ? '8px' : '10px',
+    backgroundColor: '#FF6B6B',
+    color: 'white',
+    fontFamily: '"Press Start 2P", cursive',
+    '&:hover': {
+      backgroundColor: '#FF4F4F',
+      transform: 'scale(1.02)',
+    },
+    transition: 'all 0.2s ease-in-out'
+  }}
+>
+  End Session
+</Button>
                 </Box>
               </Paper>
             </Grid>
           ))
         ) : (
-          <Grid item xs={12}>
-            <Typography sx={{ ...pixelText, textAlign: 'center' }}>
+          <Grid item xs={12} sx={{ textAlign: 'center', mt: 4 }}>
+            <Typography sx={{ ...pixelText, fontSize: isMobile ? '10px' : '12px' }}>
               No active sessions found
             </Typography>
           </Grid>
