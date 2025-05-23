@@ -131,6 +131,10 @@ const WaitingRoomPage = () => {
           'Authorization': `Bearer ${token}`
         }
       });
+       if (user?.role === 'USER_TEACHER') {
+        navigate(`/session/${contentId}`);
+      }
+      
       if (!response.ok) throw new Error('Failed to start game');
       setGameStarted(true);
       setLoading(false);

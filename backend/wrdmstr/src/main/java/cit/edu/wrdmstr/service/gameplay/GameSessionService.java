@@ -22,6 +22,7 @@ public class GameSessionService {
     @Autowired private GameSessionEntityRepository gameSessionRepository;
     @Autowired private ContentRepository contentRepository;
     @Autowired private UserRepository userRepository;
+
     @Autowired private PlayerSessionEntityRepository playerSessionRepository;
     @Autowired private ClassroomRepository classroomRepository;
     @Autowired private WordBankItemRepository wordBankItemRepository;
@@ -61,6 +62,45 @@ public class GameSessionService {
     }
     public List<GameSessionEntity> getSessionsByStudentId(Long studentId) {
         return gameSessionRepository.findSessionsByPlayerId(studentId);
+    }
+
+    @Transactional
+    public List<Map<String, Object>> getActiveSessionsWithDetails(Long contentId) {
+        List<GameSessionEntity> activeSessions = gameSessionRepository.findActiveSessionsByContent(contentId);
+
+        return activeSessions.stream().map(session -> {
+            Map<String, Object> sessionDetails = new HashMap<>();
+            sessionDetails.put("sessionId", session.getId());
+            sessionDetails.put("sessionCode", session.getSessionCode());
+            sessionDetails.put("status", session.getStatus().toString());
+            sessionDetails.put("startedAt", session.getStartedAt());
+
+            // Include players
+            List<PlayerSessionDTO> players = getSessionPlayerDTOs(session.getId());
+            sessionDetails.put("players", players);
+
+            // Include leaderboard
+            List<Map<String, Object>> leaderboard = getSessionLeaderboard(session.getId());
+            sessionDetails.put("leaderboard", leaderboard);
+
+            return sessionDetails;
+        }).collect(Collectors.toList());
+    }
+
+    private List<Map<String, Object>> getSessionLeaderboard(Long sessionId) {
+        List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
+
+        return players.stream().map(player -> {
+                    Map<String, Object> playerData = new HashMap<>();
+                    playerData.put("id", player.getId());
+                    playerData.put("userId", player.getUser().getId());
+                    playerData.put("name", player.getUser().getFname() + " " + player.getUser().getLname());
+                    playerData.put("score", player.getTotalScore());
+                    playerData.put("role", player.getRole() != null ? player.getRole().getName() : null);
+                    playerData.put("profilePicture", player.getUser().getProfilePicture());
+                    return playerData;
+                }).sorted(Comparator.comparingInt(player -> (int) ((Map<String, Object>) player).get("score")).reversed())
+                .collect(Collectors.toList());
     }
     public UserEntity getAuthenticatedUser(Authentication authentication) {
         String email = authentication.getName();
@@ -106,6 +146,10 @@ public class GameSessionService {
         }
         
         return code.toString();
+    }
+
+    public List<GameSessionEntity> getSessionsByTeacherAndContent(Long teacherId, Long contentId) {
+        return gameSessionRepository.findByContentId( contentId);
     }
 
     // Add this method
@@ -231,7 +275,8 @@ public class GameSessionService {
         session.getPlayers().add(playerSession); // Ensure bidirectional relationship if managed this way
         return playerSessionRepository.save(playerSession);
     }
-    
+
+    @Transactional
     public GameSessionEntity endSession(Long sessionId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
             .orElseThrow(() -> new ResourceNotFoundException("Game session not found"));
