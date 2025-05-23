@@ -8,6 +8,7 @@ import { ArrowBack } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
+import ComprehensionResultsView from './ComprehensionResultsView';
 
 const StudentFeedbackPage = () => {
   const { sessionId, studentId } = useParams();
@@ -18,6 +19,7 @@ const StudentFeedbackPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [feedbackDetails, setFeedbackDetails] = useState(null);
+  const [comprehensionData, setComprehensionData] = useState(null);
   
   // Pixel styling (same as other pages)
   const pixelText = {
@@ -73,6 +75,40 @@ const StudentFeedbackPage = () => {
     };
 
     fetchFeedbackDetails();
+  }, [sessionId, studentId, getToken]);
+  
+  useEffect(() => {
+    const fetchComprehensionData = async () => {
+      try {
+        const token = await getToken();
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        
+        const response = await fetch(
+          `${API_URL}/api/comprehension/session/${sessionId}/student/${studentId}`, 
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (!response.ok) {
+          console.warn('No separate comprehension results available');
+          return;
+        }
+        
+        const data = await response.json();
+        setComprehensionData(data);
+        
+      } catch (err) {
+        console.error("Error loading comprehension data:", err);
+        // Don't set an error, just log it - we don't want to break the whole page if just this fails
+      }
+    };
+
+    if (sessionId && studentId) {
+      fetchComprehensionData();
+    }
   }, [sessionId, studentId, getToken]);
   
   if (loading) {
@@ -408,6 +444,30 @@ const StudentFeedbackPage = () => {
               </Paper>
             </Grid>
           </Grid>
+        </Paper>
+        
+        {/* Comprehension Results Section */}
+        <Paper elevation={0} sx={{ 
+          p: 3,
+          mt: 4,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)',
+          border: '4px solid #5F4B8B',
+          borderRadius: '6px'
+        }}>
+          <Typography sx={{ ...pixelHeading, mb: 3 }}>
+            COMPREHENSION RESULTS
+          </Typography>
+          
+          <ComprehensionResultsView 
+            comprehensionData={comprehensionData || {
+              comprehensionQuestions: feedbackDetails.feedback?.comprehensionQuestions,
+              comprehensionAnswers: feedbackDetails.feedback?.comprehensionAnswers,
+              comprehensionPercentage: feedbackDetails.feedback?.comprehensionPercentage
+            }}
+            pixelText={pixelText}
+            pixelHeading={pixelHeading}
+          />
         </Paper>
       </Container>
     </Box>

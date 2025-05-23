@@ -9,7 +9,9 @@ import cit.edu.wrdmstr.service.gameplay.GameSessionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
@@ -150,6 +152,31 @@ public class GameController {
         } catch (Exception e) {
             logger.error("Error getting game leaderboard: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/sessions/{sessionId}/end-with-comprehension")
+    public ResponseEntity<?> endSessionWithComprehension(
+            @PathVariable Long sessionId,
+            @RequestParam(defaultValue = "true") boolean generateComprehension,
+            Authentication auth) {
+        
+        try {
+            // Verify teacher access
+            gameSessionService.verifyTeacherAccess(sessionId, auth);
+            
+            // End session with comprehension check
+            Map<String, Object> result = gameSessionService.endSessionWithComprehension(
+                sessionId, generateComprehension);
+            
+            return ResponseEntity.ok(result);
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Only the teacher who created this game can end it"));
+        } catch (Exception e) {
+            logger.error("Error ending session with comprehension check: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Failed to end session: " + e.getMessage()));
         }
     }
     

@@ -36,6 +36,7 @@ public class TeacherFeedbackService {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private ScoreService scoreService;
     @Autowired private ClassroomRepository classroomRepository;
+    @Autowired private ComprehensionResultRepository comprehensionResultRepository;
 
     /**
      * Create or update feedback for a student in a game session
@@ -400,80 +401,37 @@ public class TeacherFeedbackService {
             List<Map<String, Object>> answers,
             Authentication auth) {
         
-        // Verify authority
-        UserEntity user = userRepository.findByEmail(auth.getName())
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
             .orElseThrow(() -> new RuntimeException("Game session not found"));
         
-        // Only the student themselves or the teacher can submit answers
-        boolean isAuthorized = Objects.equals(user.getId(), studentId) || 
-                              Objects.equals(session.getTeacher().getId(), user.getId());
-        
-        if (!isAuthorized) {
-            throw new RuntimeException("You are not authorized to submit answers for this student");
-        }
+        UserEntity student = userRepository.findById(studentId)
+            .orElseThrow(() -> new RuntimeException("Student not found"));
         
         // Grade the answers
         Map<String, Object> gradeResult = comprehensionCheckService.gradeComprehensionAnswers(questions, answers);
-        double percentage = (double) gradeResult.get("percentage");
+        double percentage = (Double) gradeResult.get("percentage");
         
-        // Find or create feedback entity
-        TeacherFeedbackEntity feedback = feedbackRepository
-            .findByGameSessionIdAndStudentId(sessionId, studentId)
-            .orElse(new TeacherFeedbackEntity());
-        
-        if (feedback.getId() == null) {
-            // New feedback entity
-            feedback.setGameSession(session);
-            feedback.setStudent(userRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found")));
-            feedback.setTeacher(session.getTeacher());
-            feedback.setCreatedAt(new Date());
-        }
-        
-        // Update comprehension data
         try {
-            feedback.setComprehensionQuestions(objectMapper.writeValueAsString(questions));
-            feedback.setComprehensionAnswers(objectMapper.writeValueAsString(gradeResult.get("gradedAnswers")));
-            feedback.setComprehensionPercentage(percentage);
-            feedback.setUpdatedAt(new Date());
+            // Find or create comprehension result
+            ComprehensionResultEntity result = comprehensionResultRepository
+                .findByGameSessionIdAndStudentId(sessionId, studentId)
+                .orElse(new ComprehensionResultEntity());
             
-            // Auto-set comprehension score based on percentage (1-5 scale)
-            int score = (int) Math.ceil(percentage / 20); // 0-100% mapped to 1-5
-            feedback.setComprehensionScore(score);
+            // Set the data
+            result.setGameSession(session);
+            result.setStudent(student);
+            result.setComprehensionQuestions(objectMapper.writeValueAsString(questions));
+            result.setComprehensionAnswers(objectMapper.writeValueAsString(answers));
+            result.setComprehensionPercentage(percentage);
             
-            feedbackRepository.save(feedback);
+            // Save comprehension result (without creating/updating teacher feedback)
+            comprehensionResultRepository.save(result);
+            
+            // Return the grade result
+            return gradeResult;
         } catch (JsonProcessingException e) {
-            logger.error("Error saving comprehension data: " + e.getMessage(), e);
+            throw new RuntimeException("Error saving comprehension answers", e);
         }
-        
-        // If it's a student submitting the answers, score them based on performance
-        if (Objects.equals(user.getId(), studentId)) {
-            // Award points for completing the comprehension check
-            List<PlayerSessionEntity> players = playerSessionRepository
-                .findBySessionIdAndUserId(sessionId, studentId);
-            
-            if (!players.isEmpty()) {
-                PlayerSessionEntity player = players.get(0);
-                
-                // Base points for completing the check
-                int basePoints = 5;
-                
-                // Bonus points based on performance (up to 15 more points)
-                int bonusPoints = (int) Math.round(percentage / 100 * 15);
-                
-                // Award points through score service
-                scoreService.awardPoints(player, basePoints, "Completed comprehension check");
-                if (bonusPoints > 0) {
-                    scoreService.awardPoints(player, bonusPoints, 
-                        String.format("Comprehension check performance: %.0f%%", percentage));
-                }
-            }
-        }
-        
-        return gradeResult;
     }
 
     /**
@@ -665,5 +623,58 @@ public class TeacherFeedbackService {
             dto.setCreatedAt(feedback.getCreatedAt());
             return dto;
         }).collect(Collectors.toList());
+    }
+    
+    /**
+     * Create teacher feedback based on comprehension results
+     */
+    public TeacherFeedbackDTO createFeedbackFromComprehensionResults(
+            Long sessionId, Long studentId, Authentication auth) {
+        
+        // Verify teacher access
+        UserEntity teacher = userRepository.findByEmail(auth.getName())
+            .orElseThrow(() -> new RuntimeException("Teacher not found"));
+        
+        GameSessionEntity session = gameSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new RuntimeException("Game session not found"));
+        
+        if (!Objects.equals(session.getTeacher().getId(), teacher.getId())) {
+            throw new RuntimeException("Only the session teacher can create feedback");
+        }
+        
+        // Get the student
+        UserEntity student = userRepository.findById(studentId)
+            .orElseThrow(() -> new RuntimeException("Student not found"));
+        
+        // Get comprehension results
+        ComprehensionResultEntity result = comprehensionResultRepository
+            .findByGameSessionIdAndStudentId(sessionId, studentId)
+            .orElseThrow(() -> new RuntimeException("No comprehension results found"));
+        
+        // Create or update feedback entity
+        TeacherFeedbackEntity feedback = feedbackRepository
+            .findByGameSessionIdAndStudentId(sessionId, studentId)
+            .orElse(new TeacherFeedbackEntity());
+        
+        feedback.setGameSession(session);
+        feedback.setStudent(student);
+        feedback.setTeacher(teacher);
+        
+        // Only set comprehension score from results if not already set by teacher
+        if (feedback.getComprehensionScore() == null) {
+            int score = (int) Math.ceil(result.getComprehensionPercentage() / 20); // 0-100% mapped to 1-5
+            feedback.setComprehensionScore(score);
+        }
+        
+        // Set comprehension data
+        feedback.setComprehensionQuestions(result.getComprehensionQuestions());
+        feedback.setComprehensionAnswers(result.getComprehensionAnswers());
+        feedback.setComprehensionPercentage(result.getComprehensionPercentage());
+        
+        // Save feedback entity
+        TeacherFeedbackEntity savedFeedback = feedbackRepository.save(feedback);
+        
+        // Return DTO
+        return convertToDTO(savedFeedback, true);
     }
 }

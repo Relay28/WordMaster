@@ -24,6 +24,7 @@ import {
   Tooltip
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
+import { QuestionAnswer } from '@mui/icons-material';
 
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -335,6 +336,42 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
       console.error('Error sending sentence via WebSocket:', error);
       alert('Failed to send sentence. Please try again.');
       setIsProcessing(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Add this new function to the component
+  const handleEndWithComprehension = async () => {
+    if (!window.confirm("Are you sure you want to end the game and generate comprehension questions?")) {
+      return;
+    }
+    
+    try {
+      setSubmitting(true);
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const response = await fetch(`${API_URL}/api/game/sessions/${gameState.sessionId}/end-with-comprehension`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to end game session');
+      }
+      
+      const result = await response.json();
+      console.log('Game ended with comprehension questions:', result);
+      
+      // Game end will be handled by WebSocket connection
+    } catch (error) {
+      console.error('Error ending game with comprehension:', error);
+      alert('Failed to end game: ' + error.message);
     } finally {
       setSubmitting(false);
     }
@@ -929,7 +966,7 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
         />
 
         {/* Cycle change notification - New addition to show notification on cycle change */}
-        {!isSinglePlayer && showCycleTransition && (
+        {showCycleTransition && (
           <Box 
             sx={{ 
               position: 'fixed', 

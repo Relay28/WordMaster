@@ -1,13 +1,17 @@
 package cit.edu.wrdmstr.service;
 
+import cit.edu.wrdmstr.dto.ComprehensionResultDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +28,8 @@ public class ComprehensionCheckService {
     @Autowired private ChatMessageEntityRepository chatMessageRepository;
     @Autowired private AIService aiService;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private ComprehensionResultRepository comprehensionResultRepository;
+    
     
     /**
      * Generate comprehension questions based on game session content and chat messages
@@ -229,15 +235,22 @@ public class ComprehensionCheckService {
                     currentQuestion.put("correctAnswer", answer);
                 }
             } else if (line.toLowerCase().contains("true/false") || line.toLowerCase().contains("true or false")) {
-                // True/False question
+                // Convert true/false to multiple choice
                 if (currentQuestion != null) {
-                    currentQuestion.put("type", "true_false");
+                    currentQuestion.put("type", "multiple_choice");
                     currentOptions = Arrays.asList("True", "False");
                 }
             } else if (line.toLowerCase().contains("short answer")) {
-                // Short answer question
+                // Convert short answer to multiple choice with generic options
                 if (currentQuestion != null) {
-                    currentQuestion.put("type", "short_answer");
+                    currentQuestion.put("type", "multiple_choice");
+                        currentOptions = Arrays.asList(
+                       "This is significant because of his ambition to become known throughout the kingdom.",
+                            "This matters because it shows his diplomatic approach to royal interactions.", 
+                            "His words are important because they demonstrate his military strength.",
+                            "The significance lies in his humility and modest aspirations."
+                        );
+                    
                 }
             }
         }
@@ -248,6 +261,130 @@ public class ComprehensionCheckService {
             questions.add(currentQuestion);
         }
         
+        // Final pass to ensure all questions have proper type and options
+        for (Map<String, Object> q : questions) {
+            // Force all questions to multiple choice
+            q.put("type", "multiple_choice");
+            
+            // Ensure all questions have options
+            @SuppressWarnings("unchecked")
+            List<String> opts = (List<String>) q.get("options");
+            if (opts == null || opts.isEmpty()) {
+                q.put("options", Arrays.asList(
+                    "Option A", "Option B", "Option C", "Option D"
+                ));
+            }
+        }
+
         return questions;
+    }
+    
+    /**
+     * Get comprehension results for a session
+     */
+    public List<ComprehensionResultDTO> getResultsBySession(Long sessionId, Authentication auth) {
+        // Verify authorization
+        UserEntity user = userRepository.findByEmail(auth.getName())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+            
+        GameSessionEntity session = gameSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new RuntimeException("Game session not found"));
+            
+        // Check if user is the teacher or a student in this session
+        boolean isTeacher = Objects.equals(session.getTeacher().getId(), user.getId());
+        boolean isStudentInSession = session.getPlayers().stream()
+            .anyMatch(p -> p.getUser().getId()==(user.getId()));
+            
+        if (!isTeacher && !isStudentInSession) {
+            throw new RuntimeException("You are not authorized to view these results");
+        }
+        
+        // Get results from repository
+        List<ComprehensionResultEntity> results = comprehensionResultRepository.findByGameSessionId(sessionId);
+        
+        // Convert to DTOs
+        return results.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+    
+    /**
+     * Get comprehension results for a student
+     */
+    public List<ComprehensionResultDTO> getResultsByStudent(Long studentId, Authentication auth) {
+        // Verify authorization
+        UserEntity user = userRepository.findByEmail(auth.getName())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+            
+        // Only allow users to see their own results or teachers
+        boolean isSelf = Objects.equals(user.getId(), studentId);
+        boolean isTeacher = "USER_TEACHER".equals(user.getRole());
+        
+        if (!isSelf && !isTeacher) {
+            throw new RuntimeException("You are not authorized to view these results");
+        }
+        
+        // Get results from repository
+        List<ComprehensionResultEntity> results = comprehensionResultRepository.findByStudentId(studentId);
+        
+        // Convert to DTOs
+        return results.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+    
+    /**
+     * Get a specific comprehension result
+     */
+    public ComprehensionResultDTO getResult(Long sessionId, Long studentId, Authentication auth) {
+        // Verify authorization
+        UserEntity user = userRepository.findByEmail(auth.getName())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+            
+        // Only allow users to see their own results or teachers
+        boolean isSelf = Objects.equals(user.getId(), studentId);
+        boolean isTeacher = "USER_TEACHER".equals(user.getRole());
+        
+        if (!isSelf && !isTeacher) {
+            throw new RuntimeException("You are not authorized to view these results");
+        }
+        
+        // Get result from repository
+        ComprehensionResultEntity result = comprehensionResultRepository
+            .findByGameSessionIdAndStudentId(sessionId, studentId)
+            .orElseThrow(() -> new RuntimeException("Result not found"));
+        
+        // Convert to DTO
+        return convertToDTO(result);
+    }
+    
+    /**
+     * Convert entity to DTO
+     */
+    private ComprehensionResultDTO convertToDTO(ComprehensionResultEntity entity) {
+        ComprehensionResultDTO dto = new ComprehensionResultDTO();
+        dto.setId(entity.getId());
+        dto.setGameSessionId(entity.getGameSession().getId());
+        dto.setStudentId(entity.getStudent().getId());
+        dto.setStudentName(entity.getStudent().getFname() + " " + entity.getStudent().getLname());
+        dto.setComprehensionPercentage(entity.getComprehensionPercentage());
+        dto.setCreatedAt(entity.getCreatedAt());
+        
+        // Convert JSON strings to objects
+        try {
+            if (entity.getComprehensionQuestions() != null) {
+                dto.setComprehensionQuestions(objectMapper.readValue(
+                    entity.getComprehensionQuestions(), 
+                    new TypeReference<List<Map<String, Object>>>() {}
+                ));
+            }
+            
+            if (entity.getComprehensionAnswers() != null) {
+                dto.setComprehensionAnswers(objectMapper.readValue(
+                    entity.getComprehensionAnswers(), 
+                    new TypeReference<List<Map<String, Object>>>() {}
+                ));
+            }
+        } catch (JsonProcessingException e) {
+            logger.error("Error parsing comprehension data: " + e.getMessage(), e);
+        }
+        
+        return dto;
     }
 }

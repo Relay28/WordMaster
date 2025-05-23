@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Box, Container, Typography, Paper, Grid, Button, Avatar, 
   CircularProgress, Alert, Divider, List, ListItem, ListItemText, Chip,
-    TextField, Select, MenuItem, FormControl, InputLabel 
+    TextField, Select, MenuItem, FormControl, InputLabel, Tabs, Tab
 } from '@mui/material';
 import { ArrowBack, School, Person, Assessment, EmojiEvents } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
+import ComprehensionResultsView from './ComprehensionResultsView';
 
 
 const StudentReportPage = () => {
@@ -29,6 +30,8 @@ const StudentReportPage = () => {
     roleAdherenceScore: 3,
     overallGrade: 'B'
   });
+  const [activeTab, setActiveTab] = useState(0);
+  const [comprehensionData, setComprehensionData] = useState(null);
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -198,6 +201,44 @@ const StudentReportPage = () => {
       [name]: value
     });
   };
+  
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+  
+  useEffect(() => {
+    const fetchComprehensionData = async () => {
+      try {
+        const token = await getToken();
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        
+        const response = await fetch(
+          `${API_URL}/api/comprehension/session/${sessionId}/student/${studentId}`, 
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (!response.ok) {
+          console.warn('No separate comprehension results available');
+          return;
+        }
+        
+        const data = await response.json();
+        setComprehensionData(data);
+        
+      } catch (err) {
+        console.error("Error loading comprehension data:", err);
+        // Don't set an error, just log it - we don't want to break the whole page if just this fails
+      }
+    };
+
+    if (sessionId && studentId) {
+      fetchComprehensionData();
+    }
+  }, [sessionId, studentId, getToken]);
   
   if (loading) {
     return (
@@ -742,6 +783,36 @@ const StudentReportPage = () => {
             </Paper>
           </Grid>
         </Grid>
+        
+        {/* Tabs for Overview, Messages, Comprehension */}
+        <Paper elevation={0} sx={{ 
+          p: 2, 
+          mb: 4,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)',
+          border: '4px solid #5F4B8B',
+          borderRadius: '6px'
+        }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={handleTabChange} 
+            sx={{ mb: 2, '& .MuiTab-root': { ...pixelText, minWidth: 'auto' } }}
+          >
+            {/* Only show the Comprehension tab for now */}
+            <Tab label="Comprehension" />
+          </Tabs>
+          
+          {/* Just one tab panel */}
+          <ComprehensionResultsView 
+            comprehensionData={comprehensionData || {
+              comprehensionQuestions: studentDetails.feedback?.comprehensionQuestions,
+              comprehensionAnswers: studentDetails.feedback?.comprehensionAnswers,
+              comprehensionPercentage: studentDetails.feedback?.comprehensionPercentage
+            }}
+            pixelText={pixelText}
+            pixelHeading={pixelHeading}
+          />
+        </Paper>
       </Container>
     </Box>
   );

@@ -292,7 +292,8 @@ public class AIService {
                     questionsPrompt.append("B. False\n");
                     questionsPrompt.append("Correct Answer: A\n\n");
                     
-                    questionsPrompt.append("Mix multiple choice, true/false, and short answer questions.\n");
+                    questionsPrompt.append("Only create multiple choice and true/false questions. DO NOT create short answer questions.\n");
+                    questionsPrompt.append("Each question must have exactly 4 options for multiple choice or 2 options (True/False) for true/false questions.\n");
                     questionsPrompt.append("Make sure questions test comprehension of the content, conversation context, and the student's role.\n");
                     questionsPrompt.append("Include questions about key vocabulary when appropriate.\n");
                     

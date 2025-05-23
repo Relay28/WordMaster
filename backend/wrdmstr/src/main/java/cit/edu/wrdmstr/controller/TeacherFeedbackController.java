@@ -135,4 +135,17 @@ public class TeacherFeedbackController {
             Authentication auth) {
         return ResponseEntity.ok(feedbackService.getStudentAnalytics(sessionId, studentId, auth));
     }
+
+    /**
+     * Create feedback from comprehension results (teacher only)
+     */
+    @PostMapping("/create-from-results/{sessionId}/student/{studentId}")
+    public ResponseEntity<TeacherFeedbackDTO> createFeedbackFromResults(
+            @PathVariable Long sessionId,
+            @PathVariable Long studentId,
+            Authentication auth) {
+        TeacherFeedbackDTO feedback = feedbackService.createFeedbackFromComprehensionResults(
+                sessionId, studentId, auth);
+        return ResponseEntity.ok(feedback);
+    }
 }
