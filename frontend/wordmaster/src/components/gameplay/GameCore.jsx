@@ -328,7 +328,12 @@ const handleChatMessage = (message) => {
       return <WaitingRoom gameState={gameState} isTeacher={user?.role === 'USER_TEACHER'} />;
     } else if (gameState.status === 'TURN_IN_PROGRESS' || gameState.status === 'WAITING_FOR_PLAYER' || 
                gameState.status === 'ACTIVE') {
-      return <GamePlay gameState={gameState} stompClient={stompClient} sendMessage={sendMessage} />;
+      return <GamePlay 
+        gameState={gameState} 
+        stompClient={stompClient} 
+        sendMessage={sendMessage}
+        onGameStateUpdate={(updatedState) => setGameState(updatedState)} 
+      />;
     } else if (gameState.status === 'COMPLETED') {
       return <GameResults gameState={gameState} />;
     }

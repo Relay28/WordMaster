@@ -28,11 +28,12 @@ import { useUserAuth } from '../context/UserAuthContext';
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
-const GamePlay = ({ gameState, stompClient, sendMessage }) => {
+const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) => {
   const { sessionId } = useParams(); // Ensure sessionId is available if used directly for subscriptions
   const { user, getToken } = useUserAuth();
   const [sentence, setSentence] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false); // For single-player processing
   const [storyPrompt, setStoryPrompt] = useState(gameState?.storyPrompt || ''); // For AI-generated story prompts
   const [rolePrompt, setRolePrompt] = useState('');   // For AI-generated role-specific hints
   const [pointsNotification, setPointsNotification] = useState(false);
@@ -179,8 +180,8 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   // Determine if it's the current user's turn
   const currentUserInPlayers = gameState.players?.find(p => p.userId === user?.id);
  // Fix the isMyTurn comparison by ensuring type consistency
-  const isMyTurn = !!(gameState.currentPlayer && currentUserInPlayers && user &&
-                 String(gameState.currentPlayer.userId) === String(user?.id)); // Compare with user.id from context
+  const isMyTurn = isSinglePlayer || !!(gameState.currentPlayer && currentUserInPlayers && user &&
+                 String(gameState.currentPlayer.userId) === String(user?.id));
 
   // Debugging for isMyTurn calculation and related states
   useEffect(() => {
@@ -267,6 +268,78 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
     }
   };
 
+  // Add this after your handleSubmit function (around line 279)
+  // Handle single-player submissions differently
+  const handleSinglePlayerSubmit = async () => {
+    if (!sentence.trim() || submitting || !gameState.sessionId) {
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setSubmitting(false);
+        alert('Authentication error. Please log in again.');
+        return;
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      // Send the submission
+      await sendMessage(
+        `/app/game/${gameState.sessionId}/word`,
+        { word: sentence.trim() },
+        headers
+      );
+
+      // For single-player, immediately clear the input
+      setSentence('');
+      
+      // Show a temporary processing message
+      setIsProcessing(true);
+      
+      // Wait a moment for the backend to process the submission
+      setTimeout(async () => {
+        // Fetch the updated game state
+        try {
+          const response = await fetch(`${API_URL}/api/sessions/${gameState.sessionId}/state`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Cache-Control': 'no-cache'
+            }
+          });
+          
+          if (response.ok) {
+            const updatedState = await response.json();
+            console.log('Received updated state after submission:', updatedState);
+            
+            // Update local game state immediately to avoid refresh
+            if (typeof onGameStateUpdate === 'function') {
+              onGameStateUpdate(updatedState);
+              // Force isMyTurn to true in single player
+              if (isSinglePlayer) {
+                setIsProcessing(false);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching updated game state:', error);
+        } finally {
+          setIsProcessing(false);
+        }
+      }, 1000); // Wait 1 second before fetching updated state
+    } catch (error) {
+      console.error('Error sending sentence via WebSocket:', error);
+      alert('Failed to send sentence. Please try again.');
+      setIsProcessing(false);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Add this new component at the top of your file after imports
 const CycleTransitionOverlay = ({ isActive, cycle }) => {
   if (!isActive) return null;
@@ -306,20 +379,19 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
 
   // Add this effect to detect cycle changes
   useEffect(() => {
-    if (gameState.currentCycle !== null && previousCycle !== null && gameState.currentCycle > previousCycle) {
+    // Only show cycle transitions in multiplayer mode
+    if (!isSinglePlayer && gameState.currentCycle !== null && previousCycle !== null && gameState.currentCycle > previousCycle) {
       console.log(`[GamePlay Debug] Cycle changed from ${previousCycle} to ${gameState.currentCycle}`);
-      setCycleTransitionActive(true); // Show full-screen overlay
-      setShowCycleTransition(true);   // Show top banner notification
+      setCycleTransitionActive(true);
+      setShowCycleTransition(true);
 
-      // Hide full-screen overlay after a delay
       const fullScreenTimer = setTimeout(() => {
         setCycleTransitionActive(false);
-      }, 4000); // Duration for full-screen overlay
+      }, 4000);
 
-      // Hide top banner after a shorter delay
       const bannerTimer = setTimeout(() => {
         setShowCycleTransition(false);
-      }, 5000); // Duration for top banner
+      }, 5000);
 
       setPreviousCycle(gameState.currentCycle);
 
@@ -328,10 +400,9 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
         clearTimeout(bannerTimer);
       };
     } else if (previousCycle === null && gameState.currentCycle !== null) {
-      // Initialize previousCycle if it's the first time we get a cycle number
       setPreviousCycle(gameState.currentCycle);
     }
-  }, [gameState.currentCycle, previousCycle]);
+  }, [gameState.currentCycle, previousCycle, isSinglePlayer]);
 
   // In the game status header
   const totalCycles = gameState.turnCyclesConfig || Math.ceil(gameState.totalTurns / (gameState.players?.length || 1));
@@ -346,7 +417,7 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
   return (
     <>
       <CycleTransitionOverlay
-        isActive={showCycleTransition}
+        isActive={!isSinglePlayer && showCycleTransition}
         cycle={gameState.currentCycle || 1}
       />
       
@@ -625,8 +696,8 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
                       />
                       <Button
                         variant="contained"
-                        onClick={handleSubmit}
-                        disabled={submitting || !sentence.trim() || !isMyTurn}
+                        onClick={isSinglePlayer ? handleSinglePlayerSubmit : handleSubmit}
+                        disabled={submitting || !sentence.trim() || (!isMyTurn && !isSinglePlayer)}
                         sx={{
                           bgcolor: '#5F4B8B',
                           borderRadius: '50px',
@@ -647,7 +718,9 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
                     p: 2,
                     borderRadius: '8px'
                   }}>
-                    Wait for your turn to submit a response. Current player: {gameState.currentPlayer?.name}
+                    {isSinglePlayer ? 
+                      "Processing your submission..." : 
+                      `Wait for your turn to submit a response. Current player: ${gameState.currentPlayer?.name}`}
                   </Typography>
                 )}
                 {isMyTurn && gameState.currentPlayer?.wordBomb && (
@@ -856,7 +929,7 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
         />
 
         {/* Cycle change notification - New addition to show notification on cycle change */}
-        {showCycleTransition && (
+        {!isSinglePlayer && showCycleTransition && (
           <Box 
             sx={{ 
               position: 'fixed', 
@@ -885,6 +958,17 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
           </Box>
         )}
       </Box>
+
+      {/* Single-player turn notification */}
+      <Snackbar
+        open={isSinglePlayer && isProcessing}
+        autoHideDuration={2000}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity="info" sx={{ width: '100%' }}>
+          Turn {gameState.currentTurn} completed. Starting next turn...
+        </Alert>
+      </Snackbar>
 
       <style>
         {`
