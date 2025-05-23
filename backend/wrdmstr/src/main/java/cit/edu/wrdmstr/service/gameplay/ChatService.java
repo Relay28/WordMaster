@@ -1,5 +1,6 @@
 package cit.edu.wrdmstr.service.gameplay;
 
+import cit.edu.wrdmstr.dto.ChatMessageDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
 import cit.edu.wrdmstr.repository.*;
@@ -222,8 +223,29 @@ public class ChatService {
 
     // Removed the awardPoints method as it's now in ScoreService
 
-    public List<ChatMessageEntity> getSessionMessages(Long sessionId) {
-        return chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+    public List<ChatMessageDTO> getSessionMessages(Long sessionId) {
+        List<ChatMessageEntity> messages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+
+        List<ChatMessageDTO> messageDTOs = new ArrayList<>();
+        for (ChatMessageEntity message : messages) {
+            ChatMessageDTO dto = new ChatMessageDTO();
+            dto.setId(message.getId());
+            dto.setSenderId(message.getSender() != null ? message.getSender().getId() : null);
+            dto.setSenderName(message.getSender() != null ? message.getSender().getFname() + " " + message.getSender().getLname() : null);
+            dto.setContent(message.getContent());
+            dto.setTimestamp(message.getTimestamp());
+            dto.setGrammarStatus(message.getGrammarStatus() != null ? message.getGrammarStatus().toString() : null);
+            dto.setGrammarFeedback(message.getGrammarFeedback());
+            dto.setContainsWordBomb(message.isContainsWordBomb());
+            dto.setWordUsed(message.getWordUsed());
+            dto.setRole(message.getPlayerSession() != null && message.getPlayerSession().getRole() != null
+                    ? message.getPlayerSession().getRole().getName()
+                    : null);
+
+            messageDTOs.add(dto);
+        }
+
+        return messageDTOs;
     }
 
     // Add this method to generate role-specific prompts

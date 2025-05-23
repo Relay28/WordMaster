@@ -46,6 +46,7 @@ public class PlayerSessionEntity {
     private Integer groupNumber;
 
     private boolean isCardsDrawn =  false;
+    @Lob
     private String profilePicture;
     public boolean isCardsDrawn() {
         return isCardsDrawn;

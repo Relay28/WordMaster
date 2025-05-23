@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.controller;
 
 
+import cit.edu.wrdmstr.dto.ChatMessageDTO;
 import cit.edu.wrdmstr.entity.ChatMessageEntity;
 import cit.edu.wrdmstr.entity.MessageReactionEntity;
 import cit.edu.wrdmstr.service.gameplay.ChatService;
@@ -34,8 +35,8 @@ public class ChatController {
     }
 
     @GetMapping("/sessions/{sessionId}/messages")
-    public ResponseEntity<List<ChatMessageEntity>> getSessionMessages(@PathVariable Long sessionId) {
-        List<ChatMessageEntity> messages = chatService.getSessionMessages(sessionId);
+    public ResponseEntity<List<ChatMessageDTO>> getSessionMessages(@PathVariable Long sessionId) {
+        List<ChatMessageDTO> messages = chatService.getSessionMessages(sessionId);
         return ResponseEntity.ok(messages);
     }
 

@@ -718,72 +718,112 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
               position: 'relative',
               zIndex: 1
             }}>
-              {gameState.messages?.map((msg, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    alignSelf: msg.senderId === user?.id ? 'flex-end' : 'flex-start',
-                    maxWidth: '80%'
-                  }}
-                >
-                  <Box 
-                    sx={{
-                      mb: 2,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: msg.senderId === user?.id ? 'flex-end' : 'flex-start'
-                    }}
-                  >
-                    <Paper sx={{
-                      p: 1.5,
-                      bgcolor: msg.senderId === user?.id ? '#5F4B8B' : (gameState.backgroundImage ? 'rgba(255, 255, 255, 0.9)' : '#e0e0e0'),
-                      color: msg.senderId === user?.id ? 'white' : 'inherit',
-                      borderRadius: '12px',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                    }}>
-                      <Box display="flex" alignItems="center" mb={1}>
-                        <Avatar 
-                          sx={{ 
-                            width: 24, 
-                            height: 24, 
-                            mr: 1,
-                            fontSize: '0.75rem',
-                            bgcolor: msg.senderId === user?.id ? '#4a3a6d' : '#9e9e9e'
-                          }}
-                        >
-                          {msg.senderName?.charAt(0) || 'P'}
-                        </Avatar>
-                        <Typography variant="subtitle2" fontWeight="bold" sx={pixelText}>
-                          {msg.senderName || 'Player'} 
-                          {msg.role && ` (${msg.role})`}
-                        </Typography>
-                      </Box>
-                      <Typography variant="body1" sx={{ ...pixelText, whiteSpace: 'pre-wrap' }}>{msg.content}</Typography>
-                      <Box mt={1} display="flex" justifyContent="flex-end" alignItems="center">
-                        {msg.containsWordBomb && (
-                          <Chip 
-                            label="Word Bomb!" 
-                            size="small" 
-                            color="error"
-                            sx={{ mr: 1, fontSize: '0.6rem', ...pixelText }}
-                          />
-                        )}
-                        {msg.wordUsed && (
-                          <Chip 
-                            label={`Used: ${msg.wordUsed}`} 
-                            size="small" 
-                            color="success"
-                            sx={{ fontSize: '0.6rem', ...pixelText }}
-                          />
-                        )}
-                      </Box>
-                    </Paper>
-                    <Typography variant="caption" sx={{ mt: 0.5, color: gameState.backgroundImage ? 'rgba(255,255,255,0.7)' : 'text.secondary', ...pixelText }}>
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
+     
+{gameState.messages?.map((msg, index) => (
+  <Box
+    key={index}
+    sx={{
+      alignSelf: msg.senderId === user?.id ? 'flex-end' : 'flex-start',
+      maxWidth: '80%'
+    }}
+  >
+    <Box 
+      sx={{
+        mb: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: msg.senderId === user?.id ? 'flex-end' : 'flex-start'
+      }}
+    >
+      <Paper sx={{
+        p: 1.5,
+        bgcolor: msg.grammarStatus === 'MAJOR_ERRORS' ? '#ffebee' : 
+                (msg.senderId === user?.id ? '#5F4B8B' : '#e0e0e0'),
+        color: msg.senderId === user?.id ? 'white' : 'inherit',
+        borderRadius: '12px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      }}>
+        <Box display="flex" alignItems="center" mb={1}>
+          <Avatar 
+            sx={{ 
+              width: 24, 
+              height: 24, 
+              mr: 1,
+              fontSize: '0.75rem',
+              bgcolor: msg.senderId === user?.id ? '#4a3a6d' : '#9e9e9e'
+            }}
+          >
+          
+            {msg.senderName?.charAt(0) || 'P'}
+          </Avatar>
+          <Typography variant="subtitle2" fontWeight="bold" sx={pixelText}>
+            {msg.senderName || 'Player'}
+          </Typography>
+        </Box>
+        <Typography variant="body1" sx={{ ...pixelText, whiteSpace: 'pre-wrap' }}>
+          {msg.content}
+        </Typography>
+        <Box mt={1} display="flex" justifyContent="flex-end" alignItems="center" gap={1}>
+          {msg.containsWordBomb && (
+            <Chip 
+              label="Word Bomb!" 
+              size="small" 
+              color="error"
+              sx={{ fontSize: '0.6rem', ...pixelText }}
+            />
+          )}
+          {msg.wordUsed && (
+            <Chip 
+              label={`Used: ${msg.wordUsed}`} 
+              size="small" 
+              color="success"
+              sx={{ fontSize: '0.6rem', ...pixelText }}
+            />
+          )}
+          {msg.grammarStatus && (
+            <Chip 
+              label={msg.grammarStatus.replace('_', ' ')}
+              size="small" 
+              color={msg.grammarStatus === 'MAJOR_ERRORS' ? 'error' : 'warning'}
+              sx={{ fontSize: '0.6rem', ...pixelText }}
+            />
+          )}
+          {!msg.roleAppropriate && (
+            <Chip 
+              label="Role Inappropriate"
+              size="small" 
+              color="error"
+              sx={{ fontSize: '0.6rem', ...pixelText }}
+            />
+          )}
+        </Box>
+      </Paper>
+      <Typography variant="caption" sx={{ 
+        mt: 0.5, 
+        color: gameState.backgroundImage ? 'rgba(255,255,255,0.7)' : 'text.secondary', 
+        ...pixelText 
+      }}>
+        {new Date(msg.timestamp).toLocaleTimeString()}
+      </Typography>
+      {msg.grammarFeedback && (
+        <Collapse in={true}>
+          <Paper sx={{ 
+            mt: 1, 
+            p: 1, 
+            bgcolor: 'rgba(255,255,255,0.9)',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            fontSize: '0.75rem'
+          }}>
+            <Typography sx={{ ...pixelText, whiteSpace: 'pre-wrap', color: '#666' }}>
+              {msg.grammarFeedback}
+            </Typography>
+          </Paper>
+        </Collapse>
+      )}
+    </Box>
+  </Box>
+))}
               <div ref={chatEndRef} />
             </Box>
 
