@@ -21,12 +21,23 @@ import {
   Alert,
   FormControlLabel,
   Switch,
-  Tooltip
+  Tooltip,
+  Collapse,
+  useTheme,
+  useMediaQuery,
+  Fade,
+  IconButton,
+  
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
+import '@fontsource/press-start-2p';
+import { BagClosed, BagOpen } from '../../assets/BagIcons';
+import { Close } from '@mui/icons-material';
+
 
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+
 
 const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const { sessionId } = useParams(); // Ensure sessionId is available if used directly for subscriptions
@@ -45,8 +56,26 @@ const GamePlay = ({ gameState, stompClient, sendMessage }) => {
   const [previousCycle, setPreviousCycle] = useState(gameState?.currentCycle || null); // Already present
   const [leaderboard, setLeaderboard] = useState([]); // Already present
   const chatEndRef = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
 
   const isSinglePlayer = gameState.players?.length === 1;
+  const [isWordBankOpen, setIsWordBankOpen] = useState(false);
+
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '12px' : '14px',
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
   
   useEffect(() => {
     if (chatEndRef.current) {
@@ -272,22 +301,13 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
   if (!isActive) return null;
   
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 9999,
-        color: 'white',
-      }}
-    >
+    <Box sx={{ 
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      bgcolor: '#f5f5f5'
+    }}>
       <Box sx={{ textAlign: 'center', maxWidth: '600px', p: 4 }}>
         <Typography variant="h3" sx={{ mb: 2, color: '#5F4B8B' }}>
           Cycle {cycle-1} Completed!
@@ -343,330 +363,261 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
 
   const turnDisplayString = `Turn: ${gameState.currentTurn || 0} / ${gameState.totalTurns || 0}`;
 
-  return (
-    <>
-      <CycleTransitionOverlay
-        isActive={showCycleTransition}
-        cycle={gameState.currentCycle || 1}
-      />
-      
-      <Box sx={{ py: 4 }}>
-        <Grid container spacing={3}>
-          {/* Game Status Section */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2, borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                <Typography variant="h5" sx={{ fontWeight: '500', color: '#5F4B8B' }}>
-                  {gameState.contentInfo?.title || 'Game Session'}
+ return (
+  <>
+    <CycleTransitionOverlay
+      isActive={showCycleTransition}
+      cycle={gameState.currentCycle || 1}
+    />
+    
+    <Box sx={{ 
+      height: '90vh',
+      display: 'flex',
+      flexDirection: 'column', 
+      p: 4, // Added horizontal padding
+      gap: 2, // Reduced gap
+    }}>
+   
+      {/* Story Prompt Section */}
+      <Paper sx={{ 
+        p: 3,
+        borderRadius: '12px',
+        bgcolor: 'rgba(255, 255, 255, 0.9)',
+        border: '4px solid #5F4B8B',
+        boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
+        transform: 'translateY(-2px)',
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
+        }
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+            Story Prompt
+          </Typography>
+          <Chip 
+            label={`${isSinglePlayer ? `Turn ${gameState.currentTurn}` : `Cycle ${gameState.currentCycle}`}`}
+            color="warning" 
+            size="small"
+          />
+        </Box>
+        <Typography sx={{ ...pixelText, mt: 1, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
+          {storyPrompt}
+        </Typography>
+      </Paper>
+
+      {/* Main Content Area */}
+      <Box sx={{ 
+        display: 'flex',
+        flex: 1,
+        gap: 2,
+      }}>
+        {/* Left Side - Players Circle and Input */}
+        <Box sx={{ 
+          position: 'relative',
+          flex: 1, // Changed from flex: 2 to flex: 1
+          display: 'flex',
+          flexDirection: 'column',
+          minWidth: '40vh', // Added to ensure minimum width
+          maxWidth: '130vh', 
+ 
+        }}>
+          {/* Players Circle Area */}
+          <Paper sx={{ 
+            height: '100%',
+            p: 3,
+            borderRadius: '12px',
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+             border: '4px solid #5F4B8B',
+            boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
+            transform: 'translateY(-2px)',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
+            }
+          }}>
+            {/* Center player */}
+            <Box sx={{ 
+              position: 'relative',
+              width: '300px',
+              height: '300px'
+            }}>
+              {/* Current Player in Center */}
+              <Avatar
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: 80,
+                  height: 80,
+                  bgcolor: '#5F4B8B',
+                  border: '3px solid white',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                }}
+              >
+                {gameState.currentPlayer?.name?.charAt(0) || '?'}
+              </Avatar>
+
+              {/* Other players in circle */}
+              {gameState.players?.map((player, index, array) => {
+                if (player.userId === gameState.currentPlayer?.userId) return null;
+                const angle = (2 * Math.PI * index) / (array.length - 1);
+                const radius = 120;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                return (
+                  <Avatar
+                    key={player.userId}
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                      width: 50,
+                      height: 50,
+                      bgcolor: '#9575CD',
+                      border: '2px solid white'
+                    }}
+                  >
+                    {player.name?.charAt(0)}
+                  </Avatar>
+                );
+              })}
+            </Box>
+          </Paper>
+      {/* Word Bank Button */}
+      <Box
+        onClick={() => setIsWordBankOpen(!isWordBankOpen)}
+        sx={{
+          position: 'absolute',
+          bottom: 20,
+          right: 20,
+          width: 80,
+          height: 80,
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          animation: isWordBankOpen ? 'float 2s ease-in-out infinite' : 'none',
+          transform: isWordBankOpen ? 'rotate(-15deg)' : 'none',
+          zIndex: 2,
+          '&:hover': {
+            transform: isWordBankOpen ? 'rotate(-15deg) scale(1.1)' : 'scale(1.1)',
+          },
+          '@keyframes float': {
+            '0%, 100%': {
+              transform: 'rotate(-15deg) translateY(0)',
+            },
+            '50%': {
+              transform: 'rotate(-15deg) translateY(-10px)',
+            },
+          },
+        }}
+      >
+        {isWordBankOpen ? <BagOpen /> : <BagClosed />}
+      </Box>
+
+      {/* Word Bank Popup */}
+      <Fade in={isWordBankOpen}>
+  <Paper sx={{ 
+    position: 'absolute',
+    bottom: 120,
+    right: 20,
+    width: 300,
+    maxHeight: '60vh',
+    overflowY: 'auto',
+    p: 2,
+    borderRadius: '8px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+    zIndex: 1000,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    backdropFilter: 'blur(8px)',
+    border: '2px solid #5F4B8B',
+    // Add transition for smoother fade
+    transition: 'opacity 0.3s ease',
+    opacity: isWordBankOpen ? 1 : 0,
+    visibility: isWordBankOpen ? 'visible' : 'hidden'
+  }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>WORD BANK</Typography>
+      <IconButton onClick={() => setIsWordBankOpen(false)}>
+        <Close />
+      </IconButton>
+    </Box>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+      {gameState.wordBank && gameState.wordBank.map((wordItem, index) => (
+        <Tooltip
+          key={index}
+          title={
+            <Box sx={{ ...pixelText, p: 1 }}>
+              <Typography sx={{ fontWeight: 'bold', mb: 1 }}>
+                {wordItem.description || "NO DESCRIPTION AVAILABLE"}
+              </Typography>
+              {wordItem.exampleUsage && (
+                <Typography sx={{ fontStyle: 'italic' }}>
+                  EXAMPLE: "{wordItem.exampleUsage}"
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Tooltip title={isSinglePlayer ? "Current Turn / Total Turns" : "Current Cycle / Total Cycles"}>
-                    <Chip 
-                      label={cycleDisplayString} // Use the new display string
-                      color={isLastCycle ? "error" : "secondary"}
-                      size="medium"
-                      variant="outlined"
-                      sx={{ 
-                        fontWeight: 'bold',
-                        ...(isLastCycle && { animation: 'pulse 2s infinite' })
-                      }}
-                    />
-                  </Tooltip>
-                  {!isSinglePlayer && ( // Optionally show overall turn for multiplayer
-                     <Tooltip title="Overall Turn Progress">
-                        <Chip 
-                            label={turnDisplayString}
-                            color="primary" 
-                            size="medium"
-                            sx={{ fontWeight: 'bold' }}
-                        />
-                     </Tooltip>
-                  )}
-                </Box>
-              </Box>
-              
-              <Box display="flex" alignItems="center" mt={2}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: isMyTurn ? '#5F4B8B' : '#e0e0e0',
-                    color: isMyTurn ? 'white' : 'text.primary',
-                    mr: 2
-                  }}
-                >
-                  {gameState.currentPlayer?.name?.charAt(0)?.toUpperCase() || '?'}
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle1" fontWeight={isMyTurn ? 'bold' : 'medium'}>
-                    {isMyTurn ? "Your turn!" : `${gameState.currentPlayer?.name || 'Waiting for player'}'s turn`}
-                  </Typography>
-                  {gameState.currentPlayer?.role && (
-                    <Typography variant="caption" color="text.secondary">
-                      Role: {gameState.currentPlayer.role}
-                    </Typography>
-                  )}
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
-                  <Typography variant="subtitle1" mr={1}>
-                    Time: {gameState.timeRemaining || 0}s
-                  </Typography>
-                  <Box sx={{ width: '120px' }}>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={timePercent}
-                      color={getTimerColor()}
-                      sx={{ 
-                        height: 10, 
-                        borderRadius: 5,
-                        backgroundColor: 'rgba(0,0,0,0.1)'
-                      }}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
-
-          {/* User's role display and AI Role Hint */}
-          {isMyTurn && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 2, mb: 2, borderRadius: '8px', bgcolor: '#f8f5ff' }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="h6">Your Role</Typography>
-                    <Chip 
-                      label={gameState.players?.find(p => p.userId === user?.id)?.role || 'No role assigned'} 
-                      color="primary"
-                      size="medium"
-                      sx={{ fontWeight: 'bold' }}
-                    />
-                  </Box>
-                  {rolePrompt && (
-                    <Box mt={1} p={2} bgcolor="#e3f2fd" borderRadius="8px" borderLeft="4px solid #2196f3">
-                      <Typography variant="subtitle2" fontWeight="bold" color="#1e88e5">Role Hint:</Typography>
-                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-                        {rolePrompt}
-                      </Typography>
-                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                        <Chip 
-                            size="small" 
-                            label={`Updated for ${isSinglePlayer ? `Turn ${gameState.currentTurn}` : `Cycle ${gameState.currentCycle}`}`}
-                            color="info" 
-                            variant="outlined"
-                        />
-                        </Box>
-                    </Box>
-                  )}
-                  <Typography variant="body2" mt={rolePrompt ? 1 : 0}>
-                    Play according to your role to earn more points!
-                  </Typography>
-                </Box>
-              </Paper>
-            </Grid>
-          )}
-
-          {/* AI Story Prompt */}
-          {storyPrompt && (
-            <Grid item xs={12}>
-              <Paper sx={{ 
-                p: 2, mb: 2, borderRadius: '8px', bgcolor: '#fff8e1',
-                position: 'relative', overflow: 'hidden',
-              }}>
-                 <Box sx={{ position: 'relative', zIndex: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="h6" color="#f57c00">Story Prompt:</Typography>
-                    <Chip 
-                        label={`${isSinglePlayer ? `Turn ${gameState.currentTurn}` : `Cycle ${gameState.currentCycle}`}`}
-                        color="warning" 
-                        size="small"
-                    />
-                    </Box>
-                    <Typography variant="body1" sx={{ fontStyle: 'italic', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                    {storyPrompt}
-                    </Typography>
-                </Box>
-                <Box sx={{ 
-                  position: 'absolute', 
-                  top: 0, right: 0, 
-                  width: '150px', 
-                  height: '150px', 
-                  background: 'radial-gradient(circle, rgba(255,193,7,0.2) 0%, rgba(255,255,255,0) 70%)',
-                  zIndex: 1
-                }} />
-              </Paper>
-            </Grid>
-          )}
-          
-          {/* Main chat area and input field */}
-          <Grid item xs={12} md={8}>
-            <Card 
-              sx={{ 
-                height: '500px', 
-                display: 'flex', 
-                flexDirection: 'column',
-                backgroundImage: gameState.backgroundImage ? `url(${gameState.backgroundImage})` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                position: 'relative',
-                borderRadius: '8px',
-                overflow: 'hidden'
-              }}
-            >
-              {gameState.backgroundImage && (
-                <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} />
               )}
-           <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3, position: 'relative', zIndex: 1 }}>
-             {gameState.messages && gameState.messages.map((msg, index) => (
-               <Box 
-                 key={index}
-                 sx={{ 
-                   mb: 2,
-                   display: 'flex',
-                   flexDirection: 'column',
-                   alignItems: msg.senderId === user?.id ? 'flex-end' : 'flex-start'
-                 }}
-               >
-                 <Box 
-                   sx={{
-                     bgcolor: msg.senderId === user?.id ? '#5F4B8B' : (gameState.backgroundImage ? 'rgba(255, 255, 255, 0.9)' : '#e0e0e0'),
-                     color: msg.senderId === user?.id ? 'white' : 'inherit',
-                     p: 1.5,
-                     borderRadius: '12px',
-                     maxWidth: '80%',
-                     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                   }}
-                 >
-                   <Box display="flex" alignItems="center" mb={1}>
-                     <Avatar 
-                       sx={{ 
-                         width: 24, 
-                         height: 24, 
-                         mr: 1,
-                         fontSize: '0.75rem',
-                         bgcolor: msg.senderId === user?.id ? '#4a3a6d' : '#9e9e9e'
-                       }}
-                     >
-                       {msg.senderName?.charAt(0) || 'P'}
-                     </Avatar>
-                     <Typography variant="subtitle2" fontWeight="bold">
-                       {msg.senderName || 'Player'} 
-                       {msg.role && ` (${msg.role})`}
-                     </Typography>
-                   </Box>
-                   <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{msg.content}</Typography>
-                   <Box mt={1} display="flex" justifyContent="flex-end" alignItems="center">
-                     {msg.containsWordBomb && (
-                       <Chip 
-                         label="Word Bomb!" 
-                         size="small" 
-                         color="error"
-                         sx={{ mr: 1, fontSize: '0.6rem' }}
-                       />
-                     )}
-                     {msg.wordUsed && (
-                       <Chip 
-                         label={`Used: ${msg.wordUsed}`} 
-                         size="small" 
-                         color="success"
-                         sx={{ fontSize: '0.6rem' }}
-                       />
-                     )}
-                   </Box>
-                 </Box>
-                 <Typography variant="caption" sx={{ mt: 0.5, color: gameState.backgroundImage ? 'rgba(255,255,255,0.7)' : 'text.secondary' }}>
-                   {new Date(msg.timestamp).toLocaleTimeString()}
-                 </Typography>
-               </Box>
-             ))}
-             <div ref={chatEndRef} />
-           </Box>
-                       
-              
-              {/* Input area */}
-              <Box sx={{ p: 2, bgcolor: gameState.backgroundImage ? 'rgba(0,0,0,0.6)' : 'rgba(245,245,245,1)', position: 'relative', zIndex: 1, borderTop: gameState.backgroundImage ? '1px solid rgba(255,255,255,0.2)' : '1px solid #ddd' }}>
-                {isMyTurn ? (
-                  <Box display="flex" flexDirection="column">
-                    <Typography 
-                      variant="subtitle1" 
-                      color="primary" 
-                      fontWeight="bold" 
-                      mb={1}
-                      sx={{ 
-                        backgroundColor: "rgba(95, 75, 139, 0.1)", 
-                        p: 1, 
-                        borderRadius: '4px',
-                        textAlign: 'center' 
-                      }}
-                    >
-                      It's your turn! Type your sentence using the word bank.
-                    </Typography>
-                    <Box display="flex" alignItems="center">
-                      <TextField
-                        fullWidth
-                        variant="outlined"
-                        placeholder="Type your sentence..."
-                        value={sentence}
-                        onChange={handleSentenceChange}
-                        disabled={submitting}
-                        sx={{
-                          mr: 2,
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: '50px',
-                            backgroundColor: gameState.backgroundImage ? 'rgba(255,255,255,0.9)' : 'white',
-                            borderColor: '#5F4B8B',
-                            borderWidth: '2px'
-                          }
-                        }}
-                        onKeyPress={(ev) => {
-                          if (ev.key === 'Enter') {
-                            handleSubmit();
-                            ev.preventDefault();
-                          }
-                        }}
-                      />
-                      <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        disabled={submitting || !sentence.trim() || !isMyTurn}
-                        sx={{
-                          bgcolor: '#5F4B8B',
-                          borderRadius: '50px',
-                          px: 3,
-                          py: 1.5,
-                          '&:hover': { bgcolor: '#4a3a6d' },
-                          '&.Mui-disabled': { bgcolor: '#c5c5c5' }
-                        }}
-                      >
-                        {submitting ? <CircularProgress size={24} color="inherit"/> : 'Submit'}
-                      </Button>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Typography variant="body1" textAlign="center" sx={{
-                    color: gameState.backgroundImage ? 'white' : 'text.secondary',
-                    backgroundColor: 'rgba(0,0,0,0.1)',
-                    p: 2,
-                    borderRadius: '8px'
-                  }}>
-                    Wait for your turn to submit a response. Current player: {gameState.currentPlayer?.name}
-                  </Typography>
-                )}
-                {isMyTurn && gameState.currentPlayer?.wordBomb && (
-                  <Box mt={1} p={1} bgcolor="#ffebee" borderRadius="8px" textAlign="center">
-                    <Typography variant="subtitle2" color="error.main">
-                      Your word bomb: <b>{gameState.currentPlayer.wordBomb}</b> (don't use this word!)
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </Card>
-          </Grid>
-          
-          {/* Side panels: Leaderboard and Used Words */}
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, mb: 3, borderRadius: '8px' }}>
-              <Typography variant="h6" mb={2}>Leaderboard</Typography>
-              <List dense disablePadding>
-                {/* Use the `leaderboard` state here instead of `gameState.leaderboard` */}
+            </Box>
+          }
+          arrow
+        >
+          <Chip 
+            label={wordItem.word}
+            sx={{
+              ...pixelText,
+              backgroundColor: 'white',
+              border: '2px solid #5F4B8B',
+              '&:hover': {
+                backgroundColor: '#f0edf5',
+                transform: 'translateY(-2px)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+            onClick={() => {
+              setSentence(prev => prev ? `${prev} ${wordItem.word}` : wordItem.word);
+            }}
+          />
+        </Tooltip>
+      ))}
+      {(!gameState.wordBank || gameState.wordBank.length === 0) && (
+        <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+          NO WORDS AVAILABLE IN WORD BANK.
+        </Typography>
+      )}
+    </Box>
+  </Paper>
+</Fade>
+          </Box>
+
+        {/* Right Side - Leaderboard and Chat */}
+        <Box sx={{ 
+          flex: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+          maxWidth: '80vh',
+        }}>
+          {/* Leaderboard */}
+          <Paper sx={{ 
+            p: 3,
+            borderRadius: '12px',
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            border: '4px solid #5F4B8B',
+            boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
+            transform: 'translateY(-2px)',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
+            }
+          }}>
+            <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
+              Leaderboard
+            </Typography>
+            <List dense disablePadding>
               {leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
                 <ListItem key={player.id || player.userId || index} divider={index < leaderboard.length - 1}>
                   <Avatar sx={{ bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B', mr: 2, width: 30, height: 30, fontSize: '0.875rem' }}>
@@ -675,216 +626,286 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
                   <ListItemText 
                     primary={player.name || 'Player'} 
                     secondary={player.role || 'Role N/A'} 
+                    sx={{ '& .MuiTypography-root': pixelText }}
                   />
-                  <Typography variant="body1" fontWeight="bold">
+                  <Typography variant="body1" fontWeight="bold" sx={pixelText}>
                     {player.score}
                   </Typography>
                 </ListItem>
               ))}
               {(!leaderboard || leaderboard.length === 0) && (
-                  <Typography variant="body2" color="text.secondary">Leaderboard is empty.</Typography>
+                <Typography variant="body2" color="text.secondary" sx={pixelText}>Leaderboard is empty.</Typography>
               )}
-              </List>
-            </Paper>
+            </List>
+          </Paper>
+
+          {/* Chat Area */}
+          <Paper sx={{ 
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: '12px',
+            bgcolor: 'rgba(255, 255, 255, 0.9)',
+             border: '4px solid #5F4B8B',
+            boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
+            transform: 'translateY(-2px)',
+            transition: 'all 0.2s ease',
+            overflow: 'hidden',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
+            },
+            position: 'relative'
+          }}>
+<Box sx={{ 
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  p: 2,
+  borderBottom: '1px solid rgba(0,0,0,0.12)',
+  position: 'relative',
+  zIndex: 1,
+  bgcolor: gameState.backgroundImage ? 'rgba(0,0,0,0.5)' : 'transparent'
+}}>
+  <Typography sx={{ 
+    ...pixelHeading,
+    color: gameState.backgroundImage ? 'white' : '#5F4B8B',
+  }}>
+    Chat Here
+  </Typography>
+
+  <Box sx={{ 
+    display: 'flex',
+    alignItems: 'center',
+    gap: 2,
+  }}>
+    <LinearProgress 
+      variant="determinate" 
+      value={timePercent}
+      color={getTimerColor()}
+      sx={{
+        width: 80,
+        height: 8,
+        border: '2px solid #5F4B8B',
+        borderRadius: '5px',
+        bgcolor: 'rgba(255,255,255,0.2)',
+        '& .MuiLinearProgress-bar': {
+          borderRadius: '5px',
+          transition: 'transform 1s linear'
+        }
+      }}
+    />
+    <Typography sx={{
+      ...pixelText,
+      color: gameState.backgroundImage ? 'white' : '#5F4B8B',
+      minWidth: 40,
+      fontSize: '0.8rem'
+    }}>
+      {Math.ceil(gameState.timeRemaining)}s
+    </Typography>
+  </Box>
+</Box>
+
             
-            <Paper sx={{ p: 2, borderRadius: '8px' }}>
-              <Typography variant="h6" mb={2}>Used Words</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxHeight: '200px', overflowY: 'auto' }}>
-                {gameState.usedWords && gameState.usedWords.map((word, index) => (
-                  <Chip key={index} label={word} size="small" variant="outlined"/>
-                ))}
-                {(!gameState.usedWords || gameState.usedWords.length === 0) && (
-                  <Typography variant="body2" color="text.secondary">No words have been used yet.</Typography>
-                )}
-              </Box>
-            </Paper>
-          </Grid>
-
-          {/* Word Bank Display - Enhanced Section */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2, mb: 3, borderRadius: '8px', backgroundColor: '#f8f9fa' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight="medium">
-                  Word Bank 
-                  <Chip 
-                    label={`Cycle ${gameState.currentCycle || 1}`} 
-                    size="small" 
-                    color="secondary" 
-                    sx={{ ml: 2 }}
-                  />
-                </Typography>
-                
-                <FormControlLabel
-                  control={
-                    <Switch 
-                      checked={showUsedWords} 
-                      onChange={(e) => setShowUsedWords(e.target.checked)} 
-                    />
-                  }
-                  label="Show used words"
-                />
-              </Box>
-              
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                Words can only be used once per cycle. They'll become available again in the next cycle.
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {gameState.wordBank && gameState.wordBank
-                  // Modify the word bank filter logic
-                  .filter(wordItem => {
-                    // Only consider a word used if it was used in the current cycle
-                    const isWordUsedInCurrentCycle = gameState.usedWords?.includes(wordItem.word.toLowerCase()) && 
-                                                  (!gameState.usedWordsCycle || 
-                                                    gameState.usedWordsCycle[wordItem.word.toLowerCase()] === gameState.currentCycle);
-                    return showUsedWords || !isWordUsedInCurrentCycle;
-                  })
-                  .map((wordItem, index) => {
-                    const isUsedInCurrentCycle = gameState.usedWords?.includes(wordItem.word.toLowerCase()) && 
-                                                gameState.usedWordsCycle?.[wordItem.word.toLowerCase()] === gameState.currentCycle;
-                    
-                    return (
-                      <Tooltip
-                        key={index}
-                        title={
-                          <React.Fragment>
-                            <Typography color="inherit" variant="subtitle2">Description:</Typography>
-                            <Typography variant="body2">
-                              {wordItem.description || "No description available"}
-                            </Typography>
-                            <Typography color="inherit" variant="subtitle2" sx={{ mt: 1 }}>Example:</Typography>
-                            <Typography variant="body2" fontStyle="italic">
-                              {wordItem.exampleUsage ? `"${wordItem.exampleUsage}"` : "No example available"}
-                            </Typography>
-                          </React.Fragment>
-                        }
-                        arrow
-                        placement="top"
-                        disableHoverListener={isUsedInCurrentCycle}
-                      >
-                        <Chip 
-                          label={wordItem.word}
-                          color={isUsedInCurrentCycle ? "default" : "primary"}
-                          variant={isUsedInCurrentCycle ? "default" : "outlined"}
-                          disabled={isUsedInCurrentCycle}
-                          sx={{ 
-                            fontWeight: 'medium',
-                            opacity: isUsedInCurrentCycle ? 0.6 : 1,
-                            textDecoration: isUsedInCurrentCycle ? 'line-through' : 'none',
-                            transition: 'all 0.2s ease',
-                            position: 'relative',
-                            '&:hover': { 
-                              backgroundColor: isUsedInCurrentCycle ? 'inherit' : 'rgba(95, 75, 139, 0.1)',
-                              cursor: isUsedInCurrentCycle ? 'not-allowed' : 'pointer',
-                              transform: isUsedInCurrentCycle ? 'none' : 'translateY(-2px)'
-                            },
-                            // Add a small indicator dot if the word has a description
-                            '&::after': wordItem.description ? {
-                              content: '""',
-                              position: 'absolute',
-                              bottom: 0,
-                              right: 0,
-                              width: '6px',
-                              height: '6px',
-                              backgroundColor: '#5F4B8B',
-                              borderRadius: '50%',
-                              transform: 'translate(-2px, -2px)'
-                            } : {}
-                          }}
-                          onClick={() => {
-                            if (!isUsedInCurrentCycle) {
-                              setSentence(prev => prev ? `${prev} ${wordItem.word}` : wordItem.word);
-                            } else {
-                              setUsedWordMessage(`"${wordItem.word}" has already been used in this cycle`);
-                              setWordUsedNotification(true);
-                            }
-                          }}
-                        />
-                      </Tooltip>
-                    );
-                  })}
-                {(!gameState.wordBank || gameState.wordBank.length === 0) && (
-                  <Typography variant="body2" color="text.secondary">No words available in word bank.</Typography>
-                )}
-              </Box>
-              
-              <Box mt={2} p={2} bgcolor="rgba(95, 75, 139, 0.05)" borderRadius="8px">
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Tip:</strong> Using multiple word bank items in a single sentence will earn you bonus points!
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-
-        {/* Notification for points awarded */}
-        <Snackbar
-          open={pointsNotification}
-          autoHideDuration={3000}
-          onClose={() => setPointsNotification(false)}
-          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        >
-          <Alert 
-            onClose={() => setPointsNotification(false)} 
-            severity={pointsData.points > 0 ? "success" : "error"}
-            sx={{ width: '100%' }}
-          >
-            {pointsData.points > 0 ? `+${pointsData.points}` : pointsData.points} points: {pointsData.reason}
-          </Alert>
-        </Snackbar>
-
-        {/* Word Used Notification */}
-        <Snackbar
-          open={wordUsedNotification}
-          autoHideDuration={2000}
-          onClose={() => setWordUsedNotification(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert 
-            onClose={() => setWordUsedNotification(false)} 
-            severity="warning"
-            sx={{ width: '100%' }}
-          >
-            {usedWordMessage}
-          </Alert>
-        </Snackbar>
-
-        {/* Cycle transition overlay - Add this to show/hide the overlay based on game state */}
-        <CycleTransitionOverlay 
-          isActive={cycleTransitionActive} 
-          cycle={gameState.currentCycle || 1} // Default to 1 if undefined
-        />
-
-        {/* Cycle change notification - New addition to show notification on cycle change */}
-        {showCycleTransition && (
-          <Box 
-            sx={{ 
-              position: 'fixed', 
-              top: 16, 
-              left: '50%', 
-              transform: 'translateX(-50%)', 
-              bgcolor: '#5F4B8B', 
-              color: 'white', 
-              p: 2, 
-              borderRadius: '8px', 
-              boxShadow: '0 4px 8px rgba(0,0,0,0.2)', 
-              zIndex: 10000,
+            
+            <Box sx={{ 
+              flex: 1,
+              overflowY: 'auto',
+              p: 2,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1
-            }}
-          >
-            <Typography variant="h6" fontWeight="medium">
-              Cycle {gameState.currentCycle - 1} Completed! 
-            </Typography>
-            <CircularProgress size={24} sx={{ color: 'white' }} />
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              Starting Cycle {gameState.currentCycle}...
-            </Typography>
-          </Box>
-        )}
+              flexDirection: 'column',
+              gap: 1,
+              position: 'relative',
+              zIndex: 1
+            }}>
+              {gameState.messages?.map((msg, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    alignSelf: msg.senderId === user?.id ? 'flex-end' : 'flex-start',
+                    maxWidth: '80%'
+                  }}
+                >
+                  <Box 
+                    sx={{
+                      mb: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: msg.senderId === user?.id ? 'flex-end' : 'flex-start'
+                    }}
+                  >
+                    <Paper sx={{
+                      p: 1.5,
+                      bgcolor: msg.senderId === user?.id ? '#5F4B8B' : (gameState.backgroundImage ? 'rgba(255, 255, 255, 0.9)' : '#e0e0e0'),
+                      color: msg.senderId === user?.id ? 'white' : 'inherit',
+                      borderRadius: '12px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}>
+                      <Box display="flex" alignItems="center" mb={1}>
+                        <Avatar 
+                          sx={{ 
+                            width: 24, 
+                            height: 24, 
+                            mr: 1,
+                            fontSize: '0.75rem',
+                            bgcolor: msg.senderId === user?.id ? '#4a3a6d' : '#9e9e9e'
+                          }}
+                        >
+                          {msg.senderName?.charAt(0) || 'P'}
+                        </Avatar>
+                        <Typography variant="subtitle2" fontWeight="bold" sx={pixelText}>
+                          {msg.senderName || 'Player'} 
+                          {msg.role && ` (${msg.role})`}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body1" sx={{ ...pixelText, whiteSpace: 'pre-wrap' }}>{msg.content}</Typography>
+                      <Box mt={1} display="flex" justifyContent="flex-end" alignItems="center">
+                        {msg.containsWordBomb && (
+                          <Chip 
+                            label="Word Bomb!" 
+                            size="small" 
+                            color="error"
+                            sx={{ mr: 1, fontSize: '0.6rem', ...pixelText }}
+                          />
+                        )}
+                        {msg.wordUsed && (
+                          <Chip 
+                            label={`Used: ${msg.wordUsed}`} 
+                            size="small" 
+                            color="success"
+                            sx={{ fontSize: '0.6rem', ...pixelText }}
+                          />
+                        )}
+                      </Box>
+                    </Paper>
+                    <Typography variant="caption" sx={{ mt: 0.5, color: gameState.backgroundImage ? 'rgba(255,255,255,0.7)' : 'text.secondary', ...pixelText }}>
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+              <div ref={chatEndRef} />
+            </Box>
+
+            {/* Input Area - Moved from outside to inside chat box */}
+  <Box sx={{ 
+  p: 2,
+  borderTop: '1px solid rgba(0,0,0,0.12)',
+  bgcolor: 'rgba(255,255,255,0.95)',
+  position: 'relative',
+  zIndex: 1
+}}>
+  <Box sx={{ 
+    display: 'flex',
+    alignItems: 'center',
+    gap: 1
+  }}>
+    <TextField
+      fullWidth
+      variant="outlined"
+      placeholder={isMyTurn ? "Type your message..." : "Waiting for your turn..."}
+      value={sentence}
+      onChange={handleSentenceChange}
+      disabled={!isMyTurn || submitting}
+      onKeyPress={(ev) => {
+        if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn) {
+          handleSubmit();
+          ev.preventDefault();
+        }
+      }}
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          borderRadius: '50px',
+          bgcolor: 'white'
+        }
+      }}
+    />
+    <Button
+      variant="contained"
+      onClick={handleSubmit}
+      disabled={!isMyTurn || submitting || !sentence.trim()}
+      sx={{
+        bgcolor: '#5F4B8B',
+        borderRadius: '50px',
+        minWidth: '40px',
+        width: '40px',
+        height: '40px',
+        p: 0,
+        '&:hover': { bgcolor: '#4a3a6d' },
+        '&.Mui-disabled': { bgcolor: '#c5c5c5' }
+      }}
+    >
+      {submitting ? <CircularProgress size={20} color="inherit"/> : '➤'}
+    </Button>
+  </Box>
+</Box>
+          </Paper>
+        </Box>
       </Box>
+
+      {/* Notification for points awarded */}
+      <Snackbar
+        open={pointsNotification}
+        autoHideDuration={3000}
+        onClose={() => setPointsNotification(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setPointsNotification(false)} 
+          severity={pointsData.points > 0 ? "success" : "error"}
+          sx={{ width: '100%' }}
+        >
+          {pointsData.points > 0 ? `+${pointsData.points}` : pointsData.points} points: {pointsData.reason}
+        </Alert>
+      </Snackbar>
+
+      {/* Word Used Notification */}
+      <Snackbar
+        open={wordUsedNotification}
+        autoHideDuration={2000}
+        onClose={() => setWordUsedNotification(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setWordUsedNotification(false)} 
+          severity="warning"
+          sx={{ width: '100%' }}
+        >
+          {usedWordMessage}
+        </Alert>
+      </Snackbar>
+
+      {/* Cycle change notification */}
+      {showCycleTransition && (
+        <Box 
+          sx={{ 
+            position: 'fixed', 
+            top: 16, 
+            left: '50%', 
+            transform: 'translateX(-50%)', 
+            bgcolor: '#5F4B8B', 
+            color: 'white', 
+            p: 2, 
+            borderRadius: '8px', 
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)', 
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1
+          }}
+        >
+          <Typography variant="h6" fontWeight="medium">
+            Cycle {gameState.currentCycle - 1} Completed! 
+          </Typography>
+          <CircularProgress size={24} sx={{ color: 'white' }} />
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            Starting Cycle {gameState.currentCycle}...
+          </Typography>
+        </Box>
+      )}
+
+     
 
       <style>
         {`
@@ -895,8 +916,11 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
           }
         `}
       </style>
-    </>
-  );
+    </Box>
+   
+
+  </>
+);
 };
 
 export default GamePlay;

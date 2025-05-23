@@ -7,7 +7,7 @@ import GamePlay from './GamePlay';
 import GameResults from './GameResults';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
-
+import picbg from '../../assets/picbg.png';
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -354,11 +354,50 @@ const handleChatMessage = (message) => {
     );
   }
 
-  return (
-    <Container maxWidth="lg">
-      {renderGameContent()}
-    </Container>
-  );
+  // Replace the return statement in GameCore component
+return (
+  <Box sx={{ 
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    overflow: 'hidden',
+    background: `
+      linear-gradient(to bottom, 
+        rgba(249, 249, 249, 10) 0%, 
+        rgba(249, 249, 249, 10) 40%, 
+        rgba(249, 249, 249, 0.1) 100%),
+      url(${picbg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
+    imageRendering: 'pixelated',
+  }}>
+    <Box sx={{ 
+      flex: 1,
+      width: '100%',
+      overflow: 'auto',
+      // Custom scrollbar styling
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'rgba(95, 75, 139, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#5F4B8B',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#4a3a6d',
+        },
+      },
+    }}>
+      <Container maxWidth="2xl">
+        {renderGameContent()}
+      </Container>
+    </Box>
+  </Box>
+);
 };
 
 export default GameCore;
