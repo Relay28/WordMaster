@@ -502,8 +502,16 @@ return (
                   mb: 1
                 }}>
                   <ListItemAvatar>
-                    <Avatar sx={{ bgcolor: '#5F4B8B' }}>
-                      {classroom.teacher.fname?.charAt(0)}{classroom.teacher.lname?.charAt(0)}
+                    <Avatar
+                      src={classroom.teacher.profilePicture || undefined}
+                      sx={{ bgcolor: '#5F4B8B' }}
+                    >
+                      {!classroom.teacher.profilePicture && (
+                        <>
+                          {classroom.teacher.fname?.charAt(0)}
+                          {classroom.teacher.lname?.charAt(0)}
+                        </>
+                      )}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
@@ -542,8 +550,16 @@ return (
                       }}
                     >
                       <ListItemAvatar>
-                        <Avatar sx={{ bgcolor: '#6c63ff' }}>
-                          {member.fname?.charAt(0)}{member.lname?.charAt(0)}
+                        <Avatar
+                          src={member.profilePicture || undefined}
+                          sx={{ bgcolor: '#6c63ff' }}
+                        >
+                          {!member.profilePicture && (
+                            <>
+                              {member.fname?.charAt(0)}
+                              {member.lname?.charAt(0)}
+                            </>
+                          )}
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText

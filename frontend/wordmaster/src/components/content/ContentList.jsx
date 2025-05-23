@@ -83,6 +83,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
   return (
     <Grid container spacing={3}>
       {content.map(item => (
+        console.log(item),
         <Grid item xs={12} sm={6} md={4} key={item.id}>
           <ContentCard>
             <CardActionArea onClick={() => handleContentClick(item.id)}>
@@ -171,14 +172,16 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
 
                     {/* Creator Info */}
                     <Box display="flex" alignItems="center" gap={1}>
-                      <Avatar sx={{ 
-                        width: 24, 
-                        height: 24, 
-                        bgcolor: '#5F4B8B',
-                        fontSize: '10px',
-                        fontFamily: '"Press Start 2P", cursive',
-                      }}>
-                        {item.creatorName?.charAt(0)}
+                      <Avatar 
+                        src={item.creatorProfilePicture || undefined}
+                        sx={{
+                          width: 24,
+                          height: 24,
+                          bgcolor: '#5F4B8B',
+                          fontSize: '10px',
+                          fontFamily: '"Press Start 2P", cursive',
+                        }}>
+                        {!item.creatorProfilePicture && item.creatorName?.charAt(0)}
                       </Avatar>
                       <Box>
                         <Typography sx={{

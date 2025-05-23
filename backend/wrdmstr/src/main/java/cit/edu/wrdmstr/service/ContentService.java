@@ -552,6 +552,7 @@ public class ContentService {
         dto.setUpdatedAt(content.getUpdatedAt());
         dto.setCreatorId(content.getCreator().getId());
         dto.setCreatorName(content.getCreator().getFname() + " " + content.getCreator().getLname());
+        dto.setCreatorProfilePicture(content.getCreator().getProfilePicture());
 
         if (content.getClassroom() != null) {
             dto.setClassroomId(content.getClassroom().getId());
