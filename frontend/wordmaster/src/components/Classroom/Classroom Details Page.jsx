@@ -119,30 +119,39 @@ const ClassroomDetailsPage = () => {
   
 
   // Fetch classroom content
-  useEffect(() => {
-    const fetchClassroomContent = async () => {
-      if (!classroom) return;
+ // Fetch classroom content
+useEffect(() => {
+  const fetchClassroomContent = async () => {
+    if (!classroom) return;
+    
+    console.log("Fetching content for classroom ID:", classroom.id);
+    setLoadingContent(true);
+    
+    try {
+      const token = await getToken();
+      let data;
       
-      console.log("Fetching content for classroom ID:", classroom.id); // Debug logging
-      
-      setLoadingContent(true);
-      try {
-        const token = await getToken();
-        const data = await contentService.getContentByClassroom(classroom.id, token);
-        console.log("Classroom content data:", data); // Debug logging
-        setContentList(data);
-        setContentError(null);
-      } catch (err) {
-        console.error("Error loading classroom content:", err);
-        setContentError("Failed to load content for this classroom.");
-      } finally {
-        setLoadingContent(false);
+      if (user.role === 'USER_STUDENT') {
+        // Fetch only published content for students
+        data = await contentService.getPublishedContentByClassroom(classroom.id, token);
+      } else {
+        // Fetch all content for teachers
+        data = await contentService.getContentByClassroom(classroom.id, token);
       }
-    };
+      
+      console.log("Classroom content data:", data);
+      setContentList(data);
+      setContentError(null);
+    } catch (err) {
+      console.error("Error loading classroom content:", err);
+      setContentError("Failed to load content for this classroom.");
+    } finally {
+      setLoadingContent(false);
+    }
+  };
 
-    fetchClassroomContent();
-  }, [classroom, getToken, refreshTrigger]); // Add refreshTrigger here
-
+  fetchClassroomContent();
+}, [classroom, getToken, refreshTrigger]); // Add user.role to dependencies
   const handleCreateContent = () => {
     if (!classroom) return;
     console.log("Navigating to create content with classroom:", classroom.id); // Debug logging
@@ -194,7 +203,7 @@ const ClassroomDetailsPage = () => {
           const token = await getToken();
           await contentService.publishContent(contentId, token);
           // Redirect to waiting room after successful publish
-          navigate(`/waiting-room/${contentId}`);
+        
         } catch (error) {
           console.error("Error publishing content:", error);
           // Handle error

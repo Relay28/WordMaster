@@ -70,11 +70,11 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
   const handleContentClick = async (contentId) => {
     try {
       const token = await getToken();
-      const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/join`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) navigate(`/waiting-room/${contentId}`);
+      // const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/join`, {
+      //   method: 'POST',
+      //   headers: { 'Authorization': `Bearer ${token}` }
+      // });
+     // if (response.ok) navigate(`/waiting-room/${contentId}`);
     } catch (error) {
       console.error("Error joining waiting room:", error);
     }
@@ -109,7 +109,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden'
                   }}>
-                    {item.title}
+                    {item.title ? item.title : "Untitled"}
                   </Typography>
 
                   {/* Status Badge */}
@@ -200,6 +200,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                   </Box>
                 {/* Action Buttons */}
                 <ActionButtons className="action-buttons">
+                  {!disableActions && (
                   <Tooltip title="View">
                     <IconButton size="small" onClick={(e) => {
                       e.stopPropagation();
@@ -208,7 +209,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                       <Visibility sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>
-
+                )}
                   {!disableActions && (
                     <>
                       <Tooltip title="Edit">
