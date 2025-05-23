@@ -267,10 +267,11 @@ const ClassroomDetailsPage = () => {
       
       if (currentStatus) {
         updatedContent = await contentService.unpublishContent(contentId, token);
+     
       } else {
         try {
           const token = await getToken();
-          await contentService.publishContent(contentId, token);
+         updatedContent =  await contentService.publishContent(contentId, token);
           // Redirect to waiting room after successful publish
         
         } catch (error) {
@@ -279,7 +280,7 @@ const ClassroomDetailsPage = () => {
         }
 
       }
-      
+     
       setContentList(contentList.map(item => 
         item.id === contentId ? updatedContent : item
       ));
