@@ -309,6 +309,11 @@ public class AIService {
                     evaluationPrompt.append("Consider semantic similarity rather than exact wording.\n");
                     
                     return evaluationPrompt.toString();
+                case "word_enrichment":
+                    return "Generate a brief definition and an example sentence for the word: " + 
+                        request.get("word") + ".\n\n" +
+                        "Format your response exactly as follows with no prefix labels:\n" +
+                        "[definition] | [example sentence using the word]";
                 default:
                     return "Provide a response to: " + request;
             }

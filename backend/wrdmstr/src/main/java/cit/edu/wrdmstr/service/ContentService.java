@@ -137,7 +137,11 @@ public class ContentService {
         // Add word bank items
         if (contentDTO.getContentData().getWordBank() != null) {
             for (WordBankItemDTO wordDTO : contentDTO.getContentData().getWordBank()) {
-                contentData.addWord(wordDTO.getWord());
+                contentData.addWord(
+                    wordDTO.getWord(),
+                    wordDTO.getDescription() != null ? wordDTO.getDescription() : "No description available",
+                    wordDTO.getExampleUsage() != null ? wordDTO.getExampleUsage() : "No example available"
+                );
             }
         }
 
@@ -234,6 +238,17 @@ public class ContentService {
             }
         }
 
+        // Always check and clear current player references to avoid foreign key constraint errors
+        // regardless of what's being updated (group size, word bank, etc.)
+        List<GameSessionEntity> affectedSessions = gameSessionRepository.findByContentId(content.getId());
+        for (GameSessionEntity session : affectedSessions) {
+            // Clear the current_player reference to avoid foreign key constraint
+            if (session.getCurrentPlayer() != null) {
+                session.setCurrentPlayer(null);
+                gameSessionRepository.save(session);
+            }
+        }
+        
         ContentEntity updatedContent = contentRepository.save(content);
         return convertToDTO(updatedContent);
     }
@@ -253,38 +268,56 @@ public class ContentService {
         logger.info("Starting deletion of content ID: {}", id);
 
         try {
-            // Get all game sessions associated with this content
-            List<GameSessionEntity> sessions = gameSessionRepository.findByContentId(content.getId());
-            
-            // Delete all game sessions first
-            for (GameSessionEntity session : sessions) {
-                // Delete player sessions and their references
+            // For each session associated with this content
+            for (GameSessionEntity session : gameSessionRepository.findByContentId(content.getId())) {
+                
+                // Clear score records properly
+                List<ScoreRecordEntity> scores = new ArrayList<>(session.getScores());
+                session.getScores().clear(); // Clear the collection first
+                gameSessionRepository.save(session); // Save to persist the empty collection
+                scoreRecordRepository.deleteAll(scores); // Then delete the detached entities
+                
+                // Handle player sessions similarly
                 for (PlayerSessionEntity player : new ArrayList<>(session.getPlayers())) {
-                    // Clean up chat messages
-                    chatMessageRepository.deleteAll(player.getMessages());
+                    // Clear messages and detach from player
+                    List<ChatMessageEntity> messages = new ArrayList<>(player.getMessages());
+                    player.getMessages().clear();
                     
-                    // Remove role reference - very important to avoid circular references
+                    // Remove role reference
                     player.setRole(null);
                     playerSessionRepository.save(player);
+                    
+                    // Now delete the detached messages
+                    chatMessageRepository.deleteAll(messages);
                 }
                 
-                // Delete score records
-                scoreRecordRepository.deleteAll(session.getScores());
+                // Clear session messages similarly
+                List<ChatMessageEntity> sessionMessages = new ArrayList<>(session.getMessages());
+                session.getMessages().clear();
+                gameSessionRepository.save(session);
+                chatMessageRepository.deleteAll(sessionMessages);
                 
-                // Delete messages
-                chatMessageRepository.deleteAll(session.getMessages());
-                
-                // Clear references and set defaults for primitive fields
+                // Clear references
                 session.setCurrentPlayer(null);
                 session.setContent(null);
                 
-                // IMPORTANT: Set primitive fields to their default values, NOT null
-                session.setCurrentCycle(0);  // This was causing the error
+                // Properly detach player entities by removing them from the session
+                List<PlayerSessionEntity> playersToRemove = new ArrayList<>(session.getPlayers());
+                for (PlayerSessionEntity player : playersToRemove) {
+                    // First delete the player entity itself (since it can't exist without session)
+                    playerSessionRepository.delete(player);
+                }
+                // Now clear the collection
+                session.getPlayers().clear();
+
+                
+                // Set primitive values
+                session.setCurrentCycle(0);
                 session.setCurrentTurn(0);
                 session.setTotalTurns(0);
-                session.setTimePerTurn(60);  // Default value
+                session.setTimePerTurn(60);
                 
-                // Save these changes before deletion
+                // Save these changes
                 gameSessionRepository.save(session);
                 
                 // Now delete the session
@@ -386,7 +419,11 @@ public class ContentService {
         // Add word bank items
         if (contentDTO.getContentData().getWordBank() != null) {
             for (WordBankItemDTO wordDTO : contentDTO.getContentData().getWordBank()) {
-                contentData.addWord(wordDTO.getWord());
+                contentData.addWord(
+                    wordDTO.getWord(),
+                    wordDTO.getDescription() != null ? wordDTO.getDescription() : "No description available",
+                    wordDTO.getExampleUsage() != null ? wordDTO.getExampleUsage() : "No example available"
+                );
             }
         }
 

@@ -118,12 +118,19 @@ const ContentUpload = () => {
   const prepareContentData = () => {
     return {
       backgroundImage: imagePreview,
-      wordBank: scenarioSettings.wordBank.map((word, index) => ({
-        id: index + 1,
-        word: word
-      })),
-      roles: scenarioSettings.roles.map((role, index) => ({
-        id: index + 1,
+      wordBank: scenarioSettings.wordBank.map(item => {
+        // Handle both string and object formats
+        const wordItem = typeof item === 'string' 
+          ? { word: item, description: null, exampleUsage: null } 
+          : item;
+            
+        return {
+          word: wordItem.word,
+          description: wordItem.description || "No description available",
+          exampleUsage: wordItem.exampleUsage || "No example available"
+        };
+      }),
+      roles: scenarioSettings.roles.map(role => ({
         name: role
       }))
     };
