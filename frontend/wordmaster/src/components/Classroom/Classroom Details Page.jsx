@@ -189,63 +189,38 @@ const ClassroomDetailsPage = () => {
   };
   
   // Fetch classroom content
- // Fetch classroom content
-useEffect(() => {
-  const fetchClassroomContent = async () => {
-    if (!classroom) return;
-    
-    console.log("Fetching content for classroom ID:", classroom.id);
-    setLoadingContent(true);
-    
-    try {
-      const token = await getToken();
-      let data;
+  useEffect(() => {
+    const fetchClassroomContent = async () => {
+      if (!classroom) return;
       
-
-      if (user.role === 'USER_STUDENT') {
-        // Fetch only published content for students
-        data = await contentService.getPublishedContentByClassroom(classroom.id, token);
-      } else {
-        // Fetch all content for teachers
-        data = await contentService.getContentByClassroom(classroom.id, token);
-
+      console.log("Fetching content for classroom ID:", classroom.id);
       setLoadingContent(true);
+      
       try {
         const token = await getToken();
         let data;
         
-        if (user?.role === 'USER_TEACHER') {
-          // Teachers see all content (drafts and published)
-          data = await contentService.getContentByClassroom(classroom.id, token);
-        } else {
-          // Students should only see published content
+        if (user?.role === 'USER_STUDENT') {
+          // Fetch only published content for students
           data = await contentService.getPublishedContentByClassroom(classroom.id, token);
+        } else {
+          // Fetch all content for teachers
+          data = await contentService.getContentByClassroom(classroom.id, token);
         }
-        setContentList(data);
         
-        console.log("Classroom content data:", data); // Now data is in scope
+        console.log("Classroom content data:", data);
+        setContentList(data);
         setContentError(null);
       } catch (err) {
         console.error("Error loading classroom content:", err);
         setContentError("Failed to load content for this classroom.");
       } finally {
         setLoadingContent(false);
-
       }
-      
-      console.log("Classroom content data:", data);
-      setContentList(data);
-      setContentError(null);
-    } catch (err) {
-      console.error("Error loading classroom content:", err);
-      setContentError("Failed to load content for this classroom.");
-    } finally {
-      setLoadingContent(false);
-    }
-  };
+    };
 
-  fetchClassroomContent();
-}, [classroom, getToken, refreshTrigger]); // Add user.role to dependencies
+    fetchClassroomContent();
+  }, [classroom, getToken, refreshTrigger, user?.role]); // Added user?.role to dependencies
   const handleCreateContent = () => {
     if (!classroom) return;
     console.log("Navigating to create content with classroom:", classroom.id); // Debug logging
