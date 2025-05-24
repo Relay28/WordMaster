@@ -4,6 +4,7 @@ import cit.edu.wrdmstr.dto.GameSessionDTO;
 import cit.edu.wrdmstr.dto.GameStateDTO;
 import cit.edu.wrdmstr.entity.GameSessionEntity;
 import cit.edu.wrdmstr.entity.PlayerSessionEntity;
+import cit.edu.wrdmstr.repository.GameSessionEntityRepository;
 import cit.edu.wrdmstr.service.gameplay.GameSessionManagerService;
 import cit.edu.wrdmstr.service.gameplay.GameSessionService;
 import org.slf4j.Logger;
@@ -27,12 +28,15 @@ public class GameController {
     private final GameSessionService gameSessionService;
     private final GameSessionManagerService gameSessionManager;
 
+    private final GameSessionEntityRepository gameSessionRepository;
+
     @Autowired
     public GameController(
             GameSessionService gameSessionService,
-            GameSessionManagerService gameSessionManager) {
+            GameSessionManagerService gameSessionManager, GameSessionEntityRepository gameSessionRepository) {
         this.gameSessionService = gameSessionService;
         this.gameSessionManager = gameSessionManager;
+        this.gameSessionRepository = gameSessionRepository;
     }
 
     @PostMapping("/create")
@@ -111,6 +115,26 @@ public class GameController {
             return ResponseEntity.ok(dtoList);
         } catch (Exception e) {
             logger.error("Error getting games for classroom: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/content/{contentId}/completed")
+    public ResponseEntity<?> getCompletedGamesByContent(
+            @PathVariable Long contentId,
+            Authentication auth) {
+
+        try {
+            List<GameSessionEntity> sessions = gameSessionRepository
+                    .findByContentIdAndStatus(contentId, GameSessionEntity.SessionStatus.COMPLETED);
+
+            List<GameSessionDTO> dtoList = sessions.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(dtoList);
+        } catch (Exception e) {
+            logger.error("Error getting completed games for content: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }

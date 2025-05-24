@@ -24,7 +24,7 @@ import {
   Pagination,
   Stack, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from '@mui/material';
-import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline, ChevronLeft } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useClassroomDetails } from './ClassroomDetailFunctions';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -72,9 +72,9 @@ const ClassroomDetailsPage = () => {
     } = useHomePage(authChecked, user, getToken, logout, login);
 
   const [deleteSessionDialogOpen, setDeleteSessionDialogOpen] = useState(false);
-const [sessionToDelete, setSessionToDelete] = useState(null);
-const [deleteContentDialogOpen, setDeleteContentDialogOpen] = useState(false);
-const [contentToDelete, setContentToDelete] = useState(null);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [deleteContentDialogOpen, setDeleteContentDialogOpen] = useState(false);
+  const [contentToDelete, setContentToDelete] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const [tabValue, setTabValue] = useState(0);
@@ -96,6 +96,14 @@ const [contentToDelete, setContentToDelete] = useState(null);
   const [studentFeedbacks, setStudentFeedbacks] = useState([]);
   const [loadingStudentFeedback, setLoadingStudentFeedback] = useState(false);
   const [feedbackError, setFeedbackError] = useState(null);
+
+  // New state variables
+  const [publishedContent, setPublishedContent] = useState([]);
+  const [selectedContent, setSelectedContent] = useState(null);
+  const [completedSessions, setCompletedSessions] = useState([]);
+  const [loadingCompletedSessions, setLoadingCompletedSessions] = useState(false);
+  const [sessionsError, setSessionsError] = useState(null);
+  const [showContentList, setShowContentList] = useState(true);
 
   const handlePageChange = (event, value) => {
     setPage(value);
@@ -402,6 +410,84 @@ const confirmDeleteSession = async () => {
     setSessionToDelete(null);
   }
 };
+
+  // New function to fetch published content for reports
+  const fetchPublishedContent = async () => {
+    if (!classroom) return;
+    
+    try {
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      // We can use the existing content service or make a direct call
+      let data;
+      if (contentList.length > 0) {
+        // Filter existing content list for published content
+        data = contentList.filter(item => item.published);
+      } else {
+        // Fetch published content directly
+        data = await contentService.getPublishedContentByClassroom(classroom.id, token);
+      }
+      
+      setPublishedContent(data);
+    } catch (err) {
+      console.error("Error loading published content:", err);
+    }
+  };
+
+  // New function to fetch completed game sessions for a content item
+  const fetchCompletedSessionsByContent = async (contentId) => {
+    setLoadingCompletedSessions(true);
+    setSessionsError(null);
+    
+    try {
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const response = await fetch(`${API_URL}/api/game/content/${contentId}/completed`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
+        throw new Error(`Failed to fetch completed sessions (${response.status}): ${errorText || 'Unknown error'}`);
+      }
+      
+      const data = await response.json();
+      setCompletedSessions(data);
+      setShowContentList(false);
+    } catch (err) {
+      console.error("Error loading completed sessions:", err);
+      setSessionsError(err.message || "Failed to load game sessions for this content.");
+    } finally {
+      setLoadingCompletedSessions(false);
+    }
+  };
+
+  // Handle content selection
+  const handleContentSelect = (content) => {
+    setSelectedContent(content);
+    fetchCompletedSessionsByContent(content.id);
+  };
+
+  // Handle back button to return to content list
+  const handleBackToContentList = () => {
+    setShowContentList(true);
+    setSelectedContent(null);
+    setCompletedSessions([]);
+  };
+
+  // Fetch published content when tab changes to Student Reports
+  useEffect(() => {
+    if (tabValue === 2 && user?.role === 'USER_TEACHER') {
+      fetchPublishedContent();
+    } else if (tabValue === 2) {
+      fetchStudentFeedback();
+    }
+  }, [tabValue, classroom?.id, user?.role, contentList]);
 
   if (!authChecked || loading) {
     return (
@@ -792,91 +878,190 @@ return (
 
              {/* Student Reports Tab */}
           {tabValue === 2 && user?.role === 'USER_TEACHER' && (
-            <Box >
-              {loadingGameSessions ? (
-                <Box display="flex" justifyContent="center" py={4}>
-                  <CircularProgress />
-                </Box>
-              ) : gameSessionsError ? (
-                <Alert severity="error" sx={{ mb: 2, ...pixelText }} onClose={() => setGameSessionsError(null)}>
-                  {gameSessionsError}
-                </Alert>
-              ) : gameSessions.length === 0 ? (
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 4, 
-                    textAlign: 'center',
-                    backgroundColor: 'rgba(245, 245, 247, 0.7)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(0,0,0,0.05)'
-                  }}
-                >
-                  <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
-                    NO GAME SESSIONS AVAILABLE
-                  </Typography>
-                  <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
-                    STUDENTS HAVEN'T PLAYED ANY GAMES YET
-                  </Typography>
-                </Paper>
-              ) : (
-                <Box>
-                  <Typography sx={{ ...pixelHeading, mb: 2 }}>SELECT A GAME SESSION:</Typography>
-                  <Grid container spacing={2} sx={{ mb: 4 }}>
-                    {gameSessions.map((session) => (
-                      <Grid item xs={12} sm={6} md={4} key={session.id}>
-                        <Paper
-                          elevation={selectedSession === session.id ? 3 : 1}
-                          sx={{
-                            p: 2,
-                            cursor: 'pointer',
-                            border: selectedSession === session.id ? '2px solid #5F4B8B' : '1px solid rgba(0,0,0,0.12)',
-                            transition: 'all 0.2s ease',
-                            position: 'relative', // Add this for positioning the delete button
-                            '&:hover': {
-                              transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
-                            }
-                          }}
-                          onClick={() => fetchStudentReports(session.id)}
-                        >
-                          <Typography sx={{ ...pixelHeading, fontSize: '10px', color: '#5F4B8B' }}>
-                            {session.content?.title || 'Game Session'}
-                          </Typography>
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                            Date: {new Date(session.createdAt || session.startedAt).toLocaleDateString()}
-                          </Typography>
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                            Players: {session.playerCount || session.players?.length || 0}
-                          </Typography>
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                            Status: {session.status || 'Completed'}
-                          </Typography>
-                          
-                          {/* Delete Button */}
-                          <IconButton
-                            size="small"
+            <Box>
+              {showContentList ? (
+                // Show published content list first
+                <>
+                  <Typography sx={{ ...pixelHeading, mb: 2 }}>SELECT CONTENT TO VIEW GAME SESSIONS:</Typography>
+                  {publishedContent.length === 0 ? (
+                    <Paper 
+                      elevation={0} 
+                      sx={{ 
+                        p: 4, 
+                        textAlign: 'center',
+                        backgroundColor: 'rgba(245, 245, 247, 0.7)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
+                        NO PUBLISHED CONTENT AVAILABLE
+                      </Typography>
+                      <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
+                        PUBLISH CONTENT FIRST TO VIEW STUDENT REPORTS
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Grid container spacing={2}>
+                      {publishedContent.map((content) => (
+                        <Grid item xs={12} sm={6} md={4} key={content.id}>
+                          <Paper
+                            elevation={1}
                             sx={{
-                              position: 'absolute',
-                              top: 4,
-                              right: 4,
-                              color: '#ff5252',
+                              p: 2,
+                              cursor: 'pointer',
+                              borderRadius: '8px',
+                              transition: 'all 0.2s ease',
                               '&:hover': {
-                                backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
                               }
                             }}
-                            onClick={(e) => handleDeleteSession(session.id, e)}
+                            onClick={() => handleContentSelect(content)}
                           >
-                            <DeleteOutline fontSize="small" />
-                          </IconButton>
-                        </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
-
+                            <Typography sx={{ ...pixelHeading, fontSize: '12px', color: '#5F4B8B', mb: 1 }}>
+                              {content.title}
+                            </Typography>
+                            <Divider sx={{ my: 1 }} />
+                            <Box display="flex" justifyContent="space-between" mb={1}>
+                              <Typography sx={{ ...pixelText, fontSize: '8px' }}>Content Type:</Typography>
+                              <Typography sx={{ ...pixelText, fontSize: '8px', fontWeight: 'bold' }}>
+                                {content.contentType}
+                              </Typography>
+                            </Box>
+                            <Box display="flex" justifyContent="space-between" mb={1}>
+                              <Typography sx={{ ...pixelText, fontSize: '8px' }}>Published:</Typography>
+                              <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                                {new Date(content.createdAt).toLocaleDateString()}
+                              </Typography>
+                            </Box>
+                            <Button
+                              fullWidth
+                              variant="outlined"
+                                onClick={() => handleContentSelect(content)}
+                              size="small"
+                              sx={{
+                                ...pixelButton,
+                                fontSize: '7px',
+                                mt: 1,
+                                borderColor: '#5F4B8B',
+                                color: '#5F4B8B',
+                                '&:hover': { backgroundColor: 'rgba(95, 75, 139, 0.1)' }
+                              }}
+                            >
+                              VIEW SESSIONS
+                            </Button>
+                          </Paper>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
+                </>
+              ) : (
+                // Show sessions for selected content
+                <>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Button
+                      startIcon={<ChevronLeft />}
+                      onClick={handleBackToContentList}
+                      sx={{
+                        ...pixelButton,
+                        color: '#5F4B8B',
+                        mr: 2,
+                        '&:hover': { backgroundColor: 'rgba(95, 75, 139, 0.1)' }
+                      }}
+                    >
+                      BACK
+                    </Button>
+                    <Typography sx={{ ...pixelHeading }}>
+                      {selectedContent?.title} - GAME SESSIONS
+                    </Typography>
+                  </Box>
+                  
+                  {loadingCompletedSessions ? (
+                    <Box display="flex" justifyContent="center" py={4}>
+                      <CircularProgress />
+                    </Box>
+                  ) : sessionsError ? (
+                    <Alert severity="error" sx={{ mb: 2, ...pixelText }} onClose={() => setSessionsError(null)}>
+                      {sessionsError}
+                    </Alert>
+                  ) : completedSessions.length === 0 ? (
+                    <Paper 
+                      elevation={0} 
+                      sx={{ 
+                        p: 4, 
+                        textAlign: 'center',
+                        backgroundColor: 'rgba(245, 245, 247, 0.7)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
+                        NO GAME SESSIONS AVAILABLE
+                      </Typography>
+                      <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
+                        STUDENTS HAVEN'T PLAYED THIS CONTENT YET
+                      </Typography>
+                    </Paper>
+                  ) : (
+                    <Grid container spacing={2}>
+                      {completedSessions.map((session) => (
+                        <Grid item xs={12} sm={6} md={4} key={session.id}>
+                          <Paper
+                            elevation={selectedSession === session.id ? 3 : 1}
+                            sx={{
+                              p: 2,
+                              cursor: 'pointer',
+                              border: selectedSession === session.id ? '2px solid #5F4B8B' : '1px solid rgba(0,0,0,0.12)',
+                              transition: 'all 0.2s ease',
+                              position: 'relative',
+                              '&:hover': {
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
+                              }
+                            }}
+                            onClick={() => fetchStudentReports(session.id)}
+                          >
+                            <Typography sx={{ ...pixelHeading, fontSize: '10px', color: '#5F4B8B' }}>
+                              Session #{session.id}
+                            </Typography>
+                            <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                              Date: {new Date(session.createdAt || session.startedAt).toLocaleDateString()}
+                            </Typography>
+                            <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                              Players: {session.playerCount || session.players?.length || 0}
+                            </Typography>
+                            <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                              Status: {session.status || 'Completed'}
+                            </Typography>
+                            
+                            {/* Delete Button */}
+                            <IconButton
+                              size="small"
+                              sx={{
+                                position: 'absolute',
+                                top: 4,
+                                right: 4,
+                                color: '#ff5252',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                                }
+                              }}
+                              onClick={(e) => handleDeleteSession(session.id, e)}
+                            >
+                              <DeleteOutline fontSize="small" />
+                            </IconButton>
+                          </Paper>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
+                  
+                  {/* Show student reports for selected session */}
                   {selectedSession && (
                     <>
-                      <Typography sx={{ ...pixelHeading, mb: 2 }}>STUDENT REPORTS:</Typography>
+                      <Typography sx={{ ...pixelHeading, mt: 4, mb: 2 }}>STUDENT REPORTS:</Typography>
                       {loadingReports ? (
                         <Box display="flex" justifyContent="center" py={4}>
                           <CircularProgress />
@@ -946,7 +1131,7 @@ return (
                       )}
                     </>
                   )}
-                </Box>
+                </>
               )}
             </Box>
           )}
@@ -1051,8 +1236,8 @@ return (
                 </Grid>
               )}
             </Box>
-          )}    
-       
+          )    
+       }
 
           {/* Content Tab */}
           {tabValue === 0 && (

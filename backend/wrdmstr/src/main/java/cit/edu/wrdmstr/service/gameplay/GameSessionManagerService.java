@@ -741,6 +741,38 @@ public class GameSessionManagerService {
         return gameSessionService.getSessionPlayerDTOs(sessionId);
     }
 
+    private List<WordBankItemDTO> enrichWordBankItems(List<WordBankItem> wordBankItems) {
+        return wordBankItems.stream()
+                .map(item -> {
+                    if (item.getDescription() == null || item.getExampleUsage() == null) {
+                        try {
+                            Map<String, Object> request = new HashMap<>();
+                            request.put("task", "word_enrichment");
+                            request.put("word", item.getWord());
+
+                            AIService.AIResponse response = aiService.callAIModel(request);
+                            String[] parts = response.getResult().split("\\|");
+
+                            if (parts.length == 2) {
+                                String description = parts[0].trim();
+                                String exampleUsage = parts[1].trim();
+
+                                // Update the entity
+                                item.setDescription(description);
+                                item.setExampleUsage(exampleUsage);
+                                wordBankRepository.save(item);
+
+                                return new WordBankItemDTO(item.getId(), item.getWord(), description, exampleUsage);
+                            }
+                        } catch (Exception e) {
+                            logger.error("Error enriching word bank item {}: {}", item.getWord(), e.getMessage());
+                        }
+                    }
+                    return new WordBankItemDTO(item.getId(), item.getWord(),
+                            item.getDescription(), item.getExampleUsage());
+                })
+                .collect(Collectors.toList());
+    }
     @Transactional(readOnly = true)
     public GameStateDTO getGameState(Long sessionId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
@@ -777,11 +809,9 @@ public class GameSessionManagerService {
             if (session.getContent().getContentData() != null) {
                 dto.setBackgroundImage(session.getContent().getContentData().getBackgroundImage());
             }
-            if (session.getContent().getContentData() != null) {
+            if (session.getContent() != null && session.getContent().getContentData() != null) {
                 List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(session.getContent().getContentData());
-                List<WordBankItemDTO> wordBankDTOs = wordBankItems.stream()
-                    .map(item -> new WordBankItemDTO(item.getId(), item.getWord(), item.getDescription(), item.getExampleUsage()))
-                    .collect(Collectors.toList());
+                List<WordBankItemDTO> wordBankDTOs = enrichWordBankItems(wordBankItems);
                 dto.setWordBank(wordBankDTOs);
             }
         }

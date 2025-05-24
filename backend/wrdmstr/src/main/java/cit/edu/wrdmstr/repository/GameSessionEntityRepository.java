@@ -20,4 +20,6 @@ public interface GameSessionEntityRepository extends JpaRepository<GameSessionEn
     List<GameSessionEntity> findSessionsByPlayerId(@Param("userId") Long userId);
     @Query("SELECT g FROM GameSessionEntity g WHERE g.content.id = :contentId AND g.status = 'ACTIVE'")
     List<GameSessionEntity> findActiveSessionsByContent(@Param("contentId") Long contentId);
+
+    List<GameSessionEntity> findByContentIdAndStatus(Long contentId, GameSessionEntity.SessionStatus status);
 }

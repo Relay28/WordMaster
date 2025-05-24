@@ -439,7 +439,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
           {classroom.name || `CLASS ${classroom.id}`}
         </Typography>
       </Box>
-      
+        
       <Box sx={{
         backgroundColor: 'rgba(245, 245, 247, 0.7)',
         borderRadius: '12px',

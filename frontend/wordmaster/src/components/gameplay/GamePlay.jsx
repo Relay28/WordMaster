@@ -661,7 +661,9 @@ const cycleDisplayString = isSinglePlayer
     </Box>
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
       {gameState.wordBank && gameState.wordBank.map((wordItem, index) => (
+
         <Tooltip
+        
           key={index}
           title={
             <Box sx={{ ...pixelText, p: 1 }}>

@@ -77,7 +77,6 @@ public class GameSessionController {
 
         // Verify teacher access to the content
 
-
         List<Map<String, Object>> activeSessions = gameSessionService.getActiveSessionsWithDetails(contentId);
         return ResponseEntity.ok(activeSessions);
     }

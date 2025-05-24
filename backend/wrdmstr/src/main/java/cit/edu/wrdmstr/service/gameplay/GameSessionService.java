@@ -94,6 +94,7 @@ public class GameSessionService {
         }).collect(Collectors.toList());
     }
 
+
     private List<Map<String, Object>> getSessionLeaderboard(Long sessionId) {
         List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
 
