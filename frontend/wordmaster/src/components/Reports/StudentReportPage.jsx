@@ -287,8 +287,15 @@ const StudentReportPage = () => {
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
-      overflow: 'hidden',
+     height: '100vh',
+  width: '100vw', margin: 0,
+    display: 'flex',
+  flexDirection: 'column',
+    overflow: 'hidden',
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
       background: `
         linear-gradient(to bottom, 
           rgba(249, 249, 249, 0.8) 0%, 
