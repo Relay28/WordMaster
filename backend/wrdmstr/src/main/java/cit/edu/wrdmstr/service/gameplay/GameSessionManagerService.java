@@ -18,7 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
+import cit.edu.wrdmstr.service.gameplay.GameResultService;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -41,8 +41,8 @@ public class GameSessionManagerService {
     private final GrammarCheckerService grammarCheckerService;
     private final AIService aiService;
     @Autowired private ScoreService scoreService;
-  private final StudentProgressRepository progressRepository;
-    // In-memory game state tracking
+    private final StudentProgressRepository progressRepository;
+    @Autowired private GameResultService gameResultService;
 
     @Autowired
     private ProgressTrackingService progressTrackingService;
@@ -626,6 +626,7 @@ public class GameSessionManagerService {
         endMessage.put("leaderboard", getSessionLeaderboard(sessionId));
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/status", endMessage);
 
+        gameResultService.processEndGameResults(sessionId);
         // Clean up
         activeGames.remove(sessionId);
     }

@@ -181,8 +181,8 @@ public class AIService {
                         "followed by a brief explanation of your reasoning. Consider both language appropriateness and role alignment.";
 
                 case "story_prompt":
-                    StringBuilder prompt = new StringBuilder("You are creating engaging prompts for a language learning game.\n");
-                    prompt.append("Create a thought-provoking scenario that encourages students to practice conversation skills.\n\n");
+                    StringBuilder prompt = new StringBuilder("You are writing conversation starters for students practicing language skills.\n");
+                    prompt.append("Create a natural, casual prompt as if you're a teacher guiding a classroom discussion.\n\n");
                     prompt.append("Topic/Context: ").append(request.get("content")).append("\n");
                     prompt.append("Turn number: ").append(request.get("turn")).append("\n");
                     
@@ -193,8 +193,9 @@ public class AIService {
                         prompt.append("Try to create a scenario that might encourage using new vocabulary.\n");
                     }
                     
-                    prompt.append("\nYour response should be exactly 1-2 sentences that create a clear situation or question.");
-                    prompt.append("\nMake your prompt conversational, engaging, and appropriate for language learners.");
+                    prompt.append("\nYour response should be conversational and sound natural - like something a real teacher would say.\n");
+                    prompt.append("Keep it to 1-2 sentences maximum and don't use academic or AI-sounding language.\n");
+                    prompt.append("Don't mention that you're an AI or that this is a language exercise - just write a natural prompt.\n");
                     return prompt.toString();
                     
                 case "word_generation":
@@ -210,6 +211,11 @@ public class AIService {
             
             return "Generate exactly 10 vocabulary words and exactly " + roleCount + " role names for a language learning game about: " 
                 + request.get("topic") + ".\n\n"
+                + "IMPORTANT GUIDELINES:\n"
+                + "- Choose simple, practical words that students can easily incorporate into conversations\n"
+                + "- Avoid technical jargon or overly complex terms\n"
+                + "- Select words that naturally fit into a conversation about this topic\n"
+                + "- Choose words at approximately middle-school to early high-school level\n\n"
                 + "For EACH word, include a brief definition and example sentence.\n\n"
                 + "You MUST format your response EXACTLY as follows (including the exact headers and bullet points):\n\n"
                 + "WORDS:\n"
@@ -311,10 +317,13 @@ public class AIService {
                     
                     return evaluationPrompt.toString();
                 case "word_enrichment":
-                    return "Generate a brief definition and an example sentence for the word: " + 
-                        request.get("word") + ".\n\n" +
-                        "Format your response exactly as follows with no prefix labels:\n" +
-                        "[definition] | [example sentence using the word]";
+                    return "You're helping create materials for students learning English. For the word: " + 
+                        request.get("word") + ":\n\n" +
+                        "1. Provide a simple, clear definition that a middle-school student would understand\n" +
+                        "2. Write a natural, conversational example sentence showing how this word is used in everyday speech\n\n" +
+                        "Make your response useful for language learners by using straightforward language.\n" +
+                        "Format your response exactly as follows (no labels):\n" +
+                        "[simple definition] | [natural example sentence]";
                 case "vocabulary_check":
                     StringBuilder vocabPrompt = new StringBuilder();
                     vocabPrompt.append("You are an expert language teacher analyzing a student's vocabulary usage.\n\n");

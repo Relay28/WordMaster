@@ -19,7 +19,10 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
+import cit.edu.wrdmstr.dto.GrammarResultDTO;
+import cit.edu.wrdmstr.dto.VocabularyResultDTO;
+import cit.edu.wrdmstr.repository.GrammarResultRepository;
+import cit.edu.wrdmstr.repository.VocabularyResultRepository;
 @Service
 @Transactional
 public class TeacherFeedbackService {
@@ -37,6 +40,8 @@ public class TeacherFeedbackService {
     @Autowired private ScoreService scoreService;
     @Autowired private ClassroomRepository classroomRepository;
     @Autowired private ComprehensionResultRepository comprehensionResultRepository;
+    @Autowired private GrammarResultRepository grammarResultRepo;
+    @Autowired private VocabularyResultRepository vocabResultRepo;
 
     /**
      * Create or update feedback for a student in a game session
@@ -698,5 +703,43 @@ public class TeacherFeedbackService {
         
         // Return DTO
         return convertToDTO(savedFeedback, true);
+    }
+
+    /**
+     * Get student analytics data
+     */
+    public Map<String, Object> getStudentAnalytics(Long sessionId, Long studentId) {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Get grammar results
+        GrammarResultEntity grammarEntity = grammarResultRepo.findByGameSessionIdAndStudentId(sessionId, studentId)
+            .orElse(null);
+            
+        if (grammarEntity != null) {
+            Map<String, Integer> grammarBreakdown = new HashMap<>();
+            grammarBreakdown.put("PERFECT", grammarEntity.getPerfectCount());
+            grammarBreakdown.put("MINOR_ERRORS", grammarEntity.getMinorErrorsCount());
+            grammarBreakdown.put("MAJOR_ERRORS", grammarEntity.getMajorErrorsCount());
+            
+            result.put("grammarBreakdown", grammarBreakdown);
+            result.put("grammarStreak", grammarEntity.getGrammarStreak());
+        }
+        
+        // Get vocabulary results
+        VocabularyResultEntity vocabEntity = vocabResultRepo.findByGameSessionIdAndStudentId(sessionId, studentId)
+            .orElse(null);
+            
+        if (vocabEntity != null) {
+            result.put("vocabularyScore", vocabEntity.getVocabularyScore());
+            result.put("usedWords", vocabEntity.getUsedWordsList());
+            result.put("usedAdvancedWords", vocabEntity.getUsedAdvancedWordsList());
+        }
+        
+        logger.info("Returning vocabulary data: score={}, words={}, advanced={}",
+            vocabEntity != null ? vocabEntity.getVocabularyScore() : "null",
+            vocabEntity != null ? vocabEntity.getUsedWordsList().size() : "null",
+            vocabEntity != null ? vocabEntity.getUsedAdvancedWordsList().size() : "null");
+        
+        return result;
     }
 }

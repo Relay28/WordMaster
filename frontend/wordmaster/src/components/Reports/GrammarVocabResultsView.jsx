@@ -1,17 +1,10 @@
 import React from 'react';
-import {
-  Box, Typography, Paper, Grid, CircularProgress,
-  Card, CardContent, Divider, Chip, List, ListItem
-} from '@mui/material';
+import { Tooltip, Box, Typography, Paper, Grid, CircularProgress, List, ListItem, Chip } from '@mui/material';
 import { CheckCircle, Cancel, Spellcheck, MenuBook } from '@mui/icons-material';
 
 const GrammarVocabResultsView = ({ grammarData, vocabularyData, pixelText, pixelHeading }) => {
   if (!grammarData && !vocabularyData) {
-    return (
-      <Box textAlign="center" py={3}>
-        <Typography sx={pixelText}>No grammar or vocabulary data available</Typography>
-      </Box>
-    );
+    return <Typography sx={pixelText}>No data available</Typography>;
   }
   
   // Grammar metrics
@@ -25,185 +18,148 @@ const GrammarVocabResultsView = ({ grammarData, vocabularyData, pixelText, pixel
   // Vocabulary metrics
   const vocabUsageCount = vocabularyData?.usedWords?.length || 0;
   const vocabAdvancedCount = vocabularyData?.usedAdvancedWords?.length || 0;
-  const vocabScore = vocabularyData?.score || 0;
+  const vocabScore = vocabularyData?.score || 
+  (vocabularyData?.usedWords?.length * 5) + (vocabularyData?.usedAdvancedWords?.length * 5) || 0;
+  
+  // Function to determine why a word is considered advanced
+  const getAdvancedWordReason = (word) => {
+    const reasons = [];
+    
+    if (word.length > 7) {
+      reasons.push(`Length: ${word.length} characters (words over 7 characters are considered advanced)`);
+    }
+    
+    // You can add more conditions here as your heuristics evolve
+    // For example: if you add complexity or rarity metrics in the future
+    
+    return reasons.length > 0 ? reasons.join(', ') : 'Identified as an advanced vocabulary word';
+  };
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Grid container spacing={6}>
-        {/* Grammar Section */}
-        <Grid item xs={12} lg={6}>
-          <Paper elevation={0} sx={{
-            p: 5,
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            borderRadius: '8px',
-            border: '2px solid rgba(95, 75, 139, 0.2)'
-          }}>
-            <Typography sx={{...pixelHeading, mb: 3}}>Grammar Performance</Typography>
+    <Grid container spacing={3}>
+      {/* Grammar Section */}
+      {grammarData && (
+        <Grid item xs={12} md={6}>
+          <Paper 
+            sx={{ 
+              p: 3, 
+              borderRadius: '16px',
+              background: 'rgba(255,255,255,0.7)',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
+              border: '1px solid rgba(255,255,255,0.3)',
+            }}
+          >
+            <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>Grammar Performance</Typography>
             
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Box sx={{ position: 'relative', display: 'inline-block' }}>
+            {/* Grammar metrics display */}
+            <Box display="flex" justifyContent="space-around" mb={2}>
+              <Box textAlign="center">
                 <CircularProgress 
                   variant="determinate" 
                   value={grammarAccuracyPercent} 
-                  size={150}
+                  size={80}
                   thickness={5}
                   sx={{ color: '#5F4B8B' }}
                 />
-                <Box sx={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  textAlign: 'center'
-                }}>
-                  <Typography sx={{ ...pixelHeading, fontSize: '28px' }}>
-                    {grammarAccuracyPercent}%
-                  </Typography>
-                  <Typography sx={{ ...pixelText, fontSize: '10px' }}>
-                    Accuracy
-                  </Typography>
-                </Box>
+                <Typography sx={{ ...pixelText, mt: 1 }}>Accuracy: {grammarAccuracyPercent}%</Typography>
               </Box>
             </Box>
-
-            <Grid container spacing={3} sx={{ mb: 3 }}>
-              <Grid item xs={4}>
-                <Paper elevation={0} sx={{
-                  p: 2,
-                  textAlign: 'center',
-                  bgcolor: 'rgba(76, 175, 80, 0.1)',
-                  border: '1px solid rgba(76, 175, 80, 0.3)',
-                  borderRadius: '8px'
-                }}>
-                  <Typography sx={{...pixelText, color: 'success.main', mb: 1}}>PERFECT</Typography>
-                  <Typography sx={{...pixelHeading, color: 'success.main'}}>{perfectCount}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={4}>
-                <Paper elevation={0} sx={{
-                  p: 2,
-                  textAlign: 'center',
-                  bgcolor: 'rgba(255, 152, 0, 0.1)',
-                  border: '1px solid rgba(255, 152, 0, 0.3)',
-                  borderRadius: '8px'
-                }}>
-                  <Typography sx={{...pixelText, color: 'warning.main', mb: 1}}>MINOR</Typography>
-                  <Typography sx={{...pixelHeading, color: 'warning.main'}}>{minorErrorsCount}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={4}>
-                <Paper elevation={0} sx={{
-                  p: 2,
-                  textAlign: 'center',
-                  bgcolor: 'rgba(244, 67, 54, 0.1)',
-                  border: '1px solid rgba(244, 67, 54, 0.3)',
-                  borderRadius: '8px'
-                }}>
-                  <Typography sx={{...pixelText, color: 'error.main', mb: 1}}>MAJOR</Typography>
-                  <Typography sx={{...pixelHeading, color: 'error.main'}}>{majorErrorsCount}</Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-
-            <Box sx={{ textAlign: 'center' }}>
-              <Chip 
-                icon={<Spellcheck />}
-                label={`Grammar Streak: ${grammarData?.grammarStreak || 0}`}
-                sx={{ ...pixelText, bgcolor: '#5F4B8B', color: 'white' }}
-              />
+            
+            <Box>
+              <Typography sx={{ ...pixelText, mt: 2 }}>
+                Perfect: {perfectCount} | Minor Errors: {minorErrorsCount} | Major Errors: {majorErrorsCount}
+              </Typography>
+              <Typography sx={{ ...pixelText, mt: 1 }}>
+                Longest Grammar Streak: {grammarData?.grammarStreak || 0}
+              </Typography>
             </Box>
           </Paper>
         </Grid>
-
-        {/* Vocabulary Section */}
-        <Grid item xs={12} lg={6}>
-          <Paper elevation={0} sx={{
-            p: 3,
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            borderRadius: '8px',
-            border: '2px solid rgba(95, 75, 139, 0.2)',
-            height: '90%'
-          }}>
-            <Typography sx={{...pixelHeading, mb: 3}}>Vocabulary Usage</Typography>
-
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Chip 
-                icon={<MenuBook />}
-                label={`Vocabulary Score: ${vocabScore}`}
-                sx={{ 
-                  ...pixelText,
-                  bgcolor: '#5F4B8B',
-                  color: 'white',
-                  py: 3,
-                  '& .MuiChip-label': { px: 3, fontSize: '16px' }
-                }}
-              />
+      )}
+      
+      {/* Vocabulary Section */}
+      {vocabularyData && (
+        <Grid item xs={12} md={6}>
+          <Paper 
+            sx={{ 
+              p: 3, 
+              borderRadius: '16px', 
+              background: 'rgba(255,255,255,0.7)',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              height: '100%'
+            }}
+          >
+            <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>Vocabulary Usage</Typography>
+            
+            <Box display="flex" justifyContent="space-around" alignItems="center" mb={3}>
+              <Box textAlign="center">
+                <Typography sx={{ ...pixelHeading, fontSize: '24px', color: '#5F4B8B' }}>
+                  {vocabScore}
+                </Typography>
+                <Typography sx={{ ...pixelText }}>Score</Typography>
+              </Box>
+              <Box textAlign="center">
+                <Typography sx={{ ...pixelHeading, fontSize: '24px', color: '#5F4B8B' }}>
+                  {vocabUsageCount}
+                </Typography>
+                <Typography sx={{ ...pixelText }}>Words Used</Typography>
+              </Box>
+              <Box textAlign="center">
+                <Typography sx={{ ...pixelHeading, fontSize: '24px', color: '#5F4B8B' }}>
+                  {vocabAdvancedCount}
+                </Typography>
+                <Typography sx={{ ...pixelText }}>Advanced Words</Typography>
+              </Box>
             </Box>
-
-            <Grid container spacing={3} sx={{ mb: 4 }}>
-              <Grid item xs={6}>
-                <Paper elevation={0} sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  bgcolor: 'rgba(95, 75, 139, 0.05)',
-                  border: '1px solid rgba(95, 75, 139, 0.2)',
-                  borderRadius: '8px'
-                }}>
-                  <Typography sx={{...pixelText, color: '#5F4B8B', mb: 1}}>
-                    WORD BANK USAGE
-                  </Typography>
-                  <Typography sx={{...pixelHeading, color: '#5F4B8B'}}>
-                    {vocabUsageCount}
-                  </Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={6}>
-                <Paper elevation={0} sx={{
-                  p: 3,
-                  textAlign: 'center',
-                  bgcolor: 'rgba(95, 75, 139, 0.05)',
-                  border: '1px solid rgba(95, 75, 139, 0.2)',
-                  borderRadius: '8px'
-                }}>
-                  <Typography sx={{...pixelText, color: '#5F4B8B', mb: 1}}>
-                    ADVANCED WORDS
-                  </Typography>
-                  <Typography sx={{...pixelHeading, color: '#5F4B8B'}}>
-                    {vocabAdvancedCount}
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-
-            {vocabularyData?.usedWords && vocabularyData.usedWords.length > 0 && (
-              <Box>
-                <Typography sx={{...pixelText, mb: 2}}>Words Used:</Typography>
-                <Paper elevation={0} sx={{
-                  p: 2,
-                  bgcolor: 'rgba(95, 75, 139, 0.05)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(95, 75, 139, 0.2)'
-                }}>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {vocabularyData.usedWords.map((word, idx) => (
-                      <Chip 
-                        key={idx}
+            
+            {/* Word List with enhanced tooltips for advanced words */}
+            <Typography sx={{ ...pixelText, mb: 1 }}>Words used:</Typography>
+            <Box sx={{ maxHeight: '200px', overflow: 'auto', p: 1 }}>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {vocabularyData?.usedWords?.map((word, index) => {
+                  const isAdvanced = vocabularyData.usedAdvancedWords?.includes(word);
+                  
+                  return isAdvanced ? (
+                    <Tooltip 
+                      key={index}
+                      title={getAdvancedWordReason(word)}
+                      arrow
+                      placement="top"
+                    >
+                      <Chip
                         label={word}
                         size="small"
-                        color={vocabularyData.usedAdvancedWords?.includes(word) ? "primary" : "default"}
-                        sx={{ 
-                          '& .MuiChip-label': { ...pixelText, fontSize: '8px' }
+                        sx={{
+                          ...pixelText,
+                          bgcolor: '#e3f2fd',
+                          color: '#1565c0',
+                          fontWeight: 'bold',
+                          border: '1px solid #1565c0'
                         }}
                       />
-                    ))}
-                  </Box>
-                </Paper>
+                    </Tooltip>
+                  ) : (
+                    <Chip
+                      key={index}
+                      label={word}
+                      size="small"
+                      sx={{
+                        ...pixelText,
+                        bgcolor: 'rgba(95, 75, 139, 0.1)',
+                        color: '#5F4B8B'
+                      }}
+                    />
+                  );
+                })}
               </Box>
-            )}
+            </Box>
           </Paper>
         </Grid>
-      </Grid>
-    </Box>
+      )}
+    </Grid>
   );
 };
 
