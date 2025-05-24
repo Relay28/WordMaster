@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { useNavigate } from 'react-router-dom';
 import { useUserAuth } from "../context/UserAuthContext";
 import { 
   Box, Typography, Button, Grid, 
@@ -13,6 +14,7 @@ import picbg from '../../assets/picbg.png'
 import { Person, EmojiEvents, ArrowBack, QuestionAnswer } from '@mui/icons-material';
 
 const TeacherContentSessions = () => {
+      const navigate = useNavigate();
   const { getToken } = useUserAuth();
   const { contentId } = useParams();
   const [sessions, setSessions] = useState([]);
@@ -275,34 +277,7 @@ const TeacherContentSessions = () => {
   if (error) return <p>{error}</p>;
 return (
     <>
-                  <Button
-                    variant="contained"
-                    startIcon={<ArrowBack />}
-                    onClick={() => navigate('/homepage')}
-                    sx={{
-                      ...pixelButton,
-                      backgroundColor: '#5F4B8B',
-                      '&:hover': { 
-                        backgroundColor: '#4a3a6d',
-                        transform: 'translateY(-2px)'
-                      },
-                      borderRadius: '4px',
-                      px: 3,
-                      py: 1.5,
-                      borderStyle: 'outset',
-                      boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
-                      textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
-                      transition: 'all 0.1s ease',
-                      '&:active': {
-                        transform: 'translateY(1px)',
-                        boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
-                        borderStyle: 'inset'
-                      },
-                      fontSize: isMobile ? '10px' : '12px'
-                    }}
-                  >
-                    { 'BACK TO HOMEPAGE'}
-                  </Button>
+               
     
   <Box sx={{
     position: 'fixed',
@@ -319,6 +294,39 @@ return (
     display: 'flex', // Add flex container
     flexDirection: 'column'
   }}>
+
+      <Button
+        variant="contained"
+        startIcon={<ArrowBack />}
+        onClick={() => navigate('/homepage')}
+        sx={{
+          ...pixelButton,
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          zIndex: 1000,
+          backgroundColor: '#5F4B8B',
+          '&:hover': { 
+            backgroundColor: '#4a3a6d',
+            transform: 'translateY(-2px)'
+          },
+          borderRadius: '4px',
+          px: 3,
+          py: 1.5,
+          borderStyle: 'outset',
+          boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+          textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+          transition: 'all 0.1s ease',
+          '&:active': {
+            transform: 'translateY(1px)',
+            boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+            borderStyle: 'inset'
+          },
+          fontSize: isMobile ? '10px' : '12px'
+        }}
+      >
+        BACK TO HOMEPAGE
+      </Button>
     <Box sx={{ 
       flex: 1, // Take available space
       width: '100%',
