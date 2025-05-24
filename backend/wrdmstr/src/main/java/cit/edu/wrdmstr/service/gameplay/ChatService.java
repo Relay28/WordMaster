@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.service.gameplay;
 
 import cit.edu.wrdmstr.dto.ChatMessageDTO;
+import cit.edu.wrdmstr.dto.VocabularyResultDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
 import cit.edu.wrdmstr.repository.*;
@@ -59,7 +60,7 @@ public class ChatService {
                 grammarCheckerService.checkGrammar(content, roleName, contextDesc);
         
         // Add vocabulary check
-        VocabularyCheckerService.VocabularyCheckResult vocabResult = 
+        VocabularyResultDTO vocabResult = 
                 vocabularyCheckerService.checkVocabulary(content, sessionId, userId);
         
         // Create message with all necessary info
@@ -70,7 +71,7 @@ public class ChatService {
         message.setContent(content);
         message.setGrammarStatus(grammarResult.getStatus());
         message.setGrammarFeedback(grammarResult.getFeedback());
-        message.setVocabularyScore(vocabResult.getScore());
+        message.setVocabularyScore(vocabResult.getVocabularyScore());
         message.setVocabularyFeedback(vocabResult.getFeedback());
         message.setTimestamp(new Date());
 
@@ -108,7 +109,7 @@ public class ChatService {
         // Award vocabulary points
         scoreService.handleVocabularyScoring(
             player, 
-            vocabResult.getScore(),
+            vocabResult.getVocabularyScore(),
             vocabResult.getUsedAdvancedWords()
         );
 

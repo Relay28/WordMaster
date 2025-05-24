@@ -12,7 +12,8 @@ public class VocabularyResultDTO {
     private List<String> usedWords;
     private List<String> usedAdvancedWords;
     private Date createdAt;
-    
+    private String feedback;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -76,5 +77,13 @@ public class VocabularyResultDTO {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getFeedback() {
+    return feedback;
+    }
+
+    public void setFeedback(String feedback) {
+        this.feedback = feedback;
     }
 }

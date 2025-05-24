@@ -1,5 +1,6 @@
 package cit.edu.wrdmstr.controller;
 
+import cit.edu.wrdmstr.dto.VocabularyResultDTO;
 import cit.edu.wrdmstr.service.gameplay.VocabularyCheckerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -36,11 +37,11 @@ public class VocabularyCheckerController {
         Long sessionId = Long.parseLong(request.get("sessionId").toString());
         Long userId = Long.parseLong(request.get("userId").toString());
         
-        VocabularyCheckerService.VocabularyCheckResult result = 
+        VocabularyResultDTO result = 
             vocabularyCheckerService.checkVocabulary(text, sessionId, userId);
         
         Map<String, Object> response = Map.of(
-            "score", result.getScore(),
+            "score", result.getVocabularyScore(),
             "feedback", result.getFeedback(),
             "usedWords", result.getUsedWords()
         );

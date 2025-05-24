@@ -326,19 +326,26 @@ public class AIService {
                         "[simple definition] | [natural example sentence]";
                 case "vocabulary_check":
                     StringBuilder vocabPrompt = new StringBuilder();
-                    vocabPrompt.append("You are an expert language teacher analyzing a student's vocabulary usage.\n\n");
-                    vocabPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n\n");
+                    vocabPrompt.append("You are analyzing vocabulary usage in student text for language learning assessment.\n\n");
+                    vocabPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n");
+                    vocabPrompt.append("Words used from word bank: ").append(request.get("usedWords")).append("\n\n");
                     
-                    List<String> usedWords2 = (List<String>) request.get("usedWords");
-                    if (usedWords2 != null && !usedWords2.isEmpty()) {
-                        vocabPrompt.append("Word bank words used: ").append(String.join(", ", usedWords2)).append("\n\n");
+                    // Include analysis results if available
+                    Map<String, Object> analysis = (Map<String, Object>) request.get("vocabularyAnalysis");
+                    if (analysis != null) {
+                        vocabPrompt.append("Vocabulary Analysis Results:\n");
+                        vocabPrompt.append("- Vocabulary Level: ").append(analysis.get("vocabularyLevel")).append("\n");
+                        vocabPrompt.append("- Advanced Words: ").append(analysis.get("advancedWords")).append("\n");
+                        vocabPrompt.append("- Lexical Density: ").append(analysis.get("lexicalDensity")).append("\n");
+                        vocabPrompt.append("- Type-Token Ratio: ").append(analysis.get("typeTokenRatio")).append("\n\n");
                     }
                     
-                    vocabPrompt.append("Please provide feedback on:\n");
-                    vocabPrompt.append("1. Overall vocabulary richness\n");
-                    vocabPrompt.append("2. Appropriateness of word choices\n");
-                    vocabPrompt.append("3. Suggestions for vocabulary improvement\n\n");
-                    vocabPrompt.append("Format your response to be encouraging and constructive.");
+                    vocabPrompt.append("Provide constructive feedback on:\n");
+                    vocabPrompt.append("1. Effective use of vocabulary from the word bank\n");
+                    vocabPrompt.append("2. Complexity and sophistication of word choices\n");
+                    vocabPrompt.append("3. Suggestions for vocabulary enhancement\n");
+                    vocabPrompt.append("4. Recognition of advanced vocabulary usage\n\n");
+                    vocabPrompt.append("Keep feedback encouraging and specific to help student improvement.");
                     
                     return vocabPrompt.toString();
                 case "generate_vocabulary_exercises":

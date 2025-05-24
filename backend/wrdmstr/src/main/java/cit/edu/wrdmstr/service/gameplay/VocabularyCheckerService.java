@@ -1,5 +1,6 @@
 package cit.edu.wrdmstr.service.gameplay;
 
+import cit.edu.wrdmstr.dto.VocabularyResultDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
@@ -23,25 +24,26 @@ public class VocabularyCheckerService {
     @Autowired private ChatMessageEntityRepository chatMessageRepository;
     @Autowired private AIService aiService;
     @Autowired private GrammarCheckerService grammarCheckerService;
+    @Autowired private VocabularyResultRepository vocabularyResultRepository;
     @Autowired private WordBankItemRepository wordBankRepository;
+    @Autowired private VocabularyAnalysisService vocabularyAnalysisService;
+
     
-    /**
+     /**
      * Analyze vocabulary usage in a message
      */
-    public VocabularyCheckResult checkVocabulary(String text, Long sessionId, Long userId) {
-        GameSessionEntity session = gameSessionRepository.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Game session not found"));
-            
-        // Get word bank for the session
-        List<WordBankItem> wordBank = wordBankRepository.findByContentData(session.getContent().getContentData());
-        
-        // Check for word bank usage
+    public VocabularyResultDTO checkVocabulary(String text, Long sessionId, Long userId) {
+        // Existing code to identify used words from word bank
         List<String> usedWords = new ArrayList<>();
         List<String> usedAdvancedWords = new ArrayList<>();
-        for (WordBankItem item : wordBank) {
-            String word = item.getWord().toLowerCase();
-            String regex = "\\b" + word + "\\b";
-            if (text.toLowerCase().matches(".*" + regex + ".*")) {
+        
+        // Find all word bank items used in the text
+        ContentEntity content = gameSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new RuntimeException("Session not found"))
+            .getContent();
+            
+        for (WordBankItem item : content.getContentData().getWordBank()) {
+            if (text.toLowerCase().contains(item.getWord().toLowerCase())) {
                 usedWords.add(item.getWord());
                 
                 // Consider words as advanced if they have high complexity or length > 7
@@ -51,18 +53,52 @@ public class VocabularyCheckerService {
             }
         }
         
+        // Perform advanced vocabulary analysis on entire text
+        Map<String, Object> analysis = vocabularyAnalysisService.analyzeVocabulary(text);
+        
+        // ADD THIS: Get advanced words from the vocabulary analysis service
+        List<String> analysisAdvancedWords = (List<String>) analysis.get("advancedWords");
+        if (analysisAdvancedWords != null) {
+            // Add advanced words found by analysis that aren't already in the list
+            for (String advancedWord : analysisAdvancedWords) {
+                if (!usedAdvancedWords.contains(advancedWord)) {
+                    usedAdvancedWords.add(advancedWord);
+                }
+            }
+        }
+        
         // Get AI feedback on vocabulary usage
         Map<String, Object> request = new HashMap<>();
         request.put("task", "vocabulary_check");
         request.put("text", text);
         request.put("usedWords", usedWords);
+        // Add the analysis results to the AI request
+        request.put("vocabularyAnalysis", analysis);
         
         String feedback = aiService.callAIModel(request).getResult();
         
-        // Calculate score based on word bank usage and complexity
-        int score = calculateVocabularyScore(text, usedWords);
+        // Calculate score - now include the advanced analysis
+        int baseScore = usedWords.size() * 2;
+        int advancedScore = usedAdvancedWords.size() * 3;
         
-        return new VocabularyCheckResult(score, feedback, usedWords, usedAdvancedWords);
+        // Add score based on the analysis
+        int analysisScore = 0;
+        String vocabLevel = (String) analysis.get("vocabularyLevel");
+        if ("Advanced".equals(vocabLevel)) {
+            analysisScore = 5;
+        } else if ("Intermediate-Advanced".equals(vocabLevel)) {
+            analysisScore = 3;
+        } else if ("Intermediate".equals(vocabLevel)) {
+            analysisScore = 1;
+        }
+        
+        int totalScore = baseScore + advancedScore + analysisScore;
+        
+        // Save vocabulary result
+        saveVocabularyResult(sessionId, userId, usedWords, usedAdvancedWords, analysis);
+        
+        // Convert to DTO and return
+        return convertToDTO(totalScore, feedback, usedWords, usedAdvancedWords, sessionId, userId);
     }
     
     /**
@@ -135,44 +171,82 @@ public class VocabularyCheckerService {
         
         return exercises;
     }
+
+    /**
+ * Save vocabulary analysis results to database
+ */
+private void saveVocabularyResult(Long sessionId, Long userId, List<String> usedWords, 
+                                 List<String> usedAdvancedWords, Map<String, Object> analysis) {
+    logger.info("Saving vocabulary result - usedWords: {}, usedAdvancedWords: {}", 
+                usedWords.size(), usedAdvancedWords.size());
+    logger.debug("Advanced words list: {}", usedAdvancedWords);
+    
+    GameSessionEntity session = gameSessionRepository.findById(sessionId)
+        .orElseThrow(() -> new RuntimeException("Session not found"));
+    
+    UserEntity user = userRepository.findById(userId)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+    
+    // Check if a result already exists for this session and user
+    VocabularyResultEntity existingResult = vocabularyResultRepository
+        .findByGameSessionIdAndStudentId(sessionId, userId).orElse(null);
+    
+    VocabularyResultEntity result = existingResult != null ? existingResult : new VocabularyResultEntity();
+    
+    // Set basic properties
+    result.setGameSession(session);
+    result.setStudent(user);
+    
+    // Calculate score
+    int vocabScore = usedWords.size() * 2 + usedAdvancedWords.size() * 3;
+    if ("Advanced".equals(analysis.get("vocabularyLevel"))) {
+        vocabScore += 5;
+    } else if ("Intermediate-Advanced".equals(analysis.get("vocabularyLevel"))) {
+        vocabScore += 3;
+    } else if ("Intermediate".equals(analysis.get("vocabularyLevel"))) {
+        vocabScore += 1;
+    }
+    
+    result.setVocabularyScore(vocabScore);
+    result.setUsedWordsList(usedWords);
+    result.setUsedAdvancedWordsList(usedAdvancedWords);
+    
+    // Save to database
+    VocabularyResultEntity savedResult = vocabularyResultRepository.save(result);
+    logger.info("Saved vocabulary result with ID: {}, advanced words: {}", 
+                savedResult.getId(), savedResult.getUsedAdvancedWords());
+}
     
     /**
-     * Result class for vocabulary checks
+     * Convert vocabulary check data to DTO
      */
-    public static class VocabularyCheckResult {
-        private final int score;
-        private final String feedback;
-        private final List<String> usedWords;
-        private final List<String> usedAdvancedWords;
-        
-        public VocabularyCheckResult(int score, String feedback, List<String> usedWords) {
-            this.score = score;
-            this.feedback = feedback;
-            this.usedWords = usedWords;
-            this.usedAdvancedWords = new ArrayList<>();
-        }
-        
-        public VocabularyCheckResult(int score, String feedback, List<String> usedWords, List<String> usedAdvancedWords) {
-            this.score = score;
-            this.feedback = feedback;
-            this.usedWords = usedWords;
-            this.usedAdvancedWords = usedAdvancedWords;
-        }
-        
-        public int getScore() {
-            return score;
-        }
-        
-        public String getFeedback() {
-            return feedback;
-        }
-        
-        public List<String> getUsedWords() {
-            return usedWords;
-        }
-        
-        public List<String> getUsedAdvancedWords() {
-            return usedAdvancedWords;
-        }
+    private VocabularyResultDTO convertToDTO(int score, String feedback, 
+                                         List<String> usedWords, 
+                                         List<String> usedAdvancedWords, 
+                                         Long sessionId, Long userId) {
+    // Create new DTO
+    VocabularyResultDTO dto = new VocabularyResultDTO();
+    
+    // Set primary data
+    dto.setVocabularyScore(score);
+    dto.setUsedWords(usedWords);
+    dto.setUsedAdvancedWords(usedAdvancedWords);
+    
+    // Set identifying information
+    dto.setGameSessionId(sessionId);
+    dto.setStudentId(userId);
+    
+    // Set student name if needed
+    UserEntity user = userRepository.findById(userId).orElse(null);
+    if (user != null) {
+        dto.setStudentName(user.getFname() + " " + user.getLname());
     }
+    
+    // Add the feedback (you may need to add this field to VocabularyResultDTO)
+    // dto.setFeedback(feedback);
+    
+    return dto;
+}
+    
+ 
 }

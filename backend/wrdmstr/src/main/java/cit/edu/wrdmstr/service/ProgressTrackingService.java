@@ -89,9 +89,10 @@ public class ProgressTrackingService {
             if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.PERFECT) {
                 totalScore += 1.0; // 100% credit
             } else if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.MINOR_ERRORS) {
-                totalScore += 0.5; // 50% credit for minor errors
+                totalScore += 0.7; // 70% credit for minor errors
+            } else {
+                totalScore += 0.2; // 20% credit even for major errors, as they still tried
             }
-            // Major errors still get 0
         }
 
         return (totalScore * 100.0) / messages.size();

@@ -35,6 +35,11 @@ public class VocabularyResultEntity {
     @Column(name = "created_at", nullable = false)
     private Date createdAt;
     
+    @Lob
+    @Column(name = "feedback", columnDefinition = "TEXT")
+    private String feedback;
+
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = new Date();
@@ -115,10 +120,26 @@ public class VocabularyResultEntity {
     }
     
     public void setUsedWordsList(List<String> words) {
-        this.usedWords = String.join(",", words);
+        if (words == null || words.isEmpty()) {
+            this.usedWords = "";
+        } else {
+            this.usedWords = String.join(",", words);
+        }
     }
-    
+        
     public void setUsedAdvancedWordsList(List<String> words) {
-        this.usedAdvancedWords = String.join(",", words);
+        if (words == null || words.isEmpty()) {
+            this.usedAdvancedWords = "";
+        } else {
+            this.usedAdvancedWords = String.join(",", words);
+        }
+    }
+
+    public String getFeedback() {
+        return feedback;
+    }
+
+    public void setFeedback(String feedback) {
+        this.feedback = feedback;
     }
 }
