@@ -1,89 +1,137 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import UserProfile from './Profile/UserProfileContainer';
-import Login from './components/Login';
-import Register from './components/Register';
-import AdminLogin from './components/admin/AdminLogin';
-import AdminDashboard from './components/admin/AdminDashboard';
-import ProtectedAdminRoute from './components/auth/ProtectedAdminRoute';
-import HomePage from './components/Homepage/HomePage';
-import StudentHomePage from './components/Homepage/StudentHomePage';
-import OAuthSuccessHandler from './components/OAuthSuccessHandler';
-import SetupPage from './components/user/SetupPage.';
-import ClassroomDetailsPage from './components/Classroom/Classroom Details Page';
-import GamePage from './components/gameplay/GamePage';
-import CreateGameSession from './components/gameplay/CreateGameSession';
-import GameCore from './components/gameplay/GameCore';
-// Import content components
-import ContentDashboard from './components/content/ContentDashboard';
-import EditContent from './components/content/EditContent';
-//import UploadContent from './components/content/UploadContent';
-import ContentDetails from './components/content/ContentDetails';
-import ProtectedTeacherRoute from './components/auth/ProtectedTeacherRoute';
-import  ContentUpload from './components/content/contentUpload/ContentUpload';
 import { useUserAuth } from './components/context/UserAuthContext';
-import WaitingRoomPage from './components/WaitingRoom/WaitingRoomPage';
-import AIContentGenerator from './components/content/AIContentGenerator';
-import SessionProgressView from './components/gameplay/SessionProgressView';
-import TeacherContentSessions from './components/gameplay/SessionManager';
-import StudentReportPage from './components/Reports/StudentReportPage';
-import StudentFeedbackPage from './components/Reports/StudentFeedbackPage';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import picbg from '../src/assets/picbg.png';
+import '@fontsource/press-start-2p';
+// Lazy load all components
+const UserProfile = lazy(() => import('./Profile/UserProfileContainer'));
+const Login = lazy(() => import('./components/Login'));
+const Register = lazy(() => import('./components/Register'));
+const AdminLogin = lazy(() => import('./components/admin/AdminLogin'));
+const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
+const HomePage = lazy(() => import('./components/Homepage/HomePage'));
+const StudentHomePage = lazy(() => import('./components/Homepage/StudentHomePage'));
+const OAuthSuccessHandler = lazy(() => import('./components/OAuthSuccessHandler'));
+const SetupPage = lazy(() => import('./components/user/SetupPage.'));
+const ClassroomDetailsPage = lazy(() => import('./components/Classroom/Classroom Details Page'));
+const GamePage = lazy(() => import('./components/gameplay/GamePage'));
+const CreateGameSession = lazy(() => import('./components/gameplay/CreateGameSession'));
+const GameCore = lazy(() => import('./components/gameplay/GameCore'));
+const ContentDashboard = lazy(() => import('./components/content/ContentDashboard'));
+const EditContent = lazy(() => import('./components/content/EditContent'));
+const ContentDetails = lazy(() => import('./components/content/ContentDetails'));
+const ContentUpload = lazy(() => import('./components/content/contentUpload/ContentUpload'));
+const WaitingRoomPage = lazy(() => import('./components/WaitingRoom/WaitingRoomPage'));
+const AIContentGenerator = lazy(() => import('./components/content/AIContentGenerator'));
+const SessionProgressView = lazy(() => import('./components/gameplay/SessionProgressView'));
+const TeacherContentSessions = lazy(() => import('./components/gameplay/SessionManager'));
+const StudentReportPage = lazy(() => import('./components/Reports/StudentReportPage'));
+const StudentFeedbackPage = lazy(() => import('./components/Reports/StudentFeedbackPage'));
+const ProtectedAdminRoute = lazy(() => import('./components/auth/ProtectedAdminRoute'));
+const ProtectedTeacherRoute = lazy(() => import('./components/auth/ProtectedTeacherRoute'));
 
+// Loading component
+const LoadingSpinner = () => (
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      width: '100vw',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      background: `
+        linear-gradient(to bottom, 
+          rgba(249, 249, 249, 0.95) 0%, 
+          rgba(249, 249, 249, 0.95) 40%, 
+          rgba(249, 249, 249, 0.8) 100%),
+        url(${picbg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
+    }}
+  >
+    <CircularProgress
+      size={60}
+      thickness={4}
+      sx={{
+        color: '#5F4B8B',
+        mb: 2,
+        filter: 'drop-shadow(0 4px 8px rgba(95, 75, 139, 0.3))',
+      }}
+    />
+    <Typography
+      sx={{
+        fontFamily: '"Press Start 2P", cursive',
+        fontSize: '16px',
+        color: '#5F4B8B',
+        textShadow: '2px 2px 4px rgba(95, 75, 139, 0.2)',
+        letterSpacing: '2px',
+      }}
+    >
+      LOADING...
+    </Typography>
+  </Box>
+);
 
-// Create a wrapper component for role-based routing
+// HomePageRouter component remains the same
 function HomePageRouter() {
   const { isTeacher, isStudent, authChecked, user } = useUserAuth();
 
-  console.log('Current user role:', user?.role);
-
   if (!authChecked) {
-    return <div>Loading...</div>; // or a spinner
+    return <LoadingSpinner />;
   }
 
   if (isTeacher()) {
     return <HomePage />;
   } else if (isStudent()) {
     return <StudentHomePage />;
-  } 
-  
+  }
 }
-
 
 const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      
-      <Route path="/profile" element={<UserProfile />} />
-      <Route path="/homepage" element={<HomePageRouter />} />
-      <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
-      <Route path="/game" element={<GamePage />} />
-      <Route path="/content/ai-generate" element={<AIContentGenerator />} />
-      <Route path="/student-report/:sessionId/:studentId" element={<StudentReportPage />} />
-      <Route path="/student-feedback/:sessionId/:studentId" element={<StudentFeedbackPage />} />
-      <Route path="/game/create" element={<CreateGameSession />} />
-      <Route path="/game/:sessionId" element={<GameCore />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/setup" element={<SetupPage/>} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
-      <Route path="/waiting-room/:contentId" element={<WaitingRoomPage />} />
-      <Route path="/results/:sessionId" element={<SessionProgressView/>} />
-      <Route path="/session/:contentId" element={<TeacherContentSessions />} />
-      {/* Content Management Routes */}
-      <Route element={<ProtectedTeacherRoute />}>
-        <Route path="/content/dashboard" element={<ContentDashboard />} />
-        <Route path="/content/upload" element={< ContentUpload />} />
-        <Route path="/content/edit/:id" element={<EditContent />} />
-        <Route path="/content/:id" element={<ContentDetails />} />
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* ...existing routes... */}
+        <Route path="/profile" element={<UserProfile />} />
+        <Route path="/homepage" element={<HomePageRouter />} />
+        <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
+        <Route path="/game" element={<GamePage />} />
+        <Route path="/content/ai-generate" element={<AIContentGenerator />} />
+        <Route path="/student-report/:sessionId/:studentId" element={<StudentReportPage />} />
+        <Route path="/student-feedback/:sessionId/:studentId" element={<StudentFeedbackPage />} />
+        <Route path="/game/create" element={<CreateGameSession />} />
+        <Route path="/game/:sessionId" element={<GameCore />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/setup" element={<SetupPage />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
+        <Route path="/waiting-room/:contentId" element={<WaitingRoomPage />} />
+        <Route path="/results/:sessionId" element={<SessionProgressView />} />
+        <Route path="/session/:contentId" element={<TeacherContentSessions />} />
         
-      </Route>
+        {/* Content Management Routes */}
+        <Route element={<ProtectedTeacherRoute />}>
+          <Route path="/content/dashboard" element={<ContentDashboard />} />
+          <Route path="/content/upload" element={<ContentUpload />} />
+          <Route path="/content/edit/:id" element={<EditContent />} />
+          <Route path="/content/:id" element={<ContentDetails />} />
+        </Route>
 
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route element={<ProtectedAdminRoute />}>
-        <Route path="/admin" element={<AdminDashboard />} />
-      </Route>
-    </Routes>
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route element={<ProtectedAdminRoute />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 };
 
