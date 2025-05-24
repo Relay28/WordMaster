@@ -47,7 +47,7 @@ public class AuthService {
                 jwt,
                 user.getId(),
                 user.getEmail(),
-                user.getLname(),
+                user.getFname(),
                 user.getLname(),
                 user.getRole(),
                 user.getProfilePicture()
