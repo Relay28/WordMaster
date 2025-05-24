@@ -20,9 +20,44 @@ const GameResults = ({ gameState }) => {
   const [loading, setLoading] = useState(false);
   
   const isTeacher = user?.role === 'USER_TEACHER';
-  const podiumPlayers = [...(gameState.leaderboard || [])].slice(0, 3);
-  const myRank = gameState.leaderboard?.findIndex(player => player.userId === user?.id) + 1 || 0;
-  
+
+   const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const myRank = leaderboard?.findIndex(player => player.userId === user?.id) + 1 || 0;
+  const myScore = leaderboard?.find(p => p.userId === user?.id)?.score || 0;
+    const podiumPlayers = [...(leaderboard || [])].slice(0, 3);
+   useEffect(() => {
+    const fetchLeaderboard = async () => {
+      if (!gameState.sessionId) return;
+      
+      try {
+        const token = await getToken();
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        
+        const response = await fetch(
+          `${API_URL}/api/sessions/${gameState.sessionId}/leaderboard`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          setLeaderboard(data);
+        } else {
+          console.error('Failed to fetch leaderboard');
+        }
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+      } finally {
+        setLeaderboardLoading(false);
+      }
+    };
+    
+    fetchLeaderboard();
+  }, [gameState.sessionId, getToken]);
   // Fetch comprehension questions if they exist
   useEffect(() => {
     const fetchComprehensionQuestions = async () => {
@@ -148,13 +183,17 @@ const GameResults = ({ gameState }) => {
         {tabValue === 0 && (
           <>
             {/* Original leaderboard content */}
-            <Grid container spacing={4}>
+           <Grid container spacing={4} sx={{ overflow: 'hidden' }}>
               {/* Podium section */}
               <Grid item xs={12} md={6}>
                 <Paper elevation={0} sx={{ 
                   p: 3, 
                   backgroundColor: 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: 'blur(8px)',
+                    p: 3,
+  height: isMobile ? 'auto' : '400px', // Adjust height as needed
+  maxHeight: '70vh',
+  overflow: 'auto',
                   border: '4px solid #5F4B8B',
                   borderRadius: '6px'
                 }}>
@@ -179,6 +218,7 @@ const GameResults = ({ gameState }) => {
                             </Avatar>
                           </ListItemAvatar>
                           <ListItemText 
+                     
                             primary={player.name || 'Unknown Player'}
                             secondary={`Role: ${player.role || 'Participant'}`}
                             primaryTypographyProps={{ sx: pixelHeading }}
@@ -187,8 +227,11 @@ const GameResults = ({ gameState }) => {
                           <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
                             {player.score} pts
                           </Typography>
+                             
                         </ListItem>
+                        
                       ))}
+                      
                     </List>
                   ) : (
                     <Typography sx={pixelText}>No players in this session.</Typography>
@@ -204,43 +247,49 @@ const GameResults = ({ gameState }) => {
                   backdropFilter: 'blur(8px)',
                   border: '4px solid #5F4B8B',
                   borderRadius: '6px',
-                  height: '100%',
+                    height: isMobile ? 'auto' : '400px', 
+          
                   display: 'flex',
                   flexDirection: 'column'
                 }}>
-                  <Typography sx={pixelHeading} gutterBottom>YOUR RESULTS</Typography>
-                  
-                  {myRank > 0 ? (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
-                      <Typography sx={{ ...pixelHeading, fontSize: '30px', color: '#5F4B8B', mb: 2 }}>
-                        #{myRank}
-                      </Typography>
-                      <Typography sx={pixelText} gutterBottom>YOUR RANK</Typography>
-                      
-                      <Typography sx={{ ...pixelHeading, fontSize: '24px', color: '#5F4B8B', mt: 4, mb: 2 }}>
-                        {gameState.leaderboard?.find(p => p.userId === user?.id)?.score || 0}
-                      </Typography>
-                      <Typography sx={pixelText}>TOTAL POINTS</Typography>
-                      
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        sx={{
-                          ...pixelText,
-                          mt: 4,
-                          backgroundColor: '#5F4B8B',
-                          '&:hover': { backgroundColor: '#4a3a6d' }
-                        }}
-                        onClick={() => navigate(`/student-report/${gameState.sessionId}/${user?.id}`)}
-                      >
-                        View Detailed Report
-                      </Button>
-                    </Box>
-                  ) : (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
-                      <Typography sx={pixelText}>You didn't participate in this game.</Typography>
-                    </Box>
-                  )}
+               
+
+                <Typography sx={pixelHeading} gutterBottom>YOUR RESULTS</Typography>
+                {leaderboardLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                    <Typography sx={pixelText}>Loading results...</Typography>
+                  </Box>
+                ) : myRank > 0 ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+                    <Typography sx={{ ...pixelHeading, fontSize: '30px', color: '#5F4B8B', mb: 2 }}>
+                      #{myRank}
+                    </Typography>
+                    <Typography sx={pixelText} gutterBottom>YOUR RANK</Typography>
+                    
+                    <Typography sx={{ ...pixelHeading, fontSize: '24px', color: '#5F4B8B', mt: 4, mb: 2 }}>
+                      {myScore}
+                    </Typography>
+                    <Typography sx={pixelText}>TOTAL POINTS</Typography>
+                    
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      sx={{
+                        ...pixelText,
+                        mt: 4,
+                        backgroundColor: '#5F4B8B',
+                        '&:hover': { backgroundColor: '#4a3a6d' }
+                      }}
+                      onClick={() => navigate(`/student-report/${gameState.sessionId}/${user?.id}`)}
+                    >
+                      View Detailed Report
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+                    <Typography sx={pixelText}>You didn't participate in this game.</Typography>
+                  </Box>
+                )}
                 </Paper>
               </Grid>
             </Grid>
@@ -270,61 +319,67 @@ const GameResults = ({ gameState }) => {
                 </Typography>
               </Box>
               
-              <List sx={{ p: 0 }}>
-                {gameState.leaderboard?.map((player, index) => (
-                  <ListItem 
-                    key={player.id}
-                    sx={{
-                      borderBottom: '1px solid rgba(95, 75, 139, 0.2)',
-                      backgroundColor: player.userId === user?.id ? 'rgba(95, 75, 139, 0.1)' : 'inherit',
-                      '&:last-child': { borderBottom: 'none' },
-                      px: isMobile ? 1 : 2,
-                      py: 1.5
-                    }}
-                  >
-                    <ListItemAvatar>
-                      <Avatar 
-                        sx={{ 
-                          width: isMobile ? 28 : 32, 
-                          height: isMobile ? 28 : 32, 
-                          bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B',
-                          fontSize: isMobile ? '0.8rem' : '0.9rem'
-                        }}
-                      >
-                        {index + 1}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={
-                        <Typography sx={{ 
-                          ...pixelText,
-                          fontSize: isMobile ? '9px' : '10px',
-                          fontWeight: player.userId === user?.id ? 'bold' : 'normal'
-                        }}>
-                          {player.name}
-                        </Typography>
-                      }
-                      secondary={
-                        <Typography sx={{ 
-                          ...pixelText, 
-                          color: '#5F4B8B',
-                          fontSize: isMobile ? '8px' : '9px'
-                        }}>
-                          {player.role || 'Player'}
-                        </Typography>
-                      }
-                      sx={{ my: 0 }}
-                    />
-                    <Typography sx={{ 
-                      ...pixelHeading, 
-                      fontWeight: 'bold',
-                      fontSize: isMobile ? '12px' : '14px'
-                    }}>
-                      {player.score} pts
-                    </Typography>
-                  </ListItem>
-                ))}
-              </List>
+              {leaderboardLoading ? (
+  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+    <Typography sx={pixelText}>Loading leaderboard...</Typography>
+  </Box>
+) : (
+  <List sx={{ p: 0 }}>
+    {leaderboard.map((player, index) => (
+      <ListItem 
+        key={player.id}
+        sx={{
+          borderBottom: '1px solid rgba(95, 75, 139, 0.2)',
+          backgroundColor: player.userId === user?.id ? 'rgba(95, 75, 139, 0.1)' : 'inherit',
+          '&:last-child': { borderBottom: 'none' },
+          px: isMobile ? 1 : 2,
+          py: 1.5
+        }}
+      >
+        <ListItemAvatar>
+          <Avatar 
+            sx={{ 
+              width: isMobile ? 28 : 32, 
+              height: isMobile ? 28 : 32, 
+              bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B',
+              fontSize: isMobile ? '0.8rem' : '0.9rem'
+            }}
+          >
+            {index + 1}
+          </Avatar>
+        </ListItemAvatar>
+        <ListItemText
+          primary={
+            <Typography sx={{ 
+              ...pixelText,
+              fontSize: isMobile ? '9px' : '10px',
+              fontWeight: player.userId === user?.id ? 'bold' : 'normal'
+            }}>
+              {player.name}
+            </Typography>
+          }
+          secondary={
+            <Typography sx={{ 
+              ...pixelText, 
+              color: '#5F4B8B',
+              fontSize: isMobile ? '8px' : '9px'
+            }}>
+              {player.role || 'Player'}
+            </Typography>
+          }
+          sx={{ my: 0 }}
+        />
+        <Typography sx={{ 
+          ...pixelHeading, 
+          fontWeight: 'bold',
+          fontSize: isMobile ? '12px' : '14px'
+        }}>
+          {player.score} pts
+        </Typography>
+      </ListItem>
+    ))}
+  </List>
+)}
             </Paper>
             
             {/* Navigation Button */}

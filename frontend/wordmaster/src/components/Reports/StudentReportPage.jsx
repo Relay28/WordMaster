@@ -417,7 +417,7 @@ const StudentReportPage = () => {
           </Paper>
           
           {/* Performance Details */}
-          <Grid container spacing={4}>
+          <Grid container spacing={4} sx={{ mb: 10 }}>
             {/* Grammar Performance */}
             <Grid item xs={12} md={6}>
               <Paper elevation={0} sx={{ 
@@ -426,7 +426,8 @@ const StudentReportPage = () => {
                 backdropFilter: 'blur(8px)',
                 border: '4px solid #5F4B8B',
                 borderRadius: '6px',
-                height: '100%'
+                height: '100%',
+                  mb: 2 // Added margin bottom
               }}>
                 <Typography sx={{ ...pixelHeading, mb: 2 }}>
                   GRAMMAR PERFORMANCE
@@ -447,6 +448,7 @@ const StudentReportPage = () => {
                           'rgba(244, 67, 54, 0.1)',
                         borderRadius: '4px',
                         border: '1px solid',
+                          mb: 3 ,
                         borderColor:
                           status === 'PERFECT' ? 'rgba(76, 175, 80, 0.3)' : 
                           status === 'MINOR_ERRORS' ? 'rgba(255, 152, 0, 0.3)' : 
@@ -471,11 +473,19 @@ const StudentReportPage = () => {
                   ))}
                 </Box>
                 
-                <Typography sx={{ ...pixelHeading, fontSize: '12px', mb: 2 }}>
-                  SCORE BREAKDOWN
+               
+          {/* Score Breakdown Section */}
+          <Typography sx={{ 
+            ...pixelHeading, 
+            fontSize: '12px', 
+            mb: 2,
+            borderBottom: '2px solid #5F4B8B',
+            pb: 1
+          }}>
+                          SCORE BREAKDOWN
                 </Typography>
                 
-                <List disablePadding>
+                <List disablePadding sx={{mb: 0}}>
                   {studentDetails.scoreBreakdown && studentDetails.scoreBreakdown.map((item, index) => (
                     <ListItem 
                       key={index}

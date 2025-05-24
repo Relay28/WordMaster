@@ -60,7 +60,7 @@ const TeacherContentSessions = () => {
           },
         }
       );
-      alert("Session ended successfully!");
+      //alert("Session ended successfully!");
       window.location.reload();
     } catch (err) {
       alert("Failed to end session. Please try again.");
