@@ -83,11 +83,18 @@ public class ProgressTrackingService {
     private double calculateGrammarAccuracy(List<ChatMessageEntity> messages) {
         if (messages.isEmpty()) return 0.0;
 
-        long perfectCount = messages.stream()
-                .filter(m -> m.getGrammarStatus() == ChatMessageEntity.MessageStatus.PERFECT)
-                .count();
+        double totalScore = 0;
+        
+        for (ChatMessageEntity message : messages) {
+            if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.PERFECT) {
+                totalScore += 1.0; // 100% credit
+            } else if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.MINOR_ERRORS) {
+                totalScore += 0.5; // 50% credit for minor errors
+            }
+            // Major errors still get 0
+        }
 
-        return (perfectCount * 100.0) / messages.size();
+        return (totalScore * 100.0) / messages.size();
     }
 
     private double calculateWordBombUsageRate(List<ChatMessageEntity> messages,ContentData contentData) {
