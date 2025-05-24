@@ -299,6 +299,7 @@ const Login = () => {
             />
 
             {/* Forgot Password */}
+            {/*
             <Typography align="right" sx={{ 
               mb: 3,
               ...pixelText,
@@ -311,6 +312,7 @@ const Login = () => {
             }}>
               Forgot Password?
             </Typography>
+            */}
 
             {/* Login Button */}
             <Button
