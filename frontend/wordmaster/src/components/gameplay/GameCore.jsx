@@ -55,7 +55,15 @@ const GameCore = () => {
             
             // Subscribe to game updates
             client.subscribe(`/topic/game/${sessionId}/status`, handleGameStatus);
-            client.subscribe(`/topic/game/${sessionId}/turn`, handleTurnUpdate);
+            client.subscribe(`/topic/game/${sessionId}/turn`, (message) => {
+  try {
+    handleTurnUpdate(message);
+    // Force a game state refresh after turn update
+    fetchGameState();
+  } catch (error) {
+    console.error('Error in turn subscription:', error);
+  }
+});
             client.subscribe(`/topic/game/${sessionId}/timer`, handleTimerUpdate);
             client.subscribe(`/topic/game/${sessionId}/scores`, handleScoreUpdate);
             client.subscribe(`/topic/game/${sessionId}/players`, handlePlayerUpdate);
@@ -115,7 +123,16 @@ const handleChatMessage = (message) => {
   try {
     const chatData = JSON.parse(message.body);
     console.log('Chat message received:', chatData);
-    // Fetch latest messages when a new message arrives
+    
+    // Update messages immediately in the game state
+    setGameState(prev => ({
+      ...prev,
+      messages: [...(prev.messages || []), chatData].sort((a, b) => 
+        new Date(a.timestamp) - new Date(b.timestamp)
+      )
+    }));
+    
+    // Also fetch latest messages to ensure consistency
     fetchSessionMessages();
   } catch (error) {
     console.error('Error handling chat message:', error);
@@ -155,48 +172,61 @@ const fetchSessionMessages = useCallback(async () => {
 }, [sessionId, getToken]);
   
   // Fetch game state from the backend
-  const fetchGameState = useCallback(async () => {
-    try {
-      const token = await getToken();
-      if (!token) {
-        setError('Authentication token not available');
-        return;
-      }
-      
-      // Use API_URL constant for fetch requests
-      const response = await fetch(`${API_URL}/api/sessions/${sessionId}/state`, {
+const fetchGameState = useCallback(async () => {
+  try {
+    const token = await getToken();
+    if (!token) {
+      setError('Authentication token not available');
+      return;
+    }
+    
+    // Fetch game state
+    const [gameResponse, messagesResponse] = await Promise.all([
+      fetch(`${API_URL}/api/sessions/${sessionId}/state`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
-      });
+      }),
+      fetch(`${API_URL}/api/chat/sessions/${sessionId}/messages`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+    ]);
 
-      if (response.status === 304) {
-        // Don't try to parse JSON, just return (or handle as needed)
-        setLoading(false);
-        return;
-      }
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('Response text:', text);
-        throw new Error(`Failed to fetch game state: ${response.status} ${text}`);
-      }
-
-      const data = await response.json();
-    console.log('Game state data received:', data);
-    
-    // Ensure messages array exists in game state
-    setGameState({
-      ...data, // Map chatHistory to messages
-    });
-      setLoading(false);
-    } catch (err) {
-      setError('Error loading game state');
-      console.error('Game state fetch error:', err);
+    if (!gameResponse.ok || !messagesResponse.ok) {
+      throw new Error('Failed to fetch game data');
     }
-  }, [sessionId, getToken]);
+
+    const [gameData, messages] = await Promise.all([
+      gameResponse.json(),
+      messagesResponse.json()
+    ]);
+
+    // Calculate cycle information
+    const playersPerCycle = gameData.players?.length || 1;
+    const currentCycle = Math.ceil(gameData.currentTurn / playersPerCycle);
+    const turnsInCurrentCycle = gameData.currentTurn % playersPerCycle || playersPerCycle;
+    
+    setGameState({
+      ...gameData,
+      messages,
+      playersPerCycle,
+      currentCycle,
+      turnsInCurrentCycle,
+      totalCycles: Math.ceil(gameData.totalTurns / playersPerCycle)
+    });
+
+    setLoading(false);
+  } catch (err) {
+    setError('Error loading game state');
+    console.error('Game state fetch error:', err);
+  }
+}, [sessionId, getToken]);
 
   // Add this after the first useEffect
 
@@ -232,24 +262,35 @@ useEffect(() => {
       console.error('Error handling game status:', error);
     }
   };
-  
   const handleTurnUpdate = (message) => {
-    try {
-      const turnData = JSON.parse(message.body);
-      setGameState(prev => ({
+  try {
+    const turnData = JSON.parse(message.body);
+    setGameState(prev => {
+      const currentCycle = Math.ceil(turnData.turnNumber / prev.playersPerCycle);
+      const turnsInCurrentCycle = turnData.turnNumber % prev.playersPerCycle || prev.playersPerCycle;
+      
+      // Ensure we're updating the currentPlayer with complete information
+      const currentPlayer = {
+        userId: turnData.playerId, // Make sure we use userId consistently
+        id: turnData.playerId,
+        name: turnData.playerName,
+        role: turnData.roleName
+      };
+
+      return {
         ...prev,
-        currentPlayer: {
-          id: turnData.playerId,
-          name: turnData.playerName,
-          role: turnData.roleName
-        },
+        currentPlayer,
         timeRemaining: turnData.timeRemaining,
-        currentTurn: turnData.turnNumber
-      }));
-    } catch (error) {
-      console.error('Error handling turn update:', error);
-    }
-  };
+        currentTurn: turnData.turnNumber,
+        currentCycle,
+        turnsInCurrentCycle,
+        totalCycles: Math.ceil(prev.totalTurns / prev.playersPerCycle)
+      };
+    });
+  } catch (error) {
+    console.error('Error handling turn update:', error);
+  }
+};
   
   const handleTimerUpdate = (message) => {
     try {

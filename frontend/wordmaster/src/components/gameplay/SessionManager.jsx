@@ -10,6 +10,7 @@ import {
   ListItemText, ListItemAvatar
 } from '@mui/material';
 import picbg from '../../assets/picbg.png'
+import { Person, EmojiEvents, ArrowBack, QuestionAnswer } from '@mui/icons-material';
 
 const TeacherContentSessions = () => {
   const { getToken } = useUserAuth();
@@ -33,7 +34,13 @@ const TeacherContentSessions = () => {
   };
 
   // Session Details Dialog Component
- 
+   const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '10px' : '12px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
+  
    const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
     fontSize: isMobile ? '8px' : '10px',
@@ -103,6 +110,7 @@ const TeacherContentSessions = () => {
   if (!session) return null;
 
   return (
+
     <Dialog 
       open={open} 
       onClose={onClose}
@@ -266,6 +274,36 @@ const TeacherContentSessions = () => {
 
   if (error) return <p>{error}</p>;
 return (
+    <>
+                  <Button
+                    variant="contained"
+                    startIcon={<ArrowBack />}
+                    onClick={() => navigate('/homepage')}
+                    sx={{
+                      ...pixelButton,
+                      backgroundColor: '#5F4B8B',
+                      '&:hover': { 
+                        backgroundColor: '#4a3a6d',
+                        transform: 'translateY(-2px)'
+                      },
+                      borderRadius: '4px',
+                      px: 3,
+                      py: 1.5,
+                      borderStyle: 'outset',
+                      boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                      textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                      transition: 'all 0.1s ease',
+                      '&:active': {
+                        transform: 'translateY(1px)',
+                        boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                        borderStyle: 'inset'
+                      },
+                      fontSize: isMobile ? '10px' : '12px'
+                    }}
+                  >
+                    { 'BACK TO HOMEPAGE'}
+                  </Button>
+    
   <Box sx={{
     position: 'fixed',
     top: 0,
@@ -403,6 +441,7 @@ return (
       />
     </Box>
   </Box>
+  </>
 );
 };
 

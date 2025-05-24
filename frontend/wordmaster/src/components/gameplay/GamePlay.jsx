@@ -59,7 +59,7 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isProcessing, setIsProcessing] = useState(false); // For single-player processing
-
+const [localMessages, setLocalMessages] = useState([]);
 
   const isSinglePlayer = gameState.players?.length === 1;
   const [isWordBankOpen, setIsWordBankOpen] = useState(false);
@@ -77,6 +77,16 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
+  useEffect(() => {
+  if (gameState.messages) {
+    // Sort messages by timestamp
+    const sortedMessages = [...gameState.messages].sort((a, b) => 
+      new Date(a.timestamp) - new Date(b.timestamp)
+    );
+    setLocalMessages(sortedMessages);
+  }
+}, [gameState.messages]);
+
   
   useEffect(() => {
     if (chatEndRef.current) {
@@ -90,6 +100,8 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
       setStoryPrompt(gameState.storyPrompt);
     }
   }, [gameState?.storyPrompt]);
+
+  
 
   // Subscription for AI-generated story prompts
   useEffect(() => {
@@ -115,6 +127,7 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
       if (!gameState.sessionId) console.log('[GamePlay Debug] Story updates: gameState.sessionId is missing.');
     }
   }, [stompClient, gameState.sessionId]);
+  
 
   // Subscription for AI-generated role-specific prompts/hints
   useEffect(() => {
@@ -209,9 +222,31 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
   // Determine if it's the current user's turn
   const currentUserInPlayers = gameState.players?.find(p => p.userId === user?.id);
   // Fix the isMyTurn comparison by ensuring type consistency and always returning true for singleplayer
-  const isMyTurn = isSinglePlayer || !!(gameState.currentPlayer && currentUserInPlayers && user &&
-                 String(gameState.currentPlayer.userId) === String(user?.id)); // Compare with user.id from context
+  const isMyTurn = React.useMemo(() => {
+  if (isSinglePlayer) return true;
+  
+  if (!gameState.currentPlayer || !user || !currentUserInPlayers) return false;
+  
+  // Compare using userId consistently
+  const isCurrentPlayer = String(gameState.currentPlayer.userId) === String(user.id);
+  
+  console.log('[Turn Debug]', {
+    currentPlayerId: gameState.currentPlayer.userId,
+    userId: user.id,
+    isMatch: isCurrentPlayer
+  });
+  
+  return isCurrentPlayer;
+}, [gameState.currentPlayer, user, currentUserInPlayers, isSinglePlayer]);
 
+// Add an effect to log turn changes
+useEffect(() => {
+  console.log('[Turn Change]', {
+    isMyTurn,
+    currentPlayer: gameState.currentPlayer,
+    userId: user?.id
+  });
+}, [isMyTurn, gameState.currentPlayer, user]);
   // Debugging for isMyTurn calculation and related states
   useEffect(() => {
     console.log('-------------------------------------------');
@@ -429,9 +464,10 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
   const totalCycles = gameState.turnCyclesConfig || Math.ceil(gameState.totalTurns / (gameState.players?.length || 1));
   const isLastCycle = gameState.currentCycle === totalCycles;
 
-  const cycleDisplayString = isSinglePlayer 
-    ? `Turn: ${gameState.currentTurn || 0} / ${gameState.totalTurns || 0}`
-    : `Cycle: ${gameState.currentCycle || 0} / ${totalCycles || 0}`;
+// Update the cycle display string calculation
+const cycleDisplayString = isSinglePlayer 
+  ? `Turn: ${gameState.currentTurn || 0} / ${gameState.totalTurns || 0}`
+  : `Cycle ${gameState.currentCycle || 0}/${gameState.totalCycles || 0} (Turn ${gameState.turnsInCurrentCycle || 0}/${gameState.playersPerCycle || 0})`;
 
   const turnDisplayString = `Turn: ${gameState.currentTurn || 0} / ${gameState.totalTurns || 0}`;
 
@@ -798,7 +834,7 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
               zIndex: 1
             }}>
      
-{gameState.messages?.map((msg, index) => (
+{localMessages.map((msg, index) => (
   <Box
     key={index}
     sx={{
