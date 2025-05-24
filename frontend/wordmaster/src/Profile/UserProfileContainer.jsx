@@ -135,20 +135,33 @@ const UserProfileContainer = () => {
         backgroundColor: 'white',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         py: 2,
-        px: { xs: 2, md: 6 }
+        px: { xs: 2, md: 6 },
+        position: 'relative'
       }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <IconButton onClick={() => window.history.back()} sx={{ color: '#5F4B8B' }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" position="relative">
+          <IconButton onClick={() => window.history.back()} sx={{ color: '#5F4B8B', zIndex: 1 }}>
             <ArrowBack />
           </IconButton>
-          <Typography sx={{...pixelHeading, color:"#5F4B8B"}}>
+          <Typography
+            sx={{
+              ...pixelHeading,
+              color: "#5F4B8B",
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              textAlign: "center",
+              width: "100%",
+              pointerEvents: "none"
+            }}
+          >
             Profile
           </Typography>
           <Button
             variant="text"
             color="error"
             onClick={() => setDeactivateDialogOpen(true)}
-            sx={{ textTransform: 'none' }}
+            sx={{ textTransform: 'none', zIndex: 1 }}
           >
             Deactivate Account
           </Button>
