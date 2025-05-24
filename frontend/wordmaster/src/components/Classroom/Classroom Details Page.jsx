@@ -623,10 +623,176 @@ return (
           </Grid>
         </Grid>
         </Paper>
+      
+        {/* Tabs for Members and Content */}
+        <Paper elevation={0} sx={{ 
+          p: 3,
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(8px)',
+          border: '4px solid #5F4B8B',
+          borderRadius: '6px',
+          position: 'relative',
+           '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '6px',
+              background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
+              opacity: 0.8
+          },
+          
+        }}>
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange}
+            sx={{
+              borderBottom: 1,
+              borderColor: 'divider',
+              mb: 2,
+              '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
+              '& .MuiTab-root': { ...pixelHeading, fontSize: isMobile ? '10px' : '12px', },
+              '& .Mui-selected': { color: '#5F4B8B !important' }
+            }}
+          >
+            <Tab label="LEARNING CONTENT" />
+            <Tab label="MEMBERS" />
+            {user?.role === 'USER_TEACHER' ? (
+              <Tab label="STUDENT REPORTS" />
+            ) : (
+              <Tab label="GRADE REPORTS" />
+            )}
+          </Tabs>
 
-        {/* Student Reports Tab */}
-          {tabValue === 2 && user?.role === 'USER_TEACHER' && (
+          {/* Members Tab */}
+          {tabValue === 1 && (
             <Box>
+              {/* <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                
+                <Chip 
+                  label={`${classroom.studentCount + 1} TOTAL`} 
+                  color="primary"
+                  size="small"
+                  sx={{pixelText, fontSize: isMobile ? '10px' : '12px',}}
+                />
+              </Box>
+              <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
+               */}
+              {/* Teacher Card */}
+              <List>
+                <ListItem sx={{ 
+                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  borderRadius: '4px',
+                  mb: 1
+                }}>
+                  <ListItemAvatar>
+                    <Avatar
+                      src={classroom.teacher.profilePicture || undefined}
+                      sx={{ bgcolor: '#5F4B8B' }}
+                    >
+                      {!classroom.teacher.profilePicture && (
+                        <>
+                          {classroom.teacher.fname?.charAt(0)}
+                          {classroom.teacher.lname?.charAt(0)}
+                        </>
+                      )}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>
+                        {`${classroom.teacher.fname} ${classroom.teacher.lname}`}
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                        TEACHER
+                      </Typography>
+                    }
+                  />
+                  <Chip 
+                    label="OWNER" 
+                    color="primary" 
+                    size="small" 
+                    sx={{ 
+                      ...pixelText,
+                      fontSize: '8px',
+                      height: '20px'
+                    }} 
+                  />
+                </ListItem>
+
+                {/* Students List */}
+                {members.length > 0 ? (
+                  members.map((member) => (
+                    <ListItem 
+                      key={member.id}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'rgba(95, 75, 139, 0.05)'
+                        }
+                      }}
+                    >
+                      <ListItemAvatar>
+                        <Avatar
+                          src={member.profilePicture || undefined}
+                          sx={{ bgcolor: '#6c63ff' }}
+                        >
+                          {!member.profilePicture && (
+                            <>
+                              {member.fname?.charAt(0)}
+                              {member.lname?.charAt(0)}
+                            </>
+                          )}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Typography sx={{ ...pixelText }}>
+                            {`${member.fname} ${member.lname}`}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                            STUDENT
+                          </Typography>
+                        }
+                      />
+                      {isClassroomTeacher && (
+                        <ListItemSecondaryAction>
+                          <Tooltip title="Remove student">
+                            <IconButton 
+                              edge="end" 
+                              onClick={() => handleRemoveStudent(member.id)}
+                              sx={{
+                                color: '#ff5252',
+                                '&:hover': {
+                                  transform: 'scale(1.1)',
+                                  backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                                },
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <PersonRemove />
+                            </IconButton>
+                          </Tooltip>
+                        </ListItemSecondaryAction>
+                      )}
+                    </ListItem>
+                  ))
+                ) : (
+                  <Typography sx={{ ...pixelText, color: 'text.secondary', p: 2 }}>
+                    NO STUDENTS ENROLLED YET
+                  </Typography>
+                )}
+              </List>
+            </Box>
+          )}
+
+             {/* Student Reports Tab */}
+          {tabValue === 2 && user?.role === 'USER_TEACHER' && (
+            <Box >
               {loadingGameSessions ? (
                 <Box display="flex" justifyContent="center" py={4}>
                   <CircularProgress />
@@ -885,172 +1051,8 @@ return (
                 </Grid>
               )}
             </Box>
-          )}
-        {/* Tabs for Members and Content */}
-        <Paper elevation={0} sx={{ 
-          p: 3,
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(8px)',
-          border: '4px solid #5F4B8B',
-          borderRadius: '6px',
-          position: 'relative',
-           '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: '6px',
-              background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
-              opacity: 0.8
-          },
-          
-        }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={handleTabChange}
-            sx={{
-              borderBottom: 1,
-              borderColor: 'divider',
-              mb: 2,
-              '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
-              '& .MuiTab-root': { ...pixelHeading, fontSize: isMobile ? '10px' : '12px', },
-              '& .Mui-selected': { color: '#5F4B8B !important' }
-            }}
-          >
-            <Tab label="LEARNING CONTENT" />
-            <Tab label="MEMBERS" />
-            {user?.role === 'USER_TEACHER' ? (
-              <Tab label="STUDENT REPORTS" />
-            ) : (
-              <Tab label="GRADE REPORTS" />
-            )}
-          </Tabs>
-
-          {/* Members Tab */}
-          {tabValue === 1 && (
-            <Box>
-              {/* <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                
-                <Chip 
-                  label={`${classroom.studentCount + 1} TOTAL`} 
-                  color="primary"
-                  size="small"
-                  sx={{pixelText, fontSize: isMobile ? '10px' : '12px',}}
-                />
-              </Box>
-              <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
-               */}
-              {/* Teacher Card */}
-              <List>
-                <ListItem sx={{ 
-                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
-                  borderRadius: '4px',
-                  mb: 1
-                }}>
-                  <ListItemAvatar>
-                    <Avatar
-                      src={classroom.teacher.profilePicture || undefined}
-                      sx={{ bgcolor: '#5F4B8B' }}
-                    >
-                      {!classroom.teacher.profilePicture && (
-                        <>
-                          {classroom.teacher.fname?.charAt(0)}
-                          {classroom.teacher.lname?.charAt(0)}
-                        </>
-                      )}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>
-                        {`${classroom.teacher.fname} ${classroom.teacher.lname}`}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                        TEACHER
-                      </Typography>
-                    }
-                  />
-                  <Chip 
-                    label="OWNER" 
-                    color="primary" 
-                    size="small" 
-                    sx={{ 
-                      ...pixelText,
-                      fontSize: '8px',
-                      height: '20px'
-                    }} 
-                  />
-                </ListItem>
-
-                {/* Students List */}
-                {members.length > 0 ? (
-                  members.map((member) => (
-                    <ListItem 
-                      key={member.id}
-                      sx={{
-                        '&:hover': {
-                          backgroundColor: 'rgba(95, 75, 139, 0.05)'
-                        }
-                      }}
-                    >
-                      <ListItemAvatar>
-                        <Avatar
-                          src={member.profilePicture || undefined}
-                          sx={{ bgcolor: '#6c63ff' }}
-                        >
-                          {!member.profilePicture && (
-                            <>
-                              {member.fname?.charAt(0)}
-                              {member.lname?.charAt(0)}
-                            </>
-                          )}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Typography sx={{ ...pixelText }}>
-                            {`${member.fname} ${member.lname}`}
-                          </Typography>
-                        }
-                        secondary={
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                            STUDENT
-                          </Typography>
-                        }
-                      />
-                      {isClassroomTeacher && (
-                        <ListItemSecondaryAction>
-                          <Tooltip title="Remove student">
-                            <IconButton 
-                              edge="end" 
-                              onClick={() => handleRemoveStudent(member.id)}
-                              sx={{
-                                color: '#ff5252',
-                                '&:hover': {
-                                  transform: 'scale(1.1)',
-                                  backgroundColor: 'rgba(255, 82, 82, 0.1)'
-                                },
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <PersonRemove />
-                            </IconButton>
-                          </Tooltip>
-                        </ListItemSecondaryAction>
-                      )}
-                    </ListItem>
-                  ))
-                ) : (
-                  <Typography sx={{ ...pixelText, color: 'text.secondary', p: 2 }}>
-                    NO STUDENTS ENROLLED YET
-                  </Typography>
-                )}
-              </List>
-            </Box>
-          )}
+          )}    
+       
 
           {/* Content Tab */}
           {tabValue === 0 && (
