@@ -717,13 +717,18 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
           <Paper sx={{ 
             flex: 1,
             display: 'flex',
+              overflowY: 'auto',
             flexDirection: 'column',
             borderRadius: '12px',
             bgcolor: 'rgba(255, 255, 255, 0.9)',
              border: '4px solid #5F4B8B',
             boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
             transform: 'translateY(-2px)',
-            transition: 'all 0.2s ease',
+              maxHeight: 'calc(60vh - 120px)', // Add max height
+          '&::-webkit-scrollbar': {        // Customize scrollbar
+            width: '8px'
+          },
+                    transition: 'all 0.2s ease',
             overflow: 'hidden',
             '&:hover': {
               transform: 'translateY(-4px)',
@@ -743,7 +748,7 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
 }}>
   <Typography sx={{ 
     ...pixelHeading,
-    color: gameState.backgroundImage ? 'white' : '#5F4B8B',
+    color: '#5F4B8B',
   }}>
     Chat Here
   </Typography>
@@ -771,7 +776,7 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
     />
     <Typography sx={{
       ...pixelText,
-      color: gameState.backgroundImage ? 'white' : '#5F4B8B',
+      color:'#5F4B8B',
       minWidth: 40,
       fontSize: '0.8rem'
     }}>
@@ -813,7 +818,7 @@ const CycleTransitionOverlay = ({ isActive, cycle }) => {
         p: 1.5,
         bgcolor: msg.grammarStatus === 'MAJOR_ERRORS' ? '#ffebee' : 
                 (msg.senderId === user?.id ? '#5F4B8B' : '#e0e0e0'),
-        color: msg.senderId === user?.id ? 'white' : 'inherit',
+       color:'#5F4B8B',
         borderRadius: '12px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
