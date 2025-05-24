@@ -39,11 +39,31 @@ const ComprehensionResultsView = ({ comprehensionData, pixelText, pixelHeading }
     );
   }
   
-  // Calculate the score
-  const correctAnswers = comprehensionAnswers ? 
-    comprehensionAnswers.filter(a => a.isCorrect).length : 0;
+  // Calculate the score - with fallback calculation if needed
+  let correctAnswers = 0;
   const totalQuestions = comprehensionQuestions.length;
-  const percentCorrect = Math.round(comprehensionPercentage || (correctAnswers / totalQuestions * 100));
+  
+  if (comprehensionAnswers && Array.isArray(comprehensionAnswers)) {
+    // Try to count from isCorrect flags first
+    correctAnswers = comprehensionAnswers.filter(a => a.isCorrect === true).length;
+    
+    // If no isCorrect flags found, try manual calculation
+    if (correctAnswers === 0 && comprehensionAnswers.length > 0) {
+      correctAnswers = comprehensionAnswers.filter(answer => {
+        const question = comprehensionQuestions.find(q => q.id === answer.questionId);
+        if (!question) return false;
+        
+        // Manual comparison based on question type
+        if (question.type === 'multiple_choice' || question.type === 'true_false') {
+          return answer.answer === question.correctAnswer;
+        }
+        // For short answers, we can't easily determine correctness without AI
+        return false;
+      }).length;
+    }
+  }
+  
+  const percentCorrect = Math.round(comprehensionPercentage || (totalQuestions > 0 ? correctAnswers / totalQuestions * 100 : 0));
   
   return (
     <Box>
@@ -86,7 +106,16 @@ const ComprehensionResultsView = ({ comprehensionData, pixelText, pixelHeading }
       <List>
         {comprehensionQuestions.map((question, index) => {
           const answer = comprehensionAnswers?.find(a => a.questionId === question.id);
-          const isCorrect = answer?.isCorrect || false;
+          
+          // Determine if correct - check isCorrect flag first, then manual comparison
+          let isCorrect = false;
+          if (answer) {
+            if (typeof answer.isCorrect === 'boolean') {
+              isCorrect = answer.isCorrect;
+            } else if (question.type === 'multiple_choice' || question.type === 'true_false') {
+              isCorrect = answer.answer === question.correctAnswer;
+            }
+          }
           
           return (
             <Card key={index} sx={{ 

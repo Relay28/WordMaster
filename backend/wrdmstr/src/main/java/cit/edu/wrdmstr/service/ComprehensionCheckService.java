@@ -161,10 +161,11 @@ public class ComprehensionCheckService {
                     correctAnswers++;
                 }
                 
-                // Add to graded answers
+                // Add to graded answers - ensure isCorrect is stored as boolean
                 Map<String, Object> gradedAnswer = new HashMap<>(answer);
                 gradedAnswer.put("isCorrect", isCorrect);
                 gradedAnswer.put("correctAnswer", correctAnswer);
+                gradedAnswer.put("questionText", question.get("question")); // Add question text for reference
                 gradedAnswers.add(gradedAnswer);
             }
         }
@@ -176,7 +177,7 @@ public class ComprehensionCheckService {
         Map<String, Object> result = new HashMap<>();
         result.put("totalQuestions", totalQuestions);
         result.put("correctAnswers", correctAnswers);
-        result.put("percentage", percentage);
+        result.put("percentage", Math.round(percentage * 100.0) / 100.0); // Round to 2 decimal places
         result.put("gradedAnswers", gradedAnswers);
         
         return result;
