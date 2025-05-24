@@ -488,42 +488,57 @@ public class ContentService {
         // Parse AI response to extract words and roles
         List<String> generatedWords = new ArrayList<>();
         List<String> generatedRoles = new ArrayList<>();
+        List<WordData> parsedWords = new ArrayList<>();  // Move this declaration outside the loop
+        
+        boolean parsingDescription = false;
         boolean parsingWords = false;
         boolean parsingRoles = false;
         
+        StringBuilder description = new StringBuilder();
+        
         // Log the response for debugging
         logger.info("Parsing AI response: {}", aiResponse);
-
-        // Parse the AI response
-        List<WordData> parsedWords = new ArrayList<>(); // Create a temporary structure
 
         for (String line : aiResponse.split("\n")) {
             line = line.trim();
             
             // Check for section headers
-            if (line.contains("WORDS:")) {
+            if (line.contains("DESCRIPTION:")) {
+                parsingDescription = true;
+                parsingWords = false;
+                parsingRoles = false;
+                logger.debug("Started parsing DESCRIPTION section");
+                continue;
+            } else if (line.contains("WORDS:")) {
+                parsingDescription = false;
                 parsingWords = true;
                 parsingRoles = false;
                 logger.debug("Started parsing WORDS section");
                 continue;
             } else if (line.contains("ROLES:")) {
+                parsingDescription = false;
                 parsingWords = false;
                 parsingRoles = true;
                 logger.debug("Started parsing ROLES section");
                 continue;
             }
             
-            // Check for item with various prefixes
-            if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
+            // Remove this line - we already declared parsedWords outside the loop
+            // List<WordData> parsedWords = new ArrayList<>();
+            
+            // Parse each section accordingly
+            if (parsingDescription && !line.isEmpty()) {
+                description.append(line).append(" ");
+            } else if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
                 String item = line.substring(2).trim();
                 if (parsingWords && !item.isEmpty()) {
                     String[] parts = item.split("\\|");
                     String word = parts[0].trim();
-                    String description = parts.length > 1 ? parts[1].trim() : "No description available";
+                    String desc = parts.length > 1 ? parts[1].trim() : "No description available";
                     String example = parts.length > 2 ? parts[2].trim() : "No example available";
                     
                     generatedWords.add(word);
-                    parsedWords.add(new WordData(word, description, example));
+                    parsedWords.add(new WordData(word, desc, example));
                     logger.debug("Found word: {} with description and example", word);
                 } else if (parsingRoles && !item.isEmpty()) {
                     generatedRoles.add(item);
@@ -532,10 +547,15 @@ public class ContentService {
             }
         }
 
-        // Create new content with classroom association
+        // Use the AI-generated description or fall back to default
+        String contentDescription = description.length() > 0 ? 
+            description.toString().trim() : 
+            "AI-generated content about " + topic;
+            
+        // Create new content
         ContentEntity content = new ContentEntity();
         content.setTitle("AI Generated: " + topic);
-        content.setDescription("AI-generated content about " + topic);
+        content.setDescription(contentDescription);
         content.setBackgroundTheme("default");
         content.setCreator(creator);
         content.setClassroom(classroom);
@@ -655,10 +675,11 @@ public class ContentService {
         // Parse AI response to extract words and roles
         List<String> generatedWords = new ArrayList<>();
         List<String> generatedRoles = new ArrayList<>();
-        
-        // Simple parsing of the expected format
+        boolean parsingDescription = false;
         boolean parsingWords = false;
         boolean parsingRoles = false;
+        
+        StringBuilder description = new StringBuilder();
         
         // Log the response for debugging
         logger.info("Parsing AI response: {}", aiResponse);
@@ -667,20 +688,30 @@ public class ContentService {
             line = line.trim();
             
             // Check for section headers
-            if (line.contains("WORDS:")) {
+            if (line.contains("DESCRIPTION:")) {
+                parsingDescription = true;
+                parsingWords = false;
+                parsingRoles = false;
+                logger.debug("Started parsing DESCRIPTION section");
+                continue;
+            } else if (line.contains("WORDS:")) {
+                parsingDescription = false;
                 parsingWords = true;
                 parsingRoles = false;
                 logger.debug("Started parsing WORDS section");
                 continue;
             } else if (line.contains("ROLES:")) {
+                parsingDescription = false;
                 parsingWords = false;
                 parsingRoles = true;
                 logger.debug("Started parsing ROLES section");
                 continue;
             }
             
-            // Check for item with various prefixes
-            if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
+            // Parse each section accordingly
+            if (parsingDescription && !line.isEmpty()) {
+                description.append(line).append(" ");
+            } else if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
                 String item = line.substring(2).trim();
                 if (parsingWords && !item.isEmpty()) {
                     generatedWords.add(item);

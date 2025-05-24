@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { 
   Box, 
@@ -59,8 +59,9 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isProcessing, setIsProcessing] = useState(false); // For single-player processing
-const [localMessages, setLocalMessages] = useState([]);
-
+  const [localMessages, setLocalMessages] = useState([]);
+  const [optimisticGameState, setOptimisticGameState] = useState(gameState); // Add this line
+  const processingTimeoutRef = useRef(null); // Add this line
   const isSinglePlayer = gameState.players?.length === 1;
   const [isWordBankOpen, setIsWordBankOpen] = useState(false);
 
@@ -285,59 +286,16 @@ useEffect(() => {
     setSentence(e.target.value);
   };
 
+    const updateOptimistically = (updates) => {
+    setOptimisticGameState(prevState => ({ ...prevState, ...updates }));
+  };
   
   const handleSubmit = async () => {
-    if (!sentence.trim() || submitting || !gameState.sessionId || !isMyTurn) {
-      console.log('Submission prevented: Sentence empty, already submitting, no session, or not my turn.');
-      return;
-    }
+    if (!sentence.trim() || submitting) return;
 
     setSubmitting(true);
-    console.log('[GamePlay Debug] Attempting to submit sentence:', sentence.trim());
-
-    try {
-      // Get the authentication token
-      const token = await getToken();
-      if (!token) {
-        console.error('No authentication token found. Cannot submit sentence.');
-        setSubmitting(false);
-        alert('Authentication error. Please log in again.');
-        return;
-      }
-
-      // Define headers, including the Authorization Bearer token
-      const headers = {
-        'Authorization': `Bearer ${token}`
-      };
-
-      // Call sendMessage with the destination, message body, and headers
-      // Note: Your sendMessage function needs to be able to accept headers
-      // If your current sendMessage doesn't, you'll need to adjust it (see explanation below)
-      sendMessage(
-        `/app/game/${gameState.sessionId}/word`, // Use '/submit' as per your backend controller
-        { word: sentence.trim() }, // Sending as an object with 'sentence'
-        headers // Pass the headers here
-      );
-
-      console.log('[GamePlay Debug] Sentence sent to backend with token. Clearing input.');
-      setSentence(''); // Clear input immediately on successful send
-      // The state update (like used words, turn advance) will come from the WebSocket subscriptions
-      // when the backend broadcasts them.
-
-    } catch (error) {
-      console.error('Error sending sentence via WebSocket:', error);
-      alert('Failed to send sentence. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleSinglePlayerSubmit = async () => {
-    if (!sentence.trim() || submitting || !gameState.sessionId) {
-      return;
-    }
-
-    setSubmitting(true);
+    const currentSentence = sentence.trim();
+    
     try {
       const token = await getToken();
       if (!token) {
@@ -346,61 +304,106 @@ useEffect(() => {
         return;
       }
 
-      const headers = {
-        'Authorization': `Bearer ${token}`
-      };
+      // Optimistic UI updates for single player
+      if (isSinglePlayer) {
+        // Immediately clear input and show processing state
+        setSentence('');
+        setIsProcessing(true);
+        
+        // Optimistically advance turn
+        const nextTurn = (optimisticGameState.currentTurn || 0) + 1;
+        updateOptimistically({
+          currentTurn: nextTurn,
+          currentCycle: nextTurn, // For single player, cycle = turn
+          timeRemaining: optimisticGameState.timePerTurn || 30
+        });
+        
+        // Add optimistic message to chat
+        const optimisticMessage = {
+          id: `temp-${Date.now()}`,
+          senderId: user.id,
+          senderName: `${user.fname} ${user.lname}`,
+          content: currentSentence,
+          timestamp: new Date(),
+          grammarStatus: 'PENDING',
+          isOptimistic: true
+        };
+        
+        setLocalMessages(prev => [...prev, optimisticMessage]);
+      }
 
-      // Send the submission
-      await sendMessage(
-        `/app/game/${gameState.sessionId}/word`,
-        { word: sentence.trim() },
-        headers
-      );
+      // Send to backend (non-blocking for single player)
+      const headers = { 'Authorization': `Bearer ${token}` };
+      await sendMessage(`/app/game/${gameState.sessionId}/word`, 
+                       { word: currentSentence }, headers);
 
-      // For single-player, immediately clear the input
-      setSentence('');
-      
-      // Show a temporary processing message
-      setIsProcessing(true);
-      
-      // Wait a moment for the backend to process the submission
-      setTimeout(async () => {
-        // Fetch the updated game state
-        try {
-          const response = await fetch(`${API_URL}/api/sessions/${gameState.sessionId}/state`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Cache-Control': 'no-cache'
-            }
-          });
-          
-          if (response.ok) {
-            const updatedState = await response.json();
-            console.log('Received updated state after submission:', updatedState);
-            
-            // Update local game state immediately to avoid refresh
-            if (typeof onGameStateUpdate === 'function') {
-              onGameStateUpdate(updatedState);
-              // Force isMyTurn to true in single player
-              if (isSinglePlayer) {
-                setIsProcessing(false);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching updated game state:', error);
-        } finally {
+      if (!isSinglePlayer) {
+        setSentence(''); // Only clear for multiplayer after successful send
+      }
+
+      // For single player, set a timeout to refresh state if needed
+      if (isSinglePlayer) {
+        processingTimeoutRef.current = setTimeout(() => {
           setIsProcessing(false);
-        }
-      }, 1000); // Wait 1 second before fetching updated state
+          // Fetch updated state if we haven't received WebSocket updates
+          fetchUpdatedGameState();
+        }, 2000);
+      }
+
     } catch (error) {
-      console.error('Error sending sentence via WebSocket:', error);
+      console.error('Error sending sentence:', error);
+      if (isSinglePlayer) {
+        // Revert optimistic updates on error
+        setOptimisticGameState(gameState);
+        setSentence(currentSentence); // Restore sentence
+      }
       alert('Failed to send sentence. Please try again.');
-      setIsProcessing(false);
     } finally {
       setSubmitting(false);
+      if (!isSinglePlayer) {
+        setIsProcessing(false);
+      }
     }
   };
+
+  // Non-blocking state refresh
+  const fetchUpdatedGameState = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/api/sessions/${gameState.sessionId}/state`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const updatedState = await response.json();
+        if (typeof onGameStateUpdate === 'function') {
+          onGameStateUpdate(updatedState);
+        }
+        setOptimisticGameState(updatedState);
+      }
+    } catch (error) {
+      console.error('Error fetching updated game state:', error);
+    }
+  }, [gameState.sessionId, getToken, onGameStateUpdate]);
+
+  // Use optimistic state for display
+  const displayGameState = isSinglePlayer ? optimisticGameState : gameState;
+
+  // Clean up timeouts
+  useEffect(() => {
+    return () => {
+      if (processingTimeoutRef.current) {
+        clearTimeout(processingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Update optimistic state when real game state changes
+  useEffect(() => {
+    if (!isSinglePlayer || !isProcessing) {
+      setOptimisticGameState(gameState);
+    }
+  }, [gameState, isSinglePlayer, isProcessing]);
 
   // Add this new component at the top of your file after imports
 const CycleTransitionOverlay = ({ isActive, cycle }) => {
@@ -977,7 +980,7 @@ const cycleDisplayString = isSinglePlayer
     />
     <Button
       variant="contained"
-      onClick={isSinglePlayer ? handleSinglePlayerSubmit : handleSubmit}
+      onClick={handleSubmit} // Changed this line
       disabled={!isMyTurn || submitting || !sentence.trim()}
       sx={{
         bgcolor: '#5F4B8B',

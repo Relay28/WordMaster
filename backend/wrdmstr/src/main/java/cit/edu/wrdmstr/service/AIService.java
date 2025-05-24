@@ -203,21 +203,23 @@ public class AIService {
                         + request.get("difficulty") + " difficulty level in the context: " 
                         + request.get("context") + ". Reply with just the word itself.";
         case "content_generation":
-            // Get the requested number of roles (default to 4 if not specified)
+            // Get the requested number of roles (default to 5 if not specified)
             int roleCount = 5;
             if (request.containsKey("roleCount")) {
                 roleCount = ((Number) request.get("roleCount")).intValue();
             }
             
-            return "Generate exactly 10 vocabulary words and exactly " + roleCount + " role names for a language learning game about: " 
+            return "Generate exactly 20 vocabulary words and exactly " + roleCount + " role names for a language learning game about: " 
                 + request.get("topic") + ".\n\n"
                 + "IMPORTANT GUIDELINES:\n"
                 + "- Choose simple, practical words that students can easily incorporate into conversations\n"
                 + "- Avoid technical jargon or overly complex terms\n"
                 + "- Select words that naturally fit into a conversation about this topic\n"
                 + "- Choose words at approximately middle-school to early high-school level\n\n"
-                + "For EACH word, include a brief definition and example sentence.\n\n"
+                + "Also create a brief, engaging scenario description (2-3 sentences) that introduces the context and purpose for this language activity.\n\n"
                 + "You MUST format your response EXACTLY as follows (including the exact headers and bullet points):\n\n"
+                + "DESCRIPTION:\n"
+                + "Your engaging 2-3 sentence description here that sets context for the activity and relates to the topic.\n\n"
                 + "WORDS:\n"
                 + "- word1 | Brief definition of word1 | Example sentence using word1\n"
                 + "- word2 | Brief definition of word2 | Example sentence using word2\n"
@@ -228,7 +230,17 @@ public class AIService {
                 + "- word7 | Brief definition of word7 | Example sentence using word7\n"
                 + "- word8 | Brief definition of word8 | Example sentence using word8\n"
                 + "- word9 | Brief definition of word9 | Example sentence using word9\n"
-                + "- word10 | Brief definition of word10 | Example sentence using word10\n\n"
+                + "- word10 | Brief definition of word10 | Example sentence using word10\n"
+                + "- word11 | Brief definition of word11 | Example sentence using word11\n"
+                + "- word12 | Brief definition of word12 | Example sentence using word12\n"
+                + "- word13 | Brief definition of word13 | Example sentence using word13\n"
+                + "- word14 | Brief definition of word14 | Example sentence using word14\n"
+                + "- word15 | Brief definition of word15 | Example sentence using word15\n"
+                + "- word16 | Brief definition of word16 | Example sentence using word16\n"
+                + "- word17 | Brief definition of word17 | Example sentence using word17\n"
+                + "- word18 | Brief definition of word18 | Example sentence using word18\n"
+                + "- word19 | Brief definition of word19 | Example sentence using word19\n"
+                + "- word20 | Brief definition of word20 | Example sentence using word20\n\n"
                 + "ROLES:\n" + buildRoleBulletPoints(roleCount) + "\n\n";
                 case "role_generation":
                     int newRoleCount = ((Number) request.get("roleCount")).intValue();

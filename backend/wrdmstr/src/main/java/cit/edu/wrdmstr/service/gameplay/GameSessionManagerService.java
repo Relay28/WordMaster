@@ -14,19 +14,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import cit.edu.wrdmstr.service.gameplay.GameResultService;
+
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
 public class GameSessionManagerService {
     private static final Logger logger = LoggerFactory.getLogger(GameSessionManagerService.class);
-
     private final SimpMessagingTemplate messagingTemplate;
     private final GameSessionEntityRepository gameSessionRepository;
     private final PlayerSessionEntityRepository playerRepository;
@@ -43,10 +45,13 @@ public class GameSessionManagerService {
     @Autowired private ScoreService scoreService;
     private final StudentProgressRepository progressRepository;
     @Autowired private GameResultService gameResultService;
-
     @Autowired
     private ProgressTrackingService progressTrackingService;
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
+
+    // Add caching for AI requests
+    private final Map<String, String> aiResponseCache = new ConcurrentHashMap<>();
+    private final Map<Long, Long> lastProcessingTime = new ConcurrentHashMap<>();
 
     @Autowired
     public GameSessionManagerService(
@@ -75,35 +80,176 @@ public class GameSessionManagerService {
         this.progressRepository = progressRepository;
     }
 
+    @Async("gameProcessingExecutor") // Process async for single player
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public CompletableFuture<Void> processWordSubmissionAsync(Long sessionId, Long userId,
+                                                             WordSubmissionDTO submission) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                // Skip processing if too frequent (debouncing)
+                Long lastTime = lastProcessingTime.get(userId);
+                long currentTime = System.currentTimeMillis();
+                if (lastTime != null && (currentTime - lastTime) < 1000) { // 1 second debounce
+                    logger.debug("Debounced word submission for user {} in session {}", userId, sessionId);
+                    return;
+                }
+                lastProcessingTime.put(userId, currentTime);
+
+                GameSessionEntity session = gameSessionRepository.findById(sessionId)
+                        .orElseThrow(() -> new IllegalStateException("Session not found"));
+
+                boolean isSinglePlayer = session.getPlayers().size() == 1;
+                if (isSinglePlayer) {
+                    processSinglePlayerSubmission(sessionId, userId, submission);
+                } else {
+                    processMultiplayerSubmission(sessionId, userId, submission);
+                }
+
+            } catch (Exception e) {
+                logger.error("Error processing word submission async: ", e);
+            }
+        });
+    }
+
+    private void processSinglePlayerSubmission(Long sessionId, Long userId, WordSubmissionDTO submission) {
+        // Immediate response for UI responsiveness
+        broadcastImmediateResponse(sessionId, userId);
+        // Process in background
+        processSubmissionInBackground(sessionId, userId, submission);
+    }
+
+    private void processMultiplayerSubmission(Long sessionId, Long userId, WordSubmissionDTO submission) {
+        // Standard synchronous processing for multiplayer
+        submitWord(sessionId, userId, submission);
+    }
+
+    private void broadcastImmediateResponse(Long sessionId, Long userId) {
+        // Send immediate acknowledgment
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "submission_received");
+        response.put("userId", userId);
+        response.put("timestamp", System.currentTimeMillis());
+
+        messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", response);
+    }
+
+    @Async("backgroundProcessingExecutor")
+    private void processSubmissionInBackground(Long sessionId, Long userId, WordSubmissionDTO submission) {
+        try {
+            // Process with optimizations
+            submitWordOptimized(sessionId, userId, submission);
+        } catch (Exception e) {
+            logger.error("Background processing error: ", e);
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean submitWordOptimized(Long sessionId, Long userId, WordSubmissionDTO submission) {
+        GameSessionEntity session = gameSessionRepository.findById(sessionId)
+            .orElseThrow(() -> new IllegalStateException("Session not found"));
+        // Skip some validations for single player to improve speed
+        boolean isSinglePlayer = session.getPlayers().size() == 1;
+        
+        // Basic validation (can be expanded)
+        if (submission.getWord() == null || submission.getWord().trim().isEmpty()) {
+            logger.warn("Optimized submission failed - word is empty for session {} by user {}", sessionId, userId);
+            return false;
+        }
+        
+        // Process chat message with optimizations
+        // Assuming chatService.sendMessageOptimized exists or is adapted from sendMessage
+        // For simplicity, using sendMessage if sendMessageOptimized is not distinctly different or implemented in ChatService
+        // If sendMessageOptimized has specific logic (e.g., different validation), ensure it's used.
+        chatService.sendMessageOptimized(sessionId, userId, submission.getWord(), isSinglePlayer);
+        
+        // Handle turn advancement
+        if (isSinglePlayer) {
+            handleSinglePlayerTurnAdvancement(sessionId);
+        } else {
+            // Track turn completion for progress (async for multiplayer too)
+            PlayerSessionEntity player = playerRepository.findBySessionIdAndUserId(sessionId, userId)
+                .stream().findFirst().orElse(null);
+            if (player != null) {
+                CompletableFuture.runAsync(() -> trackTurnCompletion(player, session));
+            }
+            advanceToNextPlayer(sessionId);
+        }
+        return true;
+    }
+
+    private void handleSinglePlayerTurnAdvancement(Long sessionId) {
+        GameState gameState = activeGames.get(sessionId);
+        GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
+
+        if (gameState != null && session != null) {
+            int nextTurn = gameState.getCurrentTurn() + 1;
+            // Check if game should end
+            if (nextTurn > gameState.getTotalTurns()) {
+                endGame(sessionId);
+                return;
+            }
+
+            // Update turn
+            gameState.setCurrentTurn(nextTurn);
+            gameState.setCurrentCycle(nextTurn); // For single player
+            session.setCurrentTurn(nextTurn);
+            session.setCurrentCycle(nextTurn);
+
+            resetTurnTimer(session);
+            // Generate story prompt asynchronously
+            CompletableFuture.runAsync(() -> {
+                String storyElement = generateStoryElementCached(session, nextTurn);
+                gameState.setStoryPrompt(storyElement);
+
+                Map<String, Object> storyUpdate = new HashMap<>();
+                storyUpdate.put("type", "storyUpdate");
+                storyUpdate.put("content", storyElement);
+                messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", storyUpdate);
+            });
+            // Broadcast turn update
+            broadcastTurnUpdate(sessionId, gameState, session);
+            gameSessionRepository.save(session); // Persist session changes
+        }
+    }
+    
+    // Cached story generation
+    private String generateStoryElementCached(GameSessionEntity session, int turnNumber) {
+        String cacheKey = session.getId() + "_" + turnNumber;
+        return aiResponseCache.computeIfAbsent(cacheKey, key -> {
+            try {
+                return generateStoryElement(session, turnNumber);
+            } catch (Exception e) {
+                logger.error("Error generating story element: ", e);
+                return "Continue your story..."; // Fallback prompt
+            }
+        });
+    }
+
     @Transactional
     public void startGame(Long sessionId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Game session not found"));
-
         if (session.getStatus() == GameSessionEntity.SessionStatus.ACTIVE) {
             throw new IllegalStateException("Game is already active");
         }
 
         session.setStatus(GameSessionEntity.SessionStatus.ACTIVE);
         session.setStartedAt(new Date());
-        // session is saved after initialization
 
-        List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId); // Use playerRepository
+        List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId);
         if (players.isEmpty()) {
             throw new IllegalStateException("Cannot start a game with no players");
         }
 
         GameState gameState = new GameState();
         gameState.setSessionId(sessionId);
-        gameState.setPlayers(players); // Keep this for in-memory state if needed
-        gameState.setStatus(GameState.Status.WAITING_FOR_PLAYER); // Initial status
+        gameState.setPlayers(players);
+        gameState.setStatus(GameState.Status.WAITING_FOR_PLAYER);
         gameState.setTurnStartTime(new Date());
         if (session.getContent() != null && session.getContent().getContentData() != null) {
             gameState.setBackgroundImage(session.getContent().getContentData().getBackgroundImage());
         }
         gameState.setUsedWords(new ArrayList<>());
-        
-        // Content Info
         Map<String, Object> contentInfo = new HashMap<>();
         if (session.getContent() != null) {
             contentInfo.put("id", session.getContent().getId());
@@ -111,25 +257,15 @@ public class GameSessionManagerService {
             contentInfo.put("description", session.getContent().getDescription());
         }
         gameState.setContentInfo(contentInfo);
-
-        // Initialize game settings (this will set turns and cycles)
-        initializeGame(session, gameState, players); // Pass gameState and players
+        initializeGame(session, gameState, players);
         
-        gameSessionRepository.save(session); // Save session after all modifications
+        gameSessionRepository.save(session);
         activeGames.put(sessionId, gameState);
 
-        // Cards (if applicable)
-        // for (PlayerSessionEntity player : players) {
-        //     cardService.drawCardsForPlayer(player.getId());
-        // }
-
-        // Broadcast game started
         Map<String, Object> startedMessage = new HashMap<>();
         startedMessage.put("event", "gameStarted");
         startedMessage.put("sessionId", sessionId);
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/status", startedMessage);
-
-        // Broadcast first turn
         startNextTurn(sessionId);
     }
 
@@ -139,30 +275,21 @@ public class GameSessionManagerService {
             GameState gameState = activeGames.get(session.getId());
 
             if (gameState != null) {
-                // Calculate response time
                 long turnStartTime = gameState.getLastTurnTime();
                 double responseTime = (turnEndTime - turnStartTime) / 1000.0;
 
-                // Get or create progress record
                 StudentProgress progress = progressTrackingService.getStudentProgress(
                         player.getUser().getId(), session.getId());
-
-                // Update turn counts and response time
                 progress.setTotalTurnsTaken(progress.getTotalTurnsTaken() + 1);
                 progress.setTotalResponseTime(progress.getTotalResponseTime() + responseTime);
 
-                // Calculate metrics
                 double turnCompletionRate = calculateTurnCompletionRate(progress, session);
                 double avgResponseTime = progress.getTotalTurnsTaken() > 0 ?
                         progress.getTotalResponseTime() / progress.getTotalTurnsTaken() : 0;
-
-                // Update progress
                 progress.setTurnCompletionRate(turnCompletionRate);
                 progress.setAvgResponseTime(avgResponseTime);
-
                 progressRepository.save(progress);
 
-                // Track all metrics
                 progressTrackingService.trackTurnProgress(session.getId(), player.getId());
             }
         } catch (Exception e) {
@@ -177,15 +304,14 @@ public class GameSessionManagerService {
             throw new IllegalStateException("Game configuration not found for content: " + session.getContent().getId());
         }
 
-        int configuredTurnCycles = gameConfig.getTurnCycles() != null ? gameConfig.getTurnCycles() : 1; // Default to 1 cycle if null
-
+        int configuredTurnCycles = gameConfig.getTurnCycles() != null ? gameConfig.getTurnCycles() : 1;
         int totalTurns;
         boolean isSinglePlayer = players.size() == 1;
 
         if (isSinglePlayer) {
-            totalTurns = configuredTurnCycles; // For single-player, turnCycles means total turns
+            totalTurns = configuredTurnCycles;
         } else {
-            totalTurns = configuredTurnCycles * players.size(); // Each player takes a turn in each cycle
+            totalTurns = configuredTurnCycles * players.size();
         }
 
         session.setTotalTurns(totalTurns);
@@ -197,49 +323,42 @@ public class GameSessionManagerService {
         gameState.setCurrentTurn(1);
         gameState.setCurrentCycle(1);
         gameState.setTimePerTurn(session.getTimePerTurn());
-        gameState.setConfiguredTurnCycles(configuredTurnCycles); // Store configured cycles
+        gameState.setConfiguredTurnCycles(configuredTurnCycles);
 
         logger.info("Game Initialized for session {}: SinglePlayer={}, TotalTurns={}, CurrentTurn=1, CurrentCycle=1, ConfiguredCycles={}",
             session.getId(), isSinglePlayer, totalTurns, configuredTurnCycles);
-
-        // Assign roles if they exist
+        
         List<Role> roles = roleRepository.findByContentDataContentId(session.getContent().getId());
         if (!roles.isEmpty()) {
-            assignRoles(players, roles); // Ensure players are persisted before role assignment if roles depend on player IDs
+            assignRoles(players, roles);
         }
 
-        // Select the first player
         if (!players.isEmpty()) {
-            selectNextPlayer(session); // This will set session.currentPlayer
+            selectNextPlayer(session);
             if (session.getCurrentPlayer() != null) {
                 gameState.setCurrentPlayerId(session.getCurrentPlayer().getId());
             }
         }
         
-        // Generate and send initial story prompt
-        String initialStoryElement = generateStoryElement(session, 1);
+        String initialStoryElement = generateStoryElementCached(session, 1); // Using cached version
         Map<String, Object> storyUpdate = new HashMap<>();
         storyUpdate.put("type", "storyUpdate");
         storyUpdate.put("content", initialStoryElement);
-        gameState.setStoryPrompt(initialStoryElement); // Also set in-memory GameState
+        gameState.setStoryPrompt(initialStoryElement);
         
         messagingTemplate.convertAndSend("/topic/game/" + session.getId() + "/updates", storyUpdate);
-        
-        resetTurnTimer(session); // Reset timer for the first turn
+        resetTurnTimer(session);
     }
 
-    // RESTORE THIS METHOD: Add back the role assignment method
     private void assignRoles(List<PlayerSessionEntity> players, List<Role> roles) {
         Random random = new Random();
         int numRoles = roles.size();
         
         logger.info("Starting role assignment: {} roles for {} players", numRoles, players.size());
-        // Log role information for debugging
         for (Role role : roles) {
             logger.info("Available role: ID={}, Name={}", role.getId(), role.getName());
         }
         
-        // Shuffle roles for better distribution
         List<Role> shuffledRoles = new ArrayList<>(roles);
         Collections.shuffle(shuffledRoles);
         
@@ -249,25 +368,18 @@ public class GameSessionManagerService {
             
             logger.info("Assigning role '{}' (ID: {}) to player: {} {}",
                         role.getName(), role.getId(),
-                        player.getUser().getFname(), 
+                        player.getUser().getFname(),
                         player.getUser().getLname());
-            
-            // Explicitly set the role relationship on both sides
             player.setRole(role);
-            
-            // Save the player with the new role assignment
             PlayerSessionEntity savedPlayer = playerRepository.save(player);
-            
-            // Verify the assignment took effect
-            logger.info("After save - Player ID: {}, Role: {}", 
-                        savedPlayer.getId(), 
+            logger.info("After save - Player ID: {}, Role: {}",
+                        savedPlayer.getId(),
                         savedPlayer.getRole() != null ? savedPlayer.getRole().getName() : "null");
         }
         
-        // After all players have been assigned roles, fetch them from the database to confirm
         logger.info("Verifying all player role assignments:");
         for (PlayerSessionEntity player : playerRepository.findBySessionId(players.get(0).getSession().getId())) {
-            logger.info("Player: {} {}, Role: {}", 
+            logger.info("Player: {} {}, Role: {}",
                        player.getUser().getFname(),
                        player.getUser().getLname(),
                        player.getRole() != null ? player.getRole().getName() : "null");
@@ -275,7 +387,7 @@ public class GameSessionManagerService {
     }
     
     private void selectNextPlayer(GameSessionEntity session) {
-        List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId()); // Consistent order
+        List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
         
         if (players.isEmpty()) {
             logger.warn("No players in session {} to select next player from.", session.getId());
@@ -307,10 +419,9 @@ public class GameSessionManagerService {
     private void resetTurnTimer(GameSessionEntity session) {
         GameState gameState = activeGames.get(session.getId());
         if (gameState != null) {
-            gameState.setTurnStartTime(new Date()); // For calculating time taken if needed
-            gameState.setLastTurnTime(System.currentTimeMillis()); // For countdown timer
+            gameState.setTurnStartTime(new Date());
+            gameState.setLastTurnTime(System.currentTimeMillis());
             
-            // Sync GameState with SessionEntity state
             gameState.setCurrentTurn(session.getCurrentTurn());
             gameState.setTotalTurns(session.getTotalTurns());
             gameState.setTimePerTurn(session.getTimePerTurn());
@@ -321,14 +432,12 @@ public class GameSessionManagerService {
         }
     }
     
-    // Add this broadcastGameState method
     private void broadcastGameState(GameSessionEntity session) {
-        GameStateDTO gameStateDTO = getGameState(session.getId()); // Use the existing getGameState
+        GameStateDTO gameStateDTO = getGameState(session.getId());
         messagingTemplate.convertAndSend("/topic/game/" + session.getId() + "/state", gameStateDTO);
     }
 
-
-    // Replace the existing generateStoryElement method with this improved version
+    // This is the original method called by the cached version
     @Transactional(propagation = Propagation.REQUIRED)
     private String generateStoryElement(GameSessionEntity session, int turnNumber) {
         try {
@@ -353,7 +462,6 @@ public class GameSessionManagerService {
     
     private void assignWordBombs(List<PlayerSessionEntity> players, List<WordBankItem> wordBank) {
         Random random = new Random();
-        
         for (PlayerSessionEntity player : players) {
             String word = wordBank.get(random.nextInt(wordBank.size())).getWord();
             player.setCurrentWordBomb(word);
@@ -369,26 +477,21 @@ public class GameSessionManagerService {
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
             logger.error("GameState not found for active session {}", sessionId);
-            // Potentially re-initialize or end game
             return;
         }
-
-        // selectNextPlayer has already been called during initializeGame or advanceToNextPlayer
-        // session.getCurrentPlayer() should be set.
 
         PlayerSessionEntity currentPlayer = session.getCurrentPlayer();
         if (currentPlayer == null) {
             logger.error("Current player is null for session {} at turn {}. Ending game.", sessionId, gameState.getCurrentTurn());
-            endGame(sessionId); // Or handle error appropriately
+            endGame(sessionId);
             return;
         }
 
         gameState.setStatus(GameState.Status.TURN_IN_PROGRESS);
-        resetTurnTimer(session); // Resets timer and syncs GameState turn/cycle numbers
+        resetTurnTimer(session);
 
-        // Generate story prompt for the new turn (if not the very first turn handled by initializeGame)
         if (gameState.getCurrentTurn() > 1 || gameState.getStoryPrompt() == null) {
-             String storyElement = generateStoryElement(session, gameState.getCurrentTurn());
+             String storyElement = generateStoryElementCached(session, gameState.getCurrentTurn()); // Use cached
              gameState.setStoryPrompt(storyElement);
              Map<String, Object> storyUpdate = new HashMap<>();
              storyUpdate.put("type", "storyUpdate");
@@ -396,24 +499,34 @@ public class GameSessionManagerService {
              messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", storyUpdate);
         }
 
+        broadcastTurnUpdate(sessionId, gameState, session); // Use the new broadcastTurnUpdate method
+        logger.info("Turn {} started for player {} in session {}", gameState.getCurrentTurn(), currentPlayer.getId(), sessionId);
+    }
+
+    // Method to broadcast turn updates, can be customized further
+    private void broadcastTurnUpdate(Long sessionId, GameState gameState, GameSessionEntity session) {
+        if (session.getCurrentPlayer() == null) {
+            logger.warn("Cannot broadcast turn update for session {} as current player is null.", sessionId);
+            return;
+        }
         TurnInfoDTO turnInfo = new TurnInfoDTO();
         turnInfo.setTurnNumber(gameState.getCurrentTurn());
-        turnInfo.setPlayerId(currentPlayer.getId());
-        turnInfo.setPlayerName(currentPlayer.getUser().getFname() + " " + currentPlayer.getUser().getLname());
+        turnInfo.setPlayerId(session.getCurrentPlayer().getId());
+        turnInfo.setPlayerName(session.getCurrentPlayer().getUser().getFname() + " " + session.getCurrentPlayer().getUser().getLname());
         turnInfo.setTimeRemaining(gameState.getTimePerTurn());
-        if (currentPlayer.getRole() != null) {
-            turnInfo.setRoleName(currentPlayer.getRole().getName());
+        if (session.getCurrentPlayer().getRole() != null) {
+            turnInfo.setRoleName(session.getCurrentPlayer().getRole().getName());
         }
         // turnInfo.setWordBomb(currentPlayer.getCurrentWordBomb()); // If using word bombs
 
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/turn", turnInfo);
-        logger.info("Turn {} started for player {} in session {}", gameState.getCurrentTurn(), currentPlayer.getId(), sessionId);
+        logger.info("Turn update broadcasted for session {}: Turn {}, Player {}", sessionId, gameState.getCurrentTurn(), session.getCurrentPlayer().getId());
     }
+
 
     @Transactional
     public boolean submitWord(Long sessionId, Long userId, WordSubmissionDTO submission) {
         logger.info("Attempting to submit word for session {} by user {}: {}", sessionId, userId, submission.getWord());
-
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
             logger.warn("Submit word failed - no active game state found for session {}", sessionId);
@@ -426,27 +539,23 @@ public class GameSessionManagerService {
             return false;
         }
 
-        // Verify it's the user's turn
         PlayerSessionEntity currentPlayer = playerRepository.findById(gameState.getCurrentPlayerId())
                 .orElseThrow(() -> {
                     logger.error("Current player not found for game state with player ID {}",
                             gameState.getCurrentPlayerId());
                     return new RuntimeException("Current player not found");
                 });
-
-        if (!(currentPlayer.getUser().getId() ==(userId))) {
+        if (!Long.valueOf(currentPlayer.getUser().getId()).equals(userId)) { // Corrected ID comparison
             logger.warn("Submit word failed - it's not user {}'s turn (current player: {})",
                     userId, currentPlayer.getUser().getId());
             return false;
         }
 
-        // Input validation - at least 5 characters to encourage full sentences
         if (submission.getWord().trim().length() < 5) {
             logger.warn("Submit word failed - submission too short: {}", submission.getWord());
             return false;
         }
 
-        // Check if word already used
         String lowercaseWord = submission.getWord().toLowerCase();
         if (gameState.getUsedWords().contains(lowercaseWord)) {
             logger.warn("Submit word failed - word '{}' has already been used in session {}",
@@ -455,18 +564,12 @@ public class GameSessionManagerService {
         }
 
         logger.debug("Adding word '{}' to used words list for session {}", lowercaseWord, sessionId);
-        // Add to used words
-        gameState.getUsedWords().add(lowercaseWord);
-
-        // In the submitWord method:
+        // gameState.getUsedWords().add(lowercaseWord); // This line will be covered by the logic below
+        
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
-        .orElseThrow(() -> new RuntimeException("Game session not found"));
-
-        // Before you add just the lowercaseWord, modify to detect all word bank items
+            .orElseThrow(() -> new RuntimeException("Game session not found"));
         List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(
             session.getContent().getContentData());
-
-        // Find all words from the word bank in the submission
         List<String> usedWordsFromBank = new ArrayList<>();
         for (WordBankItem item : wordBankItems) {
             String word = item.getWord().toLowerCase();
@@ -474,36 +577,31 @@ public class GameSessionManagerService {
                 usedWordsFromBank.add(word);
             }
         }
-
-        // Add all detected words to the used words list
-        gameState.getUsedWords().addAll(usedWordsFromBank);
+        if (!usedWordsFromBank.isEmpty()) {
+            gameState.getUsedWords().addAll(usedWordsFromBank);
+        } else {
+             gameState.getUsedWords().add(lowercaseWord); // Add the submission itself if no bank words found in it
+        }
 
         try {
             logger.debug("Sending word via chat service for session {}", sessionId);
-            // Send message via chat service (which handles word bomb checking and scoring)
             ChatMessageEntity message = chatService.sendMessage(sessionId, userId, submission.getWord());
-            
-            // After submitting, check if this contribution was exceptional
             boolean wasExceptional = false;
-            
-            // Check for exceptional contribution
             if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.PERFECT) {
                 if (message.getWordUsed() != null && !message.getWordUsed().isEmpty()) {
-                    // Use ScoreService to handle exceptional contribution
                     scoreService.handleExceptionalContribution(sessionId, userId, submission.getWord());
                     wasExceptional = true;
                 }
             }
             
-            // Broadcast exceptional contributions to all players
             if (wasExceptional) {
                 Map<String, Object> exceptionalNotice = new HashMap<>();
                 exceptionalNotice.put("type", "exceptionalContribution");
-                exceptionalNotice.put("playerName", currentPlayer.getUser().getFname() + " " + 
+                exceptionalNotice.put("playerName", currentPlayer.getUser().getFname() + " " +
                                      currentPlayer.getUser().getLname());
                 exceptionalNotice.put("message", submission.getWord());
                 
-                messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", 
+                messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates",
                                                exceptionalNotice);
             }
         } catch (Exception e) {
@@ -513,14 +611,9 @@ public class GameSessionManagerService {
         trackTurnCompletion(currentPlayer, session);
         logger.info("Successfully processed word submission '{}' for session {} by user {}, advancing to next player",
                 submission.getWord(), sessionId, userId);
-    
-        // Advance to next player's turn
         advanceToNextPlayer(sessionId);
         return true;
     }
-
-
-
 
     @Transactional(propagation = Propagation.REQUIRED)
     private void advanceToNextPlayer(Long sessionId) {
@@ -533,8 +626,6 @@ public class GameSessionManagerService {
         }
 
         int turnJustCompleted = gameState.getCurrentTurn();
-
-        // Primary Game End Condition
         if (turnJustCompleted >= gameState.getTotalTurns()) {
             logger.info("All turns completed for session {}. Total turns: {}. Ending game.", sessionId, gameState.getTotalTurns());
             endGame(sessionId);
@@ -554,12 +645,10 @@ public class GameSessionManagerService {
         gameState.setCurrentTurn(upcomingTurnGlobal);
 
         if (isSinglePlayer) {
-            // For single-player, cycle = turn number
             session.setCurrentCycle(upcomingTurnGlobal);
             gameState.setCurrentCycle(upcomingTurnGlobal);
             logger.info("Session {} (Single Player): Advanced to Turn/Cycle {}", sessionId, upcomingTurnGlobal);
         } else {
-            // Multiplayer: Cycle increments when the turn wraps around to the first player
             PlayerSessionEntity previousPlayer = session.getCurrentPlayer();
             int previousPlayerIndex = -1;
             if (previousPlayer != null) {
@@ -576,9 +665,7 @@ public class GameSessionManagerService {
                 session.setCurrentCycle(newCycle);
                 gameState.setCurrentCycle(newCycle);
                 logger.info("Session {} (Multiplayer): Advanced to Cycle {}. Current Turn: {}", sessionId, newCycle, upcomingTurnGlobal);
-                
-                // Reset used words for the new cycle if applicable
-                gameState.getUsedWords().clear(); 
+                gameState.getUsedWords().clear();
                 Map<String, Object> cycleUpdate = new HashMap<>();
                 cycleUpdate.put("type", "cycleChange");
                 cycleUpdate.put("cycle", newCycle);
@@ -589,37 +676,47 @@ public class GameSessionManagerService {
             }
         }
         
-        selectNextPlayer(session); // Selects the next player and updates session.currentPlayer & gameState.currentPlayerId
-        gameSessionRepository.save(session); // Save changes to session
+        selectNextPlayer(session);
+        gameSessionRepository.save(session);
 
-        startNextTurn(sessionId); // Start the new turn
+        startNextTurn(sessionId);
     }
 
 
     private double calculateTurnCompletionRate(StudentProgress progress, GameSessionEntity session) {
         if (session.getTotalTurns() <= 0) return 0;
-
-        // Calculate based on player's turns taken vs total possible turns
-        // Cap at 100% to prevent exceeding
         return Math.min(100.0, (progress.getTotalTurnsTaken() * 100.0) / session.getTotalTurns());
     }
+
     public void endGame(Long sessionId) {
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
+            // Attempt to fetch session to mark as complete even if not in activeGames
+             GameSessionEntity sessionCheck = gameSessionRepository.findById(sessionId).orElse(null);
+             if (sessionCheck != null && sessionCheck.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
+                sessionCheck.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
+                sessionCheck.setEndedAt(new Date());
+                gameSessionRepository.save(sessionCheck);
+                logger.info("Game session {} marked as COMPLETED as it was not in activeGames map but found in DB.", sessionId);
+             } else {
+                logger.warn("EndGame called for session {} but GameState not found in activeGames and not updateable in DB.", sessionId);
+             }
             return;
         }
 
-        // Update database
+        if (gameState.getStatus() == GameState.Status.COMPLETED) {
+            logger.info("Game {} already ended.", sessionId);
+            activeGames.remove(sessionId); // Clean up if somehow re-triggered
+            return;
+        }
+
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Game session not found"));
         session.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
         session.setEndedAt(new Date());
         gameSessionRepository.save(session);
 
-        // Update in-memory state
         gameState.setStatus(GameState.Status.COMPLETED);
-
-        // Broadcast game end
         Map<String, Object> endMessage = new HashMap<>();
         endMessage.put("event", "gameEnded");
         endMessage.put("sessionId", sessionId);
@@ -627,26 +724,24 @@ public class GameSessionManagerService {
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/status", endMessage);
 
         gameResultService.processEndGameResults(sessionId);
-        // Clean up
         activeGames.remove(sessionId);
+        logger.info("Game {} ended and removed from active games.", sessionId);
     }
 
     public void joinGame(Long sessionId, Long userId) {
         logger.info("Player {} joining game {}", userId, sessionId);
-        
         List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId);
         
         logger.info("Found {} players in session", playerDTOs.size());
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/players", playerDTOs);
     }
     
+    @Transactional(readOnly = true)
+    public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
+        return gameSessionService.getSessionPlayerDTOs(sessionId);
+    }
 
-@Transactional
-public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
-    return gameSessionService.getSessionPlayerDTOs(sessionId);
-}
-
-    @Transactional
+    @Transactional(readOnly = true)
     public GameStateDTO getGameState(Long sessionId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Game session not found: " + sessionId));
@@ -654,7 +749,6 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         dto.setSessionId(sessionId);
         dto.setSessionCode(session.getSessionCode());
         dto.setStatus(session.getStatus().toString());
-
 
         List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId).stream()
                 .map(player -> {
@@ -665,7 +759,6 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
                     playerDTO.setRole(player.getRole());
                     playerDTO.setTotalScore(player.getTotalScore());
                     playerDTO.setActive(player.isActive());
-                    // Set the profile picture properly
                     playerDTO.setProfilePicture(playerRepository.findById(player.getId())
                             .map(PlayerSessionEntity::getUser)
                             .map(UserEntity::getProfilePicture)
@@ -684,7 +777,6 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
             if (session.getContent().getContentData() != null) {
                 dto.setBackgroundImage(session.getContent().getContentData().getBackgroundImage());
             }
-            // Word Bank
             if (session.getContent().getContentData() != null) {
                 List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(session.getContent().getContentData());
                 List<WordBankItemDTO> wordBankDTOs = wordBankItems.stream()
@@ -694,15 +786,15 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
             }
         }
         
-        dto.setLeaderboard(scoreService.getSessionLeaderboard(sessionId)); // Use ScoreService
+        dto.setLeaderboard(scoreService.getSessionLeaderboard(sessionId));
         dto.setTimePerTurn(session.getTimePerTurn());
         dto.setTotalTurns(session.getTotalTurns());
         dto.setCurrentTurn(session.getCurrentTurn());
         dto.setCurrentCycle(session.getCurrentCycle());
 
         GameState activeGameState = activeGames.get(sessionId);
-        if (activeGameState != null) { // If game is active and in memory
-            dto.setStatus(activeGameState.getStatus().toString()); // More precise status
+        if (activeGameState != null) {
+            dto.setStatus(activeGameState.getStatus().toString());
             dto.setTimeRemaining(activeGameState.getTimePerTurn() - (int)((System.currentTimeMillis() - activeGameState.getLastTurnTime()) / 1000));
             dto.setUsedWords(activeGameState.getUsedWords());
             dto.setStoryPrompt(activeGameState.getStoryPrompt());
@@ -712,11 +804,10 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
                 dto.setTurnCyclesConfig(session.getContent().getGameConfig().getTurnCycles());
             }
 
-
             PlayerSessionEntity currentPlayerEntity = session.getCurrentPlayer();
             if (currentPlayerEntity != null) {
                 Map<String, Object> currentPlayerMap = new HashMap<>();
-                currentPlayerMap.put("id", currentPlayerEntity.getId()); // This is PlayerSessionEntity ID
+                currentPlayerMap.put("id", currentPlayerEntity.getId());
                 currentPlayerMap.put("userId", currentPlayerEntity.getUser().getId());
                 currentPlayerMap.put("name", currentPlayerEntity.getUser().getFname() + " " + currentPlayerEntity.getUser().getLname());
                 if (currentPlayerEntity.getRole() != null) {
@@ -724,14 +815,13 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
                 }
                 dto.setCurrentPlayer(currentPlayerMap);
             }
-        } else { // If game is not active in memory (e.g., completed, pending)
-             dto.setTimeRemaining(0); // Or based on session status
+        } else {
+             dto.setTimeRemaining(0);
              if (session.getStatus() == GameSessionEntity.SessionStatus.COMPLETED) {
                  dto.setStoryPrompt("The game has ended.");
              }
         }
         
-        // Add configured turn cycles for frontend display logic
         if (session.getContent() != null && session.getContent().getGameConfig() != null) {
             dto.setTurnCyclesConfig(session.getContent().getGameConfig().getTurnCycles());
         }
@@ -739,98 +829,115 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
         return dto;
     }
 
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> getSessionLeaderboard(Long sessionId) {
-
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
             .orElseThrow(() -> new RuntimeException("Game session not found for leaderboard: " + sessionId));
         List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId);
         
         return players.stream().map(p -> {
             Map<String, Object> playerData = new HashMap<>();
-            playerData.put("id", p.getId()); // This is PlayerSessionEntity ID
+            playerData.put("id", p.getId());
             playerData.put("userId", p.getUser().getId());
             playerData.put("name", p.getUser().getFname() + " " + p.getUser().getLname());
-            playerData.put("score", p.getTotalScore()); // Assumes PlayerSessionEntity has getTotalScore()
+            playerData.put("score", p.getTotalScore());
             playerData.put("role", p.getRole() != null ? p.getRole().getName() : null);
             playerData.put("profilePicture", p.getUser().getProfilePicture());
             return playerData;
-        }).sorted(Comparator.comparingInt(p -> (int) ((Map<String, Object>)p).get("score")).reversed()) // Sort by score descending
+        }).sorted(Comparator.<Map<String, Object>>comparingInt(p -> (Integer) p.get("score")).reversed())
           .collect(Collectors.toList());
     }
 
-    @Scheduled(fixedRate = 1000) // Check every second
+    // Optimized timer checking - reduce frequency for single player
+    @Scheduled(fixedRate = 2000) // Check every 2 seconds instead of 1
     @Transactional(propagation = Propagation.REQUIRED)
-    public void checkTurnTimers() {
+    public void checkTurnTimersOptimized() {
         long currentTime = System.currentTimeMillis();
         activeGames.forEach((sessionId, gameState) -> {
-            if (gameState.getStatus() == GameState.Status.TURN_IN_PROGRESS) {
-                long turnStartTimeMs = gameState.getLastTurnTime(); // This should be the start of the current turn's timer
-                int timePerTurnSec = gameState.getTimePerTurn();
-                long elapsedSec = (currentTime - turnStartTimeMs) / 1000;
-                int timeRemaining = timePerTurnSec - (int) elapsedSec;
-
-                // Broadcast timer updates periodically
-                if (timeRemaining >= 0 && (timeRemaining % 5 == 0 || timeRemaining <= 10 || timeRemaining == timePerTurnSec)) {
-                    messagingTemplate.convertAndSend(
-                        "/topic/game/" + sessionId + "/timer",
-                        Collections.singletonMap("timeRemaining", timeRemaining)
-                    );
-                }
-
-                if (timeRemaining <= 0) {
-                    logger.info("Time up for player {} in session {}. Advancing turn.", gameState.getCurrentPlayerId(), sessionId);
-                    PlayerSessionEntity player = playerRepository.findById(gameState.getCurrentPlayerId()).orElse(null);
-                    if (player != null) {
-                        awardPoints(sessionId, player.getUser().getId(), -5, "Missed turn"); // Penalty
+            try {
+                if (gameState.getStatus() == GameState.Status.TURN_IN_PROGRESS) {
+                    GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
+                    if (session == null) {
+                        logger.warn("Timer check: Session {} not found in repository, removing from active games.", sessionId);
+                        activeGames.remove(sessionId);
+                        return;
                     }
-                    advanceToNextPlayer(sessionId);
+    
+                    boolean isSinglePlayer = session.getPlayers().size() == 1;
+                    
+                    long turnStartTimeMs = gameState.getLastTurnTime();
+                    int timePerTurnSec = gameState.getTimePerTurn();
+                    long elapsedSec = (currentTime - turnStartTimeMs) / 1000;
+                    int timeRemaining = timePerTurnSec - (int) elapsedSec;
+                    
+                    int updateInterval = isSinglePlayer ? 10 : 5; // Less frequent updates for single player
+                    
+                    if (timeRemaining >= 0 && (timeRemaining % updateInterval == 0 || timeRemaining <= 5)) {
+                        messagingTemplate.convertAndSend(
+                            "/topic/game/" + sessionId + "/timer",
+                            Collections.singletonMap("timeRemaining", timeRemaining)
+                        );
+                    }
+                    
+                    if (timeRemaining <= 0) {
+                        if (isSinglePlayer) {
+                            // For single player, just advance turn without penalty
+                            logger.info("Time up for single player in session {}. Advancing turn.", sessionId);
+                            handleSinglePlayerTurnAdvancement(sessionId);
+                        } else {
+                            // Standard multiplayer handling
+                            logger.info("Time up for player {} in session {}. Advancing turn.", gameState.getCurrentPlayerId(), sessionId);
+                            PlayerSessionEntity player = playerRepository.findById(gameState.getCurrentPlayerId()).orElse(null);
+                            if (player != null) {
+                                awardPoints(sessionId, player.getUser().getId(), -5, "Missed turn"); // Penalty
+                            }
+                            advanceToNextPlayer(sessionId);
+                        }
+                    }
                 }
+            } catch (Exception e) {
+                logger.error("Error in timer check for session " + sessionId, e);
             }
         });
     }
 
 
     private void awardPoints(Long sessionId, Long userId, int points, String reason) {
-        
-        scoreService.awardPoints(sessionId, userId, points, reason); // This line might be redundant if ScoreService.addScore also updates PlayerSessionEntity
+        scoreService.awardPoints(sessionId, userId, points, reason);
 
-        // Notify player about score change
         Map<String, Object> scoreUpdate = new HashMap<>();
         scoreUpdate.put("points", points);
         scoreUpdate.put("reason", reason);
         
-        // Retrieve the updated total score from PlayerSessionEntity after scoreService.addScore has run
         PlayerSessionEntity playerSession = playerRepository.findBySessionIdAndUserId(sessionId, userId).stream().findFirst().orElse(null);
         if (playerSession != null) {
             scoreUpdate.put("totalScore", playerSession.getTotalScore());
         }
 
-        // Find user email to send direct message
         UserEntity user = userRepository.findById(userId).orElse(null);
         if (user != null && user.getEmail() != null) {
              messagingTemplate.convertAndSendToUser(user.getEmail(), "/queue/score", scoreUpdate);
         }
-        // Broadcast updated leaderboard
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/scores", getSessionLeaderboard(sessionId));
     }
 
     // Inner class for tracking game state
     static class GameState {
         private Long sessionId;
-        private List<PlayerSessionEntity> players; // List of player entities in the game
+        private List<PlayerSessionEntity> players;
         private Long currentPlayerId;
         private int currentTurn;
         private int totalTurns;
-        private int timePerTurn; // seconds
+        private int timePerTurn;
         private Status status;
-        private Date turnStartTime; // When the current turn logically started
-        private long lastTurnTime;  // Timestamp (ms) when the current turn timer began
+        private Date turnStartTime;
+        private long lastTurnTime;
         private String backgroundImage;
         private List<String> usedWords = new ArrayList<>();
         private Map<String, Object> contentInfo;
         private int currentCycle;
         private String storyPrompt;
-        private int configuredTurnCycles; // Store the original configured turnCycles
+        private int configuredTurnCycles;
 
         enum Status {
             WAITING_TO_START,
@@ -839,7 +946,7 @@ public List<PlayerSessionDTO> getSessionPlayerList(Long sessionId) {
             COMPLETED
         }
 
-        // Getters and Setters for all fields
+        // Getters and Setters
         public Long getSessionId() { return sessionId; }
         public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
         public List<PlayerSessionEntity> getPlayers() { return players; }

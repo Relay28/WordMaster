@@ -9,8 +9,11 @@ import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.ProgressTrackingService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -19,6 +22,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus.*;
 
@@ -26,6 +30,7 @@ import static cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus.*;
 @Service
 @Transactional
 public class ChatService {
+    private static final Logger logger = LoggerFactory.getLogger(GameSessionManagerService.class); 
     @Autowired private ChatMessageEntityRepository chatMessageRepository;
     @Autowired private PlayerSessionEntityRepository playerSessionRepository;
     @Autowired private ScoreRecordEntityRepository scoreRecordRepository;
@@ -305,5 +310,143 @@ public class ChatService {
             System.err.println("Error generating role prompt: " + e.getMessage());
             return "Remember to stay in character as " + roleName + " during the conversation.";
         }
+    }
+
+    @Async("chatProcessingExecutor")
+    public ChatMessageEntity sendMessageOptimized(Long sessionId, Long userId, String content, boolean isSinglePlayer) {
+        try {
+            if (isSinglePlayer) {
+                return sendMessageSinglePlayerOptimized(sessionId, userId, content);
+            } else {
+                return sendMessage(sessionId, userId, content); // Standard processing
+            }
+        } catch (Exception e) {
+            logger.error("Error in optimized message sending: ", e);
+            throw e;
+        }
+    }
+    
+    private ChatMessageEntity sendMessageSinglePlayerOptimized(Long sessionId, Long userId, String content) {
+        List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
+        PlayerSessionEntity player = players.isEmpty() ? null : players.get(0);
+        
+        if (player == null) {
+            throw new ResourceNotFoundException("Player not found in session");
+        }
+        
+        GameSessionEntity session = player.getSession();
+        
+        // Create message with basic info first
+        ChatMessageEntity message = new ChatMessageEntity();
+        message.setSession(session);
+        message.setSender(player.getUser());
+        message.setPlayerSession(player);
+        message.setContent(content);
+        message.setTimestamp(new Date());
+        message.setGrammarStatus(MessageStatus.MINOR_ERRORS); // Changed from PENDING to MINOR_ERRORS
+        
+        // Save message immediately for responsiveness
+        ChatMessageEntity savedMessage = chatMessageRepository.save(message);
+        
+        // Broadcast immediately with pending status
+        broadcastChatMessage(savedMessage);
+        
+        // Process grammar and vocabulary checks asynchronously
+        CompletableFuture.runAsync(() -> {
+            processMessageAnalysisAsync(savedMessage, player, session);
+        });
+        
+        return savedMessage;
+    }
+    
+    @Async("analysisExecutor")
+    private void processMessageAnalysisAsync(ChatMessageEntity message, PlayerSessionEntity player, GameSessionEntity session) {
+        try {
+            String content = message.getContent();
+            String roleName = player.getRole() != null ? player.getRole().getName() : null;
+            String contextDesc = session.getContent() != null ? session.getContent().getDescription() : "";
+            
+            // Run grammar and vocabulary checks in parallel
+            CompletableFuture<GrammarCheckerService.GrammarCheckResult> grammarFuture = 
+                CompletableFuture.supplyAsync(() -> 
+                    grammarCheckerService.checkGrammar(content, roleName, contextDesc));
+                    
+            CompletableFuture<VocabularyResultDTO> vocabFuture = 
+                CompletableFuture.supplyAsync(() -> 
+                    vocabularyCheckerService.checkVocabulary(content, session.getId(), player.getUser().getId()));
+            
+            // Wait for both to complete
+            CompletableFuture.allOf(grammarFuture, vocabFuture).thenRun(() -> {
+                try {
+                    GrammarCheckerService.GrammarCheckResult grammarResult = grammarFuture.get();
+                    VocabularyResultDTO vocabResult = vocabFuture.get();
+                    
+                    // Update message with results
+                    updateMessageWithAnalysis(message, grammarResult, vocabResult, player, session);
+                    
+                } catch (Exception e) {
+                    logger.error("Error processing analysis results: ", e);
+                }
+            });
+            
+        } catch (Exception e) {
+            logger.error("Error in async message analysis: ", e);
+        }
+    }
+    
+    @Transactional
+    private void updateMessageWithAnalysis(ChatMessageEntity message, 
+                                         GrammarCheckerService.GrammarCheckResult grammarResult,
+                                         VocabularyResultDTO vocabResult,
+                                         PlayerSessionEntity player,
+                                         GameSessionEntity session) {
+        // Update message with analysis results
+        message.setGrammarStatus(grammarResult.getStatus());
+        message.setGrammarFeedback(truncateFeedback(grammarResult.getFeedback()));
+        message.setVocabularyScore(vocabResult.getVocabularyScore());
+        message.setVocabularyFeedback(truncateFeedback(vocabResult.getFeedback()));
+        message.setRoleAppropriate(grammarResult.isRoleAppropriate());
+        message.setWordUsed(String.join(", ", vocabResult.getUsedWords()));
+        
+        // Handle word bomb check
+        checkAndHandleWordBomb(message, player, message.getContent());
+        
+        // Save updated message
+        chatMessageRepository.save(message);
+        
+        // Broadcast updated message
+        broadcastChatMessage(message);
+        
+        // Handle scoring asynchronously
+        CompletableFuture.runAsync(() -> {
+            try {
+                scoreService.handleGrammarScoring(player, grammarResult.getStatus());
+                scoreService.handleVocabularyScoring(player, vocabResult.getVocabularyScore(), vocabResult.getUsedAdvancedWords());
+                scoreService.handleRoleAppropriateScoring(player, grammarResult.isRoleAppropriate(), grammarResult.getStatus());
+                scoreService.handleMessageComplexity(player, message.getContent());
+                
+                // Update progress metrics
+                updateProgressMetrics(player, message, session);
+                
+            } catch (Exception e) {
+                logger.error("Error in async scoring: ", e);
+            }
+        });
+    }
+    
+    private void checkAndHandleWordBomb(ChatMessageEntity message, PlayerSessionEntity player, String content) {
+        if (!player.isWordBombUsed() &&
+                player.getCurrentWordBomb() != null &&
+                !player.getCurrentWordBomb().isEmpty() &&
+                content.toLowerCase().contains(player.getCurrentWordBomb().toLowerCase())) {
+
+            message.setContainsWordBomb(true);
+            player.setWordBombUsed(true);
+            scoreService.handleWordBomb(player, player.getCurrentWordBomb());
+        }
+    }
+    
+    private String truncateFeedback(String feedback) {
+        return feedback != null && feedback.length() > 2000 ? feedback.substring(0, 1997) + "..." : feedback;
     }
 }
