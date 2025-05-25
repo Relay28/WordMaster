@@ -7,8 +7,6 @@ import {
   Container, 
   CircularProgress, 
   Alert, 
-  Tabs, 
-  Tab,
   Paper,
   Divider,
   Grid,
@@ -16,21 +14,40 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Chip,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
 import ContentList from './ContentList';
+import picbg from '../../assets/picbg.png';
+import '@fontsource/press-start-2p';
+import HomepageHeader from '../Header/HomepageHeader';
+import { useHomePage } from '../Homepage/HomePageFunctions';
 
 const ContentDashboard = () => {
-  const { user, getToken } = useUserAuth();
+  const { user, getToken, login, logout, authChecked } = useUserAuth();
+  const {
+    handleMenuOpen,
+    handleMenuClose,
+    handleProfileClick,
+    handleLogout,
+    anchorEl,
+    displayName,
+    roleDisplay,
+    avatarInitials
+  } = useHomePage(authChecked, user, getToken, login, logout);
+  
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [tab, setTab] = useState(0);
   const [content, setContent] = useState([]);
   const [notification, setNotification] = useState({
     open: false,
@@ -41,22 +58,41 @@ const ContentDashboard = () => {
   const [selectedClassroom, setSelectedClassroom] = useState('all');
   const [selectedTimeFrame, setSelectedTimeFrame] = useState('all');
   const [loadingClassrooms, setLoadingClassrooms] = useState(false);
+  const [contentFilter, setContentFilter] = useState('all'); // 'all', 'published', 'drafts'
+
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '12px' : '14px',
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
+  const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
 
   useEffect(() => {
     loadContent();
     
-    // Check for status message from navigation state
     if (location.state?.message) {
       setNotification({
         open: true,
         message: location.state.message,
         severity: location.state.success ? 'success' : 'error'
       });
-      
-      // Clear the navigation state after showing notification
       window.history.replaceState({}, document.title);
     }
-  }, [tab, location.state]);
+  }, [contentFilter, location.state]);
 
   useEffect(() => {
     const fetchUserClassrooms = async () => {
@@ -100,27 +136,22 @@ const ContentDashboard = () => {
         data = await contentService.getContentByCreator(token);
       }
       
-      // Apply tab filters (published/drafts)
-      if (tab === 1) {
+      if (contentFilter === 'published') {
         data = data.filter(item => item.published);
-      } else if (tab === 2) {
+      } else if (contentFilter === 'drafts') {
         data = data.filter(item => !item.published);
       }
       
-      // Apply time frame filters
       const now = new Date();
       if (selectedTimeFrame !== 'all') {
         data = data.filter(item => {
           const createdAt = new Date(item.createdAt);
           switch (selectedTimeFrame) {
             case 'week':
-              // Last 7 days
               return (now - createdAt) <= 7 * 24 * 60 * 60 * 1000;
             case 'month':
-              // Last 30 days
               return (now - createdAt) <= 30 * 24 * 60 * 60 * 1000;
             case 'year':
-              // Current year
               return createdAt.getFullYear() === now.getFullYear();
             default:
               return true;
@@ -141,17 +172,16 @@ const ContentDashboard = () => {
     loadContent();
   }, [selectedClassroom, selectedTimeFrame]);
 
-  const handleTabChange = (event, newValue) => {
-    setTab(newValue);
-  };
-
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this content?')) return;
     
     try {
+      setLoading(true);
       const token = await getToken();
       await contentService.deleteContent(id, token);
-      setContent(content.filter(item => item.id !== id));
+      
+      // Remove the deleted item from the state
+      setContent(prevContent => prevContent.filter(item => item.id !== id));
       setNotification({
         open: true,
         message: 'Content deleted successfully',
@@ -159,7 +189,14 @@ const ContentDashboard = () => {
       });
     } catch (err) {
       console.error("Error deleting content:", err);
-      setError("Failed to delete content. Please try again.");
+      const errorMessage = err.response?.data?.message || "Failed to delete content. Please try again.";
+      setNotification({
+        open: true, 
+        message: errorMessage,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -200,136 +237,304 @@ const ContentDashboard = () => {
 
   return (
     <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
-    }}>
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  overflow: 'hidden',
+  background: `
+    linear-gradient(to bottom, 
+      rgba(249, 249, 249, 10) 0%, 
+      rgba(249, 249, 249, 10) 40%, 
+      rgba(249, 249, 249, 0.1) 100%),
+    url(${picbg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed',
+  imageRendering: 'pixelated',
+}}>
       {/* Header */}
-      <Box sx={{ 
-        backgroundColor: 'white',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        py: 2,
-        px: { xs: 2, md: 6 }
-      }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
-            WordMaster
-          </Typography>
-          <Button 
-            variant="outlined" 
-            onClick={() => navigate('/homepage')}
-            sx={{
-              borderColor: '#5F4B8B',
-              color: '#5F4B8B',
-              '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
-              textTransform: 'none',
-              borderRadius: '8px',
-            }}
-          >
-            Back to Home
-          </Button>
-        </Box>
-      </Box>
+      <HomepageHeader 
+        displayName={displayName}
+        roleDisplay={roleDisplay}
+        avatarInitials={avatarInitials}
+        user={user}
+        anchorEl={anchorEl}
+        isMobile={isMobile}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+        handleMenuOpen={handleMenuOpen}
+        handleMenuClose={handleMenuClose}
+        handleProfileClick={handleProfileClick}
+        handleLogout={handleLogout}
+      />
 
+<Box sx={{ 
+      flex: 1,
+      width: '100%',
+      overflow: 'auto',
+      // Custom scrollbar styling
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'rgba(95, 75, 139, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#5F4B8B',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#4a3a6d',
+        },
+      },
+    }}>
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h5" fontWeight="bold" color="text.primary">
+      <Container maxWidth="xl" sx={{ py: 4, flex: 1, px: { xs: 2, sm: 3, md: 4 }, maxWidth: '170vh !important' }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" gap={2}>
+          <Typography sx={{ 
+            ...pixelHeading,
+            color: '#2d3748',
+            fontSize: isMobile ? '14px' : '16px',
+            fontWeight: 'bold'
+          }}>
             Content Dashboard
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/content/upload')}
-            sx={{
-              backgroundColor: '#5F4B8B',
-              '&:hover': { backgroundColor: '#4a3a6d' },
-              textTransform: 'none',
-              borderRadius: '8px',
-              px: 3,
-              py: 1
-            }}
-          >
-            Upload New Content
-          </Button>
+          <Box display="flex" gap={2}>
+            <Button
+              variant="contained"
+              startIcon={<Add sx={{ 
+                fontSize: isMobile ? '12px' : '14px',
+                filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
+              }} />}
+              onClick={() => navigate('/content/upload')}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#5F4B8B',
+                '&:hover': { 
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4px',
+                px: 3,
+                py: 1,
+                minWidth: isMobile ? 'auto' : '140px',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
+              }}
+            >
+              Upload Content
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Add sx={{ 
+                fontSize: isMobile ? '12px' : '14px',
+                filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
+              }} />}
+              onClick={() => navigate('/content/ai-generate')}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#6c63ff',
+                '&:hover': { 
+                  backgroundColor: '#5a52e0',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4px',
+                px: 3,
+                py: 1,
+                minWidth: isMobile ? 'auto' : '140px',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
+              }}
+            >
+              AI Generate
+            </Button>
+          </Box>
         </Box>
-
-        <Grid container spacing={3} mb={3}>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={0} sx={{ borderRadius: '12px', overflow: 'hidden', backgroundColor: 'white' }}>
-              <Tabs
-                value={tab}
-                onChange={handleTabChange}
-                indicatorColor="primary"
-                textColor="primary"
-                sx={{
-                  '& .MuiTabs-indicator': {
-                    backgroundColor: '#5F4B8B',
-                  },
-                  '& .MuiTab-root': {
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    fontWeight: 500,
-                    px: 4,
-                    py: 2,
-                    '&.Mui-selected': {
-                      color: '#5F4B8B',
-                    }
-                  },
-                  borderBottom: '1px solid #e0e0e0'
+        {/* Filter Section */}
+        <Box 
+          sx={{ 
+            backgroundColor: 'rgba(255,255,255,0.8)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '16px',
+            pt: 3,
+            pl: 3,
+            pb: 2,
+            mb: 3,
+            border: '2px solid rgba(95, 75, 139, 0.2)',
+            boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <Grid container spacing={3}>
+            {/* Content Status Section */}
+            <Grid item xs={12}>
+              <Typography 
+                sx={{ 
+                  ...pixelHeading, 
+                  color: '#5F4B8B',
+                  mb: 2,
+                  pt: 1.4,
+                  textAlign: 'center',
+                  textShadow: '2px 2px 0px rgba(0,0,0,0.1)'
                 }}
               >
-                <Tab label="All Content" />
-                <Tab label="Published" />
-                <Tab label="Drafts" />
-              </Tabs>
-            </Paper>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth variant="outlined">
-              <InputLabel>Filter by Classroom</InputLabel>
-              <Select
-                value={selectedClassroom}
-                onChange={(e) => setSelectedClassroom(e.target.value)}
-                label="Filter by Classroom"
-              >
-                <MenuItem value="all">All Classrooms</MenuItem>
-                {classrooms.map((classroom) => (
-                  <MenuItem key={classroom.id} value={classroom.id}>
-                    {classroom.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'text.secondary' }}>
-                Filter to view content specific to a classroom
+                FILTER OPTIONS
               </Typography>
-            </FormControl>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <FormControl fullWidth variant="outlined">
-              <InputLabel>Time Period</InputLabel>
-              <Select
-                value={selectedTimeFrame}
-                onChange={(e) => setSelectedTimeFrame(e.target.value)}
-                label="Time Period"
+            </Grid>
+            
+            {/* Status Chips */}
+            <Grid item xs={12} sx={{ mb: 3 }}>
+              <Box 
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 2,
+                  flexWrap: 'wrap'
+                }}
               >
-                <MenuItem value="all">All Time</MenuItem>
-                <MenuItem value="week">Last 7 Days</MenuItem>
-                <MenuItem value="month">Last 30 Days</MenuItem>
-                <MenuItem value="year">This Year</MenuItem>
-              </Select>
-              <Typography variant="caption" sx={{ mt: 1, display: 'block', color: 'text.secondary' }}>
-                Filter by when content was created
-              </Typography>
-            </FormControl>
+                <Chip
+                  label="All Content"
+                  clickable
+                  onClick={() => setContentFilter('all')}
+                  sx={{
+                    ...pixelText,
+                    backgroundColor: contentFilter === 'all' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
+                    color: contentFilter === 'all' ? 'white' : '#5F4B8B',
+                    padding: '20px 24px',
+                    '&:hover': {
+                      backgroundColor: contentFilter === 'all' ? '#4a3a6d' : 'rgba(95, 75, 139, 0.2)',
+                      transform: 'translateY(-2px)'
+                    },
+                    transition: 'all 0.2s ease',
+                    boxShadow: contentFilter === 'all' ? '0 4px 8px rgba(0,0,0,0.2)' : 'none'
+                  }}
+                />
+                <Chip
+                  label="Published"
+                  clickable
+                  onClick={() => setContentFilter('published')}
+                  sx={{
+                    ...pixelText,
+                    backgroundColor: contentFilter === 'published' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
+                    color: contentFilter === 'published' ? 'white' : '#5F4B8B',
+                    padding: '20px 24px',
+                    '&:hover': {
+                      backgroundColor: contentFilter === 'published' ? '#4a3a6d' : 'rgba(95, 75, 139, 0.2)',
+                      transform: 'translateY(-2px)'
+                    },
+                    transition: 'all 0.2s ease',
+                    boxShadow: contentFilter === 'published' ? '0 4px 8px rgba(0,0,0,0.2)' : 'none'
+                  }}
+                />
+                <Chip
+                  label="Drafts"
+                  clickable
+                  onClick={() => setContentFilter('drafts')}
+                  sx={{
+                    ...pixelText,
+                    backgroundColor: contentFilter === 'drafts' ? '#5F4B8B' : 'rgba(95, 75, 139, 0.1)',
+                    color: contentFilter === 'drafts' ? 'white' : '#5F4B8B',
+                    padding: '20px 24px',
+                    '&:hover': {
+                      backgroundColor: contentFilter === 'drafts' ? '#4a3a6d' : 'rgba(95, 75, 139, 0.2)',
+                      transform: 'translateY(-2px)'
+                    },
+                    transition: 'all 0.2s ease',
+                    boxShadow: contentFilter === 'drafts' ? '0 4px 8px rgba(0,0,0,0.2)' : 'none'
+                  }}
+                />
+              </Box>
+            </Grid>
+
+            {/* Dropdown Filters */}
+            <Grid container item spacing={2} xs={12} justifyContent="center">
+              <Grid item xs={12} md={5}>
+                <FormControl fullWidth>
+                  <InputLabel sx={{ ...pixelText, color: '#5F4B8B' }}>
+                    Classroom
+                  </InputLabel>
+                  <Select
+                    value={selectedClassroom}
+                    onChange={(e) => setSelectedClassroom(e.target.value)}
+                    label="Classroom"
+                    sx={{
+                      ...pixelText,
+                      '& .MuiSelect-select': {
+                        py: 1.5
+                      },
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                      borderRadius: '8px',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,1)'
+                      },
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <MenuItem value="all" sx={pixelText}>All Classrooms</MenuItem>
+                    {classrooms.map((classroom) => (
+                      <MenuItem key={classroom.id} value={classroom.id} sx={pixelText}>
+                        {classroom.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={5}>
+                <FormControl fullWidth>
+                  <InputLabel sx={{ ...pixelText, color: '#5F4B8B' }}>
+                    Time Period
+                  </InputLabel>
+                  <Select
+                    value={selectedTimeFrame}
+                    onChange={(e) => setSelectedTimeFrame(e.target.value)}
+                    label="Time Period"
+                    sx={{
+                      ...pixelText,
+                      '& .MuiSelect-select': {
+                        py: 1.5
+                      },
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                      borderRadius: '8px',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,1)'
+                      },
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <MenuItem value="all" sx={pixelText}>All Time</MenuItem>
+                    <MenuItem value="week" sx={pixelText}>Last 7 Days</MenuItem>
+                    <MenuItem value="month" sx={pixelText}>Last 30 Days</MenuItem>
+                    <MenuItem value="year" sx={pixelText}>This Year</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </Grid>
-        </Grid>
+        </Box>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error" sx={{ mb: 3, '& .MuiAlert-message': pixelText }}>
             {error}
           </Alert>
         )}
@@ -345,40 +550,71 @@ const ContentDashboard = () => {
               borderRadius: '12px',
               p: 4,
               textAlign: 'center',
-              backgroundColor: 'white',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              backgroundColor: 'rgba(255,255,255,0.7)',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: '1px solid rgba(255,255,255,0.3)'
             }}
           >
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No content found
+            <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
+              NO CONTENT FOUND
             </Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Upload your first content to get started
+            <Typography sx={{ ...pixelText, color: '#4a5568', mb: 3 }}>
+              UPLOAD YOUR FIRST CONTENT TO GET STARTED
             </Typography>
             <Button
               variant="contained"
-              startIcon={<Add />}
+              startIcon={<Add sx={{ fontSize: isMobile ? '12px' : '14px' }} />}
               onClick={() => navigate('/content/upload')}
               sx={{
+                ...pixelButton,
                 backgroundColor: '#5F4B8B',
-                '&:hover': { backgroundColor: '#4a3a6d' },
-                textTransform: 'none',
-                borderRadius: '8px',
+                '&:hover': { 
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4px',
                 px: 3,
-                py: 1
+                py: 1,
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
               }}
             >
-              Upload Content
+              UPLOAD CONTENT
             </Button>
           </Paper>
         ) : (
-          <ContentList 
-            content={content}
-            onEdit={(id) => navigate(`/content/edit/${id}`)}
-            onView={(id) => navigate(`/content/${id}`)}
-            onDelete={handleDelete}
-            onPublishToggle={handlePublishToggle}
-          />
+          <Grid container spacing={3} sx={{pl: 4.5}}>
+    <Grid item xs={12} md={5}>
+      <ContentList 
+        content={content.filter((_, index) => index % 2 === 0)}
+        onEdit={(id) => navigate(`/content/edit/${id}`)}
+        onView={(id) => navigate(`/content/${id}`)}
+        onDelete={handleDelete}
+        onPublishToggle={handlePublishToggle}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+      />
+    </Grid>
+    <Grid item xs={12} md={6}>
+      <ContentList 
+        content={content.filter((_, index) => index % 2 === 1)}
+        onEdit={(id) => navigate(`/content/edit/${id}`)}
+        onView={(id) => navigate(`/content/${id}`)}
+        onDelete={handleDelete}
+        onPublishToggle={handlePublishToggle}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+      />
+    </Grid>
+  </Grid>
         )}
       </Container>
       
@@ -391,11 +627,19 @@ const ContentDashboard = () => {
         <Alert 
           onClose={handleCloseNotification} 
           severity={notification.severity}
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            '& .MuiAlert-message': pixelText,
+            backgroundColor: notification.severity === 'success' ? '#4caf50' : 
+                           notification.severity === 'error' ? '#f44336' : '#2196f3',
+            color: 'white',
+            '& .MuiAlert-icon': { color: 'white' }
+          }}
         >
           {notification.message}
         </Alert>
       </Snackbar>
+    </Box>
     </Box>
   );
 };

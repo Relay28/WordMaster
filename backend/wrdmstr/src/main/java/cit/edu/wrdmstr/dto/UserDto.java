@@ -1,6 +1,9 @@
 package cit.edu.wrdmstr.dto;
 
 import cit.edu.wrdmstr.entity.UserEntity;
+
+import java.util.Objects;
+
 public class UserDto {
     private Long id;
     private String email;
@@ -11,6 +14,19 @@ public class UserDto {
     private String profilePicture;
     private boolean active;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserDto userDto = (UserDto) o;
+        return Objects.equals(id, userDto.id); // Typically, ID is sufficient for equality
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id); // Hash based on the ID
+    }
+
     // Exclude password and role from DTO
     public UserDto(UserEntity user) {
         this.id = user.getId();
@@ -20,6 +36,10 @@ public class UserDto {
         this.profilePicture = user.getProfilePicture();
         this.role = user.getRole();
         this.active = user.isActive();
+    }
+
+    public UserDto() {
+
     }
 
     // Getters and setters

@@ -1,5 +1,4 @@
-// src/pages/HomePage.js
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box,
@@ -22,55 +21,70 @@ import {
   MenuItem,
   ListItemIcon,
   Snackbar,
-  Pagination
+  Pagination,
+  useMediaQuery,
+  useTheme
 } from "@mui/material";
-import { Close, ExitToApp, Add, Class, Person, CheckCircle } from "@mui/icons-material";
+import { Close, ExitToApp, Add, Class, Person, CheckCircle, PersonOutline } from "@mui/icons-material";
 import { useUserAuth } from '../context/UserAuthContext';
 import { useHomePage } from './HomePageFunctions';
-import logo from '../../assets/WOMS.png'
+import picbg from '../../assets/picbg.png';
+import '@fontsource/press-start-2p';
+import HomepageHeader from '../Header/HomepageHeader';
 
 const HomePage = () => {
   const { authChecked, user, getToken, login, logout } = useUserAuth();
   const {
-    // State
-    joinClassOpen,
-    createClassOpen, // Add this
-    classCode,
-    className, // Add this
+    createClassOpen,
+    className,
     loadingProfile,
     loadingClassrooms,
     classrooms,
     error,
     anchorEl,
-    joinSuccess, 
-    createSuccess,  
+    createSuccess,
     
-    // Handlers
-    setJoinClassOpen,
-    setCreateClassOpen, // Add this
-    setClassCode,
-    setClassName, // Add this
-    setJoinSuccess,  // Add this
-    setCreateSuccess,  // Add this
+    setCreateClassOpen,
+    setClassName,
+    setCreateSuccess,
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
     handleLogout,
-    handleJoinClass,
-    handleCreateClass, // Add this
+    handleCreateClass,
 
-    // Derived values
     displayName,
     roleDisplay,
-    avatarInitials,
-    isTeacher // Add this
+    avatarInitials
   } = useHomePage(authChecked, user, getToken, login, logout);
   const navigate = useNavigate();
- console.log(isTeacher)
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '12px' : '14px',
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
+  const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const classesPerPage = 6; // Number of classes to show per page
+  const classesPerPage = 6;
 
   if (!authChecked || loadingProfile) return (
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -78,9 +92,7 @@ const HomePage = () => {
     </Box>
   );
 
-
   if (!user) return null;
-
 
   // Calculate pagination
   const indexOfLastClass = currentPage * classesPerPage;
@@ -90,163 +102,156 @@ const HomePage = () => {
   
   return (
     <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
-    }}>
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  overflow: 'hidden',
+  background: `
+    linear-gradient(to bottom, 
+      rgba(249, 249, 249, 10) 0%, 
+      rgba(249, 249, 249, 10) 40%, 
+      rgba(249, 249, 249, 0.1) 100%),
+    url(${picbg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed',
+  imageRendering: 'pixelated',
+}}>
       {/* Header */}
-      <Box sx={{ 
-        backgroundColor: 'white',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        py: 2,
-        px: { xs: 2, md: 6 }
-      }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Box display="flex" alignItems="center" gap={4}>
-        <img 
-                src={logo}
-                alt="WordMaster Logo"
-                style={{
-                  height: '50px',
-                  width: 'auto',
-                  objectFit: 'contain'
-                }}
-              />
-          <Typography variant="h5" fontWeight="bold" color="#5F4B8B">
-            WordMaster
-          </Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={2}>
-            <Box textAlign="right">
-              <Typography variant="subtitle2" color="text.secondary">
-                {displayName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {roleDisplay}
-              </Typography>
-            </Box>
-            <IconButton onClick={handleMenuOpen} size="small" sx={{ p: 0 }}>
-              <Avatar 
-                sx={{ 
-                  width: 40, 
-                  height: 40, 
-                  bgcolor: '#5F4B8B',
-                  color: 'white'
-                }}
-                src={user.profilePicture || undefined}
-              >
-                {avatarInitials}
-              </Avatar>
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-              PaperProps={{
-                elevation: 0,
-                sx: {
-                  overflow: 'visible',
-                  filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                  mt: 1.5,
-                  '& .MuiAvatar-root': {
-                    width: 32,
-                    height: 32,
-                    ml: -0.5,
-                    mr: 1,
-                  },
-                  '&:before': {
-                    content: '""',
-                    display: 'block',
-                    position: 'absolute',
-                    top: 0,
-                    right: 14,
-                    width: 10,
-                    height: 10,
-                    bgcolor: 'background.paper',
-                    transform: 'translateY(-50%) rotate(45deg)',
-                    zIndex: 0,
-                  },
-                },
-              }}
-              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            >
-              <MenuItem onClick={handleProfileClick}>
-                <ListItemIcon>
-                  <Person fontSize="small" />
-                </ListItemIcon>
-                Profile
-              </MenuItem>
-              <Divider />
-              <MenuItem onClick={handleLogout}>
-                <ListItemIcon>
-                  <ExitToApp fontSize="small" />
-                </ListItemIcon>
-                Logout
-              </MenuItem>
-            </Menu>
-          </Box>
-        </Box>
-      </Box>
-
+      <HomepageHeader 
+        displayName={displayName}
+        roleDisplay={roleDisplay}
+        avatarInitials={avatarInitials}
+        user={user}
+        anchorEl={anchorEl}
+        isMobile={isMobile}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+        handleMenuOpen={handleMenuOpen}
+        handleMenuClose={handleMenuClose}
+        handleProfileClick={handleProfileClick}
+        handleLogout={handleLogout}
+      />
+<Box sx={{ 
+      flex: 1,
+      width: '100%',
+      overflow: 'auto',
+      // Custom scrollbar styling
+      '&::-webkit-scrollbar': {
+        width: '8px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'rgba(95, 75, 139, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: '#5F4B8B',
+        borderRadius: '4px',
+        '&:hover': {
+          backgroundColor: '#4a3a6d',
+        },
+      },
+    }}>
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 4, flex: 1 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Typography variant="h5" fontWeight="bold" color="text.primary">
-            Your Classes
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap" gap={2}>
+          <Typography sx={{ ...pixelHeading, color: 'text.primary' }}>
+            YOUR CLASSES
           </Typography>
-          <Box display="flex" gap={2}>
-            {isTeacher && (
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/content/dashboard')}
-                sx={{
-                  borderColor: '#5F4B8B',
-                  color: '#5F4B8B',
-                  '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
-                  textTransform: 'none',
-                  borderRadius: '8px',
-                  px: 3,
-                  py: 1
-                }}
-              >
-                Content Dashboard
-              </Button>
-            )}
-            {isTeacher ? (
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => setCreateClassOpen(true)}
-                sx={{
-                  backgroundColor: '#5F4B8B',
-                  '&:hover': { backgroundColor: '#4a3a6d' },
-                  textTransform: 'none',
-                  borderRadius: '8px',
-                  px: 3,
-                  py: 1
-                }}
-              >
-                Create Class
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => setJoinClassOpen(true)}
-                sx={{
-                  backgroundColor: '#5F4B8B',
-                  '&:hover': { backgroundColor: '#4a3a6d' },
-                  textTransform: 'none',
-                  borderRadius: '8px',
-                  px: 3,
-                  py: 1
-                }}
-              >
-                Join Class
-              </Button>
-            )}
+          <Box display="flex" gap={2} width={isMobile ? '100%' : 'auto'} sx={{ '& button': { position: 'relative' } }}>
+            <Button
+              variant="contained"
+              onClick={() => navigate('/game/create')}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#6c63ff',
+                '&:hover': { 
+                  backgroundColor: '#5a52e0',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4',
+                px: 3,
+                py: 1,
+                minWidth: isMobile ? 'auto' : '120px',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
+              }}
+            >
+              ▶ CREATE GAME
+            </Button>
+            
+            <Button
+              variant="contained"
+              onClick={() => navigate('/content/dashboard')}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#5F4B8B',
+                '&:hover': { 
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4',
+                px: 3,
+                py: 1,
+                minWidth: isMobile ? 'auto' : '140px',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
+              }}
+            >
+              CONTENT DASHBOARD
+            </Button>
+
+            <Button
+              variant="contained"
+              startIcon={<Add sx={{ 
+                fontSize: isMobile ? '12px' : '14px',
+                filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
+              }} />}
+              onClick={() => setCreateClassOpen(true)}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#5F4B8B',
+                '&:hover': { 
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4',
+                px: 3,
+                py: 1,
+                minWidth: isMobile ? 'auto' : '140px',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
+              }}
+            >
+              CREATE CLASS
+            </Button>
           </Box>
         </Box>
         <Divider sx={{ my: 3 }} />
@@ -254,7 +259,7 @@ const HomePage = () => {
         {/* Error message */}
         {error && (
           <Box mb={3}>
-            <Alert severity="error" onClose={() => setError(null)}>
+            <Alert severity="error" onClose={() => setError(null)} sx={pixelText}>
               {error}
             </Alert>
           </Box>
@@ -271,276 +276,308 @@ const HomePage = () => {
             py={4}
             sx={{
               backgroundColor: 'white',
-              borderRadius: '12px',
+              borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
               p: 4
             }}
           >
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-      {isTeacher ? "You haven't created any classes yet" : "You're not enrolled in any classes yet"}
-    </Typography>
-    <Typography variant="body2" color="text.secondary" mb={3}>
-      {isTeacher ? "Create a class to get started with WordMaster" : "Join a class to get started with WordMaster"}
-    </Typography>
+            <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 2 }}>
+              NO CLASSES FOUND
+            </Typography>
+            <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
+              CREATE A CLASS TO GET STARTED
+            </Typography>
             <Button
               variant="contained"
-              startIcon={<Add />}
-              onClick={() => isTeacher ? setCreateClassOpen(true) : setJoinClassOpen(true)}
+              startIcon={<Add sx={{ fontSize: isMobile ? '12px' : '14px' }} />}
+              onClick={() => setCreateClassOpen(true)}
               sx={{
+                ...pixelButton,
                 backgroundColor: '#5F4B8B',
                 '&:hover': { backgroundColor: '#4a3a6d' },
-                textTransform: 'none',
-                borderRadius: '8px',
+                borderRadius: '4px',
                 px: 3,
                 py: 1
               }}
             >
-              {isTeacher ? "Create Your First Class" : "Join Your First Class"}
+              CREATE CLASS
             </Button>
           </Box>
         ) : (
           <>
-          <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={3}>
-          {currentClasses.map((classroom) => (
-            <ClassroomCard 
-              key={classroom.id} 
-              classroom={classroom}
-              onClick={() => navigate(`/classroom/${classroom.id}`)}
-            />
-          ))}
-        </Box>
-        
-        {/* Pagination controls */}
-        {classrooms.length > classesPerPage && (
-          <Box display="flex" justifyContent="center" mt={4}>
-            <Pagination
-              count={totalPages}
-              page={currentPage}
-              onChange={(event, page) => setCurrentPage(page)}
-              color="primary"
-              sx={{
-                '& .MuiPaginationItem-root': {
-                  color: '#5F4B8B',
-                  '&.Mui-selected': {
-                    backgroundColor: '#5F4B8B',
-                    color: 'white'
-                  }
-                }
-              }}
-            />
-          </Box>
+            <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={3}>
+              {currentClasses.map((classroom) => (
+                <ClassroomCard 
+                  key={classroom.id} 
+                  classroom={classroom}
+                  onClick={() => navigate(`/classroom/${classroom.id}`)}
+                  pixelText={pixelText}
+                  pixelHeading={pixelHeading}
+                  isMobile={isMobile}
+                />
+              ))}
+            </Box>
+            
+            {/* Pagination controls */}
+            {classrooms.length > classesPerPage && (
+              <Box display="flex" justifyContent="center" mt={4}>
+                <Pagination
+                  count={totalPages}
+                  page={currentPage}
+                  onChange={(event, page) => setCurrentPage(page)}
+                  sx={{
+                    '& .MuiPaginationItem-root': {
+                      ...pixelText,
+                      color: '#5F4B8B',
+                      '&.Mui-selected': {
+                        backgroundColor: '#5F4B8B',
+                        color: 'white'
+                      }
+                    }
+                  }}
+                />
+              </Box>
+            )}
+          </>
         )}
-      </>
-    )}
       </Container>
 
-      {/* Join Class Dialog */}
-      <JoinClassDialog 
-        open={joinClassOpen}
-        classCode={classCode}
+      {/* Create Class Dialog */}
+      <CreateClassDialog 
+        open={createClassOpen}
+        className={className}
         loading={loadingClassrooms}
         onClose={() => {
-          setJoinClassOpen(false);
+          setCreateClassOpen(false);
           setError(null);
         }}
-        onChange={(e) => setClassCode(e.target.value)}
-        onSubmit={handleJoinClass}
+        onChange={(e) => setClassName(e.target.value)}
+        onSubmit={handleCreateClass}
+        pixelText={pixelText}
+        pixelHeading={pixelHeading}
+        isMobile={isMobile}
       />
-   <CreateClassDialog 
-  open={createClassOpen}
-  className={className}
-  loading={loadingClassrooms}
-  onClose={() => {
-    setCreateClassOpen(false);
-    setError(null);
-  }}
-  onChange={(e) => setClassName(e.target.value)}
-  onSubmit={handleCreateClass}
-/>
 
-    {/* Success Snackbars */}
-    <Snackbar
-      open={joinSuccess}
-      autoHideDuration={2000} // 2 seconds
-      onClose={() => setJoinSuccess(false)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Position at bottom right
-      sx={{ 
-        '& .MuiSnackbar-root': {
-          bottom: '24px !important',
-          right: '24px !important'
-        }
-      }}
-    >
-      <Alert
-        onClose={() => setJoinSuccess(false)}
-        severity="success"
-        icon={<CheckCircle fontSize="inherit" />}
-        sx={{ 
-          width: '100%',
-          backgroundColor: '#4caf50',
-          color: 'white',
-          '& .MuiAlert-icon': { color: 'white' }
-        }}
-      >
-        Successfully joined the class!
-      </Alert>
-    </Snackbar>
-
-    <Snackbar
-      open={createSuccess}
-      autoHideDuration={2000} // 2 seconds
-      onClose={() => setCreateSuccess(false)}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Position at bottom right
-      sx={{ 
-        '& .MuiSnackbar-root': {
-          bottom: '24px !important',
-          right: '24px !important'
-        }
-      }}
-    >
-      <Alert
+      {/* Success Snackbar */}
+      <Snackbar
+        open={createSuccess}
+        autoHideDuration={2000}
         onClose={() => setCreateSuccess(false)}
-        severity="success"
-        icon={<CheckCircle fontSize="inherit" />}
-        sx={{ 
-          width: '100%',
-          backgroundColor: '#4caf50',
-          color: 'white',
-          '& .MuiAlert-icon': { color: 'white' }
-        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        Class created successfully!
-      </Alert>
-    </Snackbar>
+        <Alert
+          onClose={() => setCreateSuccess(false)}
+          severity="success"
+          icon={<CheckCircle fontSize="inherit" />}
+          sx={{ 
+            width: '100%',
+            backgroundColor: '#4caf50',
+            color: 'white',
+            '& .MuiAlert-icon': { color: 'white' },
+            ...pixelText
+          }}
+        >
+          CLASS CREATED!
+        </Alert>
+      </Snackbar>
     </Box>
+</Box>
   );
 };
 
-// Sub-components for better organization
-// In HomePage.js, update the ClassroomCard component to use navigate
-const ClassroomCard = ({ classroom, onClick }) => (
+const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }) => (
   <Card 
     sx={{ 
-      borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+      borderRadius: '10px',
+      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
+      border: '1px solid rgba(255,255,255,0.3)',
       transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255,255,255,0.7)',
+      backdropFilter: 'blur(8px)',
+      position: 'relative',
+      overflow: 'hidden',
       '&:hover': { 
         transform: 'translateY(-4px)',
-        boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+        boxShadow: '0 12px 40px rgba(31, 38, 135, 0.15)',
         cursor: 'pointer'
+      },
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '6px',
+        background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
+        opacity: 0.8
       }
     }}
     onClick={onClick}
   >
-    <CardContent sx={{ p: 3 }}>
-      <Box display="flex" alignItems="center" mb={2}>
-        <Class sx={{ color: '#5F4B8B', mr: 2 }} />
-        <Typography variant="h6" fontWeight="medium">
-          {classroom.name || `Class ${classroom.id}`}
+    <CardContent sx={{ p: isMobile ? 1 : 2, pt: isMobile ? 1 : 2}}>
+      <Box display="flex" alignItems="center" mb={1}>
+        <Box sx={{
+          p: 0.5,
+          mr: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <Class sx={{ 
+            color: '#5F4B8B', 
+            fontSize: isMobile ? '20px' : '22px'
+          }} />
+        </Box>
+        <Typography sx={{ 
+          ...pixelHeading, 
+          color: '#2d3748',
+          fontSize: isMobile ? '14px' : '16px',
+          fontWeight: 700,
+          lineHeight: 2,
+          letterSpacing: '-0.5px'
+        }}>
+          {classroom.name || `CLASS ${classroom.id}`}
         </Typography>
       </Box>
-      <Typography variant="body2" color="text.secondary" mb={3}>
-        Teacher: {classroom.teacher.fname +" "+classroom.teacher.lname || 'Unknown Teacher'}
-      </Typography>
+        
+      <Box sx={{
+        backgroundColor: 'rgba(245, 245, 247, 0.7)',
+        borderRadius: '12px',
+        p: 1,
+        mb: 2,
+        border: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          mb: 0.5
+        }}>
+          <PersonOutline sx={{ 
+            fontSize: '18px', 
+            color: '#5F4B8B',
+            mr: 1 
+          }} />
+          <Typography sx={{ 
+            ...pixelText, 
+            color: '#4a5568',
+            fontSize: '14px',
+            fontWeight: 100
+          }}>
+            Students
+          </Typography>
+        </Box>
+        <Typography sx={{ 
+          color: '#2d3748',
+          fontSize: '14px',
+          fontWeight: 500,
+          pl: '26px' // Align with icon
+        }}>
+          {classroom.studentCount || 0} enrolled
+        </Typography>
+      </Box>
+      
       <Button
         fullWidth
-        variant="outlined"
+        variant="contained"
         onClick={(e) => {
           e.stopPropagation();
           onClick();
         }}
         sx={{
-          borderColor: '#5F4B8B',
-          color: '#5F4B8B',
+          ...pixelText,
+          background: 'linear-gradient(135deg, #6c63ff, #5F4B8B)',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '8px',
+          boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
+          textTransform: 'none',
+          fontSize: isMobile ? '8px' : '10px',
+          fontWeight: 150,
+          height: isMobile ? '20px' : '30px',
           '&:hover': { 
-            backgroundColor: '#f0edf5',
-            borderColor: '#4a3a6d'
+            background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
+            boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',
+            transform: 'translateY(-2px)'
+          },
+          '&:active': {
+            transform: 'translateY(0)',
+            boxShadow: '0 2px 4px rgba(95, 75, 139, 0.3)'
+          },
+          transition: 'all 0.2s ease',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: 'linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent)',
+            transform: 'rotate(45deg)',
+            transition: 'all 0.5s ease'
+          },
+          '&:hover::after': {
+            left: '100%'
           }
         }}
       >
-        Enter Class
+        MANAGE CLASS
       </Button>
     </CardContent>
   </Card>
 );
-const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit }) => (
+
+const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubmit, pixelText, pixelHeading, isMobile }) => (
   <Dialog 
     open={open} 
     onClose={onClose}
-    PaperProps={{ sx: { borderRadius: '12px' } }}
+    PaperProps={{ 
+      sx: { 
+        borderRadius: '12px',
+        width: isMobile ? '90vw' : '440px',
+        maxWidth: 'none',
+        boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.12)'
+      } 
+    }}
   >
     <DialogTitle sx={{ 
+      px: 3.5,
+      py: 2,
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      backgroundColor: '#f5f3fa',
-      borderBottom: '1px solid #e0e0e0'
+      backgroundColor: 'transparent',
+      borderBottom: 'none',
+      fontSize: '1.25rem',
+      fontWeight: 300,
+      color: 'text.primary',
+      ...pixelHeading
     }}>
-      <Typography fontWeight="bold">Join Class</Typography>
-      <IconButton onClick={onClose}>
-        <Close />
-      </IconButton>
-    </DialogTitle>
-    
-    <DialogContent sx={{ py: 3, px: 3 }}>
-      <Typography variant="body1" mb={2}>
-        Enter the class code provided by your teacher
-      </Typography>
-      <TextField
-        fullWidth
-        variant="outlined"
-        placeholder="e.g. A1B2C3"
-        value={classCode}
-        onChange={onChange}
-        sx={{ 
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '8px'
+      Create New Class
+      <IconButton 
+        onClick={onClose}
+        sx={{
+          color: 'text.secondary',
+          '&:hover': {
+            backgroundColor: 'action.hover'
           }
         }}
-      />
-    </DialogContent>
-    
-    <DialogActions sx={{ px: 3, py: 2 }}>
-      <Button
-        fullWidth
-        variant="contained"
-        onClick={onSubmit}
-        disabled={loading}
-        sx={{
-          backgroundColor: '#5F4B8B',
-          '&:hover': { backgroundColor: '#4a3a6d' },
-          borderRadius: '8px',
-          py: 1,
-          textTransform: 'none'
-        }}
       >
-        {loading ? <CircularProgress size={24} color="inherit" /> : 'Join Class'}
-      </Button>
-    </DialogActions>
-  </Dialog>
-  
-);
-const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubmit }) => (
-  <Dialog 
-    open={open} 
-    onClose={onClose}
-    PaperProps={{ sx: { borderRadius: '12px' } }}
-  >
-    <DialogTitle sx={{ 
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: '#f5f3fa',
-      borderBottom: '1px solid #e0e0e0'
-    }}>
-      <Typography fontWeight="bold">Create New Class</Typography>
-      <IconButton onClick={onClose}>
         <Close />
       </IconButton>
     </DialogTitle>
-    
-    <DialogContent sx={{ py: 3, px: 3 }}>
-      <Typography variant="body1" mb={2}>
+    <Divider sx={{ my: 0.1 }} />
+    <DialogContent sx={{ px: 3, py: 1 }}>
+      <Typography 
+        variant="body1" 
+        sx={{ 
+          mb: 1.5,
+          color: 'text.secondary',
+          fontSize: '0.875rem',
+          ...pixelText 
+        }}
+      >
         Enter a name for your new class
       </Typography>
       <TextField
@@ -551,33 +588,94 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
         onChange={onChange}
         sx={{ 
           '& .MuiOutlinedInput-root': {
-            borderRadius: '8px'
+            borderRadius: '8px',
+            '& fieldset': {
+              borderColor: 'divider'
+            },
+            '&:hover fieldset': {
+              borderColor: 'primary.main'
+            },
+            '&.Mui-focused fieldset': {
+              borderWidth: '1px'
+            }
+          },
+          '& .MuiInputBase-input': {
+            py: 2,
+            ...pixelText
+          }
+        }}
+        InputProps={{
+          style: {
+            ...pixelText
           }
         }}
       />
     </DialogContent>
     
-    <DialogActions sx={{ px: 3, py: 2 }}>
+    <DialogActions sx={{ px: 3, py: 3 }}>
       <Button
         fullWidth
         variant="contained"
         onClick={onSubmit}
         disabled={loading}
         sx={{
-          backgroundColor: '#5F4B8B',
-          '&:hover': { backgroundColor: '#4a3a6d' },
+          ...pixelText,
+          background: 'linear-gradient(135deg, #6c63ff, #5F4B8B)',
+          color: '#fff',
+          border: 'none',
           borderRadius: '8px',
-          py: 1,
-          textTransform: 'none'
+          boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
+          textTransform: 'none',
+          fontSize: isMobile ? '14px' : '16px',
+          fontWeight: 500,
+          height: isMobile ? '36px' : '48px',
+          '&:hover': { 
+            background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
+            boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',
+            transform: 'translateY(-2px)',
+            '&::after': {
+              left: '100%'
+            }
+          },
+          '&:active': {
+            transform: 'translateY(0)',
+            boxShadow: '0 2px 4px rgba(95, 75, 139, 0.3)'
+          },
+          '&.Mui-disabled': {
+            background: '#e0e0e0',
+            color: '#a0a0a0',
+            transform: 'none',
+            boxShadow: 'none'
+          },
+          transition: 'all 0.2s ease',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: 'linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent)',
+            transform: 'rotate(45deg)',
+            transition: 'all 0.5s ease'
+          }
         }}
       >
-        {loading ? <CircularProgress size={24} color="inherit" /> : 'Create Class'}
+        {loading ? (
+          <CircularProgress 
+            size={24} 
+            color="inherit" 
+            thickness={4}
+            sx={{ color: 'inherit' }}
+          />
+        ) : (
+          'Create Class'
+        )}
       </Button>
     </DialogActions>
   </Dialog>
-
-  
 );
-
 
 export default HomePage;

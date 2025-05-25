@@ -5,7 +5,11 @@ import {
   Grid, 
   TextField,
   useTheme,
-  Typography
+  Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 
 const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
@@ -14,7 +18,7 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
   return (
     <Box sx={{ width: '100%' }}>
       <Box sx={{ mb: 3 }}>
-      <Typography 
+        <Typography 
           variant="body2" 
           sx={{ 
             color: 'text.secondary',
@@ -23,10 +27,10 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
         >
           Provide basic details about your scenario
         </Typography>
-        </Box>
-      <Grid container spacing={30}>
+      </Box>
       
-        <Grid item xs={12}>
+      <Grid container spacing={3} >
+        <Grid item xs={12} width={350}> 
           <TextField
             fullWidth
             label="Scenario Title"
@@ -41,13 +45,12 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
             sx={{ 
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
-                width:'200%',
               },
             }}
           />
         </Grid>
         
-        <Grid item xs={6}>
+        <Grid item xs={12} width={800}>
           <TextField
             fullWidth
             label="Scenario Description"
@@ -64,10 +67,35 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
             sx={{ 
               '& .MuiOutlinedInput-root': {
                 borderRadius: '8px',
-                width:'303%',
               },
             }}
           />
+        </Grid>
+        
+        <Grid item xs={12} width={200}>
+          <FormControl fullWidth>
+            <InputLabel>Background Theme Color</InputLabel>
+            <Select
+              name="backgroundTheme"
+              value={formData.backgroundTheme || 'blue'}
+              onChange={handleInputChange}
+              label="Background Theme Color"
+              error={!!errors.backgroundTheme}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                },
+              }}
+            >
+              <MenuItem value="blue">Blue</MenuItem>
+              <MenuItem value="green">Green</MenuItem>
+              <MenuItem value="purple">Purple</MenuItem>
+              <MenuItem value="red">Red</MenuItem>
+              <MenuItem value="yellow">Yellow</MenuItem>
+              <MenuItem value="orange">Orange</MenuItem>
+              <MenuItem value="teal">Teal</MenuItem>
+            </Select>
+          </FormControl>
         </Grid>
       </Grid>
     </Box>

@@ -133,7 +133,7 @@ const UserForm = ({ user, type, onSuccess, onError }) => {
             required
           >
             <MenuItem value="USER_STUDENT">Student</MenuItem>
-            <MenuItem value="USER_TEACHER">Student</MenuItem>
+            <MenuItem value="USER_TEACHER">Teacher</MenuItem>
             <MenuItem value="ADMIN">Admin</MenuItem>
             {/* Add other roles if needed */}
           </Select>

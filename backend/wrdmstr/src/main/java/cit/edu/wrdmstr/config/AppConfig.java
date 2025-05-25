@@ -9,9 +9,16 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Random;
+
 @Configuration
 public class AppConfig implements WebMvcConfigurer {
 
+
+    @Bean
+    public Random random() {
+        return new Random();
+    }
     @Bean
     public RestTemplate restTemplate() {
         ClientHttpRequestFactory factory = new BufferingClientHttpRequestFactory(
@@ -33,9 +40,13 @@ public class AppConfig implements WebMvcConfigurer {
     // mapping
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // Disable this generic CORS configuration since we're using the one in SecurityConfig
+        // This avoids conflicting CORS configurations
+        /* 
         registry.addMapping("/**")
                 .allowedOrigins("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*");
+        */
     }
 }

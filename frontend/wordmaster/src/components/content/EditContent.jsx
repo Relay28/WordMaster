@@ -19,12 +19,17 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction
+  ListItemSecondaryAction,
+  Divider
 } from '@mui/material';
 import { ArrowBack, Save, Publish, Unpublished, Add, Delete, Image } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
 import PublishConfirmation from './PublishConfirmation';
+import picbg from '../../assets/picbg.png';
+import axios from 'axios';
+import API_URL from '../../services/apiConfig';
+
 
 const studentGroupSizes = [
   { value: 5, label: "Small Group (2-5 students)" },
@@ -64,6 +69,29 @@ const EditContent = () => {
   const [error, setError] = useState(null);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
+
+  const isMobile = window.innerWidth < 768;
+
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '12px' : '14px',
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
+  const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
   
   useEffect(() => {
     loadContent();
@@ -79,15 +107,28 @@ const EditContent = () => {
       let parsedGameConfig = {};
       
       try {
+        // Check if data.contentData is a string or already an object
         if (data.contentData) {
-          parsedContentData = JSON.parse(data.contentData);
+          if (typeof data.contentData === 'string') {
+            parsedContentData = JSON.parse(data.contentData);
+          } else {
+            // It's already an object, use it directly
+            parsedContentData = data.contentData;
+          }
         }
-        if (data.gameElementConfig) {
-          parsedGameConfig = JSON.parse(data.gameElementConfig);
+        
+        // Same for gameConfig
+        if (data.gameElementConfig || data.gameConfig) {
+          const configData = data.gameElementConfig || data.gameConfig;
+          if (typeof configData === 'string') {
+            parsedGameConfig = JSON.parse(configData);
+          } else {
+            parsedGameConfig = configData;
+          }
         }
       } catch (err) {
-        console.error("Error parsing JSON data:", err);
-        setError("Error parsing content data. Some information may not display correctly.");
+        console.error("Error processing content data:", err);
+        setError("Error loading content data. Some information may not display correctly.");
       }
       
       const contentState = {
@@ -99,8 +140,12 @@ const EditContent = () => {
       
       const scenarioState = {
         studentsPerGroup: parsedGameConfig.studentsPerGroup || 5,
-        roles: parsedContentData.roles || [],
+        // Convert role objects to strings if needed
+        roles: parsedContentData.roles ? parsedContentData.roles.map(role => 
+          typeof role === 'object' ? role.name || role.toString() : role
+        ) : [],
         timePerTurn: parsedGameConfig.timePerTurn || 30,
+        // Preserve full word objects
         wordBank: parsedContentData.wordBank || [],
         turnCycles: parsedGameConfig.turnCycles || 3,
       };
@@ -156,13 +201,42 @@ const EditContent = () => {
     });
   };
 
-  const handleAddWord = () => {
+  const handleAddWord = async () => {
     if (newWord.trim() !== '') {
-      setScenarioSettings({
-        ...scenarioSettings,
-        wordBank: [...scenarioSettings.wordBank, newWord.trim()]
-      });
-      setNewWord('');
+      try {
+        setLoading(true);
+        const token = await getToken();
+        const response = await axios.post(`${API_URL}/api/wordbank/enrich`, 
+          { word: newWord.trim() }, 
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        
+        const enrichedWord = {
+          word: response.data.word,
+          description: response.data.description,
+          exampleUsage: response.data.exampleUsage
+        };
+        
+        setScenarioSettings({
+          ...scenarioSettings,
+          wordBank: [...scenarioSettings.wordBank, enrichedWord]
+        });
+        setNewWord('');
+      } catch (error) {
+        console.error("Error enriching word:", error);
+        // Fallback to basic word without enrichment
+        setScenarioSettings({
+          ...scenarioSettings,
+          wordBank: [...scenarioSettings.wordBank, {
+            word: newWord.trim(),
+            description: "No description available",
+            exampleUsage: "No example available"
+          }]
+        });
+        setNewWord('');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -180,7 +254,8 @@ const EditContent = () => {
     if (file) {
       if (file.size > 5000000) {
         setError("Image size too large. Please select an image smaller than 5MB.");
-        return;
+        
+        ;
       }
       
       const reader = new FileReader();
@@ -236,19 +311,43 @@ const EditContent = () => {
   };
 
   const prepareContentData = () => {
-    return JSON.stringify({
-      wordBank: scenarioSettings.wordBank,
-      roles: scenarioSettings.roles,
-      backgroundImage: imagePreview
+    // Map each word object to ensure it has the required fields, preserving existing data
+    const wordBankItems = scenarioSettings.wordBank.map(item => {
+      if (typeof item === 'string') {
+        // This case handles words added manually in the UI after initial load
+        return {
+          word: item,
+          description: "No description available", 
+          exampleUsage: "No example available"
+        };
+      }
+      // This case handles words loaded from the backend
+      return {
+        word: item.word,
+        description: item.description || "No description available",
+        exampleUsage: item.exampleUsage || "No example available"
+      };
     });
+
+    // Map each role string to a RoleDTO-compatible object
+    const roleItems = scenarioSettings.roles.map(role => ({
+      name: role
+    }));
+
+    return {
+      wordBank: wordBankItems,
+      roles: roleItems,
+      backgroundImage: imagePreview
+    };
   };
 
   const prepareGameConfig = () => {
-    return JSON.stringify({
+    // Return an object directly instead of stringifying it
+    return {
       studentsPerGroup: scenarioSettings.studentsPerGroup,
       timePerTurn: scenarioSettings.timePerTurn,
       turnCycles: scenarioSettings.turnCycles
-    });
+    };
   };
 
   const handleSave = async (publish = null) => {
@@ -261,7 +360,7 @@ const EditContent = () => {
       const dataToSubmit = { 
         ...formData,
         contentData: prepareContentData(),
-        gameElementConfig: prepareGameConfig()
+        gameConfig: prepareGameConfig() // Note: changed gameElementConfig to gameConfig for consistent naming
       };
       
       if (publish !== null) {
@@ -323,80 +422,126 @@ const EditContent = () => {
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      height: '100vh', // Ensures the Box takes the full viewport height
-      overflowY: 'auto', // Enables vertical scrolling
-      overflowX: 'hidden',
-      backgroundColor: '#f9f9f9',
-      position: 'relative',
+      height: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      overflow: 'hidden',
+      background: `
+        linear-gradient(to bottom, 
+          rgba(249, 249, 249, 10) 0%, 
+          rgba(249, 249, 249, 10) 40%, 
+          rgba(249, 249, 249, 0.1) 100%),
+        url(${picbg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
     }}>
       <Box sx={{ 
-        backgroundColor: 'white',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(8px)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         py: 2,
         px: { xs: 2, md: 6 },
         position: 'sticky',
         top: 0,
-        zIndex: 1100
+        zIndex: 1100,
+        borderBottom: '1px solid rgba(255,255,255,0.3)'
       }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Box display="flex" alignItems="center">
-            <IconButton onClick={() => navigate('/content/dashboard')} sx={{ mr: 1 }}>
-              <ArrowBack />
+          <Box display="flex" alignItems="center" gap={2}>
+            <IconButton 
+              onClick={() => navigate('/content/dashboard')}
+              sx={{
+                color: '#5F4B8B',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                border: '2px solid #5F4B8B',
+                borderRadius: '4px',
+                width: '32px',
+                height: '32px',
+                '&:hover': {
+                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <ArrowBack fontSize="small" />
             </IconButton>
             <Box>
-              <Typography variant="h5" fontWeight="bold" color="#5F4B8B">
-                Edit Scenario
+              <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+                Edit Content
               </Typography>
               <Box display="flex" alignItems="center" mt={0.5}>
-                <Typography variant="body2" color="text.secondary" mr={1}>
+                <Typography sx={{ ...pixelText, color: 'text.secondary', mr: 1 }}>
                   Status:
                 </Typography>
                 <Chip 
                   label={formData.published ? 'Published' : 'Draft'} 
                   size="small"
                   sx={{ 
+                    ...pixelText,
                     backgroundColor: formData.published ? '#e6f7ed' : '#f2f2f2',
                     color: formData.published ? '#0a8043' : '#666666',
-                    fontWeight: 500,
                     height: 24
                   }}
                 />
               </Box>
             </Box>
           </Box>
-          <Box>
+
+          <Box display="flex" gap={2}>
             <Button
               variant="contained"
-              color="primary"
               startIcon={<Save />}
               onClick={() => handleSave()}
               disabled={saving || !hasChanges()}
               sx={{
-                backgroundColor: '#5F4B8B',
-                '&:hover': { backgroundColor: '#4a3a6d' },
-                textTransform: 'none',
+                ...pixelButton,
+                background: 'linear-gradient(135deg, #6c63ff, #5F4B8B)',
+                color: '#fff',
                 borderRadius: '8px',
-                mr: 2,
                 px: 3,
-                py: 1
+                py: 1,
+                minWidth: isMobile ? 'auto' : '140px',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:hover': { 
+                  background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
+                  transform: 'translateY(-2px)'
+                },
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
               }}
             >
               {saving ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
             </Button>
-            
+
             {formData.published ? (
               <Button
                 variant="outlined"
                 startIcon={<Unpublished />}
                 onClick={handleUnpublishClick}
-                disabled={saving}
                 sx={{
-                  borderColor: '#f57c00',
+                  ...pixelButton,
                   color: '#f57c00',
-                  '&:hover': { backgroundColor: '#fff8e1', borderColor: '#ef6c00' },
-                  textTransform: 'none',
-                  borderRadius: '8px',
-                  px: 3
+                  borderColor: '#f57c00',
+                  borderStyle: 'outset',
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    backgroundColor: '#fff8e1'
+                  }
                 }}
               >
                 Unpublish
@@ -406,14 +551,16 @@ const EditContent = () => {
                 variant="contained"
                 startIcon={<Publish />}
                 onClick={handlePublishClick}
-                disabled={saving}
                 sx={{
+                  ...pixelButton,
                   backgroundColor: '#4caf50',
-                  '&:hover': { backgroundColor: '#388e3c' },
-                  textTransform: 'none',
-                  borderRadius: '8px',
-                  px: 3,
-                  py: 1
+                  borderStyle: 'outset',
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                  textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                  '&:hover': {
+                    backgroundColor: '#388e3c',
+                    transform: 'translateY(-2px)'
+                  }
                 }}
               >
                 Publish
@@ -423,120 +570,150 @@ const EditContent = () => {
         </Box>
       </Box>
 
-      <Container maxWidth="lg" sx={{ 
-        py: 4, 
+      <Box sx={{ 
+        flex: 1,
         width: '100%',
-        mb: 4
+        overflow: 'auto',
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: 'rgba(95, 75, 139, 0.1)',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: '#5F4B8B',
+          borderRadius: '4px',
+          '&:hover': {
+            backgroundColor: '#4a3a6d',
+          },
+        },
       }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3, borderRadius: '8px' }}>
-            {error}
-          </Alert>
-        )}
-        
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, mb: 3, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
-            Scenario Details
-          </Typography>
-          
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Scenario Title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                required
-                variant="outlined"
-                placeholder="Enter a descriptive title for your scenario"
-                sx={{ mb: 2 }}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Scenario Description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                variant="outlined"
-                multiline
-                rows={3}
-                placeholder="Describe the context and purpose of this scenario"
-                sx={{ mb: 1 }}
-              />
-            </Grid>
-          </Grid>
-        </Paper>
-        
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, mb: 3, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
-            Group Settings
-          </Typography>
-          
-          <Grid container spacing={3}>
-            {/* Group Size Section */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight="medium" mb={1.5} color="#666">
-                Group Size
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 4,
+                ...pixelText,
+                backgroundColor: '#ffebee',
+                color: '#d32f2f'
+              }}
+            >
+              {error}
+            </Alert>
+          )}
+
+          <Paper elevation={0} sx={{ 
+            borderRadius: '16px',
+            p: 4,
+            mb: 3,
+            backgroundColor: 'rgba(255,255,255,0.8)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
+            border: '1px solid rgba(255,255,255,0.3)',
+          }}>
+            {/* Scenario Details */}
+            <Box mb={4}>
+              <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
+                Scenario Details
               </Typography>
-              <FormControl fullWidth variant="outlined" sx={{ mb: 3 }}>
-                <Select
-                  name="studentsPerGroup"
-                  value={scenarioSettings.studentsPerGroup}
-                  onChange={handleScenarioSettingChange}
-                  displayEmpty
-                >
-                  {studentGroupSizes.map((size) => (
-                    <MenuItem key={size.value} value={size.value}>
-                      {size.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              
-              <Box sx={{ height: '1px', bgcolor: '#f0f0f0', width: '100%', my: 2 }} />
-            </Grid>
-            
-            {/* Role Assignment Section */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" fontWeight="medium" mb={1.5} color="#666">
-                Role Assignment
+              <Grid container spacing={3}>
+                <Grid item xs={12} width={500}>
+                  <TextField
+                    fullWidth
+                    label="Title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    required
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        ...pixelText,
+                        backgroundColor: 'rgba(255,255,255,0.9)'
+                      }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} width={500}>
+                  <TextField
+                    fullWidth
+                    label="Description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    multiline
+                    rows={4}
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        ...pixelText,
+                        backgroundColor: 'rgba(255,255,255,0.9)'
+                      }
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Group Settings */}
+            <Box mb={4}>
+              <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
+                Group Settings
               </Typography>
-              <Typography variant="body2" color="text.secondary" mb={2}>
-                Add roles that students will play in the conversation scenario.
-              </Typography>
-              
-              <Box display="flex" alignItems="center" mb={2}>
-                <TextField 
-                  fullWidth
-                  variant="outlined"
-                  label="Add Role"
-                  placeholder="E.g., Customer, Waiter, Manager"
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value)}
-                  sx={{ mr: 1 }}
-                />
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={handleAddRole}
-                  sx={{
-                    backgroundColor: '#5F4B8B',
-                    height: '56px',
-                    minWidth: '100px',
-                    whiteSpace: 'nowrap',
-                    '&:hover': { backgroundColor: '#4a3a6d' },
-                  }}
-                >
-                  Add
-                </Button>
-              </Box>
-              
-              <Box sx={{ mb: 2, minHeight: '60px', p: 2, bgcolor: '#fafafa', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
-                {scenarioSettings.roles.length > 0 ? (
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6} width={500}>
+                  <FormControl fullWidth>
+                    <InputLabel sx={pixelText}>Students per Group</InputLabel>
+                    <Select
+                      name="studentsPerGroup"
+                      value={scenarioSettings.studentsPerGroup}
+                      onChange={handleScenarioSettingChange}
+                      sx={{
+                        ...pixelText,
+                        backgroundColor: 'rgba(255,255,255,0.9)'
+                      }}
+                    >
+                      {studentGroupSizes.map((size) => (
+                        <MenuItem key={size.value} value={size.value} sx={pixelText}>
+                          {size.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    display: 'flex',
+                    gap: 2,
+                    mb: 2,
+                    flexDirection: { xs: 'column', sm: 'row' }
+                  }}>
+                    <TextField
+                      fullWidth
+                      label="Add Role"
+                      value={newRole}
+                      onChange={(e) => setNewRole(e.target.value)}
+                      sx={{
+                        '& .MuiInputBase-root': {
+                          ...pixelText,
+                          backgroundColor: 'rgba(255,255,255,0.9)'
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={handleAddRole}
+                      startIcon={<Add />}
+                      sx={{
+                        ...pixelButton,
+                        backgroundColor: '#5F4B8B',
+                        minWidth: { xs: '100%', sm: 'auto' }
+                      }}
+                    >
+                      Add Role
+                    </Button>
+                  </Box>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {scenarioSettings.roles.map((role, index) => (
                       <Chip
@@ -544,184 +721,185 @@ const EditContent = () => {
                         label={role}
                         onDelete={() => handleDeleteRole(index)}
                         sx={{
-                          backgroundColor: '#f0edf5',
-                          color: '#5F4B8B',
-                          m: 0.5,
-                          fontWeight: 500
+                          ...pixelText,
+                          backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                          color: '#5F4B8B'
                         }}
                       />
                     ))}
                   </Box>
-                ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', textAlign: 'center' }}>
-                    No roles added yet. Please add at least one role.
-                  </Typography>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-        
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, mb: 3, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
-            Game Settings
-          </Typography>
-          
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                <InputLabel>Time per Turn</InputLabel>
-                <Select
-                  name="timePerTurn"
-                  value={scenarioSettings.timePerTurn}
-                  onChange={handleScenarioSettingChange}
-                  label="Time per Turn"
-                >
-                  {turnTimes.map((time) => (
-                    <MenuItem key={time} value={time}>
-                      {time} seconds
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                <InputLabel>Number of Turns</InputLabel>
-                <Select
-                  name="turnCycles"
-                  value={scenarioSettings.turnCycles}
-                  onChange={handleScenarioSettingChange}
-                  label="Number of Turns"
-                >
-                  {turnCyclesOptions.map((cycles) => (
-                    <MenuItem key={cycles} value={cycles}>
-                      {cycles} {cycles === 1 ? 'turn' : 'turns'}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </Paper>
-        
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, mb: 3, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
-            Word Bank
-          </Typography>
-          
-          <Box display="flex" alignItems="center" mb={2}>
-            <TextField 
-              fullWidth
-              variant="outlined"
-              label="Add Word"
-              placeholder="Enter a word students will need to use"
-              value={newWord}
-              onChange={(e) => setNewWord(e.target.value)}
-              sx={{ mr: 1 }}
-            />
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={handleAddWord}
-              sx={{
-                backgroundColor: '#5F4B8B',
-                height: '56px',
-                minWidth: '100px',
-                whiteSpace: 'nowrap',
-                '&:hover': { backgroundColor: '#4a3a6d' },
-              }}
-            >
-              Add
-            </Button>
-          </Box>
-          
-          {scenarioSettings.wordBank.length > 0 ? (
-            <List sx={{ maxHeight: '300px', overflow: 'auto' }}>
-              {scenarioSettings.wordBank.map((word, index) => (
-                <ListItem
-                  key={index}
+                </Grid>
+              </Grid>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Game Settings */}
+            <Box mb={4}>
+              <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
+                Game Settings
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6} width={500}>
+                  <FormControl fullWidth>
+                    <InputLabel sx={pixelText}>Time per Turn (seconds)</InputLabel>
+                    <Select
+                      name="timePerTurn"
+                      value={scenarioSettings.timePerTurn}
+                      onChange={handleScenarioSettingChange}
+                      sx={{
+                        ...pixelText,
+                        backgroundColor: 'rgba(255,255,255,0.9)'
+                      }}
+                    >
+                      {turnTimes.map((time) => (
+                        <MenuItem key={time} value={time} sx={pixelText}>
+                          {time} seconds
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6} width={500}>
+                  <FormControl fullWidth>
+                    <InputLabel sx={pixelText}>Turn Cycles</InputLabel>
+                    <Select
+                      name="turnCycles"
+                      value={scenarioSettings.turnCycles}
+                      onChange={handleScenarioSettingChange}
+                      sx={{
+                        ...pixelText,
+                        backgroundColor: 'rgba(255,255,255,0.9)'
+                      }}
+                    >
+                      {turnCyclesOptions.map((cycles) => (
+                        <MenuItem key={cycles} value={cycles} sx={pixelText}>
+                          {cycles} {cycles === 1 ? 'cycle' : 'cycles'}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Word Bank */}
+            <Box mb={4}>
+              <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
+                Word Bank
+              </Typography>
+              <Box sx={{ 
+                display: 'flex',
+                gap: 2,
+                mb: 2,
+                flexDirection: { xs: 'column', sm: 'row' }
+              }}>
+                <TextField
+                  fullWidth
+                  label="Add Word"
+                  value={newWord}
+                  onChange={(e) => setNewWord(e.target.value)}
                   sx={{
-                    backgroundColor: '#f9f9f9',
-                    mb: 1,
-                    borderRadius: '8px',
+                    '& .MuiInputBase-root': {
+                      ...pixelText,
+                      backgroundColor: 'rgba(255,255,255,0.9)'
+                    }
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleAddWord}
+                  startIcon={<Add />}
+                  sx={{
+                    ...pixelButton,
+                    backgroundColor: '#5F4B8B',
+                    minWidth: { xs: '100%', sm: 'auto' }
                   }}
                 >
-                  <ListItemText primary={word} />
-                  <ListItemSecondaryAction>
-                    <IconButton edge="end" onClick={() => handleDeleteWord(index)} color="error">
-                      <Delete />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-            </List>
-          ) : (
-            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 1 }}>
-              Word bank is empty. Students will need to come up with their own vocabulary.
-            </Typography>
-          )}
-        </Paper>
-        
-        <Paper elevation={0} sx={{ borderRadius: '12px', p: 4, backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-          <Typography variant="h6" fontWeight="bold" mb={3} color="#5F4B8B">
-            Background Image
-          </Typography>
-          
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Select an image that represents your scenario context (e.g., Airport, Classroom, Office, Café).
-          </Typography>
-          
-          <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<Image />}
-              sx={{
-                borderColor: '#5F4B8B',
-                color: '#5F4B8B',
-                '&:hover': { backgroundColor: '#f0edf5', borderColor: '#4a3a6d' },
-                textTransform: 'none',
-                borderRadius: '8px',
-                py: 1
-              }}
-            >
-              Upload Image
-              <input
-                type="file"
-                hidden
-                accept="image/*"
-                onChange={handleImageChange}
-              />
-            </Button>
-            
-            <Typography variant="caption" color="text.secondary">
-              Maximum size: 5MB. Recommended size: 1920x1080px
-            </Typography>
-          </Box>
-          
-          {imagePreview && (
-            <Box
-              sx={{
-                mt: 3,
-                borderRadius: '8px',
-                overflow: 'hidden',
-                maxWidth: '100%',
-                maxHeight: '300px',
-                border: '1px solid #e0e0e0',
-              }}
-            >
-              <img
-                src={imagePreview}
-                alt="Background preview"
-                style={{ width: '100%', objectFit: 'contain' }}
-              />
+                  Add Word
+                </Button>
+              </Box>
+              <List>
+                {scenarioSettings.wordBank.map((word, index) => (
+                  <ListItem
+                    key={index}
+                    sx={{
+                      backgroundColor: 'rgba(255,255,255,0.7)',
+                      borderRadius: '8px',
+                      mb: 1
+                    }}
+                  >
+                    <ListItemText 
+                      primary={typeof word === 'object' ? word.word : word}
+                      sx={{ '& .MuiListItemText-primary': pixelText }}
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton
+                        edge="end"
+                        onClick={() => handleDeleteWord(index)}
+                        sx={{ color: '#f44336' }}
+                      >
+                        <Delete />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+              </List>
             </Box>
-          )}
-        </Paper>
-      </Container>
-      
+
+            <Divider sx={{ my: 3 }} />
+
+            {/* Background Image */}
+            <Box>
+              <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
+                Background Image
+              </Typography>
+              <Box sx={{ 
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Button
+                  component="label"
+                  variant="outlined"
+                  startIcon={<Image />}
+                  sx={{
+                    ...pixelButton,
+                    color: '#5F4B8B',
+                    borderColor: '#5F4B8B'
+                  }}
+                >
+                  Choose Image
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={handleImageChange}
+                  />
+                </Button>
+                {imagePreview && (
+                  <Box
+                    component="img"
+                    src={imagePreview}
+                    alt="Background preview"
+                    sx={{
+                      maxWidth: '100%',
+                      maxHeight: '200px',
+                      objectFit: 'contain',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Paper>
+        </Container>
+      </Box>
+
       <PublishConfirmation
         open={publishDialogOpen}
         onClose={() => setPublishDialogOpen(false)}
@@ -729,7 +907,7 @@ const EditContent = () => {
           setPublishDialogOpen(false);
           handleSave(true);
         }}
-        title={formData.title || 'this content'}
+        title={formData.title}
         loading={saving}
       />
       
@@ -740,7 +918,7 @@ const EditContent = () => {
           setUnpublishDialogOpen(false);
           handleSave(false);
         }}
-        title={formData.title || 'this content'}
+        title={formData.title}
         loading={saving}
       />
     </Box>

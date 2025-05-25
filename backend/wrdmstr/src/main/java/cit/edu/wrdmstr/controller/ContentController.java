@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/content")
@@ -30,33 +31,47 @@ public class ContentController {
     @GetMapping
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<List<ContentDTO>> getAllContent(Authentication auth) {
-        return ResponseEntity.ok(contentService.getAllContent(auth));
+        logger.info("Fetching all content for authenticated user");
+        List<ContentDTO> contentList = contentService.getAllContent(auth);
+        logger.info("Found {} content items", contentList.size());
+        return ResponseEntity.ok(contentList);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<ContentDTO> getContentById(@PathVariable Long id, Authentication auth) {
-        return ResponseEntity.ok(contentService.getContentById(id,auth));
+        logger.info("Fetching content with ID: {}", id);
+        ContentDTO content = contentService.getContentById(id, auth);
+        logger.info("Found content with ID: {}", id);
+        return ResponseEntity.ok(content);
     }
 
     @GetMapping("/creator")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
-    public ResponseEntity<List<ContentDTO>> getContentByCreator( Authentication auth) {
-        return ResponseEntity.ok(contentService.getContentByCreator(auth));
+    public ResponseEntity<List<ContentDTO>> getContentByCreator(Authentication auth) {
+        logger.info("Fetching content created by authenticated user");
+        List<ContentDTO> contentList = contentService.getContentByCreator(auth);
+        logger.info("Found {} content items created by user", contentList.size());
+        return ResponseEntity.ok(contentList);
     }
 
     @GetMapping("/published")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
-    public ResponseEntity<List<ContentDTO>> getPublishedContent( Authentication auth) {
-        return ResponseEntity.ok(contentService.getPublishedContent(auth));
-    }                       
+    public ResponseEntity<List<ContentDTO>> getPublishedContent(Authentication auth) {
+        logger.info("Fetching published content for authenticated user");
+        List<ContentDTO> contentList = contentService.getPublishedContent(auth);
+        logger.info("Found {} published content items", contentList.size());
+        return ResponseEntity.ok(contentList);
+    }
 
-    @PostMapping("/creator")
+    @PostMapping
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<ContentDTO> createContent(
             @RequestBody ContentDTO contentDTO,
             Authentication auth) {
+        logger.info("Creating new content with title: {}", contentDTO.getTitle());
         ContentDTO createdContent = contentService.createContent(contentDTO, auth);
+        logger.info("Created content with ID: {}", createdContent.getId());
         return new ResponseEntity<>(createdContent, HttpStatus.CREATED);
     }
 
@@ -64,30 +79,43 @@ public class ContentController {
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<ContentDTO> updateContent(
             @PathVariable Long id,
-            @RequestBody ContentDTO contentDTO, Authentication auth) {
-        return ResponseEntity.ok(contentService.updateContent(id, contentDTO,auth));
+            @RequestBody ContentDTO contentDTO,
+            Authentication auth) {
+        logger.info("Updating content with ID: {}", id);
+        ContentDTO updatedContent = contentService.updateContent(id, contentDTO, auth);
+        logger.info("Updated content with ID: {}", id);
+        return ResponseEntity.ok(updatedContent);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<Void> deleteContent(@PathVariable Long id, Authentication auth) {
-        contentService.deleteContent(id,auth);
+        logger.info("Deleting content with ID: {}", id);
+        contentService.deleteContent(id, auth);
+        logger.info("Deleted content with ID: {}", id);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}/publish")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<ContentDTO> publishContent(@PathVariable Long id, Authentication auth) {
-        return ResponseEntity.ok(contentService.publishContent(id,auth));
+        logger.info("Publishing content with ID: {}", id);
+        ContentDTO publishedContent = contentService.publishContent(id, auth);
+        logger.info("Published content with ID: {}", id);
+        return ResponseEntity.ok(publishedContent);
     }
 
     @PutMapping("/{id}/unpublish")
     @PreAuthorize("hasAuthority('USER_TEACHER')")
     public ResponseEntity<ContentDTO> unpublishContent(@PathVariable Long id, Authentication auth) {
-        return ResponseEntity.ok(contentService.unpublishContent(id,auth));
+        logger.info("Unpublishing content with ID: {}", id);
+        ContentDTO unpublishedContent = contentService.unpublishContent(id, auth);
+        logger.info("Unpublished content with ID: {}", id);
+        return ResponseEntity.ok(unpublishedContent);
     }
 
     @GetMapping("/classroom/{classroomId}")
+    @PreAuthorize("hasAnyAuthority('USER_TEACHER', 'USER_STUDENT')")
     public ResponseEntity<List<ContentDTO>> getContentByClassroom(@PathVariable Long classroomId) {
         logger.info("Getting content for classroom ID: {}", classroomId);
         List<ContentDTO> content = contentService.getContentByClassroom(classroomId);
@@ -96,8 +124,14 @@ public class ContentController {
     }
 
     @GetMapping("/classroom/{classroomId}/published")
-    public ResponseEntity<List<ContentDTO>> getPublishedContentByClassroom(@PathVariable Long classroomId, Authentication auth) {
-        return ResponseEntity.ok(contentService.getPublishedContentByClassroom(classroomId,auth));
+    @PreAuthorize("hasAnyAuthority('USER_TEACHER', 'USER_STUDENT')")
+    public ResponseEntity<List<ContentDTO>> getPublishedContentByClassroom(
+            @PathVariable Long classroomId,
+            Authentication auth) {
+        logger.info("Getting published content for classroom ID: {}", classroomId);
+        List<ContentDTO> content = contentService.getPublishedContentByClassroom(classroomId, auth);
+        logger.info("Found {} published content items for classroom ID: {}", content.size(), classroomId);
+        return ResponseEntity.ok(content);
     }
 
     @PostMapping("/classroom/{classroomId}")
@@ -106,9 +140,43 @@ public class ContentController {
             @RequestBody ContentDTO contentDTO,
             Authentication auth,
             @PathVariable Long classroomId) {
-        logger.info("Creating content for classroom ID: {} by creator ID: {}", classroomId);
+        logger.info("Creating content for classroom ID: {}", classroomId);
         ContentDTO createdContent = contentService.createContentForClassroom(contentDTO, auth, classroomId);
         logger.info("Created content with ID: {} for classroom ID: {}", createdContent.getId(), classroomId);
         return new ResponseEntity<>(createdContent, HttpStatus.CREATED);
     }
+
+@PostMapping("/generate")
+@PreAuthorize("hasAuthority('USER_TEACHER')")
+public ResponseEntity<ContentDTO> generateContent(@RequestBody Map<String, String> request, 
+                                                Authentication auth) {
+    String topic = request.get("topic");
+    Long classroomId = null;
+    
+    // Extract classroomId from the request if it exists
+    if (request.containsKey("classroomId") && request.get("classroomId") != null) {
+        try {
+            classroomId = Long.parseLong(request.get("classroomId"));
+        } catch (NumberFormatException e) {
+            logger.error("Invalid classroom ID format: {}", request.get("classroomId"));
+        }
+    }
+    
+    if (topic == null || topic.trim().isEmpty()) {
+        logger.error("Topic is required for AI content generation");
+        return ResponseEntity.badRequest().build();
+    }
+    
+    logger.info("Generating AI content for topic: {} for classroom ID: {}", topic, classroomId);
+    ContentDTO generatedContent;
+    
+    if (classroomId != null) {
+        generatedContent = contentService.generateAIContentForClassroom(topic, auth, classroomId);
+    } else {
+        generatedContent = contentService.generateAIContent(topic, auth);
+    }
+    
+    logger.info("Generated AI content with ID: {}", generatedContent.getId());
+    return new ResponseEntity<>(generatedContent, HttpStatus.CREATED);
+}
 }

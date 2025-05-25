@@ -8,9 +8,20 @@ import {
   deleteClassroom,
   removeStudentFromClassroom,
 } from '../utils/classroomService';
+import { 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogContentText, 
+  DialogActions,
+  Button
+} from '@mui/material';
 
 export const useClassroomDetails = (authChecked, user, getToken) => {
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [removeStudentDialogOpen, setRemoveStudentDialogOpen] = useState(false);
+  const [studentToRemove, setStudentToRemove] = useState(null);
   const { classroomId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -22,19 +33,17 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     name: '',
     description: ''
   });
-  const handleRemoveStudent = async (studentId) => {
-    if (!window.confirm("Are you sure you want to remove this student from the classroom?")) {
-      return;
-    }
-    
+  const handleRemoveStudent = (studentId) => {
+    setStudentToRemove(studentId);
+    setRemoveStudentDialogOpen(true);
+  };
+
+  const confirmRemoveStudent = async () => {
     try {
       setLoading(true);
-      await removeStudentFromClassroom(getToken(), classroomId, studentId);
+      await removeStudentFromClassroom(getToken(), classroomId, studentToRemove);
       
-      // Update members list by filtering out the removed student
-      setMembers(prev => prev.filter(member => member.id !== studentId));
-      
-      // Update student count in classroom data
+      setMembers(prev => prev.filter(member => member.id !== studentToRemove));
       setClassroom(prev => ({
         ...prev,
         studentCount: Math.max(0, prev.studentCount - 1)
@@ -46,8 +55,11 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
       console.error('Error removing student:', err);
     } finally {
       setLoading(false);
+      setRemoveStudentDialogOpen(false);
+      setStudentToRemove(null);
     }
   };
+
   useEffect(() => {
     const fetchClassroomData = async () => {
       if (authChecked && user && getToken()) {
@@ -113,18 +125,20 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     }
   };
 
-  const handleDeleteClassroom = async () => {
-    if (!window.confirm("Are you sure you want to delete this classroom?")) {
-      return;
-    }
-    
+  const handleDeleteClassroom = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteClassroom = async () => {
     try {
       setLoading(true);
       await deleteClassroom(getToken(), classroomId);
+      setDeleteDialogOpen(false);
       navigate('/homepage');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete classroom');
       setLoading(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -148,7 +162,14 @@ export const useClassroomDetails = (authChecked, user, getToken) => {
     handleDataChange,
     handleRemoveStudent,
     handleUpdateClassroom,
+    deleteDialogOpen,
+    setDeleteDialogOpen,
+    removeStudentDialogOpen,
+    setRemoveStudentDialogOpen,
+    confirmRemoveStudent,
+    confirmDeleteClassroom,
     handleDeleteClassroom,
+    handleRemoveStudent,
     isTeacher: user?.role === "USER_TEACHER",
     isClassroomTeacher: user?.role === classroom?.teacher?.role
   };

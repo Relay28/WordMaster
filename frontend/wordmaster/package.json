@@ -12,16 +12,23 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@fontsource/press-start-2p": "^5.2.5",
     "@mui/icons-material": "^7.0.1",
     "@mui/lab": "^7.0.0-beta.10",
     "@mui/material": "^7.0.1",
     "@mui/x-data-grid": "^7.28.3",
+    "@stomp/stompjs": "^7.1.1",
     "axios": "^1.8.4",
+    "canvas-confetti": "^1.9.3",
+    "chart.js": "^4.4.9",
     "date-fns": "^4.1.0",
     "jwt-decode": "^4.0.0",
     "react": "^19.0.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.4.1",
+    "sockjs": "^0.3.24",
+    "sockjs-client": "^1.6.1",
     "wordmaster": "file:"
   },
   "devDependencies": {

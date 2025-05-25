@@ -1,5 +1,5 @@
 // ContentUpload.jsx - Main component
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Box, Button, CircularProgress, Alert, IconButton, Typography } from '@mui/material';
 import { ArrowBack, Save } from '@mui/icons-material';
@@ -12,7 +12,6 @@ import GroupSettingsForm from './forms/GroupSettingsForm';
 import GameSettingsForm from './forms/GameSettingsForm';
 import WordBankForm from './forms/WordBankForm';
 import BackgroundImageForm from './forms/BackgroundImageForm';
-import PageHeader from './PageHeader';
 import MainContent from './MainContent';
 const ContentUpload = () => {
   const navigate = useNavigate();
@@ -20,9 +19,42 @@ const ContentUpload = () => {
   const { user, getToken } = useUserAuth();
   console.log("Token Presnet "+getToken())
   
-  // Get classroom ID from URL query parameters if it exists
+  // Get classroom ID and student count from URL query parameters
   const queryParams = new URLSearchParams(location.search);
   const classroomId = queryParams.get('classroomId');
+  const studentCount = queryParams.get('studentCount');
+  const [classroomInfo, setClassroomInfo] = useState({
+    id: classroomId,
+    studentCount: studentCount ? parseInt(studentCount) : 0
+  });
+  
+  // If studentCount wasn't passed, fetch it
+  useEffect(() => {
+    if (classroomId && !studentCount) {
+      const fetchClassroomInfo = async () => {
+        try {
+          const token = await getToken();
+          const response = await fetch(`/api/classrooms/${classroomId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setClassroomInfo({
+              id: classroomId,
+              studentCount: data.studentCount || 0
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching classroom info:", error);
+        }
+      };
+      
+      fetchClassroomInfo();
+    }
+  }, [classroomId, studentCount, getToken]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -83,19 +115,36 @@ const ContentUpload = () => {
 
   // Prepare data for submission
   const prepareContentData = () => {
-    return JSON.stringify({
-      wordBank: scenarioSettings.wordBank,
-      roles: scenarioSettings.roles,
-      backgroundImage: imagePreview
-    });
+
+ 
+    return {
+      backgroundImage: imagePreview,
+      wordBank: scenarioSettings.wordBank.map(item => {
+        // Handle both string and object formats
+        const wordItem = typeof item === 'string' 
+          ? { word: item, description: null, exampleUsage: null } 
+          : item;
+            
+        return {
+          word: wordItem.word,
+          description: wordItem.description || "No description available",
+          exampleUsage: wordItem.exampleUsage || "No example available"
+        };
+      }),
+      roles: scenarioSettings.roles.map(role => ({
+        name: role
+      }))
+    };
+
   };
 
+
   const prepareGameConfig = () => {
-    return JSON.stringify({
-      studentsPerGroup: scenarioSettings.studentsPerGroup,
-      timePerTurn: scenarioSettings.timePerTurn,
-      turnCycles: scenarioSettings.turnCycles
-    });
+    return {
+      studentsPerGroup: parseInt(scenarioSettings.studentsPerGroup),
+      timePerTurn: parseInt(scenarioSettings.timePerTurn),
+      turnCycles: parseInt(scenarioSettings.turnCycles)
+    };
   };
 
   // Handle form submission
@@ -112,24 +161,32 @@ const ContentUpload = () => {
       const dataToSubmit = { 
         ...formData,
         contentData: prepareContentData(),
-        gameElementConfig: prepareGameConfig()
+        gameConfig: prepareGameConfig()
       };
       
-      console.log("There is a token "+token)
+      console.log("Submitting data:", dataToSubmit);
+      
       // If classroomId exists, create content for that classroom
       if (classroomId) {
-        await contentService.createContentForClassroom( dataToSubmit,classroomId, token);
+        await contentService.createContentForClassroom(dataToSubmit, classroomId, token);
         navigate(`/classroom/${classroomId}`, { 
           state: { 
             message: `Content "${formData.title}" created successfully.`,
             success: true
           }
         });
-      } 
-      
+      } else {
+        await contentService.createContent(dataToSubmit, token);
+        navigate('/content/dashboard', { 
+          state: { 
+            message: `Content "${formData.title}" created successfully.`,
+            success: true
+          }
+        });
+      }
     } catch (err) {
       console.error("Error creating content:", err);
-      setError("Failed to create content. Please try again.");
+      setError(err.response?.data?.message || "Failed to create content. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -148,16 +205,12 @@ const ContentUpload = () => {
     <Box sx={{ 
       display: 'flex',
       flexDirection: 'column',
-      minHeight: '100vh',
+      height: '100vh',
+      overflow: 'hidden',
       backgroundColor: '#f9f9f9',
     }}>
-      {/* Header */}
-      <PageHeader 
-        title={classroomId ? "Create Classroom Content" : "Create New Content"}
-        loading={loading}
-        handleCancel={handleCancel}
-        handleSubmit={handleSubmit}
-      />
+    
+      
 
       {/* Main Content */}
       <MainContent
@@ -170,6 +223,7 @@ const ContentUpload = () => {
         imagePreview={imagePreview}
         setImagePreview={setImagePreview}
         handleSubmit={handleSubmit}
+        classroomInfo={classroomInfo}
       />
     </Box>
   );

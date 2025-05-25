@@ -6,14 +6,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "content_entity")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
 public class ContentEntity {
 
     @Id
@@ -28,15 +26,18 @@ public class ContentEntity {
     private String description;
     
     @Column(name = "background_theme")
-    private String backgroundTheme;
-    
     @Lob
-    @Column(name = "content_data", columnDefinition = "LONGTEXT")
-    private String contentData;
-    
-    @Column(name = "game_config", columnDefinition = "TEXT")
-    private String gameElementConfig;
-    
+    private String backgroundTheme;
+
+    // Add these relationships:
+    @OneToOne(mappedBy = "content", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private GameConfig gameConfig;
+
+    @OneToOne(mappedBy = "content", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private ContentData contentData;
+
+    @OneToMany(mappedBy = "content", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GameSessionEntity> gameSessions = new ArrayList<>();
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity creator;
@@ -56,16 +57,26 @@ public class ContentEntity {
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "updated_at")
     private Date updatedAt;
-    
+
+
     @PrePersist
     protected void onCreate() {
         createdAt = new Date();
         updatedAt = new Date();
     }
-    
+
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = new Date();
+    }
+
+    public List<GameSessionEntity> getGameSessions() {
+        return gameSessions;
+    }
+
+    public void setGameSessions(List<GameSessionEntity> gameSessions) {
+        this.gameSessions = gameSessions;
     }
 
     public Long getId() {
@@ -100,20 +111,20 @@ public class ContentEntity {
         this.backgroundTheme = backgroundTheme;
     }
 
-    public String getContentData() {
+    public GameConfig getGameConfig() {
+        return gameConfig;
+    }
+
+    public void setGameConfig(GameConfig gameConfig) {
+        this.gameConfig = gameConfig;
+    }
+
+    public ContentData getContentData() {
         return contentData;
     }
 
-    public void setContentData(String contentData) {
+    public void setContentData(ContentData contentData) {
         this.contentData = contentData;
-    }
-
-    public String getGameElementConfig() {
-        return gameElementConfig;
-    }
-
-    public void setGameElementConfig(String gameElementConfig) {
-        this.gameElementConfig = gameElementConfig;
     }
 
     public UserEntity getCreator() {

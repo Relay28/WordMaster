@@ -5,6 +5,7 @@ import cit.edu.wrdmstr.dto.UserProfileUpdateDto;
 import cit.edu.wrdmstr.dto.UserSetupDto;
 import cit.edu.wrdmstr.entity.UserEntity;
 import cit.edu.wrdmstr.repository.UserRepository;
+import cit.edu.wrdmstr.service.interfaces.IProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,7 +17,7 @@ import java.io.IOException;
 import java.util.Base64;
 
 @Service
-public class ProfileService {
+public class ProfileService implements IProfileService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -99,7 +100,7 @@ public class ProfileService {
         user.setProfilePicture(dataUrl);
         userRepository.save(user);
 
-        return "Profile picture uploaded successfully";
+        return dataUrl;
     }
 
     public String deactivateAuthenticatedUser(Authentication authentication) {

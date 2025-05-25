@@ -20,8 +20,17 @@ const studentGroupSizes = [
   { value: 20, label: "Large Group (11-20 students)" }
 ];
 
-const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenarioSettingChange, errors }) => {
+const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenarioSettingChange, errors, classroomInfo }) => {
   const [newRole, setNewRole] = useState('');
+  
+  // Determine recommended role count based on class size if available
+  const studentCount = classroomInfo?.studentCount || 0;
+  const recommendedRoleCount = Math.max(2, Math.ceil(studentCount / 2));
+  
+  // Add guidance for teachers
+  const roleGuidance = studentCount > 0 
+    ? `Based on your class size (${studentCount} students), we recommend creating at least ${recommendedRoleCount} roles.`
+    : "We recommend creating at least 2-3 roles for effective conversations.";
 
   const handleAddRole = () => {
     if (newRole.trim() !== '') {
@@ -45,13 +54,22 @@ const GroupSettingsForm = ({ scenarioSettings, setScenarioSettings, handleScenar
   return (
     <Box sx={{ width: '100%' }}>
       <Box sx={{ mb: 3 }}>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        Configure student groups and roles
-      </Typography>
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          Configure student groups and roles
+        </Typography>
+        
+        {/* Add role count recommendation */}
+        <Typography 
+          variant="body2" 
+          color={scenarioSettings.roles.length >= recommendedRoleCount ? "success.main" : "warning.main"}
+          sx={{ mt: 1, fontStyle: 'italic' }}
+        >
+          {roleGuidance}
+        </Typography>
       </Box>
 
       <Grid container spacing={20} sx={{ mt: 2 }}>
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={8} width={400} sx={{ pr: 10 }}>
           <FormControl fullWidth>
             <InputLabel>Number of Students per Group</InputLabel>
             <Select

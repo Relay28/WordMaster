@@ -47,7 +47,7 @@ public class AuthService {
                 jwt,
                 user.getId(),
                 user.getEmail(),
-                user.getLname(),
+                user.getFname(),
                 user.getLname(),
                 user.getRole(),
                 user.getProfilePicture()
@@ -69,6 +69,85 @@ public class AuthService {
         user.setLname(request.getLname());
         user.setProfilePicture(request.getProfilePicture());
         user.setCreatedAt(new Date());
+
+
+
+        // Save user to database
+        UserEntity savedUser = userService.saveUser(user);
+
+        // Create user details for JWT
+        UserDetails userDetails = userService.loadUserByUsername(savedUser.getEmail());
+
+        // Generate JWT token
+        String jwt = jwtService.generateToken(userDetails);
+
+        // Return auth response with token and user information using factory method
+        return AuthResponse.create(
+                jwt,
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getFname(),
+                savedUser.getLname(),
+                savedUser.getRole(),
+                user.getProfilePicture()
+        );
+    }
+
+    public AuthResponse registerUserStudent(RegisterRequest request) {
+        // Check if email already exists
+        if (userService.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email is already in use");
+        }
+
+        // Create new user entity
+        UserEntity user = new UserEntity();
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword());
+        user.setFname(request.getFname());
+        user.setLname(request.getLname());
+        user.setProfilePicture(request.getProfilePicture());
+        user.setCreatedAt(new Date());
+        user.setRole("USER_STUDENT");
+
+
+
+        // Save user to database
+        UserEntity savedUser = userService.saveUser(user);
+
+        // Create user details for JWT
+        UserDetails userDetails = userService.loadUserByUsername(savedUser.getEmail());
+
+        // Generate JWT token
+        String jwt = jwtService.generateToken(userDetails);
+
+        // Return auth response with token and user information using factory method
+        return AuthResponse.create(
+                jwt,
+                savedUser.getId(),
+                savedUser.getEmail(),
+                savedUser.getFname(),
+                savedUser.getLname(),
+                savedUser.getRole(),
+                user.getProfilePicture()
+        );
+    }
+
+
+    public AuthResponse registerUserTeacher(RegisterRequest request) {
+        // Check if email already exists
+        if (userService.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email is already in use");
+        }
+
+        // Create new user entity
+        UserEntity user = new UserEntity();
+        user.setEmail(request.getEmail());
+        user.setPassword(request.getPassword());
+        user.setFname(request.getFname());
+        user.setLname(request.getLname());
+        user.setProfilePicture(request.getProfilePicture());
+        user.setCreatedAt(new Date());
+        user.setRole("USER_TEACHER");
 
 
 

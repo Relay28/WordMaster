@@ -1,5 +1,8 @@
 package cit.edu.wrdmstr.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserUpdateDto {
     private String email;
     private String fname;

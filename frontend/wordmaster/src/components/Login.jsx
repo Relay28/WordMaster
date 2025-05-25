@@ -1,12 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, IconButton, Typography, Container, Box, Divider, CircularProgress, Alert } from "@mui/material";
+import { 
+  Box,
+  Button,
+  Container,
+  TextField,
+  Typography,
+  IconButton,
+  Divider,
+  CircularProgress,
+  Alert,
+  useMediaQuery,
+  useTheme
+} from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
-import "../css/login.css";
 import { logout, isLoggedIn } from '../utils/authUtils';
+import { useUserAuth } from './context/UserAuthContext';
+import picbg from '../assets/picbg.png';
+import '@fontsource/press-start-2p';
+import logo from '../assets/LOGO.png';
 
-// API base URL - centralized for easy configuration
 const API_BASE_URL = 'http://localhost:8080/api';
 
 const Login = () => {
@@ -17,16 +31,37 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useUserAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  console.log("Check");;;
-  
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '12px' : '14px',
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
+  const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: isMobile ? '8px' : '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('error')) {
       setError(decodeURIComponent(params.get('error')));
     }
     
-    // Check for logout parameter
     if (params.get('logout') === 'true') {
       logout();
       console.log('User logged out successfully');
@@ -34,7 +69,6 @@ const Login = () => {
       navigate('/homepage');
     }
   }, [location, navigate]);
-
 
   const handleRegularLogin = async (e) => {
     e.preventDefault();
@@ -47,38 +81,34 @@ const Login = () => {
     setError('');
     
     try {
-      console.log("Attempting login with:", { email });
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         email,
         password
       });
       
       if (response.data && response.data.token) {
-        console.log("Login successful:", response.data);
-        
-        // Save user data - using consistent keys with AuthProvider
         localStorage.setItem('userToken', response.data.token);
-        localStorage.setItem('userData', JSON.stringify({
+        login({
           id: response.data.id,
           email: response.data.email,
           fname: response.data.fname,
-          profilePicture: response.profilePicture,
           lname: response.data.lname,
+          profilePicture: response.data.profilePicture,
           role: response.data.role
-        }));
-        
-       const val  =  localStorage.getItem('userToken')
+        }, response.data.token);
+
+        const val = localStorage.getItem('userToken');
         const setupResponse = await axios.get(`${API_BASE_URL}/profile/setup/status`, {
-            headers: {
-              Authorization: `Bearer ${val}`
-            }
-          });
-          
-          if (setupResponse.data === true) {
-            navigate('/setup');
-          } else {
-            navigate('/homepage');
+          headers: {
+            Authorization: `Bearer ${val}`
           }
+        });
+          
+        if (setupResponse.data === true) {
+          navigate('/setup');
+        } else {
+          navigate('/homepage');
+        }
       } else {
         throw new Error('Invalid response from server');
       }
@@ -93,16 +123,11 @@ const Login = () => {
   const handleMicrosoftLogin = async () => {
     setLoading(true);
     try {
-      console.log("Initiating Microsoft login");
       const response = await axios.get(`${API_BASE_URL}/auth/microsoft/auth-url`);
       
       if (response.data) {
-        console.log("Redirecting to:", response.data);
-        
-        // Clear any existing auth data to prevent state issues
         localStorage.removeItem('userToken');
         localStorage.removeItem('userData');
-        
         window.location.href = response.data;
       } else {
         throw new Error('Invalid response from server');
@@ -115,123 +140,282 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      {/* Left Section - Image (Handled in CSS) */}
-      <div className="image-section"></div>
+    <Box sx={{ 
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  overflow: 'hidden',
+  background: `
+    linear-gradient(to bottom, 
+      rgba(249, 249, 249, 10) 0%, 
+      rgba(249, 249, 249, 10) 40%, 
+      rgba(249, 249, 249, 0.1) 100%),
+    url(${picbg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed',
+  imageRendering: 'pixelated',
+}}>
+  <Box sx={{ 
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'auto',
+    '&::-webkit-scrollbar': {
+      width: '8px',
+    },
+    '&::-webkit-scrollbar-track': {
+      backgroundColor: 'rgba(95, 75, 139, 0.1)',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: '#5F4B8B',
+      borderRadius: '4px',
+      '&:hover': {
+        backgroundColor: '#4a3a6d',
+      },
+    },
+  }}>
+    <Container maxWidth="sm" sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      p: isMobile ? 3 : 4,
+      my: 4,
+      width: '100%',
+      maxWidth: '500px',
+      backgroundColor: 'rgba(255, 255, 255, 0.85)',
+      borderRadius: '16px',
+      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+      border: '1px solid rgba(255, 255, 255, 0.3)',
+      backdropFilter: 'blur(8px)',
+    }}>
 
-      {/* Right Section - Form */}
-      <div className="form-section">
-        <Container maxWidth="xs" className="form-wrapper" sx={{ padding: '20px' }}>
           {/* Logo */}
-          <Typography variant="h4" className="logo-text" sx={{ padding: '10px' }}>
-            WordMaster
+          <Box sx={{ mb: 2 }}>
+            <img
+              src={logo}
+              alt="WordMaster Logo"
+              style={{
+                height: isMobile ? '60px' : '80px',
+                width: 'auto',
+                objectFit: 'contain'
+              }}
+            />
+          </Box>
+
+          <Typography sx={{ 
+            ...pixelHeading,
+            fontSize: isMobile ? '18px' : '24px',
+            color: '#5F4B8B',
+            textAlign: 'center',
+            mb: 1
+          }}>
+            WORDMASTER
           </Typography>
 
-          {/* Heading & Subheading */}
-          <Typography variant="h5" className="main-heading" sx={{ paddingTop: '10px' }}>
-            Ready to start?
-          </Typography>
-          <Typography variant="body2" className="sub-text" sx={{ paddingBottom: '20px' }}>
-            Log in to dive into endless possibilities!
+          {/* Heading */}
+          <Typography sx={{ 
+            fontSize: isMobile ? '12px' : '14px',
+            color: '#4a5568',
+            textAlign: 'center',
+            mb: 4,
+            fontSize: isMobile ? '20px' : '22px',
+          }}>
+            Ready to start your adventure?
           </Typography>
 
           {/* Error message */}
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 3, ...pixelText }}>
               {error}
             </Alert>
           )}
 
-          <form onSubmit={handleRegularLogin}>
+          <Box component="form" onSubmit={handleRegularLogin} sx={{ mt: 2 }}>
             {/* Email Input */}
             <TextField
               label="Email"
               fullWidth
               margin="normal"
               variant="outlined"
-              className="input-field"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                  '& fieldset': {
+                    borderColor: '#5F4B8B',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#5F4B8B',
+                  },
+                },
+                
+              }}
             />
 
-            {/* Password Input with Visibility Toggle */}
-            <Box position="relative" width="100%">
-              <TextField
-                label="Password"
-                type={passwordVisible ? "text" : "password"}
-                fullWidth
-                margin="normal"
-                variant="outlined"
-                className="input-field"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <IconButton
-                className="visibility-icon"
-                onClick={() => setPasswordVisible(!passwordVisible)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '55%',
-                  transform: 'translateY(-50%)',
-                }}
-              >
-                {passwordVisible ? <VisibilityOff /> : <Visibility />}
-              </IconButton>
-            </Box>
+            {/* Password Input */}
+            <TextField
+              label="Password"
+              type={passwordVisible ? "text" : "password"}
+              fullWidth
+              margin="normal"
+              variant="outlined"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              InputProps={{
+                endAdornment: (
+                  <IconButton
+                    onClick={() => setPasswordVisible(!passwordVisible)}
+                    edge="end"
+                    sx={{ color: '#5F4B8B' }}
+                  >
+                    {passwordVisible ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                )
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '8px',
+                  '& fieldset': {
+                    borderColor: '#5F4B8B',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#5F4B8B',
+                  },
+                },
+                
+              }}
+            />
 
             {/* Forgot Password */}
-            <Typography align="right" className="forgot-password" sx={{ paddingBottom: '30px', fontSize: "10px" }}>
+            {/*
+            <Typography align="right" sx={{ 
+              mb: 3,
+              ...pixelText,
+              fontSize: '8px',
+              color: '#5F4B8B',
+              '&:hover': {
+                textDecoration: 'underline',
+                cursor: 'pointer'
+              }
+            }}>
               Forgot Password?
             </Typography>
+            */}
 
             {/* Login Button */}
-            <Button 
-              variant="contained" 
-              fullWidth 
-              className="login-button"
+            <Button
+              fullWidth
+              variant="contained"
               type="submit"
               disabled={loading}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#5F4B8B',
+                color: 'white',
+                borderRadius: '8px',
+                py: 1.5,
+                mb: 2,
+                '&:hover': {
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 4px 8px rgba(95, 75, 139, 0.3)'
+                },
+                '&:active': {
+                  transform: 'translateY(0)'
+                },
+                '&.Mui-disabled': {
+                  backgroundColor: '#e0e0e0',
+                  color: '#a0a0a0'
+                }
+              }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Login'}
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'LOGIN'}
             </Button>
-          </form>
 
-          {/* OR Divider */}
-          <Divider className="divider" sx={{ marginTop: '10px'}}>
-            <Typography className="or-text" color="gray">OR</Typography>
-          </Divider>
+            {/* OR Divider */}
+            <Divider sx={{ my: 3, '&::before, &::after': { borderColor: '#5F4B8B' } }}>
+              <Typography sx={{ 
+                ...pixelText,
+                color: '#5F4B8B',
+                px: 1
+              }}>
+                OR
+              </Typography>
+            </Divider>
 
-          {/* Microsoft Sign-In Button */}
-          <Box display="flex" justifyContent="center" mt={2}>
-            <Button 
-              variant="outlined" 
-              className="social-button" 
-              sx={{fontSize: "12px"}}
+            {/* Microsoft Login Button */}
+            <Button
+              fullWidth
+              variant="outlined"
               onClick={handleMicrosoftLogin}
               disabled={loading}
+              startIcon={
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 16 16"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="#5F4B8B"
+                >
+                  <path d="M7.462 0H0v7.19h7.462zM16 0H8.538v7.19H16zM7.462 8.211H0V16h7.462zm8.538 0H8.538V16H16z" />
+                </svg>
+              }
+              sx={{
+                ...pixelButton,
+                boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                backdropFilter: 'blur(10px)',
+                color: '#5F4B8B',
+                borderColor: '#5F4B8B',
+                borderRadius: '8px',
+                py: 1.5,
+                '&:hover': {
+                  backgroundColor: 'rgba(38, 23, 71, 0.1)',
+                  borderColor: '#4a3a6d',
+                  color: '#4a3a6d'
+                },
+                '&.Mui-disabled': {
+                  borderColor: '#e0e0e0',
+                  color: '#a0a0a0'
+                }
+              }}
             >
-              <svg
-                className="social-icon"
-                width="20"
-                height="20"
-                viewBox="0 0 16 16"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="#5F4B8B"
-              >
-                <path d="M7.462 0H0v7.19h7.462zM16 0H8.538v7.19H16zM7.462 8.211H0V16h7.462zm8.538 0H8.538V16H16z" />
-              </svg>
-              Sign in with Microsoft
+              SIGN IN WITH MICROSOFT
             </Button>
-          </Box>
 
-          {/* Signup Link */}
-          <Typography className="register-text" sx={{ marginTop: '30px', fontSize: '10px'}}>
-            Don't have an account? <Link to="/register">Signup</Link>
-          </Typography>
+            {/* Signup Link */}
+            <Typography sx={{ 
+              mt: 3,
+              textAlign: 'center',
+              ...pixelText,
+              color: '#3e2c85',
+              '& a': {
+                color: '#251a51',
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline'
+                }
+              }
+            }}>
+              Don't have an account? <Link to="/register">Sign up</Link>
+            </Typography>
+          </Box>
         </Container>
-      </div>
-    </div>
+      </Box>
+    </Box>
+   
   );
 };
 

@@ -31,6 +31,64 @@ public class UserEntity {
     @Lob
     private String profilePicture;
 
+    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL)
+    private List<ChatMessageEntity> sentMessages = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<PlayerSessionEntity> playerSessions = new ArrayList<>();
+
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<ScoreRecordEntity> scoreRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<MessageReactionEntity> reactions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StudentProgress> studentProgressRecords = new ArrayList<>();
+
+    public List<StudentProgress> getStudentProgressRecords() {
+        return studentProgressRecords;
+    }
+
+    public void setStudentProgressRecords(List<StudentProgress> studentProgressRecords) {
+        this.studentProgressRecords = studentProgressRecords;
+    }
+
+    public List<ChatMessageEntity> getSentMessages() {
+        return sentMessages;
+    }
+
+
+    public void setSentMessages(List<ChatMessageEntity> sentMessages) {
+        this.sentMessages = sentMessages;
+    }
+
+    public List<PlayerSessionEntity> getPlayerSessions() {
+        return playerSessions;
+    }
+
+    public void setPlayerSessions(List<PlayerSessionEntity> playerSessions) {
+        this.playerSessions = playerSessions;
+    }
+
+    public List<ScoreRecordEntity> getScoreRecords() {
+        return scoreRecords;
+    }
+
+
+
+    public void setScoreRecords(List<ScoreRecordEntity> scoreRecords) {
+        this.scoreRecords = scoreRecords;
+    }
+
+    public List<MessageReactionEntity> getReactions() {
+        return reactions;
+    }
+
+    public void setReactions(List<MessageReactionEntity> reactions) {
+        this.reactions = reactions;
+    }
 
     private String fname;
     private String lname;

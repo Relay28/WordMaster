@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { 
   Box,
   Button,
@@ -7,6 +7,7 @@ import {
   IconButton,
   TextField,
   Typography,
+  Grid,
   Avatar,
   Paper,
   InputAdornment,
@@ -20,9 +21,50 @@ import {
 import { ArrowBack, CameraAlt, Lock, Email, Close } from "@mui/icons-material";
 import { useUserAuth } from '../components/context/UserAuthContext';
 import { useUserProfile } from './UserProfileFunctions'; // Updated import to match the hook location
+import '@fontsource/press-start-2p'
+import picbg from '../assets/picbg.png';
+
+import farmer from '../assets/ch-farmer.png';
+import king from '../assets/ch-king.png';
+import knight from '../assets/ch-knight.png';
+import mermaid from '../assets/ch-mermaid.png';
+import priest from '../assets/ch-priest.png';
+import teacher from '../assets/ch-teacher.png';
+import wizard from '../assets/ch-wizard.png';
 
 const UserProfileContainer = () => {
-  const { user, authChecked, logout, getToken } = useUserAuth();
+  const { user, authChecked, logout, getToken, setUser } = useUserAuth();
+
+  const handleImageSelect = async (imgPath) => {
+    try {
+      const response = await fetch(imgPath);
+      const blob = await response.blob();
+      const file = new File([blob], imgPath.split('/').pop(), { type: blob.type });
+      await uploadProfilePicture(file);
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      setUser(userData); // This updates the context and triggers a re-render
+
+      setFormData((prev) => ({
+        ...prev,
+        profilePicture: userData.profilePicture
+      }));
+
+      setDialogOpen(false);
+    } catch (error) {
+      console.error('Error selecting image:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    setFormData({
+      firstName: user.fname || "",
+      lastName: user.lname || "",
+      email: user.email || "",
+      profilePicture: user.profilePicture || "",
+    });
+    setEditMode(false);
+  };
+  
   const {
     editMode,
     isDeactivating,
@@ -31,6 +73,7 @@ const UserProfileContainer = () => {
     error,
     success,
     formData,
+    setFormData,
     setEditMode,
     setDeactivateDialogOpen,
     setError, // Make sure to destructure these
@@ -41,9 +84,23 @@ const UserProfileContainer = () => {
     uploadProfilePicture // Make sure this is being properly destructured
   } = useUserProfile(user, authChecked, logout, getToken);
 
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: { xs: '8px', sm: '10px' },
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: { xs: '12px', sm: '14px' },
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
   if (!authChecked || !user) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box display="flex" justifyContent="center" alignItems="center" >
         <CircularProgress />
       </Box>
     );
@@ -51,30 +108,60 @@ const UserProfileContainer = () => {
 
   return (
     <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      minHeight: '100vh',
-      backgroundColor: '#f9f9f9'
-    }}>
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  overflow: 'hidden',
+  background: `
+    linear-gradient(to bottom, 
+      rgba(249, 249, 249, 10) 0%, 
+      rgba(249, 249, 249, 10) 40%, 
+      rgba(249, 249, 249, 0.1) 100%),
+    url(${picbg})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  backgroundRepeat: 'no-repeat',
+  backgroundAttachment: 'fixed',
+  imageRendering: 'pixelated',
+}}>
       {/* Header */}
       <Box sx={{ 
         backgroundColor: 'white',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         py: 2,
-        px: { xs: 2, md: 6 }
+        px: { xs: 2, md: 6 },
+        position: 'relative'
       }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <IconButton onClick={() => window.history.back()} sx={{ color: '#5F4B8B' }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" position="relative">
+          <IconButton onClick={() => window.history.back()} sx={{ color: '#5F4B8B', zIndex: 1 }}>
             <ArrowBack />
           </IconButton>
-          <Typography variant="h4" fontWeight="bold" color="#5F4B8B">
+          <Typography
+            sx={{
+              ...pixelHeading,
+              color: "#5F4B8B",
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              textAlign: "center",
+              width: "100%",
+              pointerEvents: "none"
+            }}
+          >
             Profile
           </Typography>
           <Button
             variant="text"
             color="error"
             onClick={() => setDeactivateDialogOpen(true)}
-            sx={{ textTransform: 'none' }}
+            sx={{ textTransform: 'none', zIndex: 1 }}
           >
             Deactivate Account
           </Button>
@@ -82,45 +169,121 @@ const UserProfileContainer = () => {
       </Box>
 
       {/* Main Content */}
-      <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
-        {loading && !editMode ? (
-          <Box display="flex" justifyContent="center">
-            <CircularProgress />
+      <Box sx={{ 
+        flex: 1,
+        width: '100%',
+        overflow: 'auto',
+        // Optional: custom scrollbar styling
+        '&::-webkit-scrollbar': { width: '8px' },
+        '&::-webkit-scrollbar-thumb': { backgroundColor: '#5F4B8B', borderRadius: '4px' }
+      }}>
+        <Box sx={{ display: 'flex', width: '100%', minHeight: '100%' }}>
+        {/* Left Column */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'top',
+            p: 4,
+            mt: 1
+          }}
+        >
+          <Box
+            sx={{
+              background: 'rgba(95, 75, 139, 0.2)', // #5F4B8B with opacity
+              borderRadius: 4,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+              p: 3,
+              width: '100%',
+              maxWidth: 420,
+              mb: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              overflow: 'hidden'
+            }}
+          >
+          <Typography sx={{...pixelHeading, color:"Black"}}>
+            Choose Character
+          </Typography>
+            <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
+              {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
+                <Grid item xs={4} sm={4} md={4} key={index} display="flex" justifyContent="center"> 
+                  <img
+                    src={src}
+                    alt={`Option ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      maxWidth: 100,
+                      height: 'auto',
+                      aspectRatio: '1/1',
+                      objectFit: 'cover',
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      border: formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent',
+                      transition: 'border 0.2s',
+                      opacity: 1,
+                    }}
+                    onClick={() => uploadProfilePicture && handleImageSelect(src)}
+                    onMouseOver={e => (e.currentTarget.style.border = '2px solid #5F4B8B')}
+                    onMouseOut={e => (e.currentTarget.style.border = formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent')}
+                  />
+                </Grid>
+              ))}
+            </Grid>
           </Box>
-        ) : (
-          <Box display="flex" flexDirection="column" alignItems="center">
+        </Box>
+        {/* Right Column */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'top',
+            p: 2,
+          }}
+        >
+          {/* Reserve space for alert */}
+          <Box sx={{ height: 32, mb: 3, width: '95%' }}>
             {error && (
-              <Alert severity="error" sx={{ mb: 3, width: '100%' }} onClose={() => setError(null)}>
+              <Alert severity="error" sx={{ width: '95%' }} onClose={() => setError(null)}>
                 {error}
               </Alert>
             )}
             {success && (
-              <Alert severity="success" sx={{ mb: 3, width: '100%' }} onClose={() => setSuccess(null)}>
+              <Alert severity="success" sx={{ width: '95%' }} onClose={() => setSuccess(null)}>
                 {success}
               </Alert>
             )}
-
-            <ProfilePicture 
-              firstName={formData.firstName} 
-              lastName={formData.lastName}
-              profilePicture={formData.profilePicture}
-              editMode={editMode}
-              uploadProfilePicture={uploadProfilePicture}
-              loading={loading}
-            />
-
-            <PersonalInformation 
-              formData={formData}
-              editMode={editMode}
-              handleChange={handleChange}
-              handleSubmit={handleSubmit}
-              setEditMode={setEditMode}
-              loading={loading}
-            />
           </Box>
-        )}
-      </Container>
 
+          <ProfilePicture 
+            firstName={formData.firstName} 
+            lastName={formData.lastName}
+            profilePicture={formData.profilePicture}
+            editMode={editMode}
+            uploadProfilePicture={uploadProfilePicture}
+            loading={loading}
+            handleImageSelect={handleImageSelect}
+          />
+
+          <PersonalInformation 
+            formData={formData}
+            editMode={editMode}
+            handleChange={handleChange}
+            handleSubmit={handleSubmit}
+            setEditMode={setEditMode}
+            loading={loading}
+            pixelHeading={pixelHeading}
+            pixelText={pixelText}
+            handleCancel={handleCancel}
+          />
+        </Box>
+      </Box>
+      </Box>
       <DeactivateDialog 
         open={deactivateDialogOpen}
         onClose={() => setDeactivateDialogOpen(false)}
@@ -133,122 +296,158 @@ const UserProfileContainer = () => {
   );
 };
 
-const ProfilePicture = ({ firstName, lastName, profilePicture, editMode, uploadProfilePicture, loading }) => {
-  const fileInputRef = useRef(null);
+const ProfilePicture = ({
+  firstName,
+  lastName,
+  profilePicture,
+  editMode,
+  uploadProfilePicture,
+  loading,
+  handleImageSelect
+}) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleFileSelect = () => {
-    fileInputRef.current.click();
-  };
+  const imageOptions = [
+    farmer,
+    king,
+    knight,
+    mermaid,
+    priest,
+    teacher,
+    wizard,
+  ];
 
-  const handleFileChange = async (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      // Check if file is an image
-      if (!file.type.match('image.*')) {
-        alert('Please select an image file');
-        return;
-      }
-      // Check if file size is less than 5MB
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size should be less than 5MB');
-        return;
-      }
-      // Make sure uploadProfilePicture is a function before calling it
-      if (typeof uploadProfilePicture === 'function') {
-        await uploadProfilePicture(file);
-      } else {
-        console.error('uploadProfilePicture is not a function:', uploadProfilePicture);
-      }
-    }
-  };
+  const initials = `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
 
   return (
-    <Box position="relative" mb={4}>
+    <Box position="relative" mb={1} textAlign="center">
       <Avatar
-        src={profilePicture ? profilePicture : undefined}
-        sx={{ 
-          width: 120, 
-          height: 120, 
+        src={profilePicture || undefined}
+        sx={{
+          width: 120,
+          height: 120,
+          fontSize: 40,
           bgcolor: '#5F4B8B',
-          color: 'white',
-          fontSize: '2.5rem'
+          border: '2px solid #5F4B8B',
+          backgroundColor: 'white ',
+          color: "#5F4B8B",
         }}
       >
-        {!profilePicture && firstName.charAt(0)}{!profilePicture && lastName.charAt(0)}
+        {!profilePicture && initials}
       </Avatar>
-      {editMode && (
-        <>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*"
-            style={{ display: 'none' }}
-            disabled={loading}
-          />
-          <IconButton
-            onClick={handleFileSelect}
-            disabled={loading}
-            sx={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              backgroundColor: '#5F4B8B',
-              color: 'white',
-              '&:hover': {
-                backgroundColor: '#4a3a6d',
-              },
-              '&.Mui-disabled': {
-                backgroundColor: '#9e9e9e',
-                color: '#f5f5f5',
-              }
-            }}
-          >
-            {loading ? <CircularProgress size={24} color="inherit" /> : <CameraAlt />}
-          </IconButton>
-        </>
+      {/*
+       {editMode && (
+        <IconButton
+          onClick={() => setDialogOpen(true)}
+          disabled={loading}
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            right: 'calc(50% - 60px)', // aligns relative to image
+            backgroundColor: '#5F4B8B',
+            color: 'white',
+            '&:hover': {
+              backgroundColor: '#4a3a6d',
+            },
+            '&.Mui-disabled': {
+              backgroundColor: '#9e9e9e',
+              color: '#f5f5f5',
+            }
+          }}
+        >
+          {loading ? <CircularProgress size={24} color="inherit" /> : <CameraAlt />}
+        </IconButton>
       )}
+      */}
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Select a Profile Character</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2}>
+            {imageOptions.map((src, index) => (
+              <Grid item xs={4} key={index} display="flex" justifyContent="center">
+                <img
+                  src={src}
+                  alt={`Option ${index + 1}`}
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    objectFit: 'cover',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    border: '2px solid transparent',
+                    transition: 'border 0.2s ease-in-out',
+                  }}
+                  onClick={() => handleImageSelect(src)}
+                  onMouseOver={(e) => e.currentTarget.style.border = '2px solid #5F4B8B'}
+                  onMouseOut={(e) => e.currentTarget.style.border = '2px solid transparent'}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
 
-// No changes needed for PersonalInformation component
-const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading }) => (
+const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading, pixelHeading, pixelText, handleCancel}) => (
   <Paper 
     elevation={3} 
     sx={{ 
-      width: '100%', 
-      p: 4, 
+      width: '90%', 
+      p: 3, 
       borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+      maxHeight: 400,
+      overflow: 'auto',
+      position: 'relative',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '8px', // adjust height as needed
+        borderTopLeftRadius: '12px',
+        borderTopRightRadius: '12px',
+        background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
+        opacity: 0.9,
+        zIndex: 2
+      }
     }}
   >
-    <Typography variant="h5" fontWeight="bold" gutterBottom>
+    <Typography variant="h5" fontWeight="bold" gutterBottom sx={pixelHeading}>
       Personal Information
     </Typography>
     <Divider sx={{ my: 2 }} />
 
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
-      <Box display="flex" gap={3} mb={3}>
+      <Box display="flex" gap={2} mb={2}>
         <TextField
           fullWidth
           label="First Name"
           name="firstName"
-          value={formData.firstName}
+          value={formData.firstName || ""}
           onChange={handleChange}
           disabled={!editMode}
           variant={editMode ? "outlined" : "filled"}
           required
+          sx={pixelText}
+          InputLabelProps={{ sx: pixelText }}
+          InputProps={{ sx: pixelText }}
         />
         <TextField
           fullWidth
           label="Last Name"
           name="lastName"
-          value={formData.lastName}
+          value={formData.lastName || ""}
           onChange={handleChange}
           disabled={!editMode}
           variant={editMode ? "outlined" : "filled"}
           required
+          sx={pixelText}
+          InputLabelProps={{ sx: pixelText }}
+          InputProps={{ sx: pixelText }}
         />
       </Box>
 
@@ -257,11 +456,13 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         label="Email"
         name="email"
         type="email"
-        value={formData.email}
+        value={formData.email || ""}
         onChange={handleChange}
         disabled={true} // Always disabled regardless of edit mode
         variant="filled"
+        InputLabelProps={{ sx: pixelText }}
         InputProps={{
+          sx: pixelText,
           startAdornment: (
             <InputAdornment position="start">
               <Email color="action" />
@@ -274,7 +475,9 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
           ),
           readOnly: true,
         }}
+        FormHelperTextProps={{ sx: pixelText }}
         sx={{ 
+          pixelText,
           mb: 3,
           backgroundColor: '#f5f5f5',
           '& .MuiInputBase-input': {
@@ -296,7 +499,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
 
       {editMode && (
         <>
-          <TextField
+          {/*<TextField
             fullWidth
             label="Current Password"
             name="currentPassword"
@@ -313,8 +516,8 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
             }}
             sx={{ mb: 2 }}
             required
-          />
-          <TextField
+          />*/}
+          {/*<TextField
             fullWidth
             label="New Password (for display only - not implemented)"
             name="newPassword"
@@ -331,34 +534,50 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
             }}
             sx={{ mb: 3 }}
             disabled // Optional: disable if you don't want users to interact with it
-          />
+          />*/}
         </>
       )}
       <FormActions 
         editMode={editMode}
         setEditMode={setEditMode}
         loading={loading}
+        handleCancel={handleCancel}
       />
     </Box>
   </Paper>
 );
 
 // No changes needed for FormActions component
-const FormActions = ({ editMode, setEditMode, loading }) => (
-  <Box display="flex" justifyContent="flex-end" mt={4}>
+const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
+  <Box display="flex" justifyContent="flex-end" mt={2} gap={2}>
     {editMode ? (
       <>
         <Button
           variant="outlined"
-          onClick={() => setEditMode(false)}
+          onClick={handleCancel}
           sx={{
-            mr: 2,
-            borderColor: '#5F4B8B',
+            backgroundColor: '#fff',
             color: '#5F4B8B',
-            '&:hover': { 
+            borderColor: '#5F4B8B',
+            borderRadius: '4px',
+            px: 3,
+            py: 1,
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: { xs: '8px', sm: '10px' },
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+            transition: 'all 0.1s ease',
+            '&:hover': {
               backgroundColor: '#f0edf5',
-              borderColor: '#4a3a6d'
-            }
+              borderColor: '#4a3a6d',
+              transform: 'translateY(-2px)'
+            },
+            '&:active': {
+              transform: 'translateY(1px)',
+              boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+              borderStyle: 'inset'
+            },
           }}
           disabled={loading}
         >
@@ -370,8 +589,25 @@ const FormActions = ({ editMode, setEditMode, loading }) => (
           disabled={loading}
           sx={{
             backgroundColor: '#5F4B8B',
-            '&:hover': { backgroundColor: '#4a3a6d' },
-            textTransform: 'none',
+            color: '#fff',
+            borderRadius: '4px',
+            px: 3,
+            py: 1,
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: { xs: '8px', sm: '10px' },
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+            transition: 'all 0.1s ease',
+            '&:hover': {
+              backgroundColor: '#4a3a6d',
+              transform: 'translateY(-2px)'
+            },
+            '&:active': {
+              transform: 'translateY(1px)',
+              boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+              borderStyle: 'inset'
+            },
           }}
         >
           {loading ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
@@ -383,8 +619,25 @@ const FormActions = ({ editMode, setEditMode, loading }) => (
         onClick={() => setEditMode(true)}
         sx={{
           backgroundColor: '#5F4B8B',
-          '&:hover': { backgroundColor: '#4a3a6d' },
-          textTransform: 'none',
+          color: '#fff',
+          borderRadius: '4px',
+          px: 3,
+          py: 1,
+          fontFamily: '"Press Start 2P", cursive',
+          fontSize: { xs: '8px', sm: '10px' },
+          letterSpacing: '0.5px',
+          textTransform: 'uppercase',
+          boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+          transition: 'all 0.1s ease',
+          '&:hover': {
+            backgroundColor: '#4a3a6d',
+            transform: 'translateY(-2px)'
+          },
+          '&:active': {
+            transform: 'translateY(1px)',
+            boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+            borderStyle: 'inset'
+          },
         }}
       >
         Edit Profile

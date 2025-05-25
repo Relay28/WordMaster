@@ -11,12 +11,16 @@ import {
   StepLabel,
   Button,
   Stack,
+  Divider,
 } from '@mui/material';
 import ScenarioDetailsForm from './forms/ScenarioDetailsForm';
 import GroupSettingsForm from './forms/GroupSettingsForm';
 import GameSettingsForm from './forms/GameSettingsForm';
 import WordBankForm from './forms/WordBankForm';
 import BackgroundImageForm from './forms/BackgroundImageForm';
+import picbg from '../../../assets/picbg.png';
+import PageHeader from './PageHeader'; 
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const steps = [
   'Scenario Details',
@@ -35,7 +39,10 @@ const MainContent = ({
   handleScenarioSettingChange,
   imagePreview,
   setImagePreview,
-  handleSubmit
+  handleSubmit,
+  handleCancel,  // Add this prop
+  loading,       // Add this prop
+  title
 }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [stepErrors, setStepErrors] = useState({});
@@ -44,7 +51,6 @@ const MainContent = ({
     const errors = {};
     let isValid = true;
   
-    // Step 0: Scenario Details Validation
     if (activeStep === 0) {
       if (!formData.title?.trim()) {
         errors.title = 'Scenario Title is required';
@@ -54,24 +60,26 @@ const MainContent = ({
         errors.description = 'Description is required';
         isValid = false;
       }
+      if (!formData.backgroundTheme) {
+        errors.backgroundTheme = 'Background theme is required';
+        isValid = false;
+      }
     }
     
-    // Step 1: Group Settings Validation
     if (activeStep === 1) {
-      if (!scenarioSettings.studentsPerGroup || scenarioSettings.studentsPerGroup < 1) {
-        errors.studentsPerGroup = 'Valid group size is required';
+      if (!scenarioSettings.studentsPerGroup || scenarioSettings.studentsPerGroup < 2) {
+        errors.studentsPerGroup = 'Group size must be at least 2';
         isValid = false;
       }
-      if (!scenarioSettings.roles || scenarioSettings.roles.length < 3) {
-        errors.roles = 'Add at least 3 roles';
+      if (!scenarioSettings.roles || scenarioSettings.roles.length < 2) {
+        errors.roles = 'Add at least 2 roles';
         isValid = false;
       }
     }
     
-    // Step 3: Word Bank Validation
     if (activeStep === 3) {
-      if (!scenarioSettings.wordBank || scenarioSettings.wordBank.length < 5) {
-        errors.wordBank = 'At least 5 words are required';
+      if (!scenarioSettings.wordBank || scenarioSettings.wordBank.length < 3) {
+        errors.wordBank = 'At least 3 words are required';
         isValid = false;
       }
     }
@@ -80,23 +88,19 @@ const MainContent = ({
     return isValid;
   };
 
-  
   const handleNext = () => {
     if (validateCurrentStep()) {
-      console.log("Current scenarioSettings:", scenarioSettings);
-      console.log("CURRENTSTEP+"+activeStep)
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
-      setStepErrors({}); // Clear errors when moving to next step
+      setStepErrors({});
     }
   };
 
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
-    setStepErrors({}); // Clear errors when going back
+    setStepErrors({});
   };
-console.log(scenarioSettings)
+
   const getStepContent = (step) => {
-    console.log("STEP"+ step)
     switch (step) {
       case 0:
         return (
@@ -143,25 +147,97 @@ console.log(scenarioSettings)
     }
   };
 
+  const location = useLocation(); // Add this
+  const navigate = useNavigate(); // Add this
+
+  const queryParams = new URLSearchParams(location.search);
+  const classroomId = queryParams.get('classroomId');
+
+  const pixelText = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: '10px',
+    lineHeight: '1.5',
+    letterSpacing: '0.5px'
+  };
+
+  const pixelHeading = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: '14px',
+    lineHeight: '1.5',
+    letterSpacing: '1px'
+  };
+
+  const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
+
   return (
     <Box
       component="main"
       sx={{
-        flexGrow: 1,
-        height: 'calc(100vh - 64px)',
-        overflow: 'auto',
-        backgroundColor: '#f5f5f5',
-        py: 4
+        display: 'flex',
+              flexDirection: 'column',
+              height: '100vh',
+  width: '100vw',
+  margin: 0,
+  padding: 0,
+  position: 'fixed',
+  top: 0,
+  left: 0,
+              overflow: 'hidden',
+              background: `
+                linear-gradient(to bottom, 
+                  rgba(249, 249, 249, 10) 0%, 
+                  rgba(249, 249, 249, 10) 40%, 
+                  rgba(249, 249, 249, 0.1) 100%),
+                url(${picbg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'fixed',
+              imageRendering: 'pixelated',
+              
       }}
     >
-      <Container maxWidth="lg">
+      <Box sx={{ 
+            flex: 1,
+            width: '100%',
+            overflow: 'auto',
+            // Custom scrollbar styling
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: 'rgba(95, 75, 139, 0.1)',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#5F4B8B',
+              borderRadius: '4px',
+              '&:hover': {
+                backgroundColor: '#4a3a6d',
+              },
+            },
+          }}>
+
+        {/* Header */}
+              <PageHeader 
+                title={classroomId ? "Create Classroom Content" : "Create New Content"}
+                loading={loading}
+                handleCancel={() => navigate(-1)}
+                handleSubmit={handleSubmit}
+              />
+      <Container maxWidth="xl">
         {error && (
           <Alert 
             severity="error" 
             sx={{ 
               mb: 4,
               backgroundColor: '#ffebee',
-              color: '#d32f2f'
+              color: '#d32f2f',
+              ...pixelText
             }}
           >
             {error}
@@ -195,7 +271,7 @@ console.log(scenarioSettings)
                     }
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ color: '#5F4B8B' }}>
+                  <Typography variant="subtitle2" sx={{ ...pixelText, color: '#5F4B8B' }}>
                     {label}
                   </Typography>
                 </StepLabel>
@@ -206,9 +282,22 @@ console.log(scenarioSettings)
           <Paper sx={{ 
             p: 4, 
             mb: 4,
-            borderRadius: 2,
-            backgroundColor: '#fff',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            borderRadius: '16px',
+            backgroundColor: 'rgba(255,255,255,0.8)',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              borderRadius: '6px',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '6px',
+              background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
+              opacity: 0.8
+            }
           }}>
             <Typography 
               variant="h6" 
@@ -216,11 +305,13 @@ console.log(scenarioSettings)
               sx={{ 
                 mb: 3,
                 color: '#5F4B8B',
-                fontWeight: 600 
+                ...pixelHeading
               }}
             >
               {steps[activeStep]}
             </Typography>
+
+            <Divider sx={{ my: 3 }} />
             
             {getStepContent(activeStep)}
             
@@ -230,11 +321,27 @@ console.log(scenarioSettings)
                 onClick={handleBack}
                 variant="outlined"
                 sx={{
+                  ...pixelButton,
                   color: '#5F4B8B',
                   borderColor: '#5F4B8B',
+                  borderRadius: '8px',
+                  px: 3,
+                  py: 1,
+                  borderStyle: 'outset',
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
                   '&:hover': {
                     backgroundColor: 'rgba(95, 75, 139, 0.08)',
-                    borderColor: '#5F4B8B'
+                    borderColor: '#5F4B8B',
+                    transform: 'translateY(-2px)'
+                  },
+                  '&:active': {
+                    transform: 'translateY(1px)',
+                    boxShadow: '2px 2px 0px rgba(0,0,0,0.1)',
+                    borderStyle: 'inset'
+                  },
+                  '&.Mui-disabled': {
+                    color: '#a0a0a0',
+                    borderColor: '#e0e0e0'
                   }
                 }}
               >
@@ -245,10 +352,26 @@ console.log(scenarioSettings)
                 <Button 
                   variant="contained" 
                   sx={{
+                    ...pixelButton,
                     backgroundColor: '#5F4B8B',
                     color: '#fff',
+                    borderRadius: '8px',
+                    px: 3,
+                    py: 1,
+                    borderStyle: 'outset',
+                    boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
                     '&:hover': {
-                      backgroundColor: '#4a3a6f'
+                      backgroundColor: '#4a3a6f',
+                      transform: 'translateY(-2px)'
+                    },
+                    '&:active': {
+                      transform: 'translateY(1px)',
+                      boxShadow: '2px 2px 0px rgba(0,0,0,0.1)',
+                      borderStyle: 'inset'
+                    },
+                    '&.Mui-disabled': {
+                      backgroundColor: '#e0e0e0',
+                      color: '#a0a0a0'
                     }
                   }}
                   disabled
@@ -261,10 +384,22 @@ console.log(scenarioSettings)
                   onClick={handleNext}
                   type="button"
                   sx={{
+                    ...pixelButton,
                     backgroundColor: '#5F4B8B',
                     color: '#fff',
+                    borderRadius: '8px',
+                    px: 3,
+                    py: 1,
+                    borderStyle: 'outset',
+                    boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
                     '&:hover': {
-                      backgroundColor: '#4a3a6f'
+                      backgroundColor: '#4a3a6f',
+                      transform: 'translateY(-2px)'
+                    },
+                    '&:active': {
+                      transform: 'translateY(1px)',
+                      boxShadow: '2px 2px 0px rgba(0,0,0,0.1)',
+                      borderStyle: 'inset'
                     }
                   }}
                 >
@@ -276,7 +411,9 @@ console.log(scenarioSettings)
         </form>
       </Container>
     </Box>
+    </Box>
   );
 };
 
 export default MainContent;
+
