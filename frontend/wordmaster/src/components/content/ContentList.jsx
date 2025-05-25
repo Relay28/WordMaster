@@ -136,7 +136,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                     fontSize: '10px',
                     color: '#4A5568',
                     mb: 2,
-                    height: '40px',
+                    height: '60px',
                     overflow: 'hidden',
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
