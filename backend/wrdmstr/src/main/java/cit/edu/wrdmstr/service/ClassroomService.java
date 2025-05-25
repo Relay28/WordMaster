@@ -18,6 +18,7 @@ import cit.edu.wrdmstr.repository.StudentEnrollmentRepository;
 import cit.edu.wrdmstr.repository.TeacherFeedbackRepository;
 import cit.edu.wrdmstr.repository.UserRepository;
 import cit.edu.wrdmstr.repository.VocabularyResultRepository;
+import cit.edu.wrdmstr.service.interfaces.IClassroomService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class ClassroomService {
+public class ClassroomService implements IClassroomService {
 
     private final ClassroomRepository classroomRepository;
     private final UserRepository userRepository;

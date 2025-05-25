@@ -6,6 +6,7 @@ import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.gameplay.ScoreService;
 
+import cit.edu.wrdmstr.service.interfaces.ITeacherFeedbackService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -25,7 +26,7 @@ import cit.edu.wrdmstr.repository.GrammarResultRepository;
 import cit.edu.wrdmstr.repository.VocabularyResultRepository;
 @Service
 @Transactional
-public class TeacherFeedbackService {
+public class TeacherFeedbackService implements ITeacherFeedbackService {
     private static final Logger logger = LoggerFactory.getLogger(TeacherFeedbackService.class);
 
     @Autowired private TeacherFeedbackRepository feedbackRepository;

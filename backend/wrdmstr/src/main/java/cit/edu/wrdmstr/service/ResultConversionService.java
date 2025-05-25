@@ -4,10 +4,11 @@ import cit.edu.wrdmstr.dto.GrammarResultDTO;
 import cit.edu.wrdmstr.dto.VocabularyResultDTO;
 import cit.edu.wrdmstr.entity.GrammarResultEntity;
 import cit.edu.wrdmstr.entity.VocabularyResultEntity;
+import cit.edu.wrdmstr.service.interfaces.IResultConversionService;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ResultConversionService {
+public class ResultConversionService implements IResultConversionService {
 
     public GrammarResultDTO convertToDTO(GrammarResultEntity entity) {
         if (entity == null) {

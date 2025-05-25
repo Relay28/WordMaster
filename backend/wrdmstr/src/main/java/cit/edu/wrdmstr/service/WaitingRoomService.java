@@ -8,6 +8,7 @@ import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
 import cit.edu.wrdmstr.repository.UserRepository;
 import cit.edu.wrdmstr.service.gameplay.GameSessionManagerService;
 import cit.edu.wrdmstr.service.gameplay.GameSessionService;
+import cit.edu.wrdmstr.service.interfaces.IWaitingRoomService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors; // Import Collectors for toSet()
 
 @Service
-public class WaitingRoomService {
+public class WaitingRoomService implements IWaitingRoomService {
     private final Map<Long, Set<UserDto>> waitingRooms = new ConcurrentHashMap<>();
 
     @Autowired
