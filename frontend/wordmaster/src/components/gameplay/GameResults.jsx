@@ -144,21 +144,6 @@ const GameResults = ({ gameState }) => {
     }}>
       <Container maxWidth="lg">
         <Box display="flex" alignItems="center" mb={4}>
-          <Button
-            startIcon={<ArrowBack />}
-            onClick={handleBackToClassroom}
-            sx={{
-              ...pixelText,
-              mr: 2,
-              color: '#5F4B8B',
-              border: '2px solid #5F4B8B',
-              '&:hover': {
-                backgroundColor: 'rgba(95, 75, 139, 0.1)'
-              }
-            }}
-          >
-            Back to Classroom
-          </Button>
           <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px' }}>
             Game Results
           </Typography>
@@ -300,7 +285,8 @@ const GameResults = ({ gameState }) => {
               borderRadius: '8px',
               border: '3px solid #5F4B8B',
               overflow: 'hidden',
-              backgroundColor: 'rgba(255, 255, 255, 0.7)'
+              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+              marginTop: '12px',
             }}>
               <Box sx={{ 
                 bgcolor: '#5F4B8B', 

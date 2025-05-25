@@ -135,7 +135,6 @@ const TeacherContentSessions = () => {
         <Grid container spacing={3}>
           {/* Session Information */}
           <Grid item xs={12}>
-          // Update the Paper sx prop:
 <Paper sx={{
   p: isMobile ? 2 : 3,
   backgroundColor: 'rgba(255, 255, 255, 0.95)',
