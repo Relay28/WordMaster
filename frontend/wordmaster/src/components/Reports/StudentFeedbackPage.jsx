@@ -278,7 +278,7 @@ const StudentFeedbackPage = () => {
               PERFORMANCE SUMMARY
             </Typography>
             
-            <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid container spacing={2} sx={{ mb: 3, justifyContent: 'center' }}>
               <Grid item xs={6} sm={3}>
                 <Paper elevation={0} sx={{ 
                   p: 2, 
@@ -288,7 +288,7 @@ const StudentFeedbackPage = () => {
                   border: '1px solid rgba(95, 75, 139, 0.1)',
                   height: '100%'
                 }}>
-                  <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B' }}>
+                  <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B', width: '120px' }}>
                     TOTAL SCORE
                   </Typography>
                   <Typography sx={{ ...pixelHeading, fontSize: '16px' }}>
@@ -305,7 +305,7 @@ const StudentFeedbackPage = () => {
                   border: '1px solid rgba(95, 75, 139, 0.1)',
                   height: '100%'
                 }}>
-                  <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B' }}>
+                  <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B', width: '120px'}}>
                     MESSAGES SENT
                   </Typography>
                   <Typography sx={{ ...pixelHeading, fontSize: '16px' }}>
@@ -349,7 +349,7 @@ const StudentFeedbackPage = () => {
               </Grid>
             </Grid>
             
-            <Box sx={{ textAlign: 'center', mt: 4 }}>
+            <Box sx={{ textAlign: 'center', mt: 8 }}>
               <Typography sx={{ ...pixelText, fontSize: '10px', mb: 1 }}>
                 OVERALL GRADE
               </Typography>
