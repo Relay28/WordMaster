@@ -402,7 +402,7 @@ const StudentFeedbackPage = () => {
               Skill Assessments:
             </Typography>
             
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ justifyContent: 'center', mb: 4 }}>
               <Grid item xs={6} sm={3}>
                 <Paper elevation={0} sx={{ 
                   p: 2, 
