@@ -291,7 +291,7 @@ public class AIService {
                     return feedbackPrompt.toString();
                 case "generate_comprehension_questions":
                     StringBuilder questionsPrompt = new StringBuilder();
-                    questionsPrompt.append("You are an expert language teacher creating a comprehension quiz to assess a student's understanding.\n\n");
+                    questionsPrompt.append("You are a supportive grade 8 language teacher creating a comprehension quiz to assess a student's understanding.\n\n");
                     questionsPrompt.append("Please create 5 questions based on the following context:\n\n");
                     questionsPrompt.append(request.get("context")).append("\n\n");
                     questionsPrompt.append("Student: ").append(request.get("studentName")).append("\n");
@@ -338,7 +338,7 @@ public class AIService {
                         "[simple definition] | [natural example sentence]";
                 case "vocabulary_check":
                     StringBuilder vocabPrompt = new StringBuilder();
-                    vocabPrompt.append("You are analyzing vocabulary usage in student text for language learning assessment.\n\n");
+                    vocabPrompt.append("You are a supportive grade 8 language teacher analyzing vocabulary usage in student text for language learning assessment.\n\n");
                     vocabPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n");
                     vocabPrompt.append("Words used from word bank: ").append(request.get("usedWords")).append("\n\n");
                     
