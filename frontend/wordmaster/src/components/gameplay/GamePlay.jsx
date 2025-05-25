@@ -445,33 +445,34 @@ useEffect(() => {
     }
   }, [gameState, isSinglePlayer, isProcessing]);
 
-  // Add this new component at the top of your file after imports
-const CycleTransitionOverlay = ({ isActive, cycle }) => {
-  if (!isActive) return null;
+   // Add this new component at the top of your file after imports
   
-  return (
-    <Box sx={{ 
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      bgcolor: '#f5f5f5'
-    }}>
-      <Box sx={{ textAlign: 'center', maxWidth: '600px', p: 4 }}>
-        <Typography variant="h3" sx={{ mb: 2, color: '#5F4B8B' }}>
-          Cycle {cycle-1} Completed!
-        </Typography>
-        <Typography variant="h5" sx={{ mb: 4 }}>
-          Starting Cycle {cycle}
-        </Typography>
-        <CircularProgress size={60} sx={{ color: '#5F4B8B' }} />
-        <Typography variant="body1" sx={{ mt: 4, fontStyle: 'italic' }}>
-          New story prompts and word availability are being refreshed...
-        </Typography>
-      </Box>
-    </Box>
-  );
-};
+    // const CycleTransitionOverlay = ({ isActive, cycle }) => {
+    //   if (!isActive) return null;
+      
+    //   return (
+    //     <Box sx={{ 
+    //       height: '100vh',
+    //       display: 'flex',
+    //       flexDirection: 'column',
+    //       overflow: 'hidden',
+    //       bgcolor: '#f5f5f5'
+    //     }}>
+    //       <Box sx={{ textAlign: 'center', maxWidth: '600px', p: 4 }}>
+    //         <Typography variant="h3" sx={{ mb: 2, color: '#5F4B8B' }}>
+    //           Cycle {cycle-1} Completed!
+    //         </Typography>
+    //         <Typography variant="h5" sx={{ mb: 4 }}>
+    //           Starting Cycle {cycle}
+    //         </Typography>
+    //         <CircularProgress size={60} sx={{ color: '#5F4B8B' }} />
+    //         <Typography variant="body1" sx={{ mt: 4, fontStyle: 'italic' }}>
+    //           New story prompts and word availability are being refreshed...
+    //         </Typography>
+    //       </Box>
+    //     </Box>
+    //   );
+    // };
 
   // Add this effect to detect cycle changes
   useEffect(() => {
@@ -516,10 +517,7 @@ const cycleDisplayString = isSinglePlayer
 
  return (
   <>
-    <CycleTransitionOverlay
-      isActive={showCycleTransition}
-      cycle={gameState.currentCycle || 1}
-    />
+    
     
     <Box sx={{ 
       height: '90vh',
@@ -907,15 +905,15 @@ const cycleDisplayString = isSinglePlayer
         </Box>
       )}
       
-      <Typography sx={{ ...pixelText, fontSize: isMobile ? '8px' : '10px' }}>
+      <Typography sx={{fontSize: isMobile ? '14px' : '18px' }}>
         <strong>{msg.senderName}:</strong> {msg.content}
       </Typography>
       
       {/* Show role if available */}
       {msg.role && (
         <Typography sx={{ 
-          ...pixelText, 
-          fontSize: '6px', 
+
+          fontSize: '16px', 
           opacity: 0.8,
           fontStyle: 'italic' 
         }}>
@@ -924,8 +922,8 @@ const cycleDisplayString = isSinglePlayer
       )}
       
       <Typography sx={{ 
-        ...pixelText, 
-        fontSize: '6px', 
+
+        fontSize: '16px', 
         opacity: 0.7, 
         mt: 0.5 
       }}>
@@ -943,7 +941,7 @@ const cycleDisplayString = isSinglePlayer
             borderRadius: '8px',
             fontSize: '0.75rem'
           }}>
-            <Typography sx={{ ...pixelText, whiteSpace: 'pre-wrap', color: '#666' }}>
+            <Typography sx={{whiteSpace: 'pre-wrap', color: 'black' }}>
               {msg.grammarFeedback}
             </Typography>
           </Paper>
@@ -1043,35 +1041,35 @@ const cycleDisplayString = isSinglePlayer
         </Alert>
       </Snackbar>
 
-      {/* Cycle change notification */}
-      {showCycleTransition && (
-        <Box 
-          sx={{ 
-            position: 'fixed', 
-            top: 16, 
-            left: '50%', 
-            transform: 'translateX(-50%)', 
-            bgcolor: '#5F4B8B', 
-            color: 'white', 
-            p: 2, 
-            borderRadius: '8px', 
-            boxShadow: '0 4px 8px rgba(0,0,0,0.2)', 
-            zIndex: 10000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 1
-          }}
-        >
-          <Typography variant="h6" fontWeight="medium">
-            Cycle {gameState.currentCycle - 1} Completed! 
-          </Typography>
-          <CircularProgress size={24} sx={{ color: 'white' }} />
-          <Typography variant="body2" sx={{ opacity: 0.9 }}>
-            Starting Cycle {gameState.currentCycle}...
-          </Typography>
-        </Box>
-      )}
+        {/* Cycle change notification */}
+        {/* {showCycleTransition && (
+          <Box 
+            sx={{ 
+              position: 'fixed', 
+              top: 16, 
+              left: '50%', 
+              transform: 'translateX(-50%)', 
+              bgcolor: '#5F4B8B', 
+              color: 'white', 
+              p: 2, 
+              borderRadius: '8px', 
+              boxShadow: '0 4px 8px rgba(0,0,0,0.2)', 
+              zIndex: 10000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1
+            }}
+          >
+            <Typography variant="h6" fontWeight="medium">
+              Cycle {gameState.currentCycle - 1} Completed! 
+            </Typography>
+            <CircularProgress size={24} sx={{ color: 'white' }} />
+            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              Starting Cycle {gameState.currentCycle}...
+            </Typography>
+          </Box>
+      )} */}
 
       {/* Single-player turn notification */}
       <Snackbar
