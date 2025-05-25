@@ -151,6 +151,9 @@ public class AIService {
                     case "language_validation":
                         errorResponse.setResult("ENGLISH - Great job using English! Keep up the excellent work.");
                         break;
+                    case "role_generation":
+                        errorResponse.setResult("- Discussion Leader\n- Researcher\n- Note Taker\n- Presenter\n- Facilitator");
+                        break;
                     default:
                         errorResponse.setResult("Please continue practicing in English. You're making wonderful progress!");
                 }
@@ -360,6 +363,14 @@ public class AIService {
                         "- 'NOT ENGLISH' if the text contains Filipino/Tagalog words or is in another language\n\n" +
                         "Be encouraging - these are young learners building English confidence!";
 
+                case "role_generation":
+                    int newRoleCount = ((Number) request.get("roleCount")).intValue();
+                    return "Generate " + newRoleCount + " unique role names for a language learning game about: " 
+                        + request.get("topic") + ".\n\n"
+                        + "Each role should be appropriate for students playing in a conversation scenario. Be creative and diverse.\n"
+                        + "Format your response as a bullet point list with exactly " + newRoleCount + " roles:\n"
+                        + buildRoleBulletPoints(newRoleCount) + "\n";
+                
                 default:
                     return "Please provide your response in ENGLISH to help practice your English skills. You're doing great!";
             }
