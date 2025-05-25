@@ -130,59 +130,64 @@ public class AIService {
                 logger.error("Error calling Gemini API: " + e.getMessage(), e);
                 // Create a fallback response
                 AIResponse errorResponse = new AIResponse();
-                  // Task-specific fallbacks
+                  // Task-specific fallbacks with supportive tone for Filipino students
                 String task = (String) request.get("task");
                 switch (task) {
                     case "story_prompt":
-                        errorResponse.setResult("Continue the conversation based on your role and the topic!");
+                        errorResponse.setResult("Let's continue our English conversation! Please share your thoughts in English about the topic.");
                         break;
                     case "role_prompt":
-                        errorResponse.setResult("Remember to stay in character and use vocabulary appropriate for your role.");
+                        errorResponse.setResult("Remember to stay in character and use English vocabulary. You're doing great in practicing English!");
                         break;
                     case "role_check":
-                        errorResponse.setResult("Appropriate. The text appears to match the role context.");
+                        errorResponse.setResult("APPROPRIATE. Your English is improving! Keep practicing with confidence.");
                         break;
                     case "word_generation":
-                        errorResponse.setResult("vocabulary");
+                        errorResponse.setResult("practice");
                         break;
                     case "grammar_check":
-                        errorResponse.setResult("The text has minor errors. Please review your sentence structure and punctuation.");
+                        errorResponse.setResult("MINOR ERRORS - Your English is getting better! Keep practicing your sentence structure and you'll improve even more.");
+                        break;
+                    case "language_validation":
+                        errorResponse.setResult("ENGLISH - Great job using English! Keep up the excellent work.");
                         break;
                     default:
-                        errorResponse.setResult("Error: Unable to get AI response.");
+                        errorResponse.setResult("Please continue practicing in English. You're making wonderful progress!");
                 }
                 
                 return errorResponse;
             }
         }
 
-        // Update the buildPromptFromRequest method to add a case for story_prompt
+        // Update the buildPromptFromRequest method to add English enforcement and supportive tone
         private String buildPromptFromRequest(Map<String, Object> request) {
             String task = (String) request.get("task");
             
             switch (task) {
                 case "grammar_check":
-                    return "You are a supportive grade 8 language teacher analyzing a student's sentence for a language learning game.\n" +
+                    return "You are a supportive and encouraging English teacher helping Grade 8-9 Filipino students learn English.\n" +
                         "Check the following text: \"" + request.get("text") + "\"\n\n" +
-                        "Evaluate the text and classify it as one of:\n" +
-                        "- 'NO ERRORS' if the message is clear and understandable with good grammar (minor typos are okay)\n" +
-                        "- 'MINOR ERRORS' if there are small grammar issues but the meaning is clear\n" +
-                        "- 'MAJOR ERRORS' if there are significant grammar problems that affect understanding\n\n" +
-                        "Be encouraging! Focus on communication effectiveness rather than perfect grammar.\n" +
-                        "Start your response with one of these classifications, then provide brief, positive feedback.";
+                        "IMPORTANT: First verify that the text is written in ENGLISH. If the text contains Filipino/Tagalog words or is not in English, respond with 'MAJOR ERRORS - Please write in English only. I believe you can do it!'\n\n" +
+                        "If the text is in English, evaluate it with kindness and classify it as one of:\n" +
+                        "- 'NO ERRORS' if the message is clear and understandable with good English grammar (minor typos are okay)\n" +
+                        "- 'MINOR ERRORS' if there are small English grammar issues but the meaning is clear\n" +
+                        "- 'MAJOR ERRORS' if there are significant English grammar problems that affect understanding\n\n" +
+                        "Remember, you're nurturing young Filipino learners who are building confidence in English. Be encouraging and focus on their progress!\n" +
+                        "Start your response with one of these classifications, then provide brief, positive feedback that motivates them to keep improving their English.";
 
                 case "role_check":
-                    return "You are evaluating if a student's message is appropriate for their assigned role in a language learning game.\n" +
+                    return "You are a kind and supportive English teacher helping Grade 8-9 Filipino students practice English through role-play.\n" +
                         "Role: " + request.getOrDefault("role", "student") + "\n" +
                         "Context: " + request.getOrDefault("context", "general topics") + "\n" +
                         "Message: \"" + request.getOrDefault("text", "") + "\"\n\n" +
-                        "First, analyze if the vocabulary, tone, and content match what would be expected from someone in this role.\n" +
+                        "CRITICAL: First check if the message is written in ENGLISH. If it contains Filipino/Tagalog or is not in English, respond with 'NOT APPROPRIATE - Please use English only. You're doing great - just remember to practice in English!'\n\n" +
+                        "If the message is in English, analyze if the vocabulary, tone, and content match what would be expected from someone in this role.\n" +
                         "YOUR RESPONSE MUST BEGIN EXACTLY with either 'APPROPRIATE' or 'NOT APPROPRIATE' (in capital letters),\n" +
-                        "followed by a brief explanation of your reasoning. Consider both language appropriateness and role alignment.";
+                        "followed by encouraging feedback. Remember, these are young Filipino learners building English confidence - be nurturing and supportive!";
 
                 case "story_prompt":
-                    StringBuilder prompt = new StringBuilder("You are writing conversation starters for students practicing language skills.\n");
-                    prompt.append("Create a natural, casual prompt as if you're a teacher guiding a classroom discussion.\n\n");
+                    StringBuilder prompt = new StringBuilder("You are a warm and encouraging English teacher creating conversation starters for Grade 8-9 Filipino students practicing ENGLISH.\n");
+                    prompt.append("Create a natural, engaging prompt IN ENGLISH that will motivate young Filipino learners to respond in English.\n\n");
                     prompt.append("Topic/Context: ").append(request.get("content")).append("\n");
                     prompt.append("Turn number: ").append(request.get("turn")).append("\n");
                     
@@ -190,193 +195,173 @@ public class AIService {
                     List<String> usedWords = (List<String>) request.get("usedWords");
                     if (usedWords != null && !usedWords.isEmpty()) {
                         prompt.append("Words already used: ").append(String.join(", ", usedWords)).append("\n");
-                        prompt.append("Try to create a scenario that might encourage using new vocabulary.\n");
+                        prompt.append("Try to create a scenario that encourages using new English vocabulary.\n");
                     }
                     
-                    prompt.append("\nYour response should be conversational and sound natural - like something a real teacher would say.\n");
-                    prompt.append("Keep it to 1-2 sentences maximum and don't use academic or AI-sounding language.\n");
-                    prompt.append("Don't mention that you're an AI or that this is a language exercise - just write a natural prompt.\n");
+                    prompt.append("\nIMPORTANT GUIDELINES:\n");
+                    prompt.append("- Your response must be in ENGLISH and encourage students to respond in ENGLISH\n");
+                    prompt.append("- Be warm, supportive, and encouraging - these are young Filipino learners\n");
+                    prompt.append("- Sound like a caring teacher who believes in their students' English abilities\n");
+                    prompt.append("- Include phrases like 'Please respond in English' or 'Let's practice our English by...'\n");
+                    prompt.append("- Keep it conversational and age-appropriate for Grade 8-9 students\n");
+                    prompt.append("- Show enthusiasm for their English learning journey\n");
                     return prompt.toString();
-                    
+
                 case "word_generation":
-                    return "Generate one challenging vocabulary word appropriate for a " 
+                    return "Generate one vocabulary word appropriate for Grade 8-9 Filipino students learning English at " 
                         + request.get("difficulty") + " difficulty level in the context: " 
-                        + request.get("context") + ". Reply with just the word itself.";
-        case "content_generation":
-            // Get the requested number of roles (default to 5 if not specified)
-            int roleCount = 5;
-            if (request.containsKey("roleCount")) {
-                roleCount = ((Number) request.get("roleCount")).intValue();
-            }
-            
-            return "Generate exactly 20 vocabulary words and exactly " + roleCount + " role names for a language learning game about: " 
-                + request.get("topic") + ".\n\n"
-                + "IMPORTANT GUIDELINES:\n"
-                + "- Choose simple, practical words that students can easily incorporate into conversations\n"
-                + "- Avoid technical jargon or overly complex terms\n"
-                + "- Select words that naturally fit into a conversation about this topic\n"
-                + "- Choose words at approximately middle-school to early high-school level\n\n"
-                + "Also create a brief, engaging scenario description (2-3 sentences) that introduces the context and purpose for this language activity.\n\n"
-                + "You MUST format your response EXACTLY as follows (including the exact headers and bullet points):\n\n"
-                + "DESCRIPTION:\n"
-                + "Your engaging 2-3 sentence description here that sets context for the activity and relates to the topic.\n\n"
-                + "WORDS:\n"
-                + "- word1 | Brief definition of word1 | Example sentence using word1\n"
-                + "- word2 | Brief definition of word2 | Example sentence using word2\n"
-                + "- word3 | Brief definition of word3 | Example sentence using word3\n"
-                + "- word4 | Brief definition of word4 | Example sentence using word4\n"
-                + "- word5 | Brief definition of word5 | Example sentence using word5\n"
-                + "- word6 | Brief definition of word6 | Example sentence using word6\n"
-                + "- word7 | Brief definition of word7 | Example sentence using word7\n"
-                + "- word8 | Brief definition of word8 | Example sentence using word8\n"
-                + "- word9 | Brief definition of word9 | Example sentence using word9\n"
-                + "- word10 | Brief definition of word10 | Example sentence using word10\n"
-                + "- word11 | Brief definition of word11 | Example sentence using word11\n"
-                + "- word12 | Brief definition of word12 | Example sentence using word12\n"
-                + "- word13 | Brief definition of word13 | Example sentence using word13\n"
-                + "- word14 | Brief definition of word14 | Example sentence using word14\n"
-                + "- word15 | Brief definition of word15 | Example sentence using word15\n"
-                + "- word16 | Brief definition of word16 | Example sentence using word16\n"
-                + "- word17 | Brief definition of word17 | Example sentence using word17\n"
-                + "- word18 | Brief definition of word18 | Example sentence using word18\n"
-                + "- word19 | Brief definition of word19 | Example sentence using word19\n"
-                + "- word20 | Brief definition of word20 | Example sentence using word20\n\n"
-                + "ROLES:\n" + buildRoleBulletPoints(roleCount) + "\n\n";
-                case "role_generation":
-                    int newRoleCount = ((Number) request.get("roleCount")).intValue();
-                    return "Generate " + newRoleCount + " unique role names for a language learning game about: " 
+                        + request.get("context") + ". Choose words that will help them build confidence in English. Reply with just the English word itself.";
+
+                case "content_generation":
+                    // Get the requested number of roles (default to 5 if not specified)
+                    int roleCount = 5;
+                    if (request.containsKey("roleCount")) {
+                        roleCount = ((Number) request.get("roleCount")).intValue();
+                    }
+                    
+                    return "Generate exactly 20 ENGLISH vocabulary words and exactly " + roleCount + " role names for Grade 8-9 Filipino students learning English about: " 
                         + request.get("topic") + ".\n\n"
-                        + "Each role should be appropriate for students playing in a conversation scenario. Be creative and diverse.\n"
-                        + "Format your response as a bullet point list with exactly " + newRoleCount + " roles:\n"
-                        + buildRoleBulletPoints(newRoleCount) + "\n";
+                        + "IMPORTANT GUIDELINES FOR FILIPINO LEARNERS:\n"
+                        + "- All words must be common ENGLISH vocabulary that builds confidence\n"
+                        + "- Choose simple, practical ENGLISH words appropriate for Grade 8-9 Filipino students\n"
+                        + "- Select words they can use in real English conversations\n"
+                        + "- Avoid words that might be too challenging or intimidating\n"
+                        + "- Focus on vocabulary that helps them feel successful in English\n\n"
+                        + "Create a warm, encouraging scenario description (2-3 sentences) IN ENGLISH that motivates Filipino students to practice English.\n\n"
+                        + "You MUST format your response EXACTLY as follows:\n\n"
+                        + "DESCRIPTION:\n"
+                        + "Your encouraging 2-3 sentence description IN ENGLISH that motivates Grade 8-9 Filipino students to practice English confidently.\n\n"
+                        + "WORDS:\n"
+                        + "- word1 | Simple English definition | Natural English example sentence\n"
+                        + "- word2 | Simple English definition | Natural English example sentence\n"
+                        + "- word3 | Simple English definition | Natural English example sentence\n"
+                        + "- word4 | Simple English definition | Natural English example sentence\n"
+                        + "- word5 | Simple English definition | Natural English example sentence\n"
+                        + "- word6 | Simple English definition | Natural English example sentence\n"
+                        + "- word7 | Simple English definition | Natural English example sentence\n"
+                        + "- word8 | Simple English definition | Natural English example sentence\n"
+                        + "- word9 | Simple English definition | Natural English example sentence\n"
+                        + "- word10 | Simple English definition | Natural English example sentence\n"
+                        + "- word11 | Simple English definition | Natural English example sentence\n"
+                        + "- word12 | Simple English definition | Natural English example sentence\n"
+                        + "- word13 | Simple English definition | Natural English example sentence\n"
+                        + "- word14 | Simple English definition | Natural English example sentence\n"
+                        + "- word15 | Simple English definition | Natural English example sentence\n"
+                        + "- word16 | Simple English definition | Natural English example sentence\n"
+                        + "- word17 | Simple English definition | Natural English example sentence\n"
+                        + "- word18 | Simple English definition | Natural English example sentence\n"
+                        + "- word19 | Simple English definition | Natural English example sentence\n"
+                        + "- word20 | Simple English definition | Natural English example sentence\n\n"
+                        + "ROLES:\n" + buildRoleBulletPoints(roleCount) + "\n\n";
+
                 case "generate_feedback":
                     StringBuilder feedbackPrompt = new StringBuilder();
-                    feedbackPrompt.append("You are a language teacher providing feedback to a student after a language learning game.\n\n");
+                    feedbackPrompt.append("You are a warm, supportive English teacher providing feedback to a Grade 8-9 Filipino student after an English language learning game.\n\n");
                     
-                    //Add more emphasis on using student's actual name
                     String studentName = (String)request.get("studentName");
                     feedbackPrompt.append("Student name: ").append(studentName).append("\n");
-                    feedbackPrompt.append("Student role in game: ").append(request.get("role")).append("\n");
+                    feedbackPrompt.append("Student role in English practice: ").append(request.get("role")).append("\n");
                     feedbackPrompt.append("Performance metrics:\n");
                     feedbackPrompt.append("- Total score: ").append(request.get("totalScore")).append("\n");
-                    feedbackPrompt.append("- Messages sent: ").append(request.get("messageCount")).append("\n");
-                    feedbackPrompt.append("- Perfect grammar messages: ").append(request.get("perfectGrammarCount")).append("\n");
-                    feedbackPrompt.append("- Word bank usage: ").append(request.get("wordBankUsageCount")).append("\n\n");
+                    feedbackPrompt.append("- English messages sent: ").append(request.get("messageCount")).append("\n");
+                    feedbackPrompt.append("- Perfect English grammar messages: ").append(request.get("perfectGrammarCount")).append("\n");
+                    feedbackPrompt.append("- English word bank usage: ").append(request.get("wordBankUsageCount")).append("\n\n");
                     
-                    feedbackPrompt.append("Sample messages from student:\n");
+                    feedbackPrompt.append("Sample English messages from student:\n");
                     List<String> sampleMessages = (List<String>) request.get("sampleMessages");
                     for (int i = 0; i < sampleMessages.size(); i++) {
                         feedbackPrompt.append(i+1).append(". ").append(sampleMessages.get(i)).append("\n");
                     }
                     
-                    feedbackPrompt.append("\nProvide constructive feedback addressing:\n");
-                    feedbackPrompt.append("1. Language use (grammar, vocabulary)\n");
-                    feedbackPrompt.append("2. Role adherence and character consistency\n");
-                    feedbackPrompt.append("3. Participation level\n");
-                    feedbackPrompt.append("4. Strengths and areas for improvement\n\n");
+                    feedbackPrompt.append("\nProvide nurturing, encouraging feedback for this young Filipino learner addressing:\n");
+                    feedbackPrompt.append("1. English language progress (grammar, vocabulary)\n");
+                    feedbackPrompt.append("2. Confidence building in English communication\n");
+                    feedbackPrompt.append("3. Participation and effort in English practice\n");
+                    feedbackPrompt.append("4. Celebrating strengths and gentle guidance for improvement\n\n");
                     
-                    // Add instruction to use student's name and provide scores
                     feedbackPrompt.append("IMPORTANT INSTRUCTIONS:\n");
-                    feedbackPrompt.append("- Address the student by name \"" + studentName + "\" directly in your feedback\n");
-                    feedbackPrompt.append("- DO NOT use placeholders like [Student Name]\n");
-                    feedbackPrompt.append("- Include specific scores (on a scale of 1-5) for each of these areas:\n");
-                    feedbackPrompt.append("  * Comprehension Score: (1-5)\n");
-                    feedbackPrompt.append("  * Participation Score: (1-5)\n");
-                    feedbackPrompt.append("  * Language Use Score: (1-5)\n");
-                    feedbackPrompt.append("  * Role Adherence Score: (1-5)\n");
+                    feedbackPrompt.append("- Address ").append(studentName).append(" warmly and personally\n");
+                    feedbackPrompt.append("- Write like a caring teacher who believes in their English learning journey\n");
+                    feedbackPrompt.append("- Emphasize the importance and value of practicing English\n");
+                    feedbackPrompt.append("- Be encouraging about their progress as Filipino learners of English\n");
+                    feedbackPrompt.append("- Include specific scores (1-5) for:\n");
+                    feedbackPrompt.append("  * English Comprehension Score: (1-5)\n");
+                    feedbackPrompt.append("  * English Participation Score: (1-5)\n");
+                    feedbackPrompt.append("  * English Language Use Score: (1-5)\n");
+                    feedbackPrompt.append("  * Role Adherence in English Score: (1-5)\n");
                     feedbackPrompt.append("  * Overall Letter Grade: (A-F)\n\n");
                     
-                    feedbackPrompt.append("Format: Start with positive feedback, then areas for improvement, end with encouragement, and finally list all scores.\n");
+                    feedbackPrompt.append("Format: Start with warm praise, acknowledge their English learning effort, provide gentle guidance, end with motivation to continue improving their English, then list scores.\n");
                     
                     return feedbackPrompt.toString();
+
                 case "generate_comprehension_questions":
                     StringBuilder questionsPrompt = new StringBuilder();
-                    questionsPrompt.append("You are a supportive grade 8 language teacher creating a comprehension quiz to assess a student's understanding.\n\n");
-                    questionsPrompt.append("Please create 5 questions based on the following context:\n\n");
+                    questionsPrompt.append("You are a supportive English teacher creating comprehension questions for Grade 8-9 Filipino students to assess their English understanding.\n\n");
+                    questionsPrompt.append("Please create 5 encouraging questions based on the following English context:\n\n");
                     questionsPrompt.append(request.get("context")).append("\n\n");
                     questionsPrompt.append("Student: ").append(request.get("studentName")).append("\n");
                     questionsPrompt.append("Student's Role: ").append(request.get("studentRole")).append("\n\n");
                     
-                    questionsPrompt.append("Generate 5 questions with the following format:\n");
-                    questionsPrompt.append("1. First multiple choice question?\n");
+                    questionsPrompt.append("Create questions that help Filipino students feel confident about their English comprehension.\n");
+                    questionsPrompt.append("Generate 5 questions with this format:\n");
+                    questionsPrompt.append("1. First multiple choice question about English content?\n");
                     questionsPrompt.append("A. Option 1\n");
                     questionsPrompt.append("B. Option 2\n");
                     questionsPrompt.append("C. Option 3\n");
                     questionsPrompt.append("D. Option 4\n");
                     questionsPrompt.append("Correct Answer: B\n\n");
                     
-                    questionsPrompt.append("2. Second true/false question?\n");
-                    questionsPrompt.append("A. True\n");
-                    questionsPrompt.append("B. False\n");
-                    questionsPrompt.append("Correct Answer: A\n\n");
-                    
-                    questionsPrompt.append("Only create multiple choice and true/false questions. DO NOT create short answer questions.\n");
-                    questionsPrompt.append("Each question must have exactly 4 options for multiple choice or 2 options (True/False) for true/false questions.\n");
-                    questionsPrompt.append("Make sure questions test comprehension of the content, conversation context, and the student's role.\n");
-                    questionsPrompt.append("Include questions about key vocabulary when appropriate.\n");
+                    questionsPrompt.append("Make questions clear and encouraging for young Filipino English learners.\n");
+                    questionsPrompt.append("Focus on testing their English comprehension while building confidence.\n");
+                    questionsPrompt.append("Include English vocabulary questions when appropriate.\n");
                     
                     return questionsPrompt.toString();
-                case "evaluate_short_answer":
-                    StringBuilder evaluationPrompt = new StringBuilder();
-                    evaluationPrompt.append("You are evaluating a student's short answer response.\n\n");
-                    evaluationPrompt.append("Question: ").append(request.get("question")).append("\n");
-                    evaluationPrompt.append("Expected Answer: ").append(request.get("expectedAnswer")).append("\n");
-                    evaluationPrompt.append("Student's Answer: ").append(request.get("studentAnswer")).append("\n\n");
-                    
-                    evaluationPrompt.append("Evaluate if the student's answer demonstrates understanding of the concept.\n");
-                    evaluationPrompt.append("Response should start with either CORRECT or INCORRECT, followed by a brief explanation.\n");
-                    evaluationPrompt.append("Consider semantic similarity rather than exact wording.\n");
-                    
-                    return evaluationPrompt.toString();
-                case "word_enrichment":
-                    return "You're helping create materials for students learning English. For the word: " + 
-                        request.get("word") + ":\n\n" +
-                        "1. Provide a simple, clear definition that a middle-school student would understand\n" +
-                        "2. Write a natural, conversational example sentence showing how this word is used in everyday speech\n\n" +
-                        "Make your response useful for language learners by using straightforward language.\n" +
-                        "Format your response exactly as follows (no labels):\n" +
-                        "[simple definition] | [natural example sentence]";
+
                 case "vocabulary_check":
                     StringBuilder vocabPrompt = new StringBuilder();
-                    vocabPrompt.append("You are a supportive grade 8 language teacher analyzing vocabulary usage in student text for language learning assessment.\n\n");
+                    vocabPrompt.append("You are a caring English teacher analyzing English vocabulary usage by a Grade 8-9 Filipino student.\n\n");
                     vocabPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n");
-                    vocabPrompt.append("Words used from word bank: ").append(request.get("usedWords")).append("\n\n");
+                    vocabPrompt.append("English words used from word bank: ").append(request.get("usedWords")).append("\n\n");
                     
-                    // Include analysis results if available
-                    Map<String, Object> analysis = (Map<String, Object>) request.get("vocabularyAnalysis");
-                    if (analysis != null) {
-                        vocabPrompt.append("Vocabulary Analysis Results:\n");
-                        vocabPrompt.append("- Vocabulary Level: ").append(analysis.get("vocabularyLevel")).append("\n");
-                        vocabPrompt.append("- Advanced Words: ").append(analysis.get("advancedWords")).append("\n");
-                        vocabPrompt.append("- Lexical Density: ").append(analysis.get("lexicalDensity")).append("\n");
-                        vocabPrompt.append("- Type-Token Ratio: ").append(analysis.get("typeTokenRatio")).append("\n\n");
-                    }
-                    
-                    vocabPrompt.append("Provide constructive feedback on:\n");
-                    vocabPrompt.append("1. Effective use of vocabulary from the word bank\n");
-                    vocabPrompt.append("2. Complexity and sophistication of word choices\n");
-                    vocabPrompt.append("3. Suggestions for vocabulary enhancement\n");
-                    vocabPrompt.append("4. Recognition of advanced vocabulary usage\n\n");
-                    vocabPrompt.append("Keep feedback encouraging and specific to help student improvement.");
+                    vocabPrompt.append("Provide encouraging feedback to help this Filipino student improve their English vocabulary:\n");
+                    vocabPrompt.append("1. Celebrate their use of English vocabulary from the word bank\n");
+                    vocabPrompt.append("2. Acknowledge their effort in practicing English\n");
+                    vocabPrompt.append("3. Gently suggest ways to enhance their English vocabulary\n");
+                    vocabPrompt.append("4. Motivate continued English language learning\n\n");
+                    vocabPrompt.append("Remember: be supportive and nurturing - help them feel proud of their English progress!");
                     
                     return vocabPrompt.toString();
                 case "generate_vocabulary_exercises":
                     StringBuilder exercisesPrompt = new StringBuilder();
-                    exercisesPrompt.append("You are creating vocabulary exercises for a language learning game.\n\n");
+                    exercisesPrompt.append("You are a caring and supportive English teacher creating vocabulary exercises for Grade 8-9 Filipino students learning English.\n\n");
                     
                     exercisesPrompt.append("Word bank: ").append(request.get("wordBank")).append("\n\n");
                     exercisesPrompt.append("Words already used by student: ").append(request.get("usedWords")).append("\n\n");
                     exercisesPrompt.append("Student name: ").append(request.get("studentName")).append("\n\n");
                     
-                    exercisesPrompt.append("Create 3 vocabulary exercises:\n");
-                    exercisesPrompt.append("1. A fill-in-the-blank exercise\n");
-                    exercisesPrompt.append("2. A word matching exercise\n");
-                    exercisesPrompt.append("3. A sentence completion exercise\n\n");
-                    exercisesPrompt.append("Focus on words the student hasn't used yet. Format as JSON for easy parsing.");
+                    exercisesPrompt.append("Create 3 encouraging ENGLISH vocabulary exercises that build confidence:\n");
+                    exercisesPrompt.append("1. A fill-in-the-blank exercise using ENGLISH words\n");
+                    exercisesPrompt.append("2. A word matching exercise with ENGLISH vocabulary\n");
+                    exercisesPrompt.append("3. A sentence completion exercise in ENGLISH\n\n");
+                    exercisesPrompt.append("Focus on English words the student hasn't used yet to expand their vocabulary.\n");
+                    exercisesPrompt.append("Make exercises encouraging and age-appropriate for Filipino learners.\n");
+                    exercisesPrompt.append("Format as JSON for easy parsing, ensuring all content promotes English learning.");
                     
                     return exercisesPrompt.toString();
+                    
+                // Add language validation for Filipino students
+                case "language_validation":
+                    return "You are helping Grade 8-9 Filipino students practice ENGLISH communication.\n" +
+                        "Text to check: \"" + request.get("text") + "\"\n\n" +
+                        "Check if this text is written in ENGLISH (not Filipino/Tagalog).\n" +
+                        "Respond with either:\n" +
+                        "- 'ENGLISH' if the text is primarily in English\n" +
+                        "- 'NOT ENGLISH' if the text contains Filipino/Tagalog words or is in another language\n\n" +
+                        "Be encouraging - these are young learners building English confidence!";
+
                 default:
-                    return "Provide a response to: " + request;
+                    return "Please provide your response in ENGLISH to help practice your English skills. You're doing great!";
             }
         }
 
