@@ -331,7 +331,7 @@ const StudentReportPage = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
             <Button
               startIcon={<ArrowBack />}
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/homepage')}
               sx={{
                 ...pixelButton,
                 mr: 2,

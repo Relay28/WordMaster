@@ -122,7 +122,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
   };
   
   const handleBackToClassroom = () => {
-    navigate(-1);
+    navigate('/homepage');
   };
   
   const handleTabChange = (event, newValue) => {
