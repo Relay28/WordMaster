@@ -84,8 +84,16 @@ public class ProgressTrackingService {
         if (messages.isEmpty()) return 0.0;
 
         double totalScore = 0;
+        int processedMessages = 0; // Only count non-pending messages
         
         for (ChatMessageEntity message : messages) {
+            if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.PENDING) {
+                // Skip pending messages in accuracy calculation
+                continue;
+            }
+            
+            processedMessages++;
+            
             if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.PERFECT) {
                 totalScore += 1.0; // 100% credit
             } else if (message.getGrammarStatus() == ChatMessageEntity.MessageStatus.MINOR_ERRORS) {
@@ -95,7 +103,7 @@ public class ProgressTrackingService {
             }
         }
 
-        return (totalScore * 100.0) / messages.size();
+        return processedMessages > 0 ? (totalScore * 100.0) / processedMessages : 0.0;
     }
 
     private double calculateWordBombUsageRate(List<ChatMessageEntity> messages,ContentData contentData) {

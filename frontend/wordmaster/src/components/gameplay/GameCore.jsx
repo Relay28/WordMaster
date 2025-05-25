@@ -151,16 +151,34 @@ const handleChatMessage = (message) => {
     const chatData = JSON.parse(message.body);
     console.log('Chat message received:', chatData);
     
-    // Update messages immediately in the game state
-    setGameState(prev => ({
-      ...prev,
-      messages: [...(prev.messages || []), chatData].sort((a, b) => 
-        new Date(a.timestamp) - new Date(b.timestamp)
-      )
-    }));
+    setGameState(prev => {
+      const messages = prev.messages || [];
+      
+      // Check if this is an update to an existing optimistic message
+      const existingIndex = messages.findIndex(msg => 
+        msg.isOptimistic && 
+        msg.senderId === chatData.senderId && 
+        msg.content === chatData.content &&
+        Math.abs(new Date(msg.timestamp).getTime() - new Date(chatData.timestamp).getTime()) < 5000 // Within 5 seconds
+      );
+      
+      if (existingIndex !== -1) {
+        // Replace optimistic message with real one
+        const updatedMessages = [...messages];
+        updatedMessages[existingIndex] = { ...chatData, isOptimistic: false };
+        return {
+          ...prev,
+          messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        };
+      } else {
+        // Add new message
+        return {
+          ...prev,
+          messages: [...messages, chatData].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        };
+      }
+    });
     
-    // Also fetch latest messages to ensure consistency
-    fetchSessionMessages();
   } catch (error) {
     console.error('Error handling chat message:', error);
   }

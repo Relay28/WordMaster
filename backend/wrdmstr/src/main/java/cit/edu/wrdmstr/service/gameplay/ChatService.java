@@ -173,6 +173,9 @@ public class ChatService {
 
         if (message.getGrammarStatus() == MessageStatus.PERFECT) {
             progress.setTotalPerfectGrammar(progress.getTotalPerfectGrammar() + 1);
+        } else if (message.getGrammarStatus() == MessageStatus.PENDING) {
+            // Don't count pending messages in perfect grammar stats yet
+            // This will be updated when the message analysis completes
         }
 
         if (message.isContainsWordBomb()) {
@@ -334,7 +337,7 @@ public class ChatService {
             throw e;
         }
     }
-    
+
     private ChatMessageEntity sendMessageSinglePlayerOptimized(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findActiveBySessionIdAndUserId(sessionId, userId);
         PlayerSessionEntity player = players.isEmpty() ? null : players.get(0);
@@ -352,7 +355,8 @@ public class ChatService {
         message.setPlayerSession(player);
         message.setContent(content);
         message.setTimestamp(new Date());
-        message.setGrammarStatus(MessageStatus.MINOR_ERRORS); // Changed from PENDING to MINOR_ERRORS
+        message.setGrammarStatus(MessageStatus.PENDING); // Keep as PENDING initially
+        message.setGrammarFeedback("Processing...");
         
         // Save message immediately for responsiveness
         ChatMessageEntity savedMessage = chatMessageRepository.save(message);
@@ -360,14 +364,14 @@ public class ChatService {
         // Broadcast immediately with pending status
         broadcastChatMessage(savedMessage);
         
-        // Process grammar and vocabulary checks asynchronously
+        // Process analysis asynchronously
         CompletableFuture.runAsync(() -> {
             processMessageAnalysisAsync(savedMessage, player, session);
         });
         
         return savedMessage;
     }
-    
+
     @Async("analysisExecutor")
     private void processMessageAnalysisAsync(ChatMessageEntity message, PlayerSessionEntity player, GameSessionEntity session) {
         try {
@@ -395,6 +399,11 @@ public class ChatService {
                     
                 } catch (Exception e) {
                     logger.error("Error processing analysis results: ", e);
+                    // Set fallback status if analysis fails
+                    message.setGrammarStatus(MessageStatus.MINOR_ERRORS);
+                    message.setGrammarFeedback("Analysis temporarily unavailable");
+                    chatMessageRepository.save(message);
+                    broadcastChatMessage(message);
                 }
             });
             

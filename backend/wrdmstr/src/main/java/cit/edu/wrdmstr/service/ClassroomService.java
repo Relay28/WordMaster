@@ -3,11 +3,21 @@ package cit.edu.wrdmstr.service;
 import cit.edu.wrdmstr.dto.ClassroomDto;
 import cit.edu.wrdmstr.dto.UserDto;
 import cit.edu.wrdmstr.entity.ClassroomEntity;
+import cit.edu.wrdmstr.entity.ContentEntity;
+import cit.edu.wrdmstr.entity.GameSessionEntity;
 import cit.edu.wrdmstr.entity.StudentEnrollmentEntity;
 import cit.edu.wrdmstr.entity.UserEntity;
+import cit.edu.wrdmstr.repository.ChatMessageEntityRepository;
 import cit.edu.wrdmstr.repository.ClassroomRepository;
+import cit.edu.wrdmstr.repository.ComprehensionResultRepository;
+import cit.edu.wrdmstr.repository.ContentRepository;
+import cit.edu.wrdmstr.repository.GameSessionEntityRepository;
+import cit.edu.wrdmstr.repository.GrammarResultRepository;
+import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
 import cit.edu.wrdmstr.repository.StudentEnrollmentRepository;
+import cit.edu.wrdmstr.repository.TeacherFeedbackRepository;
 import cit.edu.wrdmstr.repository.UserRepository;
+import cit.edu.wrdmstr.repository.VocabularyResultRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -27,17 +37,40 @@ public class ClassroomService {
     private final ClassroomRepository classroomRepository;
     private final UserRepository userRepository;
     private final StudentEnrollmentRepository enrollmentRepository;
-
+    private final ContentRepository contentRepository;
+    private final GameSessionEntityRepository gameSessionRepository;
+    private final GrammarResultRepository grammarResultRepository;
+    private final VocabularyResultRepository vocabularyResultRepository;
+    private final ComprehensionResultRepository comprehensionResultRepository;
+    private final TeacherFeedbackRepository teacherfeedbackRepository;
+    private final PlayerSessionEntityRepository playerSessionRepository;
+    private final ChatMessageEntityRepository chatmessageRepository;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int CODE_LENGTH = 8;
 
     @Autowired
     public ClassroomService(ClassroomRepository classroomRepository,
                             UserRepository userRepository,
-                            StudentEnrollmentRepository enrollmentRepository) {
+                            StudentEnrollmentRepository enrollmentRepository,
+                            ContentRepository contentRepository,
+                            GameSessionEntityRepository gameSessionRepository,
+                            GrammarResultRepository grammarResultRepository,
+                            VocabularyResultRepository vocabularyResultRepository,
+                            ComprehensionResultRepository comprehensionResultRepository,
+                            TeacherFeedbackRepository teacherfeedbackRepository,
+                            PlayerSessionEntityRepository playerSessionRepository,
+                            ChatMessageEntityRepository chatmessageRepository) {
         this.classroomRepository = classroomRepository;
         this.userRepository = userRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.contentRepository = contentRepository;
+        this.gameSessionRepository = gameSessionRepository;
+        this.grammarResultRepository = grammarResultRepository;
+        this.vocabularyResultRepository = vocabularyResultRepository;
+        this.comprehensionResultRepository = comprehensionResultRepository;
+        this.teacherfeedbackRepository = teacherfeedbackRepository;
+        this.playerSessionRepository = playerSessionRepository;
+        this.chatmessageRepository = chatmessageRepository;
     }
 
     // Create a new classroom
@@ -208,10 +241,55 @@ public class ClassroomService {
         UserEntity teacher = getAuthenticatedUser(authentication);
         ClassroomEntity classroom = getClassroomById(classroomId);
 
-        if (!(classroom.getTeacher().getId() ==(teacher.getId()))) {
+        if (!(classroom.getTeacher().getId() == teacher.getId())) {
             throw new RuntimeException("Only the classroom teacher can delete the classroom");
         }
 
+        // First, delete all content and their associated game sessions
+        List<ContentEntity> contents = new ArrayList<>(classroom.getContents());
+        for (ContentEntity content : contents) {
+            // Delete all game sessions for this content
+            List<GameSessionEntity> sessions = gameSessionRepository.findByContentId(content.getId());
+            for (GameSessionEntity session : sessions) {
+                Long sessionId = session.getId();
+                
+                // IMPORTANT: Clear the current_player reference first
+                session.setCurrentPlayer(null);
+                gameSessionRepository.save(session);
+                
+                // Delete all related data
+                grammarResultRepository.deleteByGameSessionId(sessionId);
+                vocabularyResultRepository.deleteByGameSessionId(sessionId);
+                comprehensionResultRepository.deleteByGameSessionId(sessionId);
+                teacherfeedbackRepository.deleteByGameSessionId(sessionId);
+                
+                // Delete chat messages
+                chatmessageRepository.deleteBySessionId(sessionId);
+                
+                // Now delete player sessions (after clearing the foreign key reference)
+                playerSessionRepository.deleteBySessionId(sessionId);
+                
+                // Delete the session itself
+                gameSessionRepository.delete(session);
+            }
+            
+            // Remove content from classroom
+            classroom.removeContent(content);
+            contentRepository.delete(content);
+        }
+        
+        // Clear all student enrollments
+        List<StudentEnrollmentEntity> enrollments = new ArrayList<>(classroom.getEnrollments());
+        for (StudentEnrollmentEntity enrollment : enrollments) {
+            enrollmentRepository.delete(enrollment);
+        }
+        classroom.getEnrollments().clear();
+        classroom.getStudents().clear();
+        
+        // Save classroom to persist the cleared relationships
+        classroomRepository.save(classroom);
+        
+        // Finally delete the classroom
         classroomRepository.delete(classroom);
     }
 

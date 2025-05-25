@@ -149,7 +149,7 @@ public class ChatMessageEntity {
     }
 
     public enum MessageStatus {
-        PERFECT, MINOR_ERRORS, MAJOR_ERRORS
+        PERFECT, MINOR_ERRORS, MAJOR_ERRORS, PENDING
     }
 
     public String getWordUsed() {

@@ -117,6 +117,7 @@ public class ScoreService {
             case PERFECT -> 15;
             case MINOR_ERRORS -> 5;
             case MAJOR_ERRORS -> 1;  // Still give 1 point for participation
+            case PENDING -> 0;  // Add this case - no points awarded for pending messages
         };
         
         if (grammarPoints > 0) {
@@ -137,8 +138,11 @@ public class ScoreService {
                 }
             }
         } else {
-            // Reset streak on very poor performance
-            player.setGrammarStreak(0);
+            // Reset streak on very poor performance or pending messages
+            if (status != ChatMessageEntity.MessageStatus.PENDING) {
+                player.setGrammarStreak(0);
+            }
+            // For PENDING messages, don't reset the streak - just don't award points yet
         }
         
         playerRepository.save(player);

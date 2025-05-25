@@ -349,13 +349,28 @@ useEffect(() => {
     setSubmitting(true);
     const currentSentence = sentence.trim();
     
+    // Immediately clear input and show optimistic message
+    setSentence('');
+    
+    // Create optimistic message with pending status
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      senderId: user.id,
+      senderName: `${user.fname} ${user.lname}`,
+      content: currentSentence,
+      timestamp: new Date(),
+      grammarStatus: 'PROCESSING', // New status to show it's being processed
+      grammarFeedback: 'Processing...',
+      isOptimistic: true,
+      containsWordBomb: false,
+      wordUsed: '',
+      roleAppropriate: null
+    };
+    
+    // Add optimistic message immediately
+    setLocalMessages(prev => [...prev, optimisticMessage]);
+    
     try {
-      // Stop local timer during submission
-      setTimerActive(false);
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
-
       const token = await getToken();
       if (!token) {
         setSubmitting(false);
@@ -363,12 +378,13 @@ useEffect(() => {
         return;
       }
 
-      // For single player, provide immediate UI feedback
+      // Send to backend
+      const headers = { 'Authorization': `Bearer ${token}` };
+      await sendMessage(`/app/game/${gameState.sessionId}/word`, 
+                       { word: currentSentence }, headers);
+
+      // For single player, optimistically advance turn
       if (isSinglePlayer) {
-        setSentence('');
-        setIsProcessing(true);
-        
-        // Optimistically show next turn starting
         const nextTurn = (gameState.currentTurn || 0) + 1;
         setLocalTimeRemaining(gameState.timePerTurn || 30);
         
@@ -377,54 +393,16 @@ useEffect(() => {
           currentCycle: nextTurn,
           timeRemaining: gameState.timePerTurn || 30
         });
-        
-        // Add optimistic message
-        const optimisticMessage = {
-          id: `temp-${Date.now()}`,
-          senderId: user.id,
-          senderName: `${user.fname} ${user.lname}`,
-          content: currentSentence,
-          timestamp: new Date(),
-          grammarStatus: 'PENDING',
-          isOptimistic: true
-        };
-        
-        setLocalMessages(prev => [...prev, optimisticMessage]);
-      }
-
-      // Send to backend
-      const headers = { 'Authorization': `Bearer ${token}` };
-      await sendMessage(`/app/game/${gameState.sessionId}/word`, 
-                       { word: currentSentence }, headers);
-
-      if (!isSinglePlayer) {
-        setSentence('');
-      }
-
-      // For single player, set timeout to refresh if no WebSocket update
-      if (isSinglePlayer) {
-        processingTimeoutRef.current = setTimeout(() => {
-          setIsProcessing(false);
-          fetchUpdatedGameState();
-        }, 2000);
       }
 
     } catch (error) {
       console.error('Error sending sentence:', error);
-      
-      // Restore timer on error
-      setTimerActive(isMyTurn || isSinglePlayer);
-      
-      if (isSinglePlayer) {
-        setOptimisticGameState(gameState);
-        setSentence(currentSentence);
-      }
+      // Remove optimistic message on error
+      setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      setSentence(currentSentence); // Restore input
       alert('Failed to send sentence. Please try again.');
     } finally {
       setSubmitting(false);
-      if (!isSinglePlayer) {
-        setIsProcessing(false);
-      }
     }
   };
 
@@ -903,122 +881,59 @@ const cycleDisplayString = isSinglePlayer
      
 {localMessages.map((msg, index) => (
   <Box
-    key={index}
+    key={msg.id || index}
     sx={{
-      alignSelf: msg.senderId === user?.id ? 'flex-end' : 'flex-start',
-      maxWidth: '80%'
+      display: 'flex',
+      justifyContent: msg.senderId === user?.id ? 'flex-end' : 'flex-start',
+      mb: 1,
+      opacity: msg.isOptimistic ? 0.7 : 1, // Dim optimistic messages
     }}
   >
-    <Box 
-      sx={{
-        mb: 2,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: msg.senderId === user?.id ? 'flex-end' : 'flex-start'
-      }}
-    >
-      <Paper sx={{
-        p: 1.5,
-        // Fix: Always use consistent colors for user's own messages
-        bgcolor: msg.senderId === user?.id 
-          ? '#5F4B8B'  // Always purple for user's messages
-          : msg.grammarStatus === 'MAJOR_ERRORS' ? '#ffebee' : 
-            msg.grammarStatus === 'MINOR_ERRORS' ? '#fff3e0' : 
-            msg.grammarStatus === 'PERFECT' ? '#e8f5e8' :
-            '#e0e0e0', // Default gray for other players
-        color: msg.senderId === user?.id ? '#ffffff' : '#5F4B8B',
-        borderRadius: '12px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        // Add border for better visual consistency
-        border: msg.senderId === user?.id ? '2px solid #4a3a6d' : '1px solid #ddd'
-      }}>
-        <Box display="flex" alignItems="center" mb={1}>
-          <Avatar 
-            sx={{ 
-              width: 24, 
-              height: 24, 
-              mr: 1,
-              fontSize: '0.75rem',
-              // Consistent avatar colors
-              bgcolor: msg.senderId === user?.id ? '#4a3a6d' : '#9e9e9e'
-            }}
-          >
-            {msg.senderName?.charAt(0) || 'P'}
-          </Avatar>
-          <Typography variant="subtitle2" fontWeight="bold" sx={pixelText}>
-            {msg.senderName || 'Player'}
+    <Box sx={{
+      maxWidth: '70%',
+      p: 1,
+      borderRadius: '8px',
+      bgcolor: msg.senderId === user?.id ? '#5F4B8B' : '#f0f0f0',
+      color: msg.senderId === user?.id ? 'white' : 'black',
+      position: 'relative'
+    }}>
+      {/* Add processing indicator */}
+      {msg.grammarStatus === 'PROCESSING' && (
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+          <CircularProgress size={12} sx={{ mr: 1, color: 'inherit' }} />
+          <Typography sx={{ ...pixelText, fontSize: '6px' }}>
+            Processing...
           </Typography>
         </Box>
-        
-        <Typography variant="body2" sx={{
-          ...pixelText,
-          // Ensure text is always readable
-          color: msg.senderId === user?.id ? '#ffffff' : '#333',
-          mb: 1
-        }}>
-          {msg.content}
-        </Typography>
-        
-        {/* Status chips with consistent styling */}
-        <Box display="flex" gap={0.5} flexWrap="wrap" mb={1}>
-          {msg.grammarStatus && msg.grammarStatus !== 'PENDING' && (
-            <Chip 
-              label={msg.grammarStatus.replace(/_/g, ' ')}
-              size="small" 
-              color={msg.grammarStatus === 'MAJOR_ERRORS' ? 'error' : 'warning'}
-              sx={{ 
-                fontSize: '0.6rem', 
-                ...pixelText,
-                // Make chips more visible on colored backgrounds
-                '& .MuiChip-label': {
-                  color: msg.senderId === user?.id ? '#fff' : 'inherit'
-                }
-              }}
-            />
-          )}
-          
-          {/* Role appropriate indicators */}
-          {msg.roleAppropriate === true && (
-            <Chip 
-              label="Role Appropriate"
-              size="small" 
-              color="success"
-              sx={{ 
-                fontSize: '0.6rem', 
-                ...pixelText,
-                '& .MuiChip-label': {
-                  color: msg.senderId === user?.id ? '#fff' : 'inherit'
-                }
-              }}
-            />
-          )}
-          {msg.roleAppropriate === false && (
-            <Chip 
-              label="Role Inappropriate"
-              size="small" 
-              color="error"
-              sx={{ 
-                fontSize: '0.6rem', 
-                ...pixelText,
-                '& .MuiChip-label': {
-                  color: msg.senderId === user?.id ? '#fff' : 'inherit'
-                }
-              }}
-            />
-          )}
-        </Box>
-      </Paper>
+      )}
       
-      <Typography variant="caption" sx={{ 
-        mt: 0.5, 
-        color: gameState.backgroundImage ? 'rgba(255,255,255,0.7)' : 'text.secondary', 
-        ...pixelText 
+      <Typography sx={{ ...pixelText, fontSize: isMobile ? '8px' : '10px' }}>
+        <strong>{msg.senderName}:</strong> {msg.content}
+      </Typography>
+      
+      {/* Show role if available */}
+      {msg.role && (
+        <Typography sx={{ 
+          ...pixelText, 
+          fontSize: '6px', 
+          opacity: 0.8,
+          fontStyle: 'italic' 
+        }}>
+          as {msg.role}
+        </Typography>
+      )}
+      
+      <Typography sx={{ 
+        ...pixelText, 
+        fontSize: '6px', 
+        opacity: 0.7, 
+        mt: 0.5 
       }}>
         {new Date(msg.timestamp).toLocaleTimeString()}
       </Typography>
       
-      {/* Grammar feedback - only show for user's own messages */}
-      {msg.grammarFeedback && msg.senderId === user?.id && (
+      {/* Grammar feedback - only show for user's own messages and when not processing */}
+      {msg.grammarFeedback && msg.senderId === user?.id && msg.grammarStatus !== 'PROCESSING' && (
         <Collapse in={true}>
           <Paper sx={{ 
             mt: 1, 

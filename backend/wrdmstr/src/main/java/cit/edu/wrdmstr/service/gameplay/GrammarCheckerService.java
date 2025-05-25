@@ -121,6 +121,8 @@ public class GrammarCheckerService {
             return MessageStatus.MINOR_ERRORS;
         } else if (feedback.startsWith("MAJOR ERRORS") || lowerFeedback.startsWith("major errors")) {
             return MessageStatus.MAJOR_ERRORS;
+        } else if (feedback.startsWith("PENDING") || lowerFeedback.startsWith("pending")) {
+            return MessageStatus.PENDING;
         }
         
         // Fall back to contains check if no exact match at beginning
