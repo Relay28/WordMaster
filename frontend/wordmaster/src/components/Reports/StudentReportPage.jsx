@@ -257,7 +257,7 @@ const StudentReportPage = () => {
         </Alert>
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/homepage')}
           sx={pixelButton}
         >
           Back
@@ -426,7 +426,7 @@ const StudentReportPage = () => {
           {/* Performance Details */}
           <Grid container spacing={4} sx={{ mb: 10 }}>
             {/* Grammar Performance */}
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={6} mb={5}>
               <Paper elevation={0} sx={{ 
                 p: 3,
                 backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -434,9 +434,10 @@ const StudentReportPage = () => {
                 border: '4px solid #5F4B8B',
                 borderRadius: '6px',
                 height: '100%',
-                  mb: 2 // Added margin bottom
+                  mb: 2, // Added margin bottom
+                width: '1095px',
               }}>
-                <Typography sx={{ ...pixelHeading, mb: 2 }}>
+                <Typography sx={{ ...pixelHeading, mb: 2}}>
                   GRAMMAR PERFORMANCE
                 </Typography>
                 
@@ -491,7 +492,7 @@ const StudentReportPage = () => {
           }}>
                           SCORE BREAKDOWN
                 </Typography>
-                
+                <Box sx={{ maxHeight: '200px', overflowY: 'auto', pr: 1 }}>
                 <List disablePadding sx={{mb: 0}}>
                   {studentDetails.scoreBreakdown && studentDetails.scoreBreakdown.map((item, index) => (
                     <ListItem 
@@ -521,9 +522,10 @@ const StudentReportPage = () => {
                     </ListItem>
                   ))}
                 </List>
+                </Box>
               </Paper>
             </Grid>
-            
+           
             {/* Teacher Feedback */}
             <Grid item xs={12} md={6}>
               <Paper elevation={0} sx={{ 
@@ -532,9 +534,10 @@ const StudentReportPage = () => {
                 backdropFilter: 'blur(8px)',
                 border: '4px solid #5F4B8B',
                 borderRadius: '6px',
-                height: '100%'
+                height: '100%',
+                width: '1095px',
               }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, }}>
                   <Typography sx={{ ...pixelHeading }}>
                     TEACHER FEEDBACK
                   </Typography>
@@ -547,7 +550,8 @@ const StudentReportPage = () => {
                         ...pixelButton,
                         fontSize: '8px',
                         border: '2px solid #5F4B8B',
-                        color: '#5F4B8B'
+                        color: '#5F4B8B',
+                        height: '32px',
                       }}
                     >
                       {editMode ? 'CANCEL' : studentDetails.feedback ? 'EDIT' : 'ADD FEEDBACK'}
@@ -560,16 +564,16 @@ const StudentReportPage = () => {
                     <TextField
                       fullWidth
                       multiline
-                      rows={4}
+                      rows={9}
                       name="feedback"
                       label="Feedback"
                       value={feedbackData.feedback}
                       onChange={handleFeedbackChange}
-                      sx={{ mb: 3 }}
+                      sx={{ mb: 3, height: '250px'}}
                     />
                     
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
+                    <Grid container spacing={2} sx={{ mb: 3, justifyContent: 'center' }}>
+                      <Grid item xs={6} width={'120px'}>
                         <FormControl fullWidth>
                           <InputLabel>Comprehension</InputLabel>
                           <Select
@@ -584,7 +588,7 @@ const StudentReportPage = () => {
                           </Select>
                         </FormControl>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid item xs={6} width={'120px'}>
                         <FormControl fullWidth>
                           <InputLabel>Participation</InputLabel>
                           <Select
@@ -599,7 +603,7 @@ const StudentReportPage = () => {
                           </Select>
                         </FormControl>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid item xs={6} width={'120px'}>
                         <FormControl fullWidth>
                           <InputLabel>Language Use</InputLabel>
                           <Select
@@ -614,7 +618,7 @@ const StudentReportPage = () => {
                           </Select>
                         </FormControl>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid item xs={6} width={'120px'}>
                         <FormControl fullWidth>
                           <InputLabel>Role Adherence</InputLabel>
                           <Select
@@ -629,7 +633,7 @@ const StudentReportPage = () => {
                           </Select>
                         </FormControl>
                       </Grid>
-                      <Grid item xs={12}>
+                      <Grid item xs={12} width={'120px'}>
                         <FormControl fullWidth>
                           <InputLabel>Overall Grade</InputLabel>
                           <Select
@@ -691,7 +695,7 @@ const StudentReportPage = () => {
                         borderRadius: '4px',
                         border: '1px solid rgba(95, 75, 139, 0.1)'
                       }}>
-                        <Typography sx={{ ...pixelText, fontSize: '9px' }}>
+                        <Typography sx={{fontSize: '14px' }}>
                           {studentDetails.feedback.feedback || "No written feedback provided"}
                         </Typography>
                       </Paper>
@@ -703,7 +707,7 @@ const StudentReportPage = () => {
                       Performance Scores:
                     </Typography>
                     
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                    <Grid container spacing={2} sx={{ mb: 3, justifyContent: 'center' }}>
                       <Grid item xs={6} sm={3}>
                         <Paper elevation={0} sx={{ 
                           p: 2, 
@@ -772,26 +776,9 @@ const StudentReportPage = () => {
                           </Typography>
                         </Paper>
                       </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Paper elevation={0} sx={{ 
-                          p: 2, 
-                          textAlign: 'center',
-                          bgcolor: 'rgba(95, 75, 139, 0.05)',
-                          borderRadius: '4px',
-                          border: '1px solid rgba(95, 75, 139, 0.1)',
-                          height: '100%'
-                        }}>
-                          <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B' }}>
-                            VOCABULARY
-                          </Typography>
-                          <Typography sx={{ ...pixelHeading, fontSize: '16px' }}>
-                            {studentDetails.feedback.vocabularyScore}/5
-                          </Typography>
-                        </Paper>
-                      </Grid>
                     </Grid>
                     
-                    <Box sx={{ textAlign: 'center', mt: 4 }}>
+                    <Box sx={{ textAlign: 'center', mt: 8 }}>
                       <Typography sx={{ ...pixelText, fontSize: '10px', mb: 1 }}>
                         OVERALL GRADE
                       </Typography>

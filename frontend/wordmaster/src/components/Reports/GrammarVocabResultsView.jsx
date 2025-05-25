@@ -95,7 +95,7 @@ const GrammarVocabResultsView = ({ grammarData, vocabularyData, pixelText, pixel
               boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
               border: '1px solid rgba(255,255,255,0.3)',
               height: '80%',
-              width: '120%',
+              width: '500px',
             }}
           >
             <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>Vocabulary Usage</Typography>
