@@ -27,4 +27,10 @@ public interface PlayerSessionEntityRepository extends JpaRepository<PlayerSessi
 
     void deleteBySessionId(Long sessionId);
 
+    // Update existing methods to filter by active status
+    @Query("SELECT p FROM PlayerSessionEntity p WHERE p.session.id = :sessionId AND p.user.id = :userId AND p.isActive = true")
+    List<PlayerSessionEntity> findActiveBySessionIdAndUserId(@Param("sessionId") Long sessionId, @Param("userId") Long userId);
+    
+    @Query("SELECT p FROM PlayerSessionEntity p WHERE p.session.id = :sessionId AND p.isActive = true")
+    List<PlayerSessionEntity> findActiveBySessionId(@Param("sessionId") Long sessionId);
 }

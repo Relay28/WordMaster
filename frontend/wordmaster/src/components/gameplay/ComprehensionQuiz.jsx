@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Box, Typography, Paper, Button, Radio, RadioGroup, 
   FormControlLabel, TextField, CircularProgress,
@@ -15,16 +15,23 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [initialized, setInitialized] = useState(false);
   
-  // Initialize answers array based on questions
+  // Memoize questions to prevent unnecessary re-renders
+  const stableQuestions = useMemo(() => questions, [JSON.stringify(questions)]);
+  
+  // Initialize answers array only once when questions are first loaded
   useEffect(() => {
-    if (questions && questions.length > 0) {
-      setAnswers(questions.map(q => ({ 
+    if (stableQuestions && stableQuestions.length > 0 && !initialized) {
+      const initialAnswers = stableQuestions.map(q => ({ 
         questionId: q.id, 
         answer: q.type === 'true_false' ? 'True' : '' 
-      })));
+      }));
+      setAnswers(initialAnswers);
+      setInitialized(true);
+      console.log('Initialized answers for', stableQuestions.length, 'questions');
     }
-  }, [questions]);
+  }, [stableQuestions, initialized]);
   
   // Pixel text style
   const pixelText = {
@@ -41,14 +48,16 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
     letterSpacing: '1px'
   };
   
-  const handleAnswerChange = (value) => {
-    const newAnswers = [...answers];
-    newAnswers[currentQuestion] = {
-      ...newAnswers[currentQuestion],
-      answer: value
-    };
-    setAnswers(newAnswers);
-  };
+  const handleAnswerChange = useCallback((value) => {
+    setAnswers(prevAnswers => {
+      const newAnswers = [...prevAnswers];
+      newAnswers[currentQuestion] = {
+        ...newAnswers[currentQuestion],
+        answer: value
+      };
+      return newAnswers;
+    });
+  }, [currentQuestion]);
   
   const goToNextQuestion = () => {
     if (currentQuestion < questions.length - 1) {

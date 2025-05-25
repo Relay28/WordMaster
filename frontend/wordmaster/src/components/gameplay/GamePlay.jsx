@@ -64,7 +64,11 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
   const processingTimeoutRef = useRef(null); // Add this line
   const isSinglePlayer = gameState.players?.length === 1;
   const [isWordBankOpen, setIsWordBankOpen] = useState(false);
-
+  const [localTimeRemaining, setLocalTimeRemaining] = useState(gameState.timeRemaining);
+  const [timerActive, setTimerActive] = useState(false);
+  const timerIntervalRef = useRef(null);
+  const lastServerUpdateRef = useRef(Date.now());
+  
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
     fontSize: isMobile ? '8px' : '10px',
@@ -280,7 +284,50 @@ useEffect(() => {
     }
   }, [gameState, isMyTurn, currentUserInPlayers]);
 
-  const timePercent = gameState.timePerTurn > 0 ? (gameState.timeRemaining / gameState.timePerTurn) * 100 : 0;
+  // Local timer countdown for smooth display
+  useEffect(() => {
+    // Clear existing timer
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+    }
+
+    // Update local time when server sends updates
+    setLocalTimeRemaining(gameState.timeRemaining);
+    lastServerUpdateRef.current = Date.now();
+    
+    // Only start local countdown if it's my turn or single player
+    const shouldRunTimer = (isMyTurn || isSinglePlayer) && gameState.timeRemaining > 0;
+    setTimerActive(shouldRunTimer);
+
+    if (shouldRunTimer) {
+      console.log('[Timer Debug] Starting local timer countdown from:', gameState.timeRemaining);
+      
+      timerIntervalRef.current = setInterval(() => {
+        setLocalTimeRemaining(prevTime => {
+          const newTime = Math.max(0, prevTime - 1);
+          
+          // Sync with server every 5 seconds or when time gets low
+          const timeSinceLastUpdate = Date.now() - lastServerUpdateRef.current;
+          if (timeSinceLastUpdate > 5000 || newTime <= 3) {
+            // Request fresh state from server
+            fetchUpdatedGameState();
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [gameState.timeRemaining, gameState.currentTurn, isMyTurn, isSinglePlayer]);
+
+  // Use local time for display, fallback to server time
+  const displayTimeRemaining = timerActive ? localTimeRemaining : gameState.timeRemaining;
+  const timePercent = gameState.timePerTurn > 0 ? (displayTimeRemaining / gameState.timePerTurn) * 100 : 0;
 
   const getTimerColor = () => {
     if (gameState.timeRemaining > 10) return 'primary';
@@ -298,11 +345,17 @@ useEffect(() => {
   
   const handleSubmit = async () => {
     if (!sentence.trim() || submitting) return;
-
+    
     setSubmitting(true);
     const currentSentence = sentence.trim();
     
     try {
+      // Stop local timer during submission
+      setTimerActive(false);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+
       const token = await getToken();
       if (!token) {
         setSubmitting(false);
@@ -310,21 +363,22 @@ useEffect(() => {
         return;
       }
 
-      // Optimistic UI updates for single player
+      // For single player, provide immediate UI feedback
       if (isSinglePlayer) {
-        // Immediately clear input and show processing state
         setSentence('');
         setIsProcessing(true);
         
-        // Optimistically advance turn
-        const nextTurn = (optimisticGameState.currentTurn || 0) + 1;
+        // Optimistically show next turn starting
+        const nextTurn = (gameState.currentTurn || 0) + 1;
+        setLocalTimeRemaining(gameState.timePerTurn || 30);
+        
         updateOptimistically({
           currentTurn: nextTurn,
-          currentCycle: nextTurn, // For single player, cycle = turn
-          timeRemaining: optimisticGameState.timePerTurn || 30
+          currentCycle: nextTurn,
+          timeRemaining: gameState.timePerTurn || 30
         });
         
-        // Add optimistic message to chat
+        // Add optimistic message
         const optimisticMessage = {
           id: `temp-${Date.now()}`,
           senderId: user.id,
@@ -338,30 +392,32 @@ useEffect(() => {
         setLocalMessages(prev => [...prev, optimisticMessage]);
       }
 
-      // Send to backend (non-blocking for single player)
+      // Send to backend
       const headers = { 'Authorization': `Bearer ${token}` };
       await sendMessage(`/app/game/${gameState.sessionId}/word`, 
                        { word: currentSentence }, headers);
 
       if (!isSinglePlayer) {
-        setSentence(''); // Only clear for multiplayer after successful send
+        setSentence('');
       }
 
-      // For single player, set a timeout to refresh state if needed
+      // For single player, set timeout to refresh if no WebSocket update
       if (isSinglePlayer) {
         processingTimeoutRef.current = setTimeout(() => {
           setIsProcessing(false);
-          // Fetch updated state if we haven't received WebSocket updates
           fetchUpdatedGameState();
         }, 2000);
       }
 
     } catch (error) {
       console.error('Error sending sentence:', error);
+      
+      // Restore timer on error
+      setTimerActive(isMyTurn || isSinglePlayer);
+      
       if (isSinglePlayer) {
-        // Revert optimistic updates on error
         setOptimisticGameState(gameState);
-        setSentence(currentSentence); // Restore sentence
+        setSentence(currentSentence);
       }
       alert('Failed to send sentence. Please try again.');
     } finally {
@@ -863,11 +919,18 @@ const cycleDisplayString = isSinglePlayer
     >
       <Paper sx={{
         p: 1.5,
-        bgcolor: msg.grammarStatus === 'MAJOR_ERRORS' ? '#ffebee' : 
-                (msg.senderId === user?.id ? '#5F4B8B' : '#e0e0e0'),
-          color: msg.senderId === user?.id ? '#ffffff' : '#5F4B8B',
+        // Fix: Always use consistent colors for user's own messages
+        bgcolor: msg.senderId === user?.id 
+          ? '#5F4B8B'  // Always purple for user's messages
+          : msg.grammarStatus === 'MAJOR_ERRORS' ? '#ffebee' : 
+            msg.grammarStatus === 'MINOR_ERRORS' ? '#fff3e0' : 
+            msg.grammarStatus === 'PERFECT' ? '#e8f5e8' :
+            '#e0e0e0', // Default gray for other players
+        color: msg.senderId === user?.id ? '#ffffff' : '#5F4B8B',
         borderRadius: '12px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        // Add border for better visual consistency
+        border: msg.senderId === user?.id ? '2px solid #4a3a6d' : '1px solid #ddd'
       }}>
         <Box display="flex" alignItems="center" mb={1}>
           <Avatar 
@@ -876,50 +939,57 @@ const cycleDisplayString = isSinglePlayer
               height: 24, 
               mr: 1,
               fontSize: '0.75rem',
+              // Consistent avatar colors
               bgcolor: msg.senderId === user?.id ? '#4a3a6d' : '#9e9e9e'
             }}
           >
-          
             {msg.senderName?.charAt(0) || 'P'}
           </Avatar>
           <Typography variant="subtitle2" fontWeight="bold" sx={pixelText}>
             {msg.senderName || 'Player'}
           </Typography>
         </Box>
-        <Typography variant="body1" sx={{ ...pixelText, whiteSpace: 'pre-wrap' }}>
+        
+        <Typography variant="body2" sx={{
+          ...pixelText,
+          // Ensure text is always readable
+          color: msg.senderId === user?.id ? '#ffffff' : '#333',
+          mb: 1
+        }}>
           {msg.content}
         </Typography>
-        <Box mt={1} display="flex" justifyContent="flex-end" alignItems="center" gap={1}>
-          {msg.containsWordBomb && (
+        
+        {/* Status chips with consistent styling */}
+        <Box display="flex" gap={0.5} flexWrap="wrap" mb={1}>
+          {msg.grammarStatus && msg.grammarStatus !== 'PENDING' && (
             <Chip 
-              label="Word Bomb!" 
-              size="small" 
-              color="error"
-              sx={{ fontSize: '0.6rem', ...pixelText }}
-            />
-          )}
-          {msg.wordUsed && (
-            <Chip 
-              label={`Used: ${msg.wordUsed}`} 
-              size="small" 
-              color="success"
-              sx={{ fontSize: '0.6rem', ...pixelText }}
-            />
-          )}
-          {msg.grammarStatus && (
-            <Chip 
-              label={msg.grammarStatus.replace('_', ' ')}
+              label={msg.grammarStatus.replace(/_/g, ' ')}
               size="small" 
               color={msg.grammarStatus === 'MAJOR_ERRORS' ? 'error' : 'warning'}
-              sx={{ fontSize: '0.6rem', ...pixelText }}
+              sx={{ 
+                fontSize: '0.6rem', 
+                ...pixelText,
+                // Make chips more visible on colored backgrounds
+                '& .MuiChip-label': {
+                  color: msg.senderId === user?.id ? '#fff' : 'inherit'
+                }
+              }}
             />
           )}
+          
+          {/* Role appropriate indicators */}
           {msg.roleAppropriate === true && (
             <Chip 
               label="Role Appropriate"
               size="small" 
               color="success"
-              sx={{ fontSize: '0.6rem', ...pixelText }}
+              sx={{ 
+                fontSize: '0.6rem', 
+                ...pixelText,
+                '& .MuiChip-label': {
+                  color: msg.senderId === user?.id ? '#fff' : 'inherit'
+                }
+              }}
             />
           )}
           {msg.roleAppropriate === false && (
@@ -927,11 +997,18 @@ const cycleDisplayString = isSinglePlayer
               label="Role Inappropriate"
               size="small" 
               color="error"
-              sx={{ fontSize: '0.6rem', ...pixelText }}
+              sx={{ 
+                fontSize: '0.6rem', 
+                ...pixelText,
+                '& .MuiChip-label': {
+                  color: msg.senderId === user?.id ? '#fff' : 'inherit'
+                }
+              }}
             />
           )}
         </Box>
       </Paper>
+      
       <Typography variant="caption" sx={{ 
         mt: 0.5, 
         color: gameState.backgroundImage ? 'rgba(255,255,255,0.7)' : 'text.secondary', 
@@ -939,7 +1016,9 @@ const cycleDisplayString = isSinglePlayer
       }}>
         {new Date(msg.timestamp).toLocaleTimeString()}
       </Typography>
-      {msg.grammarFeedback && (
+      
+      {/* Grammar feedback - only show for user's own messages */}
+      {msg.grammarFeedback && msg.senderId === user?.id && (
         <Collapse in={true}>
           <Paper sx={{ 
             mt: 1, 

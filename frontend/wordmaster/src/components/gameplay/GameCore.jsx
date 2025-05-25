@@ -53,18 +53,28 @@ const GameCore = () => {
           onConnect: () => {
             console.log('Connected to WebSocket');
             
-            // Subscribe to game updates
-            client.subscribe(`/topic/game/${sessionId}/status`, handleGameStatus);
+            // Subscribe with better error handling
+            client.subscribe(`/topic/game/${sessionId}/timer`, (message) => {
+              try {
+                handleTimerUpdate(message);
+              } catch (error) {
+                console.error('Timer update error:', error);
+                // Fallback: fetch fresh game state
+                setTimeout(fetchGameState, 1000);
+              }
+            });
+            
             client.subscribe(`/topic/game/${sessionId}/turn`, (message) => {
-  try {
-    handleTurnUpdate(message);
-    // Force a game state refresh after turn update
-    fetchGameState();
-  } catch (error) {
-    console.error('Error in turn subscription:', error);
-  }
-});
-            client.subscribe(`/topic/game/${sessionId}/timer`, handleTimerUpdate);
+              try {
+                handleTurnUpdate(message);
+                // Ensure we get fresh state after turn changes
+                setTimeout(fetchGameState, 500);
+              } catch (error) {
+                console.error('Turn update error:', error);
+                setTimeout(fetchGameState, 1000);
+              }
+            });
+            client.subscribe(`/topic/game/${sessionId}/status`, handleGameStatus);
             client.subscribe(`/topic/game/${sessionId}/scores`, handleScoreUpdate);
             client.subscribe(`/topic/game/${sessionId}/players`, handlePlayerUpdate);
             client.subscribe(`/topic/game/${sessionId}/updates`, handleGameUpdates);
@@ -77,10 +87,23 @@ const GameCore = () => {
             
             // Fetch initial game state
             fetchGameState();
+            
+            // Set up periodic state refresh as backup
+            const stateRefreshInterval = setInterval(() => {
+              if (gameState.status === 'TURN_IN_PROGRESS' || gameState.status === 'ACTIVE') {
+                fetchGameState();
+              }
+            }, 30000); // Every 30 seconds
+            
+            // Store interval for cleanup
+            client.stateRefreshInterval = stateRefreshInterval;
           },
           
-          beforeConnect: () => {
-            console.log('Attempting to connect to WebSocket...');
+          onDisconnect: () => {
+            console.log('WebSocket disconnected');
+            if (client.stateRefreshInterval) {
+              clearInterval(client.stateRefreshInterval);
+            }
           },
           
           onStompError: (frame) => {
@@ -110,9 +133,13 @@ const GameCore = () => {
     
     // Cleanup function
     return () => {
-      if (client && client.connected) {
-        console.log('Deactivating STOMP client');
-        client.deactivate();
+      if (client) {
+        if (client.stateRefreshInterval) {
+          clearInterval(client.stateRefreshInterval);
+        }
+        if (client.connected) {
+          client.deactivate();
+        }
       }
     };
   }, [sessionId, getToken, user]);
@@ -265,27 +292,37 @@ useEffect(() => {
   const handleTurnUpdate = (message) => {
   try {
     const turnData = JSON.parse(message.body);
+    console.log('[Timer Debug] Turn update received:', turnData);
+    
     setGameState(prev => {
-      const currentCycle = Math.ceil(turnData.turnNumber / prev.playersPerCycle);
-      const turnsInCurrentCycle = turnData.turnNumber % prev.playersPerCycle || prev.playersPerCycle;
+      const currentCycle = Math.ceil(turnData.turnNumber / (prev.playersPerCycle || 1));
+      const turnsInCurrentCycle = turnData.turnNumber % (prev.playersPerCycle || 1) || (prev.playersPerCycle || 1);
       
-      // Ensure we're updating the currentPlayer with complete information
       const currentPlayer = {
-        userId: turnData.playerId, // Make sure we use userId consistently
+        userId: turnData.playerId,
         id: turnData.playerId,
         name: turnData.playerName,
         role: turnData.roleName
       };
 
-      return {
+      const newState = {
         ...prev,
         currentPlayer,
-        timeRemaining: turnData.timeRemaining,
+        timeRemaining: turnData.timeRemaining || prev.timePerTurn || 30, // Ensure initial time is set
         currentTurn: turnData.turnNumber,
         currentCycle,
         turnsInCurrentCycle,
-        totalCycles: Math.ceil(prev.totalTurns / prev.playersPerCycle)
+        totalCycles: Math.ceil(prev.totalTurns / (prev.playersPerCycle || 1)),
+        lastTimerUpdate: Date.now() // Add timestamp for debugging
       };
+      
+      console.log('[Timer Debug] New game state after turn update:', {
+        timeRemaining: newState.timeRemaining,
+        currentTurn: newState.currentTurn,
+        timePerTurn: newState.timePerTurn
+      });
+      
+      return newState;
     });
   } catch (error) {
     console.error('Error handling turn update:', error);
@@ -295,10 +332,23 @@ useEffect(() => {
   const handleTimerUpdate = (message) => {
     try {
       const timerData = JSON.parse(message.body);
-      setGameState(prev => ({
-        ...prev,
-        timeRemaining: timerData.timeRemaining
-      }));
+      console.log('[Timer Debug] Timer update received:', timerData);
+      
+      setGameState(prev => {
+        const newState = {
+          ...prev,
+          timeRemaining: timerData.timeRemaining,
+          lastTimerUpdate: Date.now()
+        };
+        
+        console.log('[Timer Debug] Timer updated:', {
+          oldTime: prev.timeRemaining,
+          newTime: timerData.timeRemaining,
+          timestamp: new Date().toISOString()
+        });
+        
+        return newState;
+      });
     } catch (error) {
       console.error('Error handling timer update:', error);
     }

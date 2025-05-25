@@ -16,12 +16,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class ComprehensionCheckService {
     private static final Logger logger = LoggerFactory.getLogger(ComprehensionCheckService.class);
+    
+    // Add caching for comprehension questions
+    private final Map<String, List<Map<String, Object>>> questionsCache = new ConcurrentHashMap<>();
     
     @Autowired private GameSessionEntityRepository gameSessionRepository;
     @Autowired private UserRepository userRepository;
@@ -35,6 +39,14 @@ public class ComprehensionCheckService {
      * Generate comprehension questions based on game session content and chat messages
      */
     public List<Map<String, Object>> generateComprehensionQuestions(Long sessionId, Long studentId) {
+        String cacheKey = sessionId + "_" + studentId;
+        
+        // Check cache first
+        if (questionsCache.containsKey(cacheKey)) {
+            logger.info("Returning cached comprehension questions for session {} and student {}", sessionId, studentId);
+            return questionsCache.get(cacheKey);
+        }
+        
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
             .orElseThrow(() -> new RuntimeException("Game session not found"));
         
@@ -91,6 +103,10 @@ public class ComprehensionCheckService {
         try {
             // Parse AI response into list of question objects
             List<Map<String, Object>> questions = parseComprehensionQuestions(aiResponse);
+            
+            // Cache the questions
+            questionsCache.put(cacheKey, questions);
+            logger.info("Cached comprehension questions for session {} and student {}", sessionId, studentId);
             
             // Return the questions
             return questions;
@@ -387,5 +403,10 @@ public class ComprehensionCheckService {
         }
         
         return dto;
+    }
+    
+    // Add method to clear cache when needed
+    public void clearQuestionsCache(Long sessionId) {
+        questionsCache.entrySet().removeIf(entry -> entry.getKey().startsWith(sessionId + "_"));
     }
 }

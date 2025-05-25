@@ -47,12 +47,19 @@ public class ChatService {
 
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
-        List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
-        PlayerSessionEntity player = players.isEmpty() ?
-                null : players.get(0);
-
-        if (player == null) {
-            throw new ResourceNotFoundException("Player not found in session");
+        // Use the new active-only query
+        List<PlayerSessionEntity> players = playerSessionRepository.findActiveBySessionIdAndUserId(sessionId, userId);
+        PlayerSessionEntity player = null;
+        
+        if (players.isEmpty()) {
+            throw new ResourceNotFoundException("Active player not found in session");
+        } else if (players.size() == 1) {
+            player = players.get(0);
+        } else {
+            // This shouldn't happen with the active-only query, but handle it just in case
+            logger.error("Multiple active player sessions found for user {} in session {}. This indicates a data integrity issue.", 
+                    userId, sessionId);
+            player = players.get(0); // Use the first one
         }
 
         GameSessionEntity session = player.getSession();
@@ -329,11 +336,11 @@ public class ChatService {
     }
     
     private ChatMessageEntity sendMessageSinglePlayerOptimized(Long sessionId, Long userId, String content) {
-        List<PlayerSessionEntity> players = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
+        List<PlayerSessionEntity> players = playerSessionRepository.findActiveBySessionIdAndUserId(sessionId, userId);
         PlayerSessionEntity player = players.isEmpty() ? null : players.get(0);
         
         if (player == null) {
-            throw new ResourceNotFoundException("Player not found in session");
+            throw new ResourceNotFoundException("Active player not found in session");
         }
         
         GameSessionEntity session = player.getSession();

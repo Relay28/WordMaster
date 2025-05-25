@@ -53,6 +53,9 @@ public class GameSessionManagerService {
     private final Map<String, String> aiResponseCache = new ConcurrentHashMap<>();
     private final Map<Long, Long> lastProcessingTime = new ConcurrentHashMap<>();
 
+    // Add a flag to prevent multiple story generations for the same turn
+    private final Map<Long, Integer> lastStoryTurn = new ConcurrentHashMap<>();
+
     @Autowired
     public GameSessionManagerService(
             SimpMessagingTemplate messagingTemplate,
@@ -215,8 +218,16 @@ public class GameSessionManagerService {
     // Cached story generation
     private String generateStoryElementCached(GameSessionEntity session, int turnNumber) {
         String cacheKey = session.getId() + "_" + turnNumber;
+        
+        // Check if we've already generated for this turn
+        Integer lastTurn = lastStoryTurn.get(session.getId());
+        if (lastTurn != null && lastTurn == turnNumber && aiResponseCache.containsKey(cacheKey)) {
+            return aiResponseCache.get(cacheKey);
+        }
+        
         return aiResponseCache.computeIfAbsent(cacheKey, key -> {
             try {
+                lastStoryTurn.put(session.getId(), turnNumber);
                 return generateStoryElement(session, turnNumber);
             } catch (Exception e) {
                 logger.error("Error generating story element: ", e);
@@ -229,16 +240,19 @@ public class GameSessionManagerService {
     public void startGame(Long sessionId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Game session not found"));
+        
         if (session.getStatus() == GameSessionEntity.SessionStatus.ACTIVE) {
-            throw new IllegalStateException("Game is already active");
+            logger.warn("Game session {} is already active", sessionId);
+            return;
         }
 
         session.setStatus(GameSessionEntity.SessionStatus.ACTIVE);
         session.setStartedAt(new Date());
 
-        List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId);
+        // Use active players only
+        List<PlayerSessionEntity> players = playerRepository.findActiveBySessionId(sessionId);
         if (players.isEmpty()) {
-            throw new IllegalStateException("Cannot start a game with no players");
+            throw new RuntimeException("No active players found for session " + sessionId);
         }
 
         GameState gameState = new GameState();
@@ -476,30 +490,38 @@ public class GameSessionManagerService {
                 .orElseThrow(() -> new IllegalStateException("Game session not found for starting next turn: " + sessionId));
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
-            logger.error("GameState not found for active session {}", sessionId);
+            logger.error("Game state not found for session: {}", sessionId);
             return;
         }
 
         PlayerSessionEntity currentPlayer = session.getCurrentPlayer();
         if (currentPlayer == null) {
-            logger.error("Current player is null for session {} at turn {}. Ending game.", sessionId, gameState.getCurrentTurn());
-            endGame(sessionId);
+            logger.error("No current player set for session: {}", sessionId);
             return;
         }
 
+        // Reset timer immediately
         gameState.setStatus(GameState.Status.TURN_IN_PROGRESS);
-        resetTurnTimer(session);
+        gameState.setLastTurnTime(System.currentTimeMillis()); // Use current time for accuracy
+        
+        // Send immediate timer update with full time
+        Map<String, Object> initialTimerUpdate = new HashMap<>();
+        initialTimerUpdate.put("timeRemaining", gameState.getTimePerTurn());
+        initialTimerUpdate.put("timestamp", System.currentTimeMillis());
+        initialTimerUpdate.put("reset", true); // Flag to indicate timer reset
+        
+        messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/timer", initialTimerUpdate);
 
         if (gameState.getCurrentTurn() > 1 || gameState.getStoryPrompt() == null) {
-             String storyElement = generateStoryElementCached(session, gameState.getCurrentTurn()); // Use cached
-             gameState.setStoryPrompt(storyElement);
-             Map<String, Object> storyUpdate = new HashMap<>();
-             storyUpdate.put("type", "storyUpdate");
-             storyUpdate.put("content", storyElement);
-             messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", storyUpdate);
+            String storyElement = generateStoryElementCached(session, gameState.getCurrentTurn());
+            gameState.setStoryPrompt(storyElement);
+            Map<String, Object> storyUpdate = new HashMap<>();
+            storyUpdate.put("type", "storyUpdate");
+            storyUpdate.put("content", storyElement);
+            messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", storyUpdate);
         }
 
-        broadcastTurnUpdate(sessionId, gameState, session); // Use the new broadcastTurnUpdate method
+        broadcastTurnUpdate(sessionId, gameState, session);
         logger.info("Turn {} started for player {} in session {}", gameState.getCurrentTurn(), currentPlayer.getId(), sessionId);
     }
 
@@ -539,6 +561,14 @@ public class GameSessionManagerService {
             return false;
         }
 
+        // Use active player lookup
+        List<PlayerSessionEntity> userPlayers = playerRepository.findActiveBySessionIdAndUserId(sessionId, userId);
+        if (userPlayers.isEmpty()) {
+            logger.warn("Submit word failed - user {} not found as active player in session {}", userId, sessionId);
+            return false;
+        }
+        
+        PlayerSessionEntity userPlayer = userPlayers.get(0);
         PlayerSessionEntity currentPlayer = playerRepository.findById(gameState.getCurrentPlayerId())
                 .orElseThrow(() -> {
                     logger.error("Current player not found for game state with player ID {}",
@@ -879,47 +909,56 @@ public class GameSessionManagerService {
     }
 
     // Optimized timer checking - reduce frequency for single player
-    @Scheduled(fixedRate = 2000) // Check every 2 seconds instead of 1
+    @Scheduled(fixedRate = 1000) // Back to 1 second for better timer accuracy
     @Transactional(propagation = Propagation.REQUIRED)
     public void checkTurnTimersOptimized() {
         long currentTime = System.currentTimeMillis();
+        List<Long> sessionsToRemove = new ArrayList<>();
+        
         activeGames.forEach((sessionId, gameState) -> {
             try {
                 if (gameState.getStatus() == GameState.Status.TURN_IN_PROGRESS) {
                     GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
                     if (session == null) {
-                        logger.warn("Timer check: Session {} not found in repository, removing from active games.", sessionId);
-                        activeGames.remove(sessionId);
+                        logger.warn("Timer check: Session {} not found, removing from active games.", sessionId);
+                        sessionsToRemove.add(sessionId);
                         return;
                     }
-    
+
                     boolean isSinglePlayer = session.getPlayers().size() == 1;
-                    
                     long turnStartTimeMs = gameState.getLastTurnTime();
                     int timePerTurnSec = gameState.getTimePerTurn();
                     long elapsedSec = (currentTime - turnStartTimeMs) / 1000;
                     int timeRemaining = timePerTurnSec - (int) elapsedSec;
                     
-                    int updateInterval = isSinglePlayer ? 10 : 5; // Less frequent updates for single player
+                    // Always update timer for consistency
+                    Map<String, Object> timerUpdate = new HashMap<>();
+                    timerUpdate.put("timeRemaining", Math.max(0, timeRemaining));
+                    timerUpdate.put("timestamp", currentTime);
                     
-                    if (timeRemaining >= 0 && (timeRemaining % updateInterval == 0 || timeRemaining <= 5)) {
+                    // Send timer updates more frequently when time is running low
+                    boolean shouldSendUpdate = timeRemaining <= 10 || // Always send when low
+                                         timeRemaining % (isSinglePlayer ? 2 : 1) == 0; // Every 2s for single, 1s for multi
+                
+                    if (shouldSendUpdate) {
                         messagingTemplate.convertAndSend(
                             "/topic/game/" + sessionId + "/timer",
-                            Collections.singletonMap("timeRemaining", timeRemaining)
+                            timerUpdate
                         );
                     }
                     
                     if (timeRemaining <= 0) {
                         if (isSinglePlayer) {
-                            // For single player, just advance turn without penalty
                             logger.info("Time up for single player in session {}. Advancing turn.", sessionId);
                             handleSinglePlayerTurnAdvancement(sessionId);
                         } else {
-                            // Standard multiplayer handling
-                            logger.info("Time up for player {} in session {}. Advancing turn.", gameState.getCurrentPlayerId(), sessionId);
+                            logger.info("Time up for player {} in session {}. Advancing turn.", 
+                                      gameState.getCurrentPlayerId(), sessionId);
+                            
+                            // Award penalty points
                             PlayerSessionEntity player = playerRepository.findById(gameState.getCurrentPlayerId()).orElse(null);
                             if (player != null) {
-                                awardPoints(sessionId, player.getUser().getId(), -5, "Missed turn"); // Penalty
+                                awardPoints(sessionId, player.getUser().getId(), -5, "Missed turn");
                             }
                             advanceToNextPlayer(sessionId);
                         }
@@ -929,6 +968,9 @@ public class GameSessionManagerService {
                 logger.error("Error in timer check for session " + sessionId, e);
             }
         });
+        
+        // Clean up invalid sessions
+        sessionsToRemove.forEach(activeGames::remove);
     }
 
 

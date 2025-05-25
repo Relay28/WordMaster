@@ -299,22 +299,39 @@ public class GameSessionService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        // Check for existing active player sessions first
         List<PlayerSessionEntity> existingPlayers = playerSessionRepository.findBySessionIdAndUserId(sessionId, userId);
+        
+        // Filter for active players only
+        List<PlayerSessionEntity> activePlayers = existingPlayers.stream()
+                .filter(PlayerSessionEntity::isActive)
+                .collect(Collectors.toList());
+        
+        if (!activePlayers.isEmpty()) {
+            // Return the existing active player
+            logger.info("User {} already has an active session in game {}", userId, sessionId);
+            return activePlayers.get(0);
+        }
+        
+        // Deactivate any inactive duplicate entries
         if (!existingPlayers.isEmpty()) {
-            // If player already exists, ensure their DTO reflects current role if game started
-            return existingPlayers.get(0); 
+            for (PlayerSessionEntity inactive : existingPlayers) {
+                if (!inactive.isActive()) {
+                    continue; // Already inactive
+                }
+                inactive.setActive(false);
+                playerSessionRepository.save(inactive);
+            }
         }
 
+        // Create new player session
         PlayerSessionEntity playerSession = new PlayerSessionEntity();
         playerSession.setSession(session);
         playerSession.setUser(user);
         playerSession.setActive(true);
         playerSession.setTotalScore(0);
         playerSession.setGrammarStreak(0);
-        // Note: Role is typically assigned when the game starts or groups are organized,
-        // not necessarily immediately on join, unless that's the desired logic.
 
-        session.getPlayers().add(playerSession); // Ensure bidirectional relationship if managed this way
         return playerSessionRepository.save(playerSession);
     }
 
