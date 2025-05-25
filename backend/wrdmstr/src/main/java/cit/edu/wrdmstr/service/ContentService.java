@@ -12,6 +12,10 @@ import cit.edu.wrdmstr.repository.ScoreRecordEntityRepository;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.repository.UserRepository;
 import cit.edu.wrdmstr.repository.WordBankItemRepository;
+import cit.edu.wrdmstr.repository.GrammarResultRepository;
+import cit.edu.wrdmstr.repository.VocabularyResultRepository;
+import cit.edu.wrdmstr.repository.ComprehensionResultRepository;
+import cit.edu.wrdmstr.repository.TeacherFeedbackRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -43,6 +47,14 @@ public class ContentService {
     private final WordBankItemRepository wordBankItemRepository;
     private final RoleRepository roleRepository;
     private final ContentRepository contentDataRepository;
+    @Autowired
+    private GrammarResultRepository grammarResultRepository;
+    @Autowired
+    private VocabularyResultRepository vocabularyResultRepository;
+    @Autowired
+    private ComprehensionResultRepository comprehensionResultRepository;
+    @Autowired
+    private TeacherFeedbackRepository teacherFeedbackRepository;
     
     @Autowired
     public ContentService(ContentRepository contentRepository,
@@ -270,6 +282,13 @@ public class ContentService {
         try {
             // For each session associated with this content
             for (GameSessionEntity session : gameSessionRepository.findByContentId(content.getId())) {
+                Long sessionId = session.getId();
+                
+                // DELETE THESE FIRST - before deleting the session
+                grammarResultRepository.deleteByGameSessionId(sessionId);
+                vocabularyResultRepository.deleteByGameSessionId(sessionId);
+                comprehensionResultRepository.deleteByGameSessionId(sessionId);
+                teacherFeedbackRepository.deleteByGameSessionId(sessionId);
                 
                 // Clear score records properly
                 List<ScoreRecordEntity> scores = new ArrayList<>(session.getScores());
