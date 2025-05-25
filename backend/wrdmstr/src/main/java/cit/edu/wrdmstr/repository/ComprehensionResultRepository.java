@@ -12,4 +12,5 @@ public interface ComprehensionResultRepository extends JpaRepository<Comprehensi
     List<ComprehensionResultEntity> findByGameSessionId(Long gameSessionId);
     List<ComprehensionResultEntity> findByStudentId(Long studentId);
     Optional<ComprehensionResultEntity> findByGameSessionIdAndStudentId(Long gameSessionId, Long studentId);
+    void deleteByGameSessionId(Long sessionId);
 }

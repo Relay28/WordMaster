@@ -35,6 +35,9 @@ public class GameSessionService {
     @Autowired private ChatMessageEntityRepository chatmessageRepository;
     @Autowired private TeacherFeedbackRepository teacherfeedbackRepository;
     @Autowired private ComprehensionCheckService comprehensionCheckService;
+    @Autowired private GrammarResultRepository grammarResultRepository;
+    @Autowired private VocabularyResultRepository vocabularyResultRepository;
+    @Autowired private ComprehensionResultRepository comprehensionResultRepository;
 
     public GameSessionEntity createSession(Long contentId, Authentication auth) {
         String email = auth.getName();
@@ -268,6 +271,15 @@ public class GameSessionService {
         
         // Delete all feedback for this session
         teacherfeedbackRepository.deleteByGameSessionId(sessionId);
+
+        // Delete all grammar results for this session
+        grammarResultRepository.deleteByGameSessionId(sessionId);
+
+        // Delete all vocabulary results for this session
+        vocabularyResultRepository.deleteByGameSessionId(sessionId);
+
+        // Delete all comprehension results for this session
+        comprehensionResultRepository.deleteByGameSessionId(sessionId);
         
         // Finally delete the session itself
         gameSessionRepository.delete(session);

@@ -12,4 +12,5 @@ public interface GrammarResultRepository extends JpaRepository<GrammarResultEnti
     List<GrammarResultEntity> findByGameSessionId(Long gameSessionId);
     List<GrammarResultEntity> findByStudentId(Long studentId);
     Optional<GrammarResultEntity> findByGameSessionIdAndStudentId(Long gameSessionId, Long studentId);
+    void deleteByGameSessionId(Long sessionId);
 }

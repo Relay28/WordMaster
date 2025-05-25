@@ -554,7 +554,7 @@ public class ContentService {
             
         // Create new content
         ContentEntity content = new ContentEntity();
-        content.setTitle("AI Generated: " + topic);
+        content.setTitle(topic); // Changed: Use topic directly as title
         content.setDescription(contentDescription);
         content.setBackgroundTheme("default");
         content.setCreator(creator);
@@ -743,7 +743,7 @@ public class ContentService {
 
         // Create new content
         ContentEntity content = new ContentEntity();
-        content.setTitle("AI Generated: " + topic);
+        content.setTitle(topic); // Changed: Use topic directly as title
         content.setDescription("AI-generated content about " + topic);
         content.setBackgroundTheme("default");
         content.setCreator(creator);

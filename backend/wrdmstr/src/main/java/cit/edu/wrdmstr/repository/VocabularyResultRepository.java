@@ -12,4 +12,5 @@ public interface VocabularyResultRepository extends JpaRepository<VocabularyResu
     List<VocabularyResultEntity> findByGameSessionId(Long gameSessionId);
     List<VocabularyResultEntity> findByStudentId(Long studentId);
     Optional<VocabularyResultEntity> findByGameSessionIdAndStudentId(Long gameSessionId, Long studentId);
+    void deleteByGameSessionId(Long sessionId);
 }
