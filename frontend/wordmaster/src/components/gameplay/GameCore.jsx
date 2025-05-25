@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useUserAuth } from '../context/UserAuthContext';
-import { Box, Typography, Container, CircularProgress } from '@mui/material';
+import { Box, Typography, Container, CircularProgress, Paper } from '@mui/material';
 import WaitingRoom from './WaitingRoom';
 import GamePlay from './GamePlay';
 import GameResults from './GameResults';
+import ComprehensionQuiz from './ComprehensionQuiz';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import picbg from '../../assets/picbg.png';
@@ -20,6 +21,66 @@ const GameCore = () => {
   const [error, setError] = useState(null);
   const [gameState, setGameState] = useState({});
   const [stompClient, setStompClient] = useState(null);
+  const [gameEnded, setGameEnded] = useState(false);
+  const [showComprehension, setShowComprehension] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [comprehensionQuestions, setComprehensionQuestions] = useState(null);
+  const [loadingComprehension, setLoadingComprehension] = useState(false);
+  const [quizCompleted, setQuizCompleted] = useState(false);
+
+  const handleProceedToComprehension = () => {
+    setLoadingComprehension(true);
+    setShowComprehension(true);
+  };
+
+  const handleShowResults = (quizResults) => {
+    if (quizResults) {
+      // If we have results, it means the quiz was completed
+      setQuizCompleted(true);
+      // Store completion status in localStorage to persist across page reloads
+      localStorage.setItem(`quiz_completed_${gameState.sessionId}_${user?.id}`, 'true');
+    }
+    setShowResults(true);
+  };
+
+  // Check if quiz was previously completed
+  useEffect(() => {
+    if (gameState.sessionId && user?.id) {
+      const wasCompleted = localStorage.getItem(`quiz_completed_${gameState.sessionId}_${user?.id}`);
+      if (wasCompleted === 'true') {
+        setQuizCompleted(true);
+      }
+    }
+  }, [gameState.sessionId, user?.id]);
+
+  // Fetch comprehension questions when showComprehension is triggered
+  useEffect(() => {
+    if (showComprehension && gameState.sessionId && user?.id) {
+      const fetchQuestions = async () => {
+        try {
+          setLoadingComprehension(true);
+          const token = await getToken();
+          const response = await fetch(
+            `${API_URL}/api/teacher-feedback/comprehension/${gameState.sessionId}/student/${user.id}/questions`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          if (response.ok) {
+            const data = await response.json();
+            setComprehensionQuestions(data);
+          } else {
+            // If no questions are available, skip to results
+            setShowResults(true);
+          }
+        } catch (e) {
+          console.error("Error fetching comprehension questions:", e);
+          setComprehensionQuestions([]);
+        } finally {
+          setLoadingComprehension(false);
+        }
+      };
+      fetchQuestions();
+    }
+  }, [showComprehension, gameState.sessionId, user, getToken]);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -291,12 +352,12 @@ useEffect(() => {
   const handleGameStatus = (message) => {
     try {
       const data = JSON.parse(message.body);
-      
       if (data.event === 'gameStarted') {
         // Game has started
         fetchGameState();
       } else if (data.event === 'gameEnded') {
-        // Game has ended, show results
+        // Game has ended, show congrats in gameplay, not results
+        setGameEnded(true);
         setGameState(prev => ({
           ...prev,
           status: 'COMPLETED',
@@ -462,21 +523,139 @@ useEffect(() => {
   }, [stompClient, getToken]);
   
   // Determine which component to render based on game state
-// Determine which component to render based on game state
-    const renderGameContent = () => {
+  const renderGameContent = () => {
     // Use appropriate component based on user role and game status
-    if (gameState.status === 'WAITING_TO_START' || gameState.status === 'PENDING') {
+    if (showResults) {
+      return <GameResults 
+               gameState={gameState} 
+               quizCompleted={quizCompleted}
+             />;
+    }
+    
+    if (loadingComprehension && !comprehensionQuestions) {
+      return (
+        <Box sx={{ 
+          height: '100vh', 
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}>
+          <Paper elevation={3} sx={{ 
+            p: 5, 
+            borderRadius: '16px',
+            textAlign: 'center',
+            backgroundColor: 'rgba(255,255,255,0.9)',
+            border: '4px solid #5F4B8B',
+            maxWidth: '600px',
+            width: '90%',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Progress bar at the top */}
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '6px',
+              bgcolor: '#5F4B8B',
+              overflow: 'hidden'
+            }}>
+              <Box
+                sx={{
+                  width: '30%',
+                  height: '100%',
+                  bgcolor: '#9575CD',
+                  position: 'absolute',
+                  animation: 'loadingBar 2s infinite ease-in-out'
+                }}
+              />
+            </Box>
+            
+            <Typography 
+              sx={{ 
+                fontFamily: '"Press Start 2P", cursive',
+                fontSize: { xs: '16px', sm: '24px' }, 
+                color: '#5F4B8B', 
+                mb: 3 
+              }}
+            >
+              Preparing Questions...
+            </Typography>
+            
+            {/* Single clean progress indicator */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              mb: 3 
+            }}>
+              <CircularProgress 
+                size={80}
+                thickness={5}
+                sx={{ 
+                  color: '#5F4B8B',
+                  '& .MuiCircularProgress-circle': {
+                    strokeLinecap: 'round',
+                  }
+                }} 
+              />
+            </Box>
+            
+            <Typography sx={{ 
+              fontFamily: '"Press Start 2P", cursive',
+              fontSize: { xs: '10px', sm: '12px' },
+              color: '#666',
+              maxWidth: '80%',
+              mx: 'auto'
+            }}>
+              Let's see how much you've learned!
+            </Typography>
+          </Paper>
+          
+          {/* Custom animation keyframes */}
+          <style jsx="true">{`
+            @keyframes loadingBar {
+              0% { transform: translateX(-100%); }
+              50% { transform: translateX(200%); }
+              100% { transform: translateX(-100%); }
+            }
+          `}</style>
+        </Box>
+      );
+    }
+    
+    if (showComprehension && comprehensionQuestions) {
+      return (
+        <ComprehensionQuiz
+          sessionId={gameState.sessionId}
+          studentId={user?.id}
+          questions={comprehensionQuestions}
+          onComplete={handleShowResults}
+        />
+      );
+    }
+    
+    if (
+      gameState.status === 'WAITING_TO_START' ||
+      gameState.status === 'PENDING'
+    ) {
       return <WaitingRoom gameState={gameState} isTeacher={user?.role === 'USER_TEACHER'} />;
-    } else if (gameState.status === 'TURN_IN_PROGRESS' || gameState.status === 'WAITING_FOR_PLAYER' || 
-               gameState.status === 'ACTIVE') {
-      return <GamePlay 
-        gameState={gameState} 
-        stompClient={stompClient} 
-        sendMessage={sendMessage}
-        onGameStateUpdate={handleGameStateUpdate}
-      />;
-    } else if (gameState.status === 'COMPLETED') {
-      return <GameResults gameState={gameState} />;
+    } else if (
+      gameState.status === 'TURN_IN_PROGRESS' ||
+      gameState.status === 'WAITING_FOR_PLAYER' ||
+      gameState.status === 'ACTIVE' ||
+      (gameState.status === 'COMPLETED' && !showResults && !showComprehension)
+    ) {
+      return (
+        <GamePlay
+          gameState={gameState}
+          stompClient={stompClient}
+          sendMessage={sendMessage}
+          onGameStateUpdate={handleGameStateUpdate}
+          gameEnded={gameEnded}
+          onProceedToResults={handleProceedToComprehension} // <-- Change this
+        />);
     } else {
       return (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
@@ -485,7 +664,7 @@ useEffect(() => {
       );
     }
   }
-  
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">

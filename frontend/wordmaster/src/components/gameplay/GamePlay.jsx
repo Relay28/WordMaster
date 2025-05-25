@@ -39,7 +39,7 @@ import { Close, Games } from '@mui/icons-material';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 
-const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) => {
+const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate, gameEnded, onProceedToResults }) => {
   const { sessionId } = useParams(); // Ensure sessionId is available if used directly for subscriptions
   const { user, getToken } = useUserAuth();
   const [sentence, setSentence] = useState('');
@@ -68,6 +68,7 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
   const [timerActive, setTimerActive] = useState(false);
   const timerIntervalRef = useRef(null);
   const lastServerUpdateRef = useRef(Date.now());
+  const [proceeding, setProceeding] = useState(false); // <-- Add this line
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -953,58 +954,115 @@ const cycleDisplayString = isSinglePlayer
               <div ref={chatEndRef} />
             </Box>
 
-            {/* Input Area - Moved from outside to inside chat box */}
-  <Box sx={{ 
-  p: 2,
-  borderTop: '1px solid rgba(0,0,0,0.12)',
-  bgcolor: 'rgba(255,255,255,0.95)',
-  position: 'relative',
-  zIndex: 1
-}}>
-  <Box sx={{ 
-    display: 'flex',
-    alignItems: 'center',
-    gap: 1
-  }}>
-    <TextField
-      fullWidth
-      variant="outlined"
-      placeholder={isMyTurn ? "Type your message..." : "Waiting for your turn..."}
-      value={sentence}
-      onChange={handleSentenceChange}
-      disabled={!isMyTurn || submitting}
-      onKeyPress={(ev) => {
-        if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn) {
-          handleSubmit();
-          ev.preventDefault();
-        }
-      }}
-      sx={{
-        '& .MuiOutlinedInput-root': {
-          borderRadius: '50px',
-          bgcolor: 'white'
-        }
-      }}
-    />
-    <Button
-      variant="contained"
-      onClick={handleSubmit} // Changed this line
-      disabled={!isMyTurn || submitting || !sentence.trim()}
-      sx={{
-        bgcolor: '#5F4B8B',
-        borderRadius: '50px',
-        minWidth: '40px',
-        width: '40px',
-        height: '40px',
-        p: 0,
-        '&:hover': { bgcolor: '#4a3a6d' },
-        '&.Mui-disabled': { bgcolor: '#c5c5c5' }
-      }}
-    >
-      {submitting ? <CircularProgress size={20} color="inherit"/> : '➤'}
-    </Button>
-  </Box>
-</Box>
+            {/* Congratulatory notice and proceed button after game ends */}
+            {gameEnded && (
+              <Box sx={{
+                p: 2,
+                borderTop: '1px solid rgba(0,0,0,0.12)',
+                bgcolor: 'rgba(255,255,255,0.95)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                mt: 2
+              }}>
+                <Typography sx={{
+                  fontFamily: '"Press Start 2P", cursive',
+                  fontSize: '14px',
+                  color: '#5F4B8B',
+                  fontWeight: 'bold',
+                  mb: 1,
+                  textAlign: 'center'
+                }}>
+                  🎉 Congratulations! You've finished the game! 🎉
+                </Typography>
+                <Typography sx={{
+                  fontFamily: '"Press Start 2P", cursive',
+                  fontSize: '10px',
+                  color: '#333',
+                  mb: 2,
+                  textAlign: 'center'
+                }}>
+                  Click below to proceed to the comprehension check and see your results.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  sx={{
+                    fontFamily: '"Press Start 2P", cursive',
+                    fontSize: '12px',
+                    backgroundColor: '#5F4B8B',
+                    borderRadius: '8px',
+                    px: 4,
+                    py: 1.5,
+                    boxShadow: '2px 2px 0px rgba(0,0,0,0.2)',
+                    '&:hover': { backgroundColor: '#4a3a6d' }
+                  }}
+                  disabled={proceeding}
+                  onClick={() => {
+                    setProceeding(true);
+                    if (onProceedToResults) onProceedToResults(); // <-- This should call the prop
+                  }}
+                >
+                  Proceed to Comprehension Check
+                </Button>
+              </Box>
+            )}
+
+            {/* Input Area - Hide if game ended */}
+            {!gameEnded && (
+              <Box sx={{ 
+                p: 2,
+                borderTop: '1px solid rgba(0,0,0,0.12)',
+                bgcolor: 'rgba(255,255,255,0.95)',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <Box sx={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  <TextField
+                    fullWidth
+                    variant="outlined"
+                    placeholder={isMyTurn ? "Type your message..." : "Waiting for your turn..."}
+                    value={sentence}
+                    onChange={handleSentenceChange}
+                    disabled={!isMyTurn || submitting}
+                    onKeyPress={(ev) => {
+                      if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn) {
+                        handleSubmit();
+                        ev.preventDefault();
+                      }
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '50px',
+                        bgcolor: 'white'
+                      }
+                    }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    disabled={!isMyTurn || submitting || !sentence.trim()}
+                    sx={{
+                      bgcolor: '#5F4B8B',
+                      borderRadius: '50px',
+                      minWidth: '40px',
+                      width: '40px',
+                      height: '40px',
+                      p: 0,
+                      '&:hover': { bgcolor: '#4a3a6d' },
+                      '&.Mui-disabled': { bgcolor: '#c5c5c5' }
+                    }}
+                  >
+                    {submitting ? <CircularProgress size={20} color="inherit"/> : '➤'}
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </Paper>
         </Box>
       </Box>

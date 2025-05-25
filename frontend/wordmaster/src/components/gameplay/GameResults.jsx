@@ -10,7 +10,7 @@ import ComprehensionQuiz from './ComprehensionQuiz';
 import picbg from '../../assets/picbg.png';
 import '@fontsource/press-start-2p';
 
-const GameResults = ({ gameState }) => {
+const GameResults = ({ gameState, quizCompleted }) => {
   const navigate = useNavigate();
   const { user, getToken } = useUserAuth();
   const theme = useTheme();
@@ -58,10 +58,13 @@ const GameResults = ({ gameState }) => {
     
     fetchLeaderboard();
   }, [gameState.sessionId, getToken]);
-  // Fetch comprehension questions if they exist
+  // Fetch comprehension questions if they exist and haven't been completed
   useEffect(() => {
     const fetchComprehensionQuestions = async () => {
-      if (!gameState.sessionId || !user?.id) return;
+      if (!gameState.sessionId || !user?.id || quizCompleted) {
+        // Skip fetching if quiz was completed
+        return;
+      }
       
       setLoading(true);
       try {
@@ -81,8 +84,10 @@ const GameResults = ({ gameState }) => {
           const data = await response.json();
           if (data && data.length > 0) {
             setComprehensionQuestions(data);
-            // Auto-switch to comprehension tab when questions are available
-            setTabValue(1);
+            // Only auto-switch if not completed previously
+            if (!quizCompleted) {
+              setTabValue(1);
+            }
           }
         }
       } catch (err) {
@@ -93,7 +98,7 @@ const GameResults = ({ gameState }) => {
     };
     
     fetchComprehensionQuestions();
-  }, [gameState.sessionId, user?.id, getToken]);
+  }, [gameState.sessionId, user?.id, getToken, quizCompleted]);
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -160,7 +165,7 @@ const GameResults = ({ gameState }) => {
           }}
         >
           <Tab icon={<EmojiEvents />} label="LEADERBOARD" />
-          {comprehensionQuestions && (
+          {comprehensionQuestions && !quizCompleted && (
             <Tab icon={<QuestionAnswer />} label="COMPREHENSION CHECK" />
           )}
         </Tabs>
