@@ -177,7 +177,7 @@ public class AIService {
                         "Context: " + request.getOrDefault("context", "general topics") + "\n" +
                         "Message: \"" + request.getOrDefault("text", "") + "\"\n\n" +
                         "First, analyze if the vocabulary, tone, and content match what would be expected from someone in this role.\n" +
-                        "Your response must begin with either 'APPROPRIATE' or 'NOT APPROPRIATE' in capital letters,\n" +
+                        "YOUR RESPONSE MUST BEGIN EXACTLY with either 'APPROPRIATE' or 'NOT APPROPRIATE' (in capital letters),\n" +
                         "followed by a brief explanation of your reasoning. Consider both language appropriateness and role alignment.";
 
                 case "story_prompt":

@@ -13,6 +13,7 @@ public class ChatMessageDTO {
     private boolean containsWordBomb;
     private String wordUsed;
     private String role;
+    private boolean roleAppropriate; // Add this field
 
     // Getters and Setters
     public Long getId() {
@@ -93,5 +94,13 @@ public class ChatMessageDTO {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public boolean isRoleAppropriate() {
+        return roleAppropriate;
+    }
+
+    public void setRoleAppropriate(boolean roleAppropriate) {
+        this.roleAppropriate = roleAppropriate;
     }
 }

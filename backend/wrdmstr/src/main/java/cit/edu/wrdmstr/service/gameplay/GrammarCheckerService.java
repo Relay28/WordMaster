@@ -58,15 +58,40 @@ public class GrammarCheckerService {
 
                 String roleCheckResponse = aiService.callAIModel(request).getResult();
                 
-                // Check for "APPROPRIATE" at the start of the response
-                isRoleAppropriate = roleCheckResponse != null && 
-                    (roleCheckResponse.startsWith("APPROPRIATE") || 
-                     roleCheckResponse.toLowerCase().startsWith("appropriate"));
+                // Debug log the response to see what we're getting
+                logger.info("Role check response: {}", roleCheckResponse);
+                
+                // More robust checks for appropriateness
+                isRoleAppropriate = false; // Default to false, then set to true if any condition matches
+                
+                if (roleCheckResponse != null) {
+                    String trimmedResponse = roleCheckResponse.trim();
+                    String upperResponse = trimmedResponse.toUpperCase();
                     
-                roleFeedback = roleCheckResponse != null ? roleCheckResponse : "";
+                    // Debug the processed strings
+                    logger.info("Trimmed response: '{}'", trimmedResponse);
+                    logger.info("Uppercase response: '{}'", upperResponse);
+                    
+                    // Check multiple conditions for determining appropriateness
+                    if (upperResponse.startsWith("APPROPRIATE") || 
+                        trimmedResponse.startsWith("Appropriate") ||
+                        upperResponse.contains("APPROPRIATE") && !upperResponse.contains("NOT APPROPRIATE") && !upperResponse.contains("INAPPROPRIATE")) {
+                        isRoleAppropriate = true;
+                        logger.info("Role marked as appropriate");
+                    } else {
+                        logger.info("Role marked as inappropriate");
+                    }
+                    
+                    roleFeedback = roleCheckResponse;
+                } else {
+                    // If no role or context, assume appropriate
+                    isRoleAppropriate = true;
+                    roleFeedback = "";
+                }
             } else {
                 // If no role or context, assume appropriate
                 isRoleAppropriate = true;
+                roleFeedback = "";
             }
 
             // Combine feedback

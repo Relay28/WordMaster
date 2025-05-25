@@ -84,6 +84,12 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate }) =>
     const sortedMessages = [...gameState.messages].sort((a, b) => 
       new Date(a.timestamp) - new Date(b.timestamp)
     );
+    
+    // Add debug logging for roleAppropriate
+    sortedMessages.forEach(msg => {
+      console.log(`Message: "${msg.content.substring(0, 20)}..." - roleAppropriate: ${msg.roleAppropriate} (type: ${typeof msg.roleAppropriate})`);
+    });
+    
     setLocalMessages(sortedMessages);
   }
 }, [gameState.messages]);
@@ -859,7 +865,7 @@ const cycleDisplayString = isSinglePlayer
         p: 1.5,
         bgcolor: msg.grammarStatus === 'MAJOR_ERRORS' ? '#ffebee' : 
                 (msg.senderId === user?.id ? '#5F4B8B' : '#e0e0e0'),
-       color:'#5F4B8B',
+          color: msg.senderId === user?.id ? '#ffffff' : '#5F4B8B',
         borderRadius: '12px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
@@ -908,7 +914,15 @@ const cycleDisplayString = isSinglePlayer
               sx={{ fontSize: '0.6rem', ...pixelText }}
             />
           )}
-          {!msg.roleAppropriate && (
+          {msg.roleAppropriate === true && (
+            <Chip 
+              label="Role Appropriate"
+              size="small" 
+              color="success"
+              sx={{ fontSize: '0.6rem', ...pixelText }}
+            />
+          )}
+          {msg.roleAppropriate === false && (
             <Chip 
               label="Role Inappropriate"
               size="small" 

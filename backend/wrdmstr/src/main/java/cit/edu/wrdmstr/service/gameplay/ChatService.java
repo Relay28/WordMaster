@@ -204,6 +204,7 @@ public class ChatService {
         chatMessage.put("grammarFeedback", message.getGrammarFeedback());
         chatMessage.put("containsWordBomb", message.isContainsWordBomb());
         chatMessage.put("wordUsed", message.getWordUsed());
+        chatMessage.put("roleAppropriate", message.isRoleAppropriate()); // Add this line to include roleAppropriate flag
 
         if (message.getPlayerSession() != null && message.getPlayerSession().getRole() != null) {
             chatMessage.put("role", message.getPlayerSession().getRole().getName());
@@ -270,6 +271,7 @@ public class ChatService {
             dto.setGrammarFeedback(message.getGrammarFeedback());
             dto.setContainsWordBomb(message.isContainsWordBomb());
             dto.setWordUsed(message.getWordUsed());
+            dto.setRoleAppropriate(message.isRoleAppropriate()); // Add this line to include roleAppropriate flag
             dto.setRole(message.getPlayerSession() != null && message.getPlayerSession().getRole() != null
                     ? message.getPlayerSession().getRole().getName()
                     : null);
