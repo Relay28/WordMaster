@@ -114,9 +114,9 @@ public class ScoreService {
     public void handleGrammarScoring(PlayerSessionEntity player, ChatMessageEntity.MessageStatus status) {
         // Base grammar points based on quality
         int grammarPoints = switch (status) {
-            case PERFECT -> 15;
-            case MINOR_ERRORS -> 5;
-            case MAJOR_ERRORS -> 1;  // Still give 1 point for participation
+            case PERFECT -> 20;
+            case MINOR_ERRORS -> 16;
+            case MAJOR_ERRORS -> 10;  // Still give 1 point for participation
             case PENDING -> 0;  // Add this case - no points awarded for pending messages
         };
         
@@ -127,24 +127,23 @@ public class ScoreService {
             player.setGrammarStreak(player.getGrammarStreak() + 1);
             int streak = player.getGrammarStreak();
             
-            if (streak >= 3) {
+            if (streak >= 2) {
                 // Progressive streak bonus
-                int bonus = streak * 2;
+                int bonus = streak * 3;
                 awardPoints(player, bonus, "Grammar streak bonus x" + streak);
                 
                 // Milestone bonuses at key streak levels
-                if (streak == 5 || streak == 10 || streak == 15) {
-                    awardPoints(player, 10, "Streak milestone bonus!");
+                if (streak == 3 || streak == 5 || streak == 8 || streak == 12) {
+                    awardPoints(player, 15, "Streak milestone bonus!");
                 }
             }
         } else {
-            // Reset streak on very poor performance or pending messages
-            if (status != ChatMessageEntity.MessageStatus.PENDING) {
+            // Only reset streak on major errors, not minor ones
+            if (status != ChatMessageEntity.MessageStatus.MAJOR_ERRORS) {
                 player.setGrammarStreak(0);
             }
             // For PENDING messages, don't reset the streak - just don't award points yet
         }
-        
         playerRepository.save(player);
     }
     
@@ -201,14 +200,23 @@ public class ScoreService {
      * Award points for word length/complexity
      */
     public void handleMessageComplexity(PlayerSessionEntity player, String content) {
-        // Award points for detailed responses
+        // Reward effort even for shorter messages
+        if (content.length() > 20) {
+            awardPoints(player, 3, "Good effort bonus");
+        }
+        
         if (content.length() > 50) {
             awardPoints(player, 5, "Detailed response bonus");
         }
         
-        // Award bonus for very long, complex responses
         if (content.length() > 100) {
-            awardPoints(player, 5, "Extended response bonus");
+            awardPoints(player, 8, "Extended response bonus");
+        }
+        
+        // Bonus for sentence count
+        int sentences = content.split("[.!?]+").length;
+        if (sentences > 1) {
+            awardPoints(player, sentences * 2, "Multiple sentences bonus");
         }
     }
     

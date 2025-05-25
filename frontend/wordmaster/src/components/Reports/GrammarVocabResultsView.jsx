@@ -73,6 +73,11 @@ const GrammarVocabResultsView = ({ grammarData, vocabularyData, pixelText, pixel
               <Typography sx={{ ...pixelText, mt: 1 }}>
                 Longest Grammar Streak: {grammarData?.grammarStreak || 0}
               </Typography>
+              {totalMessages > 0 && (
+                <Typography sx={{ ...pixelText, mt: 1, fontSize: '6px', color: 'text.secondary' }}>
+                  *Accuracy based on assessed messages. Pending messages not included.
+                </Typography>
+              )}
             </Box>
           </Paper>
         </Grid>

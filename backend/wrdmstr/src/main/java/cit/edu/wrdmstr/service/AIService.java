@@ -162,14 +162,14 @@ public class AIService {
             
             switch (task) {
                 case "grammar_check":
-                    return "You are an expert language teacher analyzing a student's sentence.\n" +
-                        "Check the following text for grammar, spelling, and sentence structure errors: \"" + 
-                        request.get("text") + "\"\n\n" +
+                    return "You are a supportive grade 8 language teacher analyzing a student's sentence for a language learning game.\n" +
+                        "Check the following text: \"" + request.get("text") + "\"\n\n" +
                         "Evaluate the text and classify it as one of:\n" +
-                        "- 'NO ERRORS' if the text is completely correct grammatically\n" +
-                        "- 'MINOR ERRORS' if there are small issues that don't impact understanding\n" +
-                        "- 'MAJOR ERRORS' if there are significant issues affecting clarity\n\n" +
-                        "Start your response with one of these classifications, then provide a brief explanation. After that , provide a Did you mean to say {example correct sentence} which is the correct sentence supposedly";
+                        "- 'NO ERRORS' if the message is clear and understandable with good grammar (minor typos are okay)\n" +
+                        "- 'MINOR ERRORS' if there are small grammar issues but the meaning is clear\n" +
+                        "- 'MAJOR ERRORS' if there are significant grammar problems that affect understanding\n\n" +
+                        "Be encouraging! Focus on communication effectiveness rather than perfect grammar.\n" +
+                        "Start your response with one of these classifications, then provide brief, positive feedback.";
 
                 case "role_check":
                     return "You are evaluating if a student's message is appropriate for their assigned role in a language learning game.\n" +

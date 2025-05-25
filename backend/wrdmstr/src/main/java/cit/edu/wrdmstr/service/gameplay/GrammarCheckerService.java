@@ -107,17 +107,23 @@ public class GrammarCheckerService {
             return new GrammarCheckResult(MessageStatus.MINOR_ERRORS, 
                 "Grammar check encountered an error. Please try again.", false);
         }
-    }    private MessageStatus determineStatusFromFeedback(String feedback) {
+    }    
+    
+    private MessageStatus determineStatusFromFeedback(String feedback) {
         if (feedback == null) {
             return MessageStatus.MINOR_ERRORS;
         }
         
         String lowerFeedback = feedback.toLowerCase();
         
-        // First check for exact match of the classification at the beginning
-        if (feedback.startsWith("NO ERRORS") || lowerFeedback.startsWith("no errors")) {
+        // More lenient checking for PERFECT status
+        if (feedback.startsWith("NO ERRORS") || lowerFeedback.startsWith("no errors") ||
+            lowerFeedback.contains("excellent") || lowerFeedback.contains("great job") ||
+            lowerFeedback.contains("well done") || lowerFeedback.contains("clear and understandable")) {
             return MessageStatus.PERFECT;
-        } else if (feedback.startsWith("MINOR ERRORS") || lowerFeedback.startsWith("minor errors")) {
+        } else if (feedback.startsWith("MINOR ERRORS") || lowerFeedback.startsWith("minor errors") ||
+                lowerFeedback.contains("small issues") || lowerFeedback.contains("minor typos") ||
+                lowerFeedback.contains("mostly correct")) {
             return MessageStatus.MINOR_ERRORS;
         } else if (feedback.startsWith("MAJOR ERRORS") || lowerFeedback.startsWith("major errors")) {
             return MessageStatus.MAJOR_ERRORS;
@@ -125,14 +131,12 @@ public class GrammarCheckerService {
             return MessageStatus.PENDING;
         }
         
-        // Fall back to contains check if no exact match at beginning
-        if (lowerFeedback.contains("no errors") || 
-            lowerFeedback.contains("perfect") || 
-            lowerFeedback.contains("correct")) {
+        // More generous fallback logic
+        if (lowerFeedback.contains("good") || lowerFeedback.contains("correct") || 
+            lowerFeedback.contains("clear") || lowerFeedback.contains("understandable")) {
             return MessageStatus.PERFECT;
-        } else if (lowerFeedback.contains("minor errors") || 
-                   lowerFeedback.contains("small issues") || 
-                   lowerFeedback.contains("slight mistakes")) {
+        } else if (lowerFeedback.contains("minor") || lowerFeedback.contains("small") || 
+                lowerFeedback.contains("mostly")) {
             return MessageStatus.MINOR_ERRORS;
         } else {
             return MessageStatus.MAJOR_ERRORS;

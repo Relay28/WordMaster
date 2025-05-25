@@ -46,15 +46,18 @@ public class GameResultService {
     private GrammarResultEntity processGrammarResults(GameSessionEntity session, PlayerSessionEntity player) {
         List<ChatMessageEntity> messages = chatMessageRepo.findByPlayerSessionId(player.getId());
         
-        // Calculate grammar stats
+        // Calculate grammar stats - exclude PENDING messages from accuracy calculation
         Map<ChatMessageEntity.MessageStatus, Integer> breakdown = new HashMap<>();
         breakdown.put(ChatMessageEntity.MessageStatus.PERFECT, 0);
         breakdown.put(ChatMessageEntity.MessageStatus.MINOR_ERRORS, 0);
         breakdown.put(ChatMessageEntity.MessageStatus.MAJOR_ERRORS, 0);
+        breakdown.put(ChatMessageEntity.MessageStatus.PENDING, 0);
         
         for (ChatMessageEntity msg : messages) {
             ChatMessageEntity.MessageStatus status = msg.getGrammarStatus();
-            breakdown.put(status, breakdown.getOrDefault(status, 0) + 1);
+            if (status != null) {
+                breakdown.put(status, breakdown.getOrDefault(status, 0) + 1);
+            }
         }
         
         GrammarResultEntity result = new GrammarResultEntity();
@@ -65,9 +68,9 @@ public class GameResultService {
         result.setMajorErrorsCount(breakdown.getOrDefault(ChatMessageEntity.MessageStatus.MAJOR_ERRORS, 0));
         result.setGrammarStreak(player.getGrammarStreak());
         
-        // Calculate accuracy
-        int total = result.getPerfectCount() + result.getMinorErrorsCount() + result.getMajorErrorsCount();
-        double accuracy = total > 0 ? (double)result.getPerfectCount() / total * 100.0 : 0.0;
+        // Calculate accuracy excluding PENDING messages
+        int totalAssessedMessages = result.getPerfectCount() + result.getMinorErrorsCount() + result.getMajorErrorsCount();
+        double accuracy = totalAssessedMessages > 0 ? (double)result.getPerfectCount() / totalAssessedMessages * 100.0 : 0.0;
         result.setGrammarAccuracy(accuracy);
         
         return result;
