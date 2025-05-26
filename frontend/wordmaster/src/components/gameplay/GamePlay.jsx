@@ -33,7 +33,7 @@ import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import { BagClosed, BagOpen } from '../../assets/BagIcons';
 import { Close, Games } from '@mui/icons-material';
-
+import bgGamePlay from '../../assets/bg-gameplay.png';
 
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -571,7 +571,6 @@ const cycleDisplayString = isSinglePlayer
           flexDirection: 'column',
           minWidth: '40vh', // Added to ensure minimum width
           maxWidth: '130vh', 
- 
         }}>
           {/* Players Circle Area */}
           <Paper sx={{ 
@@ -586,20 +585,24 @@ const cycleDisplayString = isSinglePlayer
             '&:hover': {
               transform: 'translateY(-4px)',
               boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
-            }
+            },
+          backgroundImage: `url(${bgGamePlay})`,
+          backgroundSize: 'cover',          // Use 'cover' to fill the box or 'contain' to show the whole image
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
           }}>
             {/* Center player */}
             <Box sx={{ 
               position: 'relative',
-              width: '300px',
-              height: '300px'
+              width: '500px',
+              height: '500px'
             }}>
               {/* Current Player in Center */}
               <Avatar
                 sx={{
                   position: 'absolute',
-                  top: '50%',
-                  left: '50%',
+                  top: '45%',
+                  left: '72%',
                   transform: 'translate(-50%, -50%)',
                   width: 80,
                   height: 80,
@@ -624,11 +627,11 @@ const cycleDisplayString = isSinglePlayer
                     key={player.userId}
                     sx={{
                       position: 'absolute',
-                      top: '50%',
-                      left: '50%',
+                      top: '75%',
+                      left: '48%',
                       transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                      width: 50,
-                      height: 50,
+                      width: 80,
+                      height: 80,
                       bgcolor: '#9575CD',
                       border: '2px solid white'
                     }}
