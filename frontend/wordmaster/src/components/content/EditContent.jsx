@@ -742,14 +742,15 @@ const EditContent = () => {
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6} width={500}>
                   <FormControl fullWidth>
-                    <InputLabel sx={pixelText}>Time per Turn (seconds)</InputLabel>
+                    <InputLabel sx={{pixelText, mt: 1}}>Time per Turn (seconds)</InputLabel>
                     <Select
                       name="timePerTurn"
                       value={scenarioSettings.timePerTurn}
                       onChange={handleScenarioSettingChange}
                       sx={{
                         ...pixelText,
-                        backgroundColor: 'rgba(255,255,255,0.9)'
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        mt: 2
                       }}
                     >
                       {turnTimes.map((time) => (
@@ -762,14 +763,15 @@ const EditContent = () => {
                 </Grid>
                 <Grid item xs={12} md={6} width={500}>
                   <FormControl fullWidth>
-                    <InputLabel sx={pixelText}>Turn Cycles</InputLabel>
+                    <InputLabel sx={{pixelText, mt: 1}}>Turn Cycles</InputLabel>
                     <Select
                       name="turnCycles"
                       value={scenarioSettings.turnCycles}
                       onChange={handleScenarioSettingChange}
                       sx={{
                         ...pixelText,
-                        backgroundColor: 'rgba(255,255,255,0.9)'
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        mt: 2
                       }}
                     >
                       {turnCyclesOptions.map((cycles) => (
@@ -847,54 +849,6 @@ const EditContent = () => {
                   </ListItem>
                 ))}
               </List>
-            </Box>
-
-            <Divider sx={{ my: 3 }} />
-
-            {/* Background Image */}
-            <Box>
-              <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
-                Background Image
-              </Typography>
-              <Box sx={{ 
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2
-              }}>
-                <Button
-                  component="label"
-                  variant="outlined"
-                  startIcon={<Image />}
-                  sx={{
-                    ...pixelButton,
-                    color: '#5F4B8B',
-                    borderColor: '#5F4B8B'
-                  }}
-                >
-                  Choose Image
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={handleImageChange}
-                  />
-                </Button>
-                {imagePreview && (
-                  <Box
-                    component="img"
-                    src={imagePreview}
-                    alt="Background preview"
-                    sx={{
-                      maxWidth: '100%',
-                      maxHeight: '200px',
-                      objectFit: 'contain',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
-                    }}
-                  />
-                )}
-              </Box>
             </Box>
           </Paper>
         </Container>

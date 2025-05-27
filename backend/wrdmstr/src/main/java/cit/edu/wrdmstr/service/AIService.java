@@ -214,7 +214,11 @@ public class AIService {
                     return "Generate one vocabulary word appropriate for Grade 8-9 Filipino students learning English at " 
                         + request.get("difficulty") + " difficulty level in the context: " 
                         + request.get("context") + ". Choose words that will help them build confidence in English. Reply with just the English word itself.";
-
+                case "word_enrichment":
+                    return "You are a helpful English language assistant. For the following word: \"" + request.get("word") + "\", " +
+                        "provide a clear, concise definition and an example sentence showing how to use it properly. " +
+                        "Format your response exactly as: \"Definition of the word | Example: A sentence using the word.\" " +
+                        "Keep the definition brief and suitable for Grade 8-9 English language learners.";
                 case "content_generation":
                     // Get the requested number of roles (default to 5 if not specified)
                     int roleCount = 5;
@@ -322,19 +326,28 @@ public class AIService {
                     return questionsPrompt.toString();
 
                 case "vocabulary_check":
-                    StringBuilder vocabPrompt = new StringBuilder();
-                    vocabPrompt.append("You are a caring English teacher analyzing English vocabulary usage by a Grade 8-9 Filipino student.\n\n");
-                    vocabPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n");
-                    vocabPrompt.append("English words used from word bank: ").append(request.get("usedWords")).append("\n\n");
-                    
-                    vocabPrompt.append("Provide encouraging feedback to help this Filipino student improve their English vocabulary:\n");
-                    vocabPrompt.append("1. Celebrate their use of English vocabulary from the word bank\n");
-                    vocabPrompt.append("2. Acknowledge their effort in practicing English\n");
-                    vocabPrompt.append("3. Gently suggest ways to enhance their English vocabulary\n");
-                    vocabPrompt.append("4. Motivate continued English language learning\n\n");
-                    vocabPrompt.append("Remember: be supportive and nurturing - help them feel proud of their English progress!");
-                    
-                    return vocabPrompt.toString();
+                    String studentName2 = (String) request.get("studentName");
+                    return "Analyze this Grade 8-9 Filipino student's English vocabulary usage:\n\n" +
+                        (studentName2 != null && !studentName2.trim().isEmpty() ? "Student: " + studentName2 + "\n" : "") +
+                        "Text: \"" + request.get("text") + "\"\n" +
+                        "Word bank words used: " + request.get("usedWords") + "\n\n" +
+                        "Provide a specific analysis of the actual vocabulary used. Include exact words and examples from their text. Format as:\n\n" +
+                        "1. VOCABULARY LEVEL: (Basic/Intermediate/Advanced)\n\n" +
+                        "2. STRENGTHS:\n" +
+                        "   2.1. 'First strength' - Include specific words/examples from their text\n" +
+                        "   2.2. 'Second strength' - Include specific words/examples from their text\n" +
+                        "   2.3. 'Third strength'' - Include specific words/examples from their text\n\n" +
+                        "3. AREAS FOR IMPROVEMENT:\n" +
+                        "   3.1. 'First area' - Be specific about what's missing/could improve\n" +
+                        "   3.2. 'Second area'- Be specific about what's missing/could improve\n" +
+                        "   3.3. 'Third area' - Be specific about what's missing/could improve\n\n" +
+                        "4. TEACHING RECOMMENDATIONS:\n" +
+                        "   4.1. 'Specific activity' for this student based on their actual text\n" +
+                        "   4.2. 'pecific activity' for this student based on their actual text\n" +
+                        "   4.3. 'Specific activity' for this student based on their actual text\n" +
+                        "   4.4. 'Specific activity' for this student based on their actual text\n\n" +
+                        "Keep your analysis focused on their actual vocabulary usage. Max 150 words.";
+
                 case "generate_vocabulary_exercises":
                     StringBuilder exercisesPrompt = new StringBuilder();
                     exercisesPrompt.append("You are a caring and supportive English teacher creating vocabulary exercises for Grade 8-9 Filipino students learning English.\n\n");

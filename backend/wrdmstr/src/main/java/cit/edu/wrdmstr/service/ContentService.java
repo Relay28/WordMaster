@@ -694,6 +694,7 @@ public class ContentService {
         // Parse AI response to extract words and roles
         List<String> generatedWords = new ArrayList<>();
         List<String> generatedRoles = new ArrayList<>();
+        List<WordData> parsedWords = new ArrayList<>();
         boolean parsingDescription = false;
         boolean parsingWords = false;
         boolean parsingRoles = false;
@@ -733,8 +734,14 @@ public class ContentService {
             } else if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
                 String item = line.substring(2).trim();
                 if (parsingWords && !item.isEmpty()) {
-                    generatedWords.add(item);
-                    logger.debug("Added word: {}", item);
+                    String[] parts = item.split("\\|");
+                    String word = parts[0].trim();
+                    String desc = parts.length > 1 ? parts[1].trim() : "No description available";
+                    String example = parts.length > 2 ? parts[2].trim() : "No example available";
+                    
+                    generatedWords.add(word);
+                    parsedWords.add(new WordData(word, desc, example));
+                    logger.debug("Found word: {} with description and example", word);
                 } else if (parsingRoles && !item.isEmpty()) {
                     generatedRoles.add(item);
                     logger.debug("Added role: {}", item);
@@ -763,7 +770,7 @@ public class ContentService {
         // Create new content
         ContentEntity content = new ContentEntity();
         content.setTitle(topic); // Changed: Use topic directly as title
-        content.setDescription("AI-generated content about " + topic);
+        content.setDescription(description.length() > 0 ? description.toString().trim() : "AI-generated content about " + topic);
         content.setBackgroundTheme("default");
         content.setCreator(creator);
         content.setPublished(false);
@@ -781,9 +788,9 @@ public class ContentService {
         content.setGameConfig(gameConfig);
         gameConfig.setContent(content);
 
-        // Add generated words
-        for (String word : generatedWords) {
-            contentData.addWord(word);
+        // Add words with their descriptions and examples
+        for (WordData wordData : parsedWords) {
+            contentData.addWord(wordData.word, wordData.description, wordData.example);
         }
 
         // Add generated roles

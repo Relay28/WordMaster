@@ -5,12 +5,13 @@ import {
   CircularProgress, Alert, Divider, List, ListItem, ListItemText, Chip,
     TextField, Select, MenuItem, FormControl, InputLabel, Tabs, Tab
 } from '@mui/material';
-import { ArrowBack, School, Person, Assessment, EmojiEvents, QuestionAnswer, Spellcheck} from '@mui/icons-material';
+import { ArrowBack, School, Person, Assessment, EmojiEvents, QuestionAnswer, Spellcheck, Chat } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import ComprehensionResultsView from './ComprehensionResultsView';
 import GrammarVocabResultsView from './GrammarVocabResultsView'; // Import the new component
+import ChatMessagesView from './ChatMessagesView';
 
 
 const StudentReportPage = () => {
@@ -849,6 +850,7 @@ const StudentReportPage = () => {
             >
               <Tab icon={<QuestionAnswer />} label="Comprehension" />
               <Tab icon={<Spellcheck />} label="Grammar & Vocabulary" />
+              <Tab icon={<Chat />} label="Chat Messages" />
             </Tabs>
             
             {/* Tab contents */}
@@ -875,6 +877,14 @@ const StudentReportPage = () => {
                   usedWords: studentDetails.usedWords || [],
                   usedAdvancedWords: studentDetails.usedAdvancedWords || []
                 }}
+                pixelText={pixelText}
+                pixelHeading={pixelHeading}
+              />
+            )}
+            
+            {activeTab === 2 && (
+              <ChatMessagesView 
+                chatMessages={studentDetails.chatMessages || []}
                 pixelText={pixelText}
                 pixelHeading={pixelHeading}
               />

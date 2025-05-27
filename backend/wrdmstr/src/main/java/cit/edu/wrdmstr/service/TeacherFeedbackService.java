@@ -22,8 +22,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import cit.edu.wrdmstr.dto.GrammarResultDTO;
 import cit.edu.wrdmstr.dto.VocabularyResultDTO;
-import cit.edu.wrdmstr.repository.GrammarResultRepository;
-import cit.edu.wrdmstr.repository.VocabularyResultRepository;
 @Service
 @Transactional
 public class TeacherFeedbackService implements ITeacherFeedbackService {
@@ -598,7 +596,41 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
         analytics.put("usedAdvancedWords", usedAdvancedWords);
         analytics.put("vocabularyScore", feedback != null ? feedback.getVocabularyScore() : null);
         
+        // Get chat messages for this student
+        List<Map<String, Object>> chatMessages = getStudentChatMessages(sessionId, studentId);
+        analytics.put("chatMessages", chatMessages);
+        
         return analytics;
+    }
+
+    /**
+     * Get chat messages for a student in a session
+     */
+    public List<Map<String, Object>> getStudentChatMessages(Long sessionId, Long studentId) {
+        List<ChatMessageEntity> messages = chatMessageRepository
+            .findBySessionIdAndSenderIdOrderByTimestampAsc(sessionId, studentId);
+        
+        return messages.stream()
+            .map(this::convertMessageToMap)
+            .collect(Collectors.toList());
+    }
+
+    private Map<String, Object> convertMessageToMap(ChatMessageEntity message) {
+        Map<String, Object> messageMap = new HashMap<>();
+        messageMap.put("id", message.getId());
+        messageMap.put("content", message.getContent());
+        messageMap.put("timestamp", message.getTimestamp());
+        messageMap.put("grammarStatus", message.getGrammarStatus() != null ? message.getGrammarStatus().toString() : null);
+        messageMap.put("grammarFeedback", message.getGrammarFeedback());
+        messageMap.put("vocabularyFeedback", message.getVocabularyFeedback());
+        messageMap.put("vocabularyScore", message.getVocabularyScore());
+        messageMap.put("containsWordBomb", message.isContainsWordBomb());
+        messageMap.put("wordUsed", message.getWordUsed());
+        messageMap.put("roleAppropriate", message.isRoleAppropriate());
+        messageMap.put("role", message.getPlayerSession() != null && message.getPlayerSession().getRole() != null
+            ? message.getPlayerSession().getRole().getName()
+            : null);
+        return messageMap;
     }
 
     /**

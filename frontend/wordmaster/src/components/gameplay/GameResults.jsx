@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Box, Typography, Button, Paper, Avatar, List, ListItem, 
+  Box, Typography, Button, Paper, Avatar, List, ListItem, Divider,
   ListItemAvatar, ListItemText, Container, Grid, useMediaQuery, useTheme, Tab, Tabs
 } from '@mui/material';
 import { Person, EmojiEvents, ArrowBack, QuestionAnswer } from '@mui/icons-material';
@@ -145,10 +145,10 @@ const GameResults = ({ gameState, quizCompleted }) => {
       url(${picbg})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      backgroundAttachment: 'fixed'
+      backgroundAttachment: 'fixed',
     }}>
       <Container maxWidth="lg">
-        <Box display="flex" alignItems="center" mb={4}>
+        <Box display="flex" alignItems="center" mb={2}>
           <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px' }}>
             Game Results
           </Typography>
@@ -158,7 +158,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
           value={tabValue} 
           onChange={handleTabChange}
           sx={{ 
-            mb: 4,
+            mb: 2,
             '& .MuiTab-root': pixelText,
             '& .Mui-selected': { color: '#5F4B8B' },
             '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' }
@@ -173,205 +173,219 @@ const GameResults = ({ gameState, quizCompleted }) => {
         {tabValue === 0 && (
           <>
             {/* Original leaderboard content */}
-           <Grid container spacing={4} sx={{ overflow: 'hidden' }}>
-              {/* Podium section */}
-              <Grid item xs={12} md={6}>
-                <Paper elevation={0} sx={{ 
-                  p: 3, 
+           <Grid container spacing={4}>
+            {/* Left column: Your Results and Top Performers stacked */}
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, height: '100%', ml: 1 }}>
+                {/* Your Results */}
+                <Paper elevation={0} sx={{
+                  p: 3,
                   backgroundColor: 'rgba(255, 255, 255, 0.8)',
                   backdropFilter: 'blur(8px)',
-                    p: 3,
-  height: isMobile ? 'auto' : '400px', // Adjust height as needed
-  maxHeight: '70vh',
-  overflow: 'auto',
                   border: '4px solid #5F4B8B',
-                  borderRadius: '6px'
+                  borderRadius: '6px',
+                  minHeight: 180,
+                  mb: 0,
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  width: '500px',
+                }}>
+                  <Typography sx={pixelHeading} gutterBottom>YOUR RESULTS</Typography>
+                  <Divider sx={{ my: 2 }} />
+                  {leaderboardLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                      <Typography sx={pixelText}>Loading results...</Typography>
+                    </Box>
+                  ) : myRank > 0 ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+                      
+                      
+                      <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <Typography sx={{ ...pixelHeading, fontSize: '24px', color: '#5F4B8B', mb: 2 }}>
+                            #{myRank}
+                          </Typography>
+                          <Typography sx={pixelText} gutterBottom>YOUR RANK</Typography>
+                        </Box>
+                        
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <Typography sx={{ ...pixelHeading, fontSize: '24px', color: '#5F4B8B', mb: 2 }}>
+                            {myScore}
+                          </Typography>
+                          <Typography sx={pixelText}>TOTAL POINTS</Typography>
+                        </Box>
+
+                      </Box>
+
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        sx={{
+                          ...pixelText,
+                          mt: 3,
+                          backgroundColor: '#5F4B8B',
+                          '&:hover': { backgroundColor: '#4a3a6d' }
+                        }}
+                        onClick={() => navigate(`/student-report/${gameState.sessionId}/${user?.id}`)}
+                      >
+                        View Detailed Report
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+                      <Typography sx={pixelText}>You didn't participate in this game.</Typography>
+                    </Box>
+                  )}
+                </Paper>
+                {/* Top Performers */}
+                <Paper elevation={0} sx={{
+                  p: 3,
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  backdropFilter: 'blur(8px)',
+                  border: '4px solid #5F4B8B',
+                  borderRadius: '6px',
+                  minHeight: 300,
+                  mt: 0,
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'Top',
+                  width: '500px',
                 }}>
                   <Typography sx={pixelHeading} gutterBottom>TOP PERFORMERS</Typography>
                   
                   {podiumPlayers.length > 0 ? (
                     <List>
                       {podiumPlayers.map((player, index) => (
-                        <ListItem key={index} sx={{ 
-                          mb: 2, 
+                        <ListItem key={index} sx={{
+                          mb: 2,
                           backgroundColor: index === 0 ? 'rgba(255, 215, 0, 0.1)' : 'transparent',
                           borderRadius: '4px',
                           border: index === 0 ? '1px dashed gold' : 'none',
                           p: 2
                         }}>
                           <ListItemAvatar>
-                            <Avatar sx={{ 
+                            <Avatar sx={{
                               bgcolor: index === 0 ? 'gold' : index === 1 ? 'silver' : '#cd7f32',
                               color: 'white'
                             }}>
                               {index + 1}
                             </Avatar>
                           </ListItemAvatar>
-                          <ListItemText 
-                     
+                          <ListItemText
                             primary={player.name || 'Unknown Player'}
                             secondary={`Role: ${player.role || 'Participant'}`}
                             primaryTypographyProps={{ sx: pixelHeading }}
                             secondaryTypographyProps={{ sx: pixelText }}
                           />
-                          <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+                          <Typography sx={{ ...pixelHeading, color: '#5F4B8B', ml: 5.5 }}>
                             {player.score} pts
                           </Typography>
-                             
                         </ListItem>
-                        
                       ))}
-                      
                     </List>
                   ) : (
                     <Typography sx={pixelText}>No players in this session.</Typography>
                   )}
                 </Paper>
-              </Grid>
-              
-              {/* Your results section */}
-              <Grid item xs={12} md={6}>
-                <Paper elevation={0} sx={{ 
-                  p: 3, 
-                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                  backdropFilter: 'blur(8px)',
-                  border: '4px solid #5F4B8B',
-                  borderRadius: '6px',
-                    height: isMobile ? 'auto' : '400px', 
-          
+              </Box>
+            </Grid>
+            {/* Right column: Leaderboard */}
+            <Grid item xs={12} md={8}>
+              <Paper elevation={0} sx={{
+                borderRadius: '8px',
+                border: '3px solid #5F4B8B',
+                overflow: 'hidden',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                height: '100%',
+                minHeight: 380,
+                display: 'flex',
+                flexDirection: 'column',
+                width: '150%',
+              }}>
+                <Box sx={{
+                  bgcolor: '#5F4B8B',
+                  p: 2,
                   display: 'flex',
-                  flexDirection: 'column'
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}>
-               
-
-                <Typography sx={pixelHeading} gutterBottom>YOUR RESULTS</Typography>
+                  <EmojiEvents sx={{ mr: 1, color: '#FFD700' }} />
+                  <Typography sx={{
+                    ...pixelHeading,
+                    color: 'white',
+                    fontSize: isMobile ? '14px' : '16px'
+                  }}>
+                    LEADERBOARD
+                  </Typography>
+                </Box>
                 {leaderboardLoading ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                    <Typography sx={pixelText}>Loading results...</Typography>
-                  </Box>
-                ) : myRank > 0 ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
-                    <Typography sx={{ ...pixelHeading, fontSize: '30px', color: '#5F4B8B', mb: 2 }}>
-                      #{myRank}
-                    </Typography>
-                    <Typography sx={pixelText} gutterBottom>YOUR RANK</Typography>
-                    
-                    <Typography sx={{ ...pixelHeading, fontSize: '24px', color: '#5F4B8B', mt: 4, mb: 2 }}>
-                      {myScore}
-                    </Typography>
-                    <Typography sx={pixelText}>TOTAL POINTS</Typography>
-                    
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      sx={{
-                        ...pixelText,
-                        mt: 4,
-                        backgroundColor: '#5F4B8B',
-                        '&:hover': { backgroundColor: '#4a3a6d' }
-                      }}
-                      onClick={() => navigate(`/student-report/${gameState.sessionId}/${user?.id}`)}
-                    >
-                      View Detailed Report
-                    </Button>
+                    <Typography sx={pixelText}>Loading leaderboard...</Typography>
                   </Box>
                 ) : (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
-                    <Typography sx={pixelText}>You didn't participate in this game.</Typography>
-                  </Box>
+                  <List sx={{ p: 0 }}>
+                    {leaderboard.map((player, index) => (
+                      <ListItem
+                        key={player.id}
+                        sx={{
+                          borderBottom: '1px solid rgba(95, 75, 139, 0.2)',
+                          backgroundColor: player.userId === user?.id ? 'rgba(95, 75, 139, 0.1)' : 'inherit',
+                          '&:last-child': { borderBottom: 'none' },
+                          px: isMobile ? 1 : 2,
+                          py: 1.5
+                        }}
+                      >
+                        <ListItemAvatar>
+                          <Avatar
+                            sx={{
+                              width: isMobile ? 28 : 32,
+                              height: isMobile ? 28 : 32,
+                              bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B',
+                              fontSize: isMobile ? '0.8rem' : '0.9rem'
+                            }}
+                          >
+                            {index + 1}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={
+                            <Typography sx={{
+                              ...pixelText,
+                              fontSize: isMobile ? '9px' : '10px',
+                              fontWeight: player.userId === user?.id ? 'bold' : 'normal'
+                            }}>
+                              {player.name}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography sx={{
+                              ...pixelText,
+                              color: '#5F4B8B',
+                              fontSize: isMobile ? '8px' : '9px'
+                            }}>
+                              {player.role || 'Player'}
+                            </Typography>
+                          }
+                          sx={{ my: 0 }}
+                        />
+                        <Typography sx={{
+                          ...pixelHeading,
+                          fontWeight: 'bold',
+                          fontSize: isMobile ? '12px' : '14px'
+                        }}>
+                          {player.score} pts
+                        </Typography>
+                      </ListItem>
+                    ))}
+                  </List>
                 )}
-                </Paper>
-              </Grid>
+              </Paper>
             </Grid>
-          
-            {/* Leaderboard */}
-            <Paper elevation={0} sx={{ 
-              mb: 4, 
-              borderRadius: '8px',
-              border: '3px solid #5F4B8B',
-              overflow: 'hidden',
-              backgroundColor: 'rgba(255, 255, 255, 0.7)',
-              marginTop: '12px',
-            }}>
-              <Box sx={{ 
-                bgcolor: '#5F4B8B', 
-                p: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <EmojiEvents sx={{ mr: 1, color: '#FFD700' }} />
-                <Typography sx={{ 
-                  ...pixelHeading, 
-                  color: 'white',
-                  fontSize: isMobile ? '14px' : '16px'
-                }}>
-                  LEADERBOARD
-                </Typography>
-              </Box>
-              
-              {leaderboardLoading ? (
-  <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-    <Typography sx={pixelText}>Loading leaderboard...</Typography>
-  </Box>
-) : (
-  <List sx={{ p: 0 }}>
-    {leaderboard.map((player, index) => (
-      <ListItem 
-        key={player.id}
-        sx={{
-          borderBottom: '1px solid rgba(95, 75, 139, 0.2)',
-          backgroundColor: player.userId === user?.id ? 'rgba(95, 75, 139, 0.1)' : 'inherit',
-          '&:last-child': { borderBottom: 'none' },
-          px: isMobile ? 1 : 2,
-          py: 1.5
-        }}
-      >
-        <ListItemAvatar>
-          <Avatar 
-            sx={{ 
-              width: isMobile ? 28 : 32, 
-              height: isMobile ? 28 : 32, 
-              bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B',
-              fontSize: isMobile ? '0.8rem' : '0.9rem'
-            }}
-          >
-            {index + 1}
-          </Avatar>
-        </ListItemAvatar>
-        <ListItemText
-          primary={
-            <Typography sx={{ 
-              ...pixelText,
-              fontSize: isMobile ? '9px' : '10px',
-              fontWeight: player.userId === user?.id ? 'bold' : 'normal'
-            }}>
-              {player.name}
-            </Typography>
-          }
-          secondary={
-            <Typography sx={{ 
-              ...pixelText, 
-              color: '#5F4B8B',
-              fontSize: isMobile ? '8px' : '9px'
-            }}>
-              {player.role || 'Player'}
-            </Typography>
-          }
-          sx={{ my: 0 }}
-        />
-        <Typography sx={{ 
-          ...pixelHeading, 
-          fontWeight: 'bold',
-          fontSize: isMobile ? '12px' : '14px'
-        }}>
-          {player.score} pts
-        </Typography>
-      </ListItem>
-    ))}
-  </List>
-)}
-            </Paper>
+          </Grid>
             
             {/* Navigation Button */}
             <Box display="flex" justifyContent="center">
@@ -387,6 +401,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
                     transform: 'translateY(-2px)'
                   },
                   borderRadius: '4px',
+                  mt: 4,
                   px: 3,
                   py: 1.5,
                   borderStyle: 'outset',
