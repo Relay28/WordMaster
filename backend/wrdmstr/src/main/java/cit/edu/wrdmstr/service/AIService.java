@@ -214,7 +214,11 @@ public class AIService {
                     return "Generate one vocabulary word appropriate for Grade 8-9 Filipino students learning English at " 
                         + request.get("difficulty") + " difficulty level in the context: " 
                         + request.get("context") + ". Choose words that will help them build confidence in English. Reply with just the English word itself.";
-
+                case "word_enrichment":
+                    return "You are a helpful English language assistant. For the following word: \"" + request.get("word") + "\", " +
+                        "provide a clear, concise definition and an example sentence showing how to use it properly. " +
+                        "Format your response exactly as: \"Definition of the word | Example: A sentence using the word.\" " +
+                        "Keep the definition brief and suitable for Grade 8-9 English language learners.";
                 case "content_generation":
                     // Get the requested number of roles (default to 5 if not specified)
                     int roleCount = 5;
