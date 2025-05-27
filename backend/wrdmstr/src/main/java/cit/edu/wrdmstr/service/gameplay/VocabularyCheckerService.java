@@ -74,6 +74,11 @@ public class VocabularyCheckerService {
         request.put("usedWords", usedWords);
         // Add the analysis results to the AI request
         request.put("vocabularyAnalysis", analysis);
+
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            request.put("studentName", user.getFname() + " " + user.getLname());
+        }
         
         String feedback = aiService.callAIModel(request).getResult();
         
@@ -235,7 +240,7 @@ private void saveVocabularyResult(Long sessionId, Long userId, List<String> used
     // Set identifying information
     dto.setGameSessionId(sessionId);
     dto.setStudentId(userId);
-    
+    dto.setFeedback(feedback);
     // Set student name if needed
     UserEntity user = userRepository.findById(userId).orElse(null);
     if (user != null) {
@@ -243,7 +248,7 @@ private void saveVocabularyResult(Long sessionId, Long userId, List<String> used
     }
     
     // Add the feedback (you may need to add this field to VocabularyResultDTO)
-    // dto.setFeedback(feedback);
+    
     
     return dto;
 }

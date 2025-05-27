@@ -327,16 +327,25 @@ public class AIService {
 
                 case "vocabulary_check":
                     StringBuilder vocabPrompt = new StringBuilder();
-                    vocabPrompt.append("You are a caring English teacher analyzing English vocabulary usage by a Grade 8-9 Filipino student.\n\n");
+                    vocabPrompt.append("You are an AI teaching assistant helping a teacher analyze a Grade 8-9 Filipino student's English vocabulary usage.\n\n");
+                    
+                    String studentName2 = (String) request.get("studentName");
+                    if (studentName2 != null && !studentName2.trim().isEmpty()) {
+                        vocabPrompt.append("Student: ").append(studentName2).append("\n");
+                    }
+                    
                     vocabPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n");
                     vocabPrompt.append("English words used from word bank: ").append(request.get("usedWords")).append("\n\n");
                     
-                    vocabPrompt.append("Provide encouraging feedback to help this Filipino student improve their English vocabulary:\n");
-                    vocabPrompt.append("1. Celebrate their use of English vocabulary from the word bank\n");
-                    vocabPrompt.append("2. Acknowledge their effort in practicing English\n");
-                    vocabPrompt.append("3. Gently suggest ways to enhance their English vocabulary\n");
-                    vocabPrompt.append("4. Motivate continued English language learning\n\n");
-                    vocabPrompt.append("Remember: be supportive and nurturing - help them feel proud of their English progress!");
+                    vocabPrompt.append("Provide a brief analysis for the teacher about this student's vocabulary performance:\n\n");
+                    vocabPrompt.append("**VOCABULARY ANALYSIS SUMMARY**\n");
+                    vocabPrompt.append("• Word bank usage: [List specific words used and note any particularly good choices]\n");
+                    vocabPrompt.append("• Vocabulary level: [Basic/Intermediate/Advanced - justify the assessment]\n");
+                    vocabPrompt.append("• Strengths: [What the student did well vocabulary-wise]\n");
+                    vocabPrompt.append("• Areas for improvement: [Specific vocabulary skills to work on]\n");
+                    vocabPrompt.append("• Teacher recommendations: [Concrete suggestions for vocabulary development]\n\n");
+                    vocabPrompt.append("Keep the analysis professional, objective, and focused on vocabulary development. ");
+                    vocabPrompt.append("This will help the teacher provide targeted vocabulary instruction.");
                     
                     return vocabPrompt.toString();
                 case "generate_vocabulary_exercises":

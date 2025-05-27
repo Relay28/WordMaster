@@ -148,4 +148,17 @@ public class TeacherFeedbackController {
                 sessionId, studentId, auth);
         return ResponseEntity.ok(feedback);
     }
+
+    /**
+     * Get chat messages for a student in a session
+     */
+    @GetMapping("/chat-messages/{sessionId}/student/{studentId}")
+    public ResponseEntity<List<Map<String, Object>>> getStudentChatMessages(
+            @PathVariable Long sessionId,
+            @PathVariable Long studentId,
+            Authentication auth) {
+        
+        List<Map<String, Object>> messages = feedbackService.getStudentChatMessages(sessionId, studentId);
+        return ResponseEntity.ok(messages);
+    }
 }

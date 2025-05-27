@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Pattern;
 
 import static cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus.*;
 
@@ -105,16 +106,9 @@ public class ChatService {
         }
         message.setVocabularyFeedback(vocabFeedback);
         
-        // Check word bomb
-        if (!player.isWordBombUsed() &&
-                player.getCurrentWordBomb() != null &&
-                !player.getCurrentWordBomb().isEmpty() &&
-                content.toLowerCase().contains(player.getCurrentWordBomb().toLowerCase())) {
 
-            message.setContainsWordBomb(true);
-            player.setWordBombUsed(true);
-            scoreService.handleWordBomb(player, player.getCurrentWordBomb());
-        }
+        // Check word bomb BEFORE saving message
+        checkAndHandleWordBomb(message, player, content);
 
         // Handle scoring
         scoreService.handleGrammarScoring(player, grammarResult.getStatus());
@@ -152,6 +146,18 @@ public class ChatService {
         // Broadcast the message to all players
         broadcastChatMessage(savedMessage);
         updateProgressMetrics(player, message,session);
+
+        // Debug logging
+        logger.debug("Word bomb check: player={}, wordBomb='{}', content='{}'", 
+            player.getUser().getId(), player.getCurrentWordBomb(), content);
+
+        logger.debug("Vocabulary feedback: score={}, feedback='{}'", 
+            vocabResult.getVocabularyScore(), vocabResult.getFeedback());
+
+        // After saving message:
+        logger.debug("Saved message: id={}, containsWordBomb={}, vocabFeedback='{}'", 
+            savedMessage.getId(), savedMessage.isContainsWordBomb(), 
+            savedMessage.getVocabularyFeedback());
 
         return savedMessage;
     }
@@ -358,13 +364,16 @@ public class ChatService {
         message.setGrammarStatus(MessageStatus.PENDING); // Keep as PENDING initially
         message.setGrammarFeedback("Processing...");
         
-        // Save message immediately for responsiveness
+        // Do immediate word bomb check before saving
+        checkAndHandleWordBomb(message, player, content);
+        
+        // Save message with current word bomb status
         ChatMessageEntity savedMessage = chatMessageRepository.save(message);
         
-        // Broadcast immediately with pending status
+        // Broadcast with current status
         broadcastChatMessage(savedMessage);
         
-        // Process analysis asynchronously
+        // Continue with async analysis...
         CompletableFuture.runAsync(() -> {
             processMessageAnalysisAsync(savedMessage, player, session);
         });
@@ -455,12 +464,30 @@ public class ChatService {
     private void checkAndHandleWordBomb(ChatMessageEntity message, PlayerSessionEntity player, String content) {
         if (!player.isWordBombUsed() &&
                 player.getCurrentWordBomb() != null &&
-                !player.getCurrentWordBomb().isEmpty() &&
-                content.toLowerCase().contains(player.getCurrentWordBomb().toLowerCase())) {
-
-            message.setContainsWordBomb(true);
-            player.setWordBombUsed(true);
-            scoreService.handleWordBomb(player, player.getCurrentWordBomb());
+                !player.getCurrentWordBomb().isEmpty()) {
+        
+            String wordBomb = player.getCurrentWordBomb().toLowerCase();
+            String regex = "\\b" + Pattern.quote(wordBomb) + "\\b";
+        
+            logger.debug("Checking word bomb: '{}' against content: '{}'", wordBomb, content);
+            
+            if (content.toLowerCase().matches(".*" + regex + ".*")) {
+                message.setContainsWordBomb(true);
+                player.setWordBombUsed(true);
+                
+                // Explicitly save the player with updated word bomb status
+                playerSessionRepository.save(player);
+                
+                scoreService.handleWordBomb(player, player.getCurrentWordBomb());
+                
+                logger.info("Word bomb '{}' detected for player {} in session {}", 
+                           wordBomb, player.getUser().getId(), player.getSession().getId());
+            } else {
+                logger.debug("Word bomb '{}' NOT found in content", wordBomb);
+            }
+        } else {
+            logger.debug("Word bomb check skipped - already used: {}, bomb: '{}'", 
+                    player.isWordBombUsed(), player.getCurrentWordBomb());
         }
     }
     
