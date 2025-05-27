@@ -82,16 +82,16 @@ const LoadingSpinner = () => (
 );
 
 const ProtectedRoute = ({ children }) => {
-  const { authChecked, user } = useUserAuth();
+  const { getToken, user } = useUserAuth();
   const navigate = useNavigate();
-
+  const token = getToken();
   useEffect(() => {
-  if (!authChecked) {
+  if (!token) {
   navigate('/login');
   }
-  }, [authChecked, navigate]);
+  }, [token, navigate]);
 
-  if (!authChecked) {
+  if (!token) {
     return <LoadingSpinner />;
   }
 
@@ -100,9 +100,9 @@ const ProtectedRoute = ({ children }) => {
 
 // HomePageRouter component remains the same
 function HomePageRouter() {
-  const { isTeacher, isStudent, authChecked, user } = useUserAuth();
-
-  if (!authChecked) {
+  const { isTeacher, isStudent, getToken, user } = useUserAuth();
+  const token = getToken();
+  if (!token) {
     return <LoadingSpinner />;
   }
 
