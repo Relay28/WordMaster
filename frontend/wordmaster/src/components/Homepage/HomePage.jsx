@@ -164,13 +164,46 @@ const HomePage = () => {
           <Typography sx={{ ...pixelHeading, color: 'text.primary' }}>
             YOUR CLASSES
           </Typography>
+
           <Box display="flex" gap={2} width={isMobile ? '100%' : 'auto'} sx={{ '& button': { position: 'relative' } }}>
+            <Button
+              variant="contained"
+              startIcon={<Add sx={{ 
+                fontSize: isMobile ? '12px' : '14px',
+                filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
+              }} />}
+              onClick={() => setCreateClassOpen(true)}
+              sx={{
+                ...pixelButton,
+                backgroundColor: '#5a52e0',
+                '&:hover': { 
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-2px)'
+                },
+                borderRadius: '4',
+                px: 3,
+                py: 1,
+                minWidth: isMobile ? 'auto' : '140px',
+                borderStyle: 'outset',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                transition: 'all 0.1s ease',
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  borderStyle: 'inset'
+                },
+              }}
+            >
+              CREATE CLASS
+            </Button>
+
             <Button
               variant="contained"
               onClick={() => navigate('/game/create')}
               sx={{
                 ...pixelButton,
-                backgroundColor: '#6c63ff',
+                backgroundColor: '#5F4B8B',
                 '&:hover': { 
                   backgroundColor: '#5a52e0',
                   transform: 'translateY(-2px)'
@@ -221,37 +254,6 @@ const HomePage = () => {
               CONTENT DASHBOARD
             </Button>
 
-            <Button
-              variant="contained"
-              startIcon={<Add sx={{ 
-                fontSize: isMobile ? '12px' : '14px',
-                filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
-              }} />}
-              onClick={() => setCreateClassOpen(true)}
-              sx={{
-                ...pixelButton,
-                backgroundColor: '#5F4B8B',
-                '&:hover': { 
-                  backgroundColor: '#4a3a6d',
-                  transform: 'translateY(-2px)'
-                },
-                borderRadius: '4',
-                px: 3,
-                py: 1,
-                minWidth: isMobile ? 'auto' : '140px',
-                borderStyle: 'outset',
-                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
-                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
-                transition: 'all 0.1s ease',
-                '&:active': {
-                  transform: 'translateY(1px)',
-                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
-                  borderStyle: 'inset'
-                },
-              }}
-            >
-              CREATE CLASS
-            </Button>
           </Box>
         </Box>
         <Divider sx={{ my: 3 }} />
