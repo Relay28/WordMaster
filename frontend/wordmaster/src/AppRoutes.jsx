@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useUserAuth } from './components/context/UserAuthContext';
 import { isLoggedIn } from './utils/authUtils';
 import { Box, CircularProgress, Typography } from '@mui/material';
@@ -82,18 +82,20 @@ const LoadingSpinner = () => (
 );
 
 const ProtectedRoute = ({ children }) => {
-  const { authChecked } = useUserAuth();
-  const location = useLocation();
+  const { authChecked, user } = useUserAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+  if (!authChecked) {
+  navigate('/login');
+  }
+  }, [authChecked, navigate]);
 
   if (!authChecked) {
     return <LoadingSpinner />;
   }
 
-  if (!isLoggedIn()) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return children;
+  return <Outlet />
 };
 
 // HomePageRouter component remains the same
