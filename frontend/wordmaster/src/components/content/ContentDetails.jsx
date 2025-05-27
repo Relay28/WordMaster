@@ -457,7 +457,9 @@ const confirmDelete = async () => {
           {/* Roles and Word Bank */}
           <Grid container spacing={4}>
             <Grid item xs={12} md={6}>
-              <Paper elevation={0} sx={{ borderRadius: '16px', p: 3, backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)', border: '1px solid rgba(255,255,255,0.3)', height: '100%' }}>
+              <Paper 
+              elevation={0} 
+              sx={{ borderRadius: '16px', p: 3, backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)', boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)', border: '1px solid rgba(255,255,255,0.3)', height: '100%', width: '100%', boxSizing: 'border-box', }}>
                 <Typography sx={{ ...pixelHeading }} mb={3}>
                   Roles
                 </Typography>
@@ -484,143 +486,101 @@ const confirmDelete = async () => {
                   </Typography>
                 )}
               </Paper>
-            </Grid>
-            
-            
-           
-          </Grid>
+            </Grid> 
 
-
-           <Grid item xs={12} md={6} sx={{ pt: 11 }}>
-  <Paper elevation={0} sx={{ 
-    borderRadius: '16px', 
-    p: 3, 
-    backgroundColor: 'rgba(255,255,255,0.8)', 
-    backdropFilter: 'blur(8px)', 
-    height: '100%',
-    position: 'relative',
-   
-  }}>
-    <Box display="flex" alignItems="center" mb={3}>
-      <Typography sx={{ 
-        ...pixelHeading, 
-      }}>
-        Word Bank
-      </Typography>
-      <Chip
-        label={`${content.contentData?.wordBank?.length || 0} words`}
-        size="small"
-        sx={{
-          ...pixelText,
-          ml: 2,
-          backgroundColor: '#f0edf5',
-          color: '#5F4B8B',
-          border: '2px solid #5F4B8B',
-          borderRadius: '4px'
-        }}
-      />
-    </Box>
-    
-    {content.contentData?.wordBank?.length > 0 ? (
-      <List dense sx={{ 
-        maxHeight: '300px', 
-        overflow: 'auto',
-        '&::-webkit-scrollbar': {
-          width: '8px',
-        },
-        '&::-webkit-scrollbar-track': {
-          backgroundColor: 'rgba(95, 75, 139, 0.1)',
-          borderRadius: '4px',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: '#5F4B8B',
-          borderRadius: '4px',
-          '&:hover': {
-            backgroundColor: '#4a3a6d',
-          },
-        },
-      }}>
-        {content.contentData.wordBank.map((word, index) => (
-          <Tooltip
-            key={index}
-            title={
-              <Box sx={{ p: 1 }}>
-                <Typography sx={{ ...pixelText, color: '#fff', mb: 1 }}>
-                  Description:
+            <Grid item xs={12} md={6}>
+            <Paper elevation={0} sx={{ 
+              borderRadius: '16px', 
+              p: 3, 
+              backgroundColor: 'rgba(255,255,255,0.8)', 
+              backdropFilter: 'blur(8px)', 
+              height: '100%',
+              position: 'relative',
+              width: '100%', // Ensure full width
+              boxSizing: 'border-box',
+            }}>
+              <Box display="flex" alignItems="center" mb={3}>
+                <Typography sx={{ 
+                  ...pixelHeading, 
+                }}>
+                  Word Bank
                 </Typography>
-                <Typography sx={{ ...pixelText, color: '#fff', opacity: 0.9 }}>
-                  {word.description || "No description available"}
-                </Typography>
-                <Typography sx={{ ...pixelText, color: '#fff', mt: 2, mb: 1 }}>
-                  Example:
-                </Typography>
-                <Typography sx={{ ...pixelText, color: '#fff', opacity: 0.9, fontStyle: 'italic' }}>
-                  "{word.exampleUsage || "No example available"}"
-                </Typography>
+                <Chip
+                  label={`${content.contentData?.wordBank?.length || 0} words`}
+                  size="small"
+                  sx={{
+                    ...pixelText,
+                    ml: 2,
+                    backgroundColor: '#f0edf5',
+                    color: '#5F4B8B',
+                    border: '2px solid #5F4B8B',
+                    borderRadius: '4px'
+                  }}
+                />
               </Box>
-            }
-            arrow
-            placement="top"
-            componentsProps={{
-              tooltip: {
-                sx: {
-                  bgcolor: '#5F4B8B',
-                  '& .MuiTooltip-arrow': {
-                    color: '#5F4B8B'
-                  }
-                }
-              }
-            }}
-          >
-            <ListItem
-              sx={{
-                backgroundColor: 'rgba(255,255,255,0.9)',
-                mb: 1,
-                borderRadius: '8px',
-                cursor: 'help',
-                border: '2px solid #5F4B8B',
-                boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '6px 6px 0px rgba(0,0,0,0.1)',
-                  backgroundColor: '#f0edf5'
-                }
-              }}
-            >
-              <ListItemText 
-                primary={word.word}
-                secondary={word.description ? word.description.substring(0, 30) + "..." : null}
-                primaryTypographyProps={{
-                  sx: { ...pixelText, color: '#5F4B8B', fontWeight: 'bold' }
-                }}
-                secondaryTypographyProps={{
-                  sx: { ...pixelText, fontSize: '8px', color: '#666' }
-                }}
-              />
-            </ListItem>
-          </Tooltip>
-        ))}
-      </List>
-    ) : (
-      <Box sx={{
-        p: 4,
-        textAlign: 'center',
-        border: '2px dashed #5F4B8B',
-        borderRadius: '8px',
-        backgroundColor: 'rgba(95, 75, 139, 0.05)'
-      }}>
-        <Typography sx={{ 
-          ...pixelText,
-          color: '#5F4B8B',
-          textShadow: '1px 1px 0px rgba(0,0,0,0.1)'
-        }}>
-          No words added to the word bank.
-        </Typography>
-      </Box>
-    )}
-  </Paper>
-</Grid>
+              
+              {content.contentData?.wordBank?.length > 0 ? (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {content.contentData.wordBank.map((word, index) => (
+                    <Tooltip
+                      key={index}
+                      title={
+                        <Box sx={{ p: 1 }}>
+                          <Typography sx={{color: '#fff', mb: 1 }}>
+                            <strong>Description:</strong> {word.description || "No description available"}
+                          </Typography>
+                          <Typography sx={{color: '#fff', mt: 1, fontStyle: 'italic' }}>
+                            <strong>Example:</strong> "{word.exampleUsage || "No example available"}"
+                          </Typography>
+                        </Box>
+                      }
+                      arrow
+                      placement="top"
+                      componentsProps={{
+                        tooltip: {
+                          sx: {
+                            bgcolor: '#5F4B8B',
+                            '& .MuiTooltip-arrow': {
+                              color: '#5F4B8B'
+                            }
+                          }
+                        }
+                      }}
+                    >
+                      <Chip
+                        label={word.word}
+                        sx={{
+                          ...pixelText,
+                          backgroundColor: '#f0edf5',
+                          color: '#5F4B8B',
+                          border: '2px solid #5F4B8B',
+                          borderRadius: '4px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                    </Tooltip>
+                  ))}
+                </Box>
+              ) : (
+                <Box sx={{
+                  p: 4,
+                  textAlign: 'center',
+                  border: '2px dashed #5F4B8B',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(95, 75, 139, 0.05)'
+                }}>
+                  <Typography sx={{ 
+                    ...pixelText,
+                    color: '#5F4B8B',
+                    textShadow: '1px 1px 0px rgba(0,0,0,0.1)'
+                  }}>
+                    No words added to the word bank.
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+            </Grid>
+          </Grid>
           
           {/* Background Image */}
           {content.contentData?.backgroundImage && (
