@@ -192,22 +192,21 @@ public class AIService {
                     StringBuilder prompt = new StringBuilder("You are a warm and encouraging English teacher creating conversation starters for Grade 8-9 Filipino students practicing ENGLISH.\n");
                     prompt.append("Create a natural, engaging prompt IN ENGLISH that will motivate young Filipino learners to respond in English.\n\n");
                     prompt.append("Topic/Context: ").append(request.get("content")).append("\n");
-                    prompt.append("Turn number: ").append(request.get("turn")).append("\n");
+                    prompt.append("Story progression stage: ").append(request.get("turn")).append("\n");
                     
-                    @SuppressWarnings("unchecked")
-                    List<String> usedWords = (List<String>) request.get("usedWords");
-                    if (usedWords != null && !usedWords.isEmpty()) {
-                        prompt.append("Words already used: ").append(String.join(", ", usedWords)).append("\n");
-                        prompt.append("Try to create a scenario that encourages using new English vocabulary.\n");
-                    }
-                    
+                    // Focus on story development rather than used words
                     prompt.append("\nIMPORTANT GUIDELINES:\n");
+                    prompt.append("- Create a story prompt that builds on the given topic/context\n");
+                    prompt.append("- Focus on advancing the narrative or introducing new story elements\n");
                     prompt.append("- Your response must be in ENGLISH and encourage students to respond in ENGLISH\n");
                     prompt.append("- Be warm, supportive, and encouraging - these are young Filipino learners\n");
-                    prompt.append("- Sound like a caring teacher who believes in their students' English abilities\n");
-                    prompt.append("- Include phrases like 'Please respond in English' or 'Let's practice our English by...'\n");
+                    prompt.append("- Create scenarios that naturally require different vocabulary\n");
+                    prompt.append("- Progress the story in interesting directions to maintain engagement\n");
+                    prompt.append("- Don't reference specific words used by students - focus on story continuity\n");
+                    prompt.append("- Include phrases like 'Please respond in English' or 'Let's continue our English story by...'\n");
                     prompt.append("- Keep it conversational and age-appropriate for Grade 8-9 students\n");
                     prompt.append("- Show enthusiasm for their English learning journey\n");
+                    
                     return prompt.toString();
 
                 case "word_generation":
@@ -305,23 +304,33 @@ public class AIService {
                 case "generate_comprehension_questions":
                     StringBuilder questionsPrompt = new StringBuilder();
                     questionsPrompt.append("You are a supportive English teacher creating comprehension questions for Grade 8-9 Filipino students to assess their English understanding.\n\n");
-                    questionsPrompt.append("Please create 5 encouraging questions based on the following English context:\n\n");
-                    questionsPrompt.append(request.get("context")).append("\n\n");
-                    questionsPrompt.append("Student: ").append(request.get("studentName")).append("\n");
-                    questionsPrompt.append("Student's Role: ").append(request.get("studentRole")).append("\n\n");
                     
-                    questionsPrompt.append("Create questions that help Filipino students feel confident about their English comprehension.\n");
-                    questionsPrompt.append("Generate 5 questions with this format:\n");
-                    questionsPrompt.append("1. First multiple choice question about English content?\n");
+                    questionsPrompt.append("CRITICAL AND ABSOLUTE REQUIREMENTS:\n");
+                    questionsPrompt.append("1. Create exactly 5 multiple choice questions with 4 options each\n");
+                    questionsPrompt.append("2. Questions MUST be about general topics from the session, NOT specific player interactions\n");
+                    questionsPrompt.append("3. Questions MUST be answerable by ANYONE who participated in the session\n");
+                    questionsPrompt.append("4. NEVER reference specific student names, conversations, or individual contributions\n");
+                    questionsPrompt.append("5. Focus ONLY on the overall session topic and themes\n\n");
+                    
+                    questionsPrompt.append("Generate 5 questions based on this OVERALL session content:\n\n");
+                    questionsPrompt.append("SESSION TOPIC: ").append(request.get("sessionTopic")).append("\n");
+                    questionsPrompt.append("SESSION DESCRIPTION: ").append(request.get("sessionDescription")).append("\n\n");
+                    questionsPrompt.append("COLLABORATIVE STORY CONTENT:\n").append(request.get("context")).append("\n\n");
+                    
+                    questionsPrompt.append("Questions should test understanding of:\n");
+                    questionsPrompt.append("1. The main session topic and learning objectives\n");
+                    questionsPrompt.append("2. Key vocabulary from the session content\n");
+                    questionsPrompt.append("3. Overall themes and concepts\n");
+                    questionsPrompt.append("4. English language concepts practiced\n");
+                    questionsPrompt.append("5. General comprehension of educational content\n\n");
+                    
+                    questionsPrompt.append("Format each question EXACTLY as follows:\n");
+                    questionsPrompt.append("1. General question about the session topic?\n");
                     questionsPrompt.append("A. Option 1\n");
                     questionsPrompt.append("B. Option 2\n");
                     questionsPrompt.append("C. Option 3\n");
                     questionsPrompt.append("D. Option 4\n");
                     questionsPrompt.append("Correct Answer: B\n\n");
-                    
-                    questionsPrompt.append("Make questions clear and encouraging for young Filipino English learners.\n");
-                    questionsPrompt.append("Focus on testing their English comprehension while building confidence.\n");
-                    questionsPrompt.append("Include English vocabulary questions when appropriate.\n");
                     
                     return questionsPrompt.toString();
 

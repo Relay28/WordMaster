@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 public class ComprehensionCheckService {
     private static final Logger logger = LoggerFactory.getLogger(ComprehensionCheckService.class);
     
-    // Add caching for comprehension questions
-    private final Map<String, List<Map<String, Object>>> questionsCache = new ConcurrentHashMap<>();
+    // Make this static so it's shared across all instances of the service
+    private static final Map<String, List<Map<String, Object>>> questionsCache = new ConcurrentHashMap<>();
     
     @Autowired private GameSessionEntityRepository gameSessionRepository;
     @Autowired private UserRepository userRepository;
@@ -36,99 +36,166 @@ public class ComprehensionCheckService {
     
     
     /**
-     * Generate comprehension questions based on game session content and chat messages
+     * Generate comprehension questions based on game session content and collaborative story
      */
     public List<Map<String, Object>> generateComprehensionQuestions(Long sessionId, Long studentId) {
-        String cacheKey = sessionId + "_" + studentId;
+        String cacheKey = "session_" + sessionId; // Standardize cache key format
         
-        // Check cache first
-        if (questionsCache.containsKey(cacheKey)) {
-            logger.info("Returning cached comprehension questions for session {} and student {}", sessionId, studentId);
-            return questionsCache.get(cacheKey);
-        }
-        
-        GameSessionEntity session = gameSessionRepository.findById(sessionId)
-            .orElseThrow(() -> new RuntimeException("Game session not found"));
-        
-        UserEntity student = userRepository.findById(studentId)
-            .orElseThrow(() -> new RuntimeException("Student not found"));
-        
-        // Get all messages from the session
-        List<ChatMessageEntity> allMessages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-        
-        // Get student's messages
-        List<ChatMessageEntity> studentMessages = chatMessageRepository
-            .findBySessionIdAndSenderIdOrderByTimestampAsc(sessionId, studentId);
-        
-        if (studentMessages.isEmpty()) {
-            throw new RuntimeException("No messages found for this student in the session");
-        }
-        
-        // Prepare context for AI
-        StringBuilder context = new StringBuilder();
-        context.append("Session Topic: ").append(session.getContent().getTitle()).append("\n\n");
-        context.append("Session Description: ").append(session.getContent().getDescription()).append("\n\n");
-        
-        context.append("Conversation Transcript (last 10 messages):\n");
-        List<ChatMessageEntity> recentMessages = allMessages.size() > 10 
-            ? allMessages.subList(allMessages.size() - 10, allMessages.size()) 
-            : allMessages;
-            
-        for (ChatMessageEntity message : recentMessages) {
-            String senderName = message.getSender().getFname() + " " + message.getSender().getLname();
-            context.append(senderName).append(": ").append(message.getContent()).append("\n");
-        }
-        
-        // Prepare AI request
-        Map<String, Object> request = new HashMap<>();
-        request.put("task", "generate_comprehension_questions");
-        request.put("context", context.toString());
-        request.put("studentName", student.getFname() + " " + student.getLname());
-        
-        // Get student's role
-        String studentRole = "Participant"; // Default role
-        
-        // Find the player session for this student to get their role
-        for (PlayerSessionEntity player : session.getPlayers()) {
-            if (Objects.equals(player.getUser().getId(), studentId) && player.getRole() != null) {
-                studentRole = player.getRole().getName();
-                break;
+        // Synchronize access to prevent multiple threads from generating questions simultaneously
+        synchronized(ComprehensionCheckService.class) {
+            // Check cache first - session-wide questions
+            if (questionsCache.containsKey(cacheKey)) {
+                logger.info("Returning cached comprehension questions for session {}", sessionId);
+                return questionsCache.get(cacheKey);
             }
-        }
-        request.put("studentRole", studentRole);
-        
-        // Call AI service
-        String aiResponse = aiService.callAIModel(request).getResult();
-        
-        try {
-            // Parse AI response into list of question objects
-            List<Map<String, Object>> questions = parseComprehensionQuestions(aiResponse);
             
-            // Cache the questions
-            questionsCache.put(cacheKey, questions);
-            logger.info("Cached comprehension questions for session {} and student {}", sessionId, studentId);
+            logger.info("No cached questions found for session {}. Generating new questions.", sessionId);
             
-            // Return the questions
-            return questions;
-        } catch (Exception e) {
-            logger.error("Error parsing AI response for comprehension questions: " + e.getMessage(), e);
+            GameSessionEntity session = gameSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Game session not found"));
             
-            // Fallback to a simple list if parsing fails
-            List<Map<String, Object>> fallbackQuestions = new ArrayList<>();
-            Map<String, Object> question = new HashMap<>();
-            question.put("id", 1);
-            question.put("question", "What was the main topic discussed in this conversation?");
-            question.put("options", Arrays.asList(
-                "Option A", "Option B", "Option C", "Option D"
-            ));
-            question.put("correctAnswer", "Option A");
-            question.put("type", "multiple_choice");
-            fallbackQuestions.add(question);
+            // Get ALL messages from the session to build the collaborative story
+            List<ChatMessageEntity> allMessages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
             
-            return fallbackQuestions;
+            if (allMessages.isEmpty()) {
+                logger.warn("No messages found in session {}, creating default questions", sessionId);
+                List<Map<String, Object>> defaultQuestions = createDefaultSessionQuestions(session);
+                questionsCache.put(cacheKey, defaultQuestions); // Cache the default questions too
+                return defaultQuestions;
+            }
+            
+            // Create a session-wide summary without player attributions
+            String sessionSummary = generateSessionSummary(session, allMessages);
+            
+            // Prepare AI request focused on session content
+            Map<String, Object> request = new HashMap<>();
+            request.put("task", "generate_comprehension_questions");
+            request.put("context", sessionSummary);
+            request.put("sessionTopic", session.getContent().getTitle());
+            request.put("sessionDescription", session.getContent().getDescription());
+            
+            // Call AI service
+            String aiResponse = aiService.callAIModel(request).getResult();
+            
+            try {
+                // Parse AI response into list of question objects
+                List<Map<String, Object>> questions = parseComprehensionQuestions(aiResponse);
+                
+                // Ensure all questions have consistent IDs and formatting
+                for (int i = 0; i < questions.size(); i++) {
+                    Map<String, Object> question = questions.get(i);
+                    question.put("id", i + 1); // Consistent numbering
+                    question.put("sessionId", sessionId); // Mark as session-specific
+                }
+                
+                // Cache the questions for the entire session
+                questionsCache.put(cacheKey, questions);
+                logger.info("Cached {} comprehension questions for session {}", questions.size(), sessionId);
+                
+                return questions;
+            } catch (Exception e) {
+                logger.error("Error parsing AI response for comprehension questions: " + e.getMessage(), e);
+                List<Map<String, Object>> defaultQuestions = createDefaultSessionQuestions(session);
+                questionsCache.put(cacheKey, defaultQuestions); // Cache the default questions too
+                return defaultQuestions;
+            }
         }
     }
     
+    /**
+     * Generate a session summary without player attributions
+     */
+    private String generateSessionSummary(GameSessionEntity session, List<ChatMessageEntity> allMessages) {
+        // Create a coherent narrative from messages without attributing to specific players
+        StringBuilder storyContent = new StringBuilder();
+        
+        // First, extract just the message content without attributions
+        for (ChatMessageEntity message : allMessages) {
+            storyContent.append(message.getContent()).append(" ");
+        }
+        
+        // Build a properly formatted summary
+        StringBuilder summary = new StringBuilder();
+        summary.append("SESSION TOPIC: ").append(session.getContent().getTitle()).append("\n\n");
+        summary.append("SESSION DESCRIPTION: ").append(session.getContent().getDescription()).append("\n\n");
+        summary.append("COLLABORATIVE STORY CONTENT:\n\n");
+        
+        // Format into paragraphs without player names or attributions
+        String[] sentences = storyContent.toString().split("(?<=[.!?])\\s+");
+        int sentenceCount = 0;
+        for (String sentence : sentences) {
+            summary.append(sentence).append(" ");
+            sentenceCount++;
+            if (sentenceCount % 3 == 0) {
+                summary.append("\n\n");
+            }
+        }
+        
+        return summary.toString();
+    }
+    
+    /**
+     * Create default session-based questions when AI fails or no messages exist
+     */
+    private List<Map<String, Object>> createDefaultSessionQuestions(GameSessionEntity session) {
+        List<Map<String, Object>> fallbackQuestions = new ArrayList<>();
+        
+        Map<String, Object> question1 = new HashMap<>();
+        question1.put("id", 1);
+        question1.put("sessionId", session.getId());
+        question1.put("question", "What was the main topic of this English learning session?");
+        question1.put("options", Arrays.asList(
+            session.getContent().getTitle(), 
+            "Random conversation", 
+            "Grammar exercises", 
+            "Vocabulary drills"
+        ));
+        question1.put("correctAnswer", "A");
+        question1.put("type", "multiple_choice");
+        fallbackQuestions.add(question1);
+        
+        Map<String, Object> question2 = new HashMap<>();
+        question2.put("id", 2);
+        question2.put("sessionId", session.getId());
+        question2.put("question", "How did the participants work together in this session?");
+        question2.put("options", Arrays.asList(
+            "They created a collaborative story", 
+            "They worked individually", 
+            "They only listened", 
+            "They copied each other"
+        ));
+        question2.put("correctAnswer", "A");
+        question2.put("type", "multiple_choice");
+        fallbackQuestions.add(question2);
+        
+        Map<String, Object> question3 = new HashMap<>();
+        question3.put("id", 3);
+        question3.put("sessionId", session.getId());
+        question3.put("question", "What was the purpose of this English practice session?");
+        question3.put("options", Arrays.asList(
+            "To improve English communication skills", 
+            "To complete homework", 
+            "To take a test", 
+            "To learn math"
+        ));
+        question3.put("correctAnswer", "A");
+        question3.put("type", "multiple_choice");
+        fallbackQuestions.add(question3);
+        
+        // Cache the fallback questions too
+        String cacheKey = session.getId() + "_session";
+        questionsCache.put(cacheKey, fallbackQuestions);
+        
+        return fallbackQuestions;
+    }
+    
+    // Add method to clear session-based cache
+    public void clearSessionQuestionsCache(Long sessionId) {
+        String cacheKey = "session_" + sessionId;
+        if (questionsCache.remove(cacheKey) != null) {
+            logger.info("Cleared comprehension questions cache for session {}", sessionId);
+        }
+    }
     /**
      * Grade comprehension answers and calculate percentage
      */
@@ -407,6 +474,8 @@ public class ComprehensionCheckService {
     
     // Add method to clear cache when needed
     public void clearQuestionsCache(Long sessionId) {
-        questionsCache.entrySet().removeIf(entry -> entry.getKey().startsWith(sessionId + "_"));
+        // Remove both old student-specific and new session-based cache entries
+        questionsCache.entrySet().removeIf(entry -> 
+            entry.getKey().startsWith(sessionId + "_"));
     }
 }

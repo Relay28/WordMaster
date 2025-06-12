@@ -9,6 +9,7 @@ import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.CardService;
+import cit.edu.wrdmstr.service.ComprehensionCheckService;
 import cit.edu.wrdmstr.service.ProgressTrackingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ public class GameSessionManagerService {
     @Autowired private ScoreService scoreService;
     private final StudentProgressRepository progressRepository;
     @Autowired private GameResultService gameResultService;
+    @Autowired private ComprehensionCheckService comprehensionCheckService;
     @Autowired
     private ProgressTrackingService progressTrackingService;
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
@@ -354,7 +356,8 @@ public class GameSessionManagerService {
             }
         }
         
-        String initialStoryElement = generateStoryElementCached(session, 1); // Using cached version
+        // Generate initial story prompt only once at game start
+        String initialStoryElement = generateStoryElementCached(session, 1);
         Map<String, Object> storyUpdate = new HashMap<>();
         storyUpdate.put("type", "storyUpdate");
         storyUpdate.put("content", initialStoryElement);
@@ -460,17 +463,13 @@ public class GameSessionManagerService {
             request.put("content", session.getContent().getDescription());
             request.put("turn", turnNumber);
             
-            GameState gameState = activeGames.get(session.getId());
-            if (gameState != null && gameState.getUsedWords() != null && !gameState.getUsedWords().isEmpty()) {
-                request.put("usedWords", gameState.getUsedWords());
-            } else {
-                request.put("usedWords", Collections.emptyList());
-            }
+            // Don't include used words - focus on story progression
+            // Remove the usedWords parameter to keep story focused on narrative
             
             return aiService.callAIModel(request).getResult();
         } catch (Exception e) {
             logger.error("Error generating story element for session {}: {}", session.getId(), e.getMessage(), e);
-            return "Continue the conversation based on your role!"; // Fallback
+            return "Continue the conversation based on your role and the story context!";
         }
     }
     
@@ -489,17 +488,7 @@ public class GameSessionManagerService {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalStateException("Game session not found for starting next turn: " + sessionId));
         GameState gameState = activeGames.get(sessionId);
-        if (gameState == null) {
-            logger.error("Game state not found for session: {}", sessionId);
-            return;
-        }
-
-        PlayerSessionEntity currentPlayer = session.getCurrentPlayer();
-        if (currentPlayer == null) {
-            logger.error("No current player set for session: {}", sessionId);
-            return;
-        }
-
+        
         // Reset timer immediately
         gameState.setStatus(GameState.Status.TURN_IN_PROGRESS);
         gameState.setLastTurnTime(System.currentTimeMillis()); // Use current time for accuracy
@@ -512,17 +501,18 @@ public class GameSessionManagerService {
         
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/timer", initialTimerUpdate);
 
-        if (gameState.getCurrentTurn() > 1 || gameState.getStoryPrompt() == null) {
-            String storyElement = generateStoryElementCached(session, gameState.getCurrentTurn());
-            gameState.setStoryPrompt(storyElement);
+        // Remove automatic story generation here - only generate at cycle boundaries
+        // Only broadcast existing story prompt, don't generate new one
+        if (gameState.getStoryPrompt() != null) {
             Map<String, Object> storyUpdate = new HashMap<>();
-            storyUpdate.put("type", "storyUpdate");
-            storyUpdate.put("content", storyElement);
+            storyUpdate.put("type", "storyRefresh");
+            storyUpdate.put("content", gameState.getStoryPrompt());
             messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", storyUpdate);
         }
 
         broadcastTurnUpdate(sessionId, gameState, session);
-        logger.info("Turn {} started for player {} in session {}", gameState.getCurrentTurn(), currentPlayer.getId(), sessionId);
+        logger.info("Turn {} started for player {} in session {}", gameState.getCurrentTurn(), 
+                    session.getCurrentPlayer().getId(), sessionId);
     }
 
     // Method to broadcast turn updates, can be customized further
@@ -545,6 +535,11 @@ public class GameSessionManagerService {
         logger.info("Turn update broadcasted for session {}: Turn {}, Player {}", sessionId, gameState.getCurrentTurn(), session.getCurrentPlayer().getId());
     }
 
+    // Add a new method for generating one set of questions for the whole session
+    public List<Map<String, Object>> getOrGenerateComprehensionQuestions(Long sessionId) {
+    // Always use null for studentId to ensure session-wide questions
+    return comprehensionCheckService.generateComprehensionQuestions(sessionId, null);
+    }
 
     @Transactional
     public boolean submitWord(Long sessionId, Long userId, WordSubmissionDTO submission) {
@@ -695,6 +690,10 @@ public class GameSessionManagerService {
                 session.setCurrentCycle(newCycle);
                 gameState.setCurrentCycle(newCycle);
                 logger.info("Session {} (Multiplayer): Advanced to Cycle {}. Current Turn: {}", sessionId, newCycle, upcomingTurnGlobal);
+                
+                generateAndBroadcastNewStoryPrompt(sessionId, session, gameState, upcomingTurnGlobal);
+                
+                // Clear used words for new cycle
                 gameState.getUsedWords().clear();
                 Map<String, Object> cycleUpdate = new HashMap<>();
                 cycleUpdate.put("type", "cycleChange");
@@ -712,6 +711,23 @@ public class GameSessionManagerService {
         startNextTurn(sessionId);
     }
 
+    private void generateAndBroadcastNewStoryPrompt(Long sessionId, GameSessionEntity session, 
+                                                  GameState gameState, int turnNumber) {
+        try {
+            String newStoryElement = generateStoryElementCached(session, turnNumber);
+            gameState.setStoryPrompt(newStoryElement);
+            
+            Map<String, Object> storyUpdate = new HashMap<>();
+            storyUpdate.put("type", "storyUpdate");
+            storyUpdate.put("content", newStoryElement);
+            storyUpdate.put("turnNumber", turnNumber);
+            
+            messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", storyUpdate);
+            logger.info("New story prompt generated for session {} at turn {}", sessionId, turnNumber);
+        } catch (Exception e) {
+            logger.error("Error generating new story prompt for session {}: {}", sessionId, e.getMessage());
+        }
+    }
 
     private double calculateTurnCompletionRate(StudentProgress progress, GameSessionEntity session) {
         if (session.getTotalTurns() <= 0) return 0;

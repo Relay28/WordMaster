@@ -465,10 +465,18 @@ useEffect(() => {
     try {
       const updateData = JSON.parse(message.body);
       console.log('Game update received:', updateData);
-    if (updateData.type === "storyUpdate") {
-      setStoryPrompt(updateData.content);
-    }
-      } catch (error) {
+      
+      if (updateData.type === "storyUpdate") {
+        setStoryPrompt(updateData.content);
+        console.log('New story prompt received:', updateData.content);
+      } else if (updateData.type === "storyRefresh") {
+        // Just refresh existing story, don't treat as new
+        setStoryPrompt(updateData.content);
+      } else if (updateData.type === "cycleChange") {
+        console.log('Cycle changed to:', updateData.cycle);
+        // Handle cycle change UI updates if needed
+      }
+    } catch (error) {
       console.error('Error handling game update:', error);
     }
   };
