@@ -25,7 +25,7 @@ import {
   useMediaQuery,
   useTheme
 } from "@mui/material";
-import { Close, ExitToApp, Add, Class, Person, CheckCircle, PersonOutline } from "@mui/icons-material";
+import { Close, Dashboard, Add, Class, Person, CheckCircle, PersonOutline } from "@mui/icons-material";
 import { useUserAuth } from '../context/UserAuthContext';
 import { useHomePage } from './HomePageFunctions';
 import picbg from '../../assets/picbg.png';
@@ -166,6 +166,7 @@ const HomePage = () => {
           </Typography>
 
           <Box display="flex" gap={2} width={isMobile ? '100%' : 'auto'} sx={{ '& button': { position: 'relative' } }}>
+            
             <Button
               variant="contained"
               startIcon={<Add sx={{ 
@@ -225,32 +226,40 @@ const HomePage = () => {
             >
               ▶ CREATE GAME
             </Button>
-            
+
             <Button
-              variant="contained"
+              variant="outlined"
               onClick={() => navigate('/content/dashboard')}
               sx={{
                 ...pixelButton,
-                backgroundColor: '#5F4B8B',
+                backgroundColor: 'transparent',
+                color: '#5F4B8B', // or your preferred text color
+                border: '2px solid',
+                borderColor: '#5F4B8B', // or your preferred border color
                 '&:hover': { 
-                  backgroundColor: '#4a3a6d',
-                  transform: 'translateY(-2px)'
+                  backgroundColor: 'transparent',
+                  borderColor: '#5F4B8B',
+                  color: '#5F4B8B',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.2)'
                 },
-                borderRadius: '4',
+                borderRadius: '4px',
                 px: 3,
                 py: 1,
                 minWidth: isMobile ? 'auto' : '140px',
-                borderStyle: 'outset',
-                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
-                textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.2)',
+                textShadow: '1px 1px 0 rgba(0,0,0,0.3)',
                 transition: 'all 0.1s ease',
                 '&:active': {
                   transform: 'translateY(1px)',
-                  boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.2)',
                   borderStyle: 'inset'
                 },
+                textShadow: 'none',
+
               }}
             >
+              <Dashboard sx={{ fontSize: 20, mr: 1, color: '#5F4B8B'  }} />
               CONTENT DASHBOARD
             </Button>
 
@@ -462,7 +471,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
           <Typography sx={{ 
             ...pixelText, 
             color: '#4a5568',
-            fontSize: '14px',
+            fontSize: '10px',
             fontWeight: 100
           }}>
             Students
@@ -566,7 +575,7 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
           }
         }}
       >
-        <Close />
+        <Close sx={{ fontSize: 16 }} /> 
       </IconButton>
     </DialogTitle>
     <Divider sx={{ my: 0.1 }} />
@@ -628,7 +637,7 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
           borderRadius: '8px',
           boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
           textTransform: 'none',
-          fontSize: isMobile ? '14px' : '16px',
+          fontSize: isMobile ? '10px' : '12px',
           fontWeight: 500,
           height: isMobile ? '36px' : '48px',
           '&:hover': { 
@@ -667,7 +676,7 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
       >
         {loading ? (
           <CircularProgress 
-            size={24} 
+            size={15} 
             color="inherit" 
             thickness={4}
             sx={{ color: 'inherit' }}
