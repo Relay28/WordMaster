@@ -24,6 +24,16 @@ public class GameStateDTO {
     private int turnCyclesConfig; // To store the configured number of cycles/rounds
 
     // Getters and Setters for all fields including turnCyclesConfig
+    private List<PlayerCardDTO> playerCards;
+
+    // Add getter and setter
+    public List<PlayerCardDTO> getPlayerCards() {
+        return playerCards;
+    }
+
+    public void setPlayerCards(List<PlayerCardDTO> playerCards) {
+        this.playerCards = playerCards;
+    }
 
     public Long getSessionId() { return sessionId; }
     public void setSessionId(Long sessionId) { this.sessionId = sessionId; }

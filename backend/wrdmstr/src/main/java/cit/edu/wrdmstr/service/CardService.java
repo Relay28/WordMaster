@@ -1,14 +1,19 @@
 package cit.edu.wrdmstr.service;
 
 import cit.edu.wrdmstr.dto.PlayerCardDTO;
+import cit.edu.wrdmstr.entity.ContentEntity;
 import cit.edu.wrdmstr.entity.PlayerCard;
 import cit.edu.wrdmstr.entity.PlayerSessionEntity;
 import cit.edu.wrdmstr.entity.PowerupCard;
+import cit.edu.wrdmstr.repository.ContentRepository;
 import cit.edu.wrdmstr.repository.PlayerCardRepository;
 import cit.edu.wrdmstr.repository.PlayerSessionEntityRepository;
 import cit.edu.wrdmstr.repository.PowerupCardRepository;
+import cit.edu.wrdmstr.service.gameplay.GameSessionManagerService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,52 +26,108 @@ import java.util.stream.Collectors;
 public class CardService {
     @Autowired
     private PowerupCardRepository cardRepository;
+
+    private static final Logger logger = LoggerFactory.getLogger(CardService.class);
     @Autowired private PlayerCardRepository playerCardRepository;
     @Autowired private PlayerSessionEntityRepository playerRepository;
 
+    @Autowired
+    private ContentRepository contentRepository;
   private final Random random =new Random();
 
     @Transactional
-    public void drawCardsForPlayer(Long playerSessionId) {
-        PlayerSessionEntity player = playerRepository.findById(playerSessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Player not found"));
+    public void drawCardsForPlayer(Long playerId) {
+        PlayerSessionEntity player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new RuntimeException("Player not found"));
 
         if (player.isCardsDrawn()) {
-            return; // Already drew cards
+            logger.info("Player {} already has cards drawn", playerId);
+            return;
         }
 
-        // Get all available cards for this content
-        List<PowerupCard> allCards = cardRepository.findByContentData(
-                player.getSession().getContent().getContentData());
+        // Get available cards for the content
+        List<PowerupCard> availableCards = cardRepository.findByContentData(
+                player.getSession().getContent().getContentData()
+        );
 
-        if (allCards.isEmpty()) {
-            return; // No cards configured for this content
+        if (availableCards.isEmpty()) {
+            logger.warn("No cards available for content {}",
+                    player.getSession().getContent().getId());
+            return;
         }
 
-        // Draw 4 random cards
-        List<PowerupCard> drawnCards = new ArrayList<>();
-        while (drawnCards.size() < 4 && !allCards.isEmpty()) {
-            PowerupCard card = allCards.get(random.nextInt(allCards.size()));
-            if (!drawnCards.contains(card)) {
-                drawnCards.add(card);
-            }
-        }
+        // Draw 3 random cards for the player
+        Random random = new Random();
+        List<PlayerCard> playerCards = new ArrayList<>();
 
-        // Assign to player
-        for (PowerupCard card : drawnCards) {
+        for (int i = 0; i < 3; i++) {
+            PowerupCard card = availableCards.get(random.nextInt(availableCards.size()));
+
             PlayerCard playerCard = new PlayerCard();
             playerCard.setPlayerSession(player);
             playerCard.setCard(card);
             playerCard.setUsed(false);
-            playerCardRepository.save(playerCard);
+
+            playerCards.add(playerCardRepository.save(playerCard));
         }
 
         player.setCardsDrawn(true);
         playerRepository.save(player);
+
+        logger.info("Drew {} cards for player {}", playerCards.size(), playerId);
     }
 
-    public List<PlayerCardDTO> getPlayerCards(Long playerSessionId) {
-        return playerCardRepository.findByPlayerSessionId(playerSessionId).stream()
+
+    // File: src/main/java/cit/edu/wrdmstr/service/CardService.java
+    @Transactional
+    public void generateCardsForContent(Long contentId) {
+        ContentEntity content = contentRepository.findById(contentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Content not found"));
+
+        // Check if cards already exist for this content
+        List<PowerupCard> existingCards = cardRepository.findByContentData(content.getContentData());
+        if (!existingCards.isEmpty()) {
+            logger.info("Cards already exist for content {}. Skipping generation.", contentId);
+            return;
+        }
+
+        // Generate new cards based on content data
+        List<PowerupCard> newCards = new ArrayList<>();
+        newCards.add(createCard(content, "USE_ADJECTIVE", "Use an adjective in your sentence", 10));
+        newCards.add(createCard(content, "USE_NOUN", "Use a noun in your sentence", 10));
+        newCards.add(createCard(content, "LONG_SENTENCE", "Write a sentence longer than 50 characters", 15));
+        newCards.add(createCard(content, "COMPLEX_SENTENCE", "Write a complex sentence with multiple clauses", 20));
+
+        // Save the generated cards
+        for (PowerupCard card : newCards) {
+            cardRepository.save(card);
+        }
+
+        logger.info("Generated {} cards for content {}", newCards.size(), contentId);
+    }
+
+    private PowerupCard createCard(ContentEntity content, String triggerCondition, String description, int pointsBonus) {
+        PowerupCard card = new PowerupCard();
+        card.setContentData(content.getContentData());
+        card.setTriggerCondition(triggerCondition);
+        card.setDescription(description);
+        card.setPointsBonus(pointsBonus);
+        card.setName("Powerup: " + triggerCondition);
+        card.setRarity("COMMON"); // Set default rarity
+
+        try {
+            return cardRepository.save(card);
+        } catch (Exception e) {
+            logger.error("Failed to create powerup card: {}", e.getMessage());
+            throw new RuntimeException("Failed to create powerup card", e);
+        }
+    }
+
+    public List<PlayerCardDTO> getPlayerCards(Long playerId) {
+        List<PlayerCard> cards = playerCardRepository.findByPlayerSessionId(playerId);
+
+        return cards.stream()
+                .filter(card -> !card.isUsed())
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

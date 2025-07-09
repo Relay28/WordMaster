@@ -1,10 +1,6 @@
 package cit.edu.wrdmstr.service.gameplay;
 
-import cit.edu.wrdmstr.dto.GameStateDTO;
-import cit.edu.wrdmstr.dto.PlayerSessionDTO;
-import cit.edu.wrdmstr.dto.TurnInfoDTO;
-import cit.edu.wrdmstr.dto.WordBankItemDTO;
-import cit.edu.wrdmstr.dto.WordSubmissionDTO;
+import cit.edu.wrdmstr.dto.*;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
@@ -251,10 +247,20 @@ public class GameSessionManagerService {
         session.setStatus(GameSessionEntity.SessionStatus.ACTIVE);
         session.setStartedAt(new Date());
 
+        if (session.getContent() != null) {
+            cardService.generateCardsForContent(session.getContent().getId());
+        } else {
+            throw new RuntimeException("Cannot start game: no content assigned to session");
+        }
         // Use active players only
         List<PlayerSessionEntity> players = playerRepository.findActiveBySessionId(sessionId);
         if (players.isEmpty()) {
             throw new RuntimeException("No active players found for session " + sessionId);
+        }
+
+        // Generate cards for all players in the session
+        for (PlayerSessionEntity player : players) {
+            cardService.drawCardsForPlayer(player.getId());
         }
 
         GameState gameState = new GameState();
@@ -861,6 +867,20 @@ public class GameSessionManagerService {
                 dto.setWordBank(wordBankDTOs);
             }
         }
+        // Add player cards to game state
+        if (session.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
+            List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId);
+            Map<Long, List<PlayerCardDTO>> playerCards = new HashMap<>();
+
+            for (PlayerSessionEntity player : players) {
+                List<PlayerCardDTO> cards = cardService.getPlayerCards(player.getId());
+                playerCards.put(player.getId(), cards);
+            }
+
+            dto.setPlayerCards(playerCards.values().stream()
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList()));
+        }
         
         dto.setLeaderboard(scoreService.getSessionLeaderboard(sessionId));
         dto.setTimePerTurn(session.getTimePerTurn());
@@ -1025,6 +1045,7 @@ public class GameSessionManagerService {
         private Map<String, Object> contentInfo;
         private int currentCycle;
         private String storyPrompt;
+        private List<PowerupCard> cards = new ArrayList<>();
         private int configuredTurnCycles;
 
         enum Status {
