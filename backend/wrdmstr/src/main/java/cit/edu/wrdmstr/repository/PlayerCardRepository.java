@@ -16,10 +16,17 @@ public interface PlayerCardRepository extends JpaRepository<PlayerCard, Long> {
     @Query("SELECT pc FROM PlayerCard pc WHERE pc.playerSession.id = :playerSessionId")
     List<PlayerCard> findByPlayerSessionId(@Param("playerSessionId") Long playerSessionId);
 
+    @Query("SELECT pc FROM PlayerCard pc WHERE pc.playerSession.id = :playerSessionId AND pc.used = false AND pc.activated = true")
+    List<PlayerCard> findActiveCardsByPlayerSessionId(@Param("playerSessionId") Long playerSessionId);
+
     // Alternative implementation using Spring Data JPA naming convention (works without @Query)
     // List<PlayerCard> findByPlayerSession_Id(Long playerSessionId);
 
     @Modifying
     @Query("UPDATE PlayerCard pc SET pc.used = true WHERE pc.id = :cardId")
     void markCardAsUsed(@Param("cardId") Long cardId);
+
+    @Modifying
+    @Query("UPDATE PlayerCard pc SET pc.activated = false WHERE pc.id = :cardId")
+    void deactivateCard(@Param("cardId") Long cardId);
 }

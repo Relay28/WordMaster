@@ -19,11 +19,11 @@ public class PlayerCard {
 
     @Column(nullable = false)
     private boolean used = false;
+    
+    @Column(nullable = false)
+    private boolean activated = true;  // Add the missing field with default value
 
     // Getters and setters
-    // ...
-
-
     public Long getId() {
         return id;
     }
@@ -54,5 +54,13 @@ public class PlayerCard {
 
     public void setUsed(boolean used) {
         this.used = used;
+    }
+    
+    public boolean isActivated() {
+        return activated;
+    }
+    
+    public void setActivated(boolean activated) {
+        this.activated = activated;
     }
 }

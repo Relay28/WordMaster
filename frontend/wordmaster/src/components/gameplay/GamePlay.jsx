@@ -27,19 +27,39 @@ import {
   useMediaQuery,
   Fade,
   IconButton,
-  
+  Badge,
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import { BagClosed, BagOpen } from '../../assets/BagIcons';
-import { Close, Games } from '@mui/icons-material';
+import { 
+  Close,
+  Games,
+  AutoFixHigh 
+} from '@mui/icons-material';
 import bgGamePlay from '../../assets/bg-gameplay.png';
+import CardDisplay from './CardDisplay';  // Import the CardDisplay component
 
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 
-const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate, gameEnded, onProceedToResults }) => {
+const GamePlay = ({ 
+  gameState, 
+  stompClient, 
+  sendMessage, 
+  onGameStateUpdate, 
+  gameEnded, 
+  onProceedToResults,
+  playerCards = [],
+  onRefreshCards,
+  loadingCards = false,
+  selectedCard,
+  onCardSelect,
+  onCardDeselect,
+  onUseCard,
+  pendingCardUse = false
+}) => {
   const { sessionId } = useParams(); // Ensure sessionId is available if used directly for subscriptions
   const { user, getToken } = useUserAuth();
   const [sentence, setSentence] = useState('');
@@ -55,6 +75,9 @@ const GamePlay = ({ gameState, stompClient, sendMessage, onGameStateUpdate, game
   const [showCycleTransition, setShowCycleTransition] = useState(false);
   const [previousCycle, setPreviousCycle] = useState(gameState?.currentCycle || null); // Already present
   const [leaderboard, setLeaderboard] = useState([]); // Already present
+  const [cardResult, setCardResult] = useState(null);
+  const [cardResultOpen, setCardResultOpen] = useState(false);
+  const [showCards, setShowCards] = useState(false);
   const chatEndRef = useRef(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -407,6 +430,92 @@ useEffect(() => {
     }
   };
 
+  // Enhanced handleUseCard function
+  const handleUseCard = async (cardId) => {
+    if (!sentence.trim()) {
+      setCardResult({
+        success: false,
+        message: 'Please write a sentence first before using a card!'
+      });
+      setCardResultOpen(true);
+      return;
+    }
+
+    if (!isMyTurn) {
+      setCardResult({
+        success: false,
+        message: "You can only use cards during your turn."
+      });
+      setCardResultOpen(true);
+      return;
+    }
+
+    if (pendingCardUse) {
+      setCardResult({
+        success: false,
+        message: "A card is already being processed..."
+      });
+      setCardResultOpen(true);
+      return;
+    }
+
+    try {
+      // Use the provided onUseCard function from props if available
+      if (onUseCard) {
+        const result = await onUseCard(cardId, sentence);
+        setCardResult(result);
+        setCardResultOpen(true);
+
+        // If the card was used successfully, show points notification
+        if (result.success) {
+          setPointsData({
+            points: result.pointsAwarded || 0,
+            reason: `Card bonus: ${result.cardName || 'Power Card'}`
+          });
+          setPointsNotification(true);
+        }
+        return;
+      }
+
+      // Fallback implementation if parent didn't provide onUseCard
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: sentence })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setCardResult(result);
+        setCardResultOpen(true);
+        
+        if (result.success) {
+          setPointsData({
+            points: result.pointsAwarded || 10,
+            reason: `Card bonus!`
+          });
+          setPointsNotification(true);
+          
+          // Refresh cards to update the UI
+          if (onRefreshCards) {
+            onRefreshCards();
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error using card:', error);
+      setCardResult({
+        success: false,
+        message: 'Error using card: ' + (error.message || 'Unknown error')
+      });
+      setCardResultOpen(true);
+    }
+  };
+
   // Non-blocking state refresh
   const fetchUpdatedGameState = useCallback(async () => {
     try {
@@ -673,6 +782,109 @@ const cycleDisplayString = isSinglePlayer
       >
         {isWordBankOpen ? <BagOpen /> : <BagClosed />}
       </Box>
+
+      {/* Power Cards Button - Added next to Word Bank */}
+      <Box sx={{
+        position: 'absolute',
+        bottom: 20,
+        right: 110, // Position it to the left of the word bank
+        zIndex: 2
+      }}>
+        <Badge
+          badgeContent={playerCards.length}
+          color="error"
+          sx={{
+            '& .MuiBadge-badge': {
+              fontSize: '10px',
+              height: '20px',
+              minWidth: '20px',
+            }
+          }}
+        >
+          <IconButton 
+            onClick={() => setShowCards(!showCards)}
+            sx={{
+              bgcolor: '#5F4B8B',
+              color: 'white',
+              width: 50,
+              height: 50,
+              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+              '&:hover': {
+                bgcolor: '#4a3a6d',
+                transform: 'scale(1.05)'
+              },
+              transition: 'all 0.3s ease',
+              animation: showCards ? 'pulse 1.5s ease-in-out infinite' : 'none',
+              '@keyframes pulse': {
+                '0%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.1)' },
+                '100%': { transform: 'scale(1)' },
+              },
+            }}
+          >
+            <AutoFixHigh />
+          </IconButton>
+        </Badge>
+      </Box>
+
+      {/* Card Selection Dialog */}
+      <Fade in={showCards}>
+        <Paper sx={{ 
+          position: 'absolute',
+          bottom: 120,
+          right: 110, // Position it above the power cards button
+          width: 280,
+          maxHeight: '60vh',
+          overflowY: 'auto',
+          p: 2,
+          borderRadius: '8px',
+          boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
+          zIndex: 1000,
+          bgcolor: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(5px)',
+          border: '2px solid #5F4B8B',
+        }}>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 1.5 
+          }}>
+            <Typography sx={{ ...pixelHeading, color: '#5F4B8B', fontSize: '12px' }}>
+              POWER CARDS
+            </Typography>
+            <IconButton size="small" onClick={() => setShowCards(false)}>
+              <Close fontSize="small" />
+            </IconButton>
+          </Box>
+          
+          {loadingCards ? (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <CircularProgress size={24} sx={{ color: '#5F4B8B' }} />
+            </Box>
+          ) : playerCards.length > 0 ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {playerCards.map(card => (
+                <CardDisplay
+                  key={card.id}
+                  card={card}
+                  isSelected={selectedCard?.id === card.id}
+                  onUse={handleUseCard}
+                  disabled={!isMyTurn || pendingCardUse}
+                  isProcessing={pendingCardUse && selectedCard?.id === card.id}
+                  pixelText={pixelText}
+                />
+              ))}
+            </Box>
+          ) : (
+            <Box sx={{ p: 2, textAlign: 'center' }}>
+              <Typography sx={{ ...pixelText, fontSize: '8px', color: '#666' }}>
+                No power cards available.
+              </Typography>
+            </Box>
+          )}
+        </Paper>
+      </Fade>
 
       {/* Word Bank Popup */}
       <Fade in={isWordBankOpen}>
@@ -1140,6 +1352,22 @@ const cycleDisplayString = isSinglePlayer
       >
         <Alert severity="info" sx={{ width: '100%' }}>
           Turn {gameState.currentTurn} completed. Starting next turn...
+        </Alert>
+      </Snackbar>
+
+      {/* Add Card Result Notification */}
+      <Snackbar
+        open={cardResultOpen}
+        autoHideDuration={4000}
+        onClose={() => setCardResultOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setCardResultOpen(false)} 
+          severity={cardResult?.success ? "success" : "warning"}
+          sx={{ width: '100%' }}
+        >
+          {cardResult?.message || 'Card operation completed'}
         </Alert>
       </Snackbar>
 

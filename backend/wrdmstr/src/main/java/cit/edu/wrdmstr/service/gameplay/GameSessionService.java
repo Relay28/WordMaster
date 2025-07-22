@@ -4,6 +4,7 @@ import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.ComprehensionCheckService;
+import cit.edu.wrdmstr.service.CardService;
 import cit.edu.wrdmstr.dto.GameSessionDTO;
 import cit.edu.wrdmstr.dto.PlayerSessionDTO;
 import org.slf4j.Logger;
@@ -42,6 +43,8 @@ public class GameSessionService {
     // Add this field
     @Autowired @Lazy
     private GameSessionManagerService gameSessionManagerService;
+
+    @Autowired private CardService cardService;
 
 
     public GameSessionEntity createSession(Long contentId, Authentication auth) {
@@ -336,6 +339,19 @@ public class GameSessionService {
         playerSession.setActive(true);
         playerSession.setTotalScore(0);
         playerSession.setGrammarStreak(0);
+
+        PlayerSessionEntity savedPlayer = playerSessionRepository.save(playerSession);
+        
+        // Draw cards for the player after successful join
+        try {
+            // First ensure cards exist for the content
+            cardService.generateCardsForContent(session.getContent().getId());
+            // Then draw cards for the player
+            cardService.drawCardsForPlayer(savedPlayer.getId());
+        } catch (Exception e) {
+            logger.error("Failed to draw cards for player {} in session {}: {}", 
+                        userId, sessionId, e.getMessage());
+        }
 
         return playerSessionRepository.save(playerSession);
     }
