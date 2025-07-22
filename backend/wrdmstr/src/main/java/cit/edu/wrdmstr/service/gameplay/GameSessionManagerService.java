@@ -40,6 +40,7 @@ public class GameSessionManagerService {
     private final GrammarCheckerService grammarCheckerService;
     private final AIService aiService;
     @Autowired private ScoreService scoreService;
+    @Autowired private WordDetectionService wordDetectionService;
     private final StudentProgressRepository progressRepository;
     @Autowired private GameResultService gameResultService;
     @Autowired private ComprehensionCheckService comprehensionCheckService;
@@ -601,13 +602,8 @@ public class GameSessionManagerService {
             .orElseThrow(() -> new RuntimeException("Game session not found"));
         List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(
             session.getContent().getContentData());
-        List<String> usedWordsFromBank = new ArrayList<>();
-        for (WordBankItem item : wordBankItems) {
-            String word = item.getWord().toLowerCase();
-            if (submission.getWord().toLowerCase().contains(word)) {
-                usedWordsFromBank.add(word);
-            }
-        }
+        List<String> usedWordsFromBank = wordDetectionService.detectWordBankUsage(
+            submission.getWord(), wordBankItems);
         if (!usedWordsFromBank.isEmpty()) {
             gameState.getUsedWords().addAll(usedWordsFromBank);
         } else {

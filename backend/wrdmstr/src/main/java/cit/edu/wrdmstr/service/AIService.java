@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Service
 public class AIService {
@@ -65,6 +67,29 @@ public class AIService {
 
         AIResponse response = callAIModel(request);
         return response.getResult();
+    }
+
+    /**
+     * Check if text contains variations of word bank words (tense, plural, etc.)
+     */
+    public List<String> detectWordBankUsage(String text, List<String> wordBankWords) {
+        Map<String, Object> request = new HashMap<>();
+        request.put("task", "word_bank_detection");
+        request.put("text", text);
+        request.put("wordBank", wordBankWords);
+        
+        AIResponse response = callAIModel(request);
+        String result = response.getResult();
+        
+        // Parse the response - expect comma-separated list of detected words
+        if (result == null || result.trim().isEmpty() || result.equalsIgnoreCase("none")) {
+            return Collections.emptyList();
+        }
+        
+        return Arrays.stream(result.split(","))
+            .map(String::trim)
+            .filter(word -> !word.isEmpty())
+            .collect(Collectors.toList());
     }
 
     /**
@@ -300,6 +325,27 @@ public class AIService {
                     feedbackPrompt.append("Format: Start with warm praise, acknowledge their English learning effort, provide gentle guidance, end with motivation to continue improving their English, then list scores.\n");
                     
                     return feedbackPrompt.toString();
+                    
+                case "word_bank_detection":
+                    StringBuilder detectionPrompt = new StringBuilder();
+                    detectionPrompt.append("You are helping Grade 8-9 Filipino students learning English detect word bank usage.\n\n");
+                    detectionPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n");
+                    detectionPrompt.append("Word bank words: ").append(request.get("wordBank")).append("\n\n");
+                    detectionPrompt.append("TASK: Identify which word bank words (or their variations) appear in the text.\n\n");
+                    detectionPrompt.append("RULES FOR DETECTION:\n");
+                    detectionPrompt.append("- Match exact forms: 'run' matches 'run'\n");
+                    detectionPrompt.append("- Match tense variations: 'run' matches 'ran', 'running', 'runs'\n");
+                    detectionPrompt.append("- Match plural/singular: 'book' matches 'books', 'child' matches 'children'\n");
+                    detectionPrompt.append("- Match common word forms: 'happy' matches 'happiness', 'happily'\n");
+                    detectionPrompt.append("- Only match if the meaning is clearly related\n");
+                    detectionPrompt.append("- Be encouraging - these are young English learners\n\n");
+                    detectionPrompt.append("RESPONSE FORMAT:\n");
+                    detectionPrompt.append("- If words found: Return comma-separated list of the BASE word bank words that were used\n");
+                    detectionPrompt.append("- If no words found: Return 'none'\n");
+                    detectionPrompt.append("- Example: If text contains 'running' and word bank has 'run', return 'run'\n");
+                    detectionPrompt.append("- Example: If text contains 'books' and word bank has 'book', return 'book'\n\n");
+                    detectionPrompt.append("Remember: Return the original word bank word, not the variation found in text.");
+                    return detectionPrompt.toString();
 
                 case "generate_comprehension_questions":
                     StringBuilder questionsPrompt = new StringBuilder();

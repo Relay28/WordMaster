@@ -27,6 +27,8 @@ public class VocabularyCheckerService {
     @Autowired private VocabularyResultRepository vocabularyResultRepository;
     @Autowired private WordBankItemRepository wordBankRepository;
     @Autowired private VocabularyAnalysisService vocabularyAnalysisService;
+    @Autowired private WordBankItemRepository wordBankItemRepository;
+    @Autowired private WordDetectionService wordDetectionService; // Add this field with other @Autowired fields
 
     
      /**
@@ -42,6 +44,8 @@ public class VocabularyCheckerService {
             .orElseThrow(() -> new RuntimeException("Session not found"))
             .getContent();
             
+        // OLD CODE:
+        /*
         for (WordBankItem item : content.getContentData().getWordBank()) {
             if (text.toLowerCase().contains(item.getWord().toLowerCase())) {
                 usedWords.add(item.getWord());
@@ -50,6 +54,26 @@ public class VocabularyCheckerService {
                 if (item.getComplexity() > 3 || item.getWord().length() > 7) {
                     usedAdvancedWords.add(item.getWord());
                 }
+            }
+        }
+        */
+        
+        // NEW CODE:
+        List<WordBankItem> wordBankItems = wordBankItemRepository.findByContentData(content.getContentData());
+        List<String> detectedWords = wordDetectionService.detectWordBankUsage(text, wordBankItems);
+
+        for (String detectedWord : detectedWords) {
+            usedWords.add(detectedWord);
+            
+            // Find the corresponding WordBankItem for complexity checking
+            WordBankItem correspondingItem = wordBankItems.stream()
+                .filter(item -> item.getWord().equalsIgnoreCase(detectedWord))
+                .findFirst()
+                .orElse(null);
+            
+            if (correspondingItem != null && 
+                (correspondingItem.getComplexity() > 3 || correspondingItem.getWord().length() > 7)) {
+                usedAdvancedWords.add(detectedWord);
             }
         }
         

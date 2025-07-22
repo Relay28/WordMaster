@@ -45,6 +45,7 @@ public class ChatService {
     @Autowired private StudentProgressRepository progressRepository;
 
     @Autowired private VocabularyCheckerService vocabularyCheckerService;
+    @Autowired private WordDetectionService wordDetectionService;
 
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
@@ -121,15 +122,7 @@ public class ChatService {
 
         // Check for word bank usage
         List<WordBankItem> sessionWordBank = wordBankItemRepository.findByContentData(session.getContent().getContentData());
-        List<String> usedWordsFromBank = new ArrayList<>();
-
-        for (WordBankItem item : sessionWordBank) {
-            String word = item.getWord().toLowerCase();
-            String regex = "\\b" + word + "\\b";
-            if (content.toLowerCase().matches(".*" + regex + ".*")) {
-                usedWordsFromBank.add(item.getWord());
-            }
-        }
+        List<String> usedWordsFromBank = wordDetectionService.detectWordBankUsage(content, sessionWordBank);
 
         if (!usedWordsFromBank.isEmpty()) {
             scoreService.handleWordBankUsage(player, usedWordsFromBank);
