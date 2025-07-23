@@ -7,6 +7,8 @@ import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.CardService;
 import cit.edu.wrdmstr.service.ComprehensionCheckService;
 import cit.edu.wrdmstr.service.ProgressTrackingService;
+import cit.edu.wrdmstr.service.StoryPromptService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +37,7 @@ public class GameSessionManagerService {
     private final ChatService chatService;
     private final GameSessionService gameSessionService;
     private final UserRepository userRepository;
-
+    @Autowired private StoryPromptService storyPromptService;
     @Autowired private CardService cardService;
     private final GrammarCheckerService grammarCheckerService;
     private final AIService aiService;
@@ -220,8 +222,11 @@ public class GameSessionManagerService {
         
         // Check if we've already generated for this turn
         Integer lastTurn = lastStoryTurn.get(session.getId());
-        if (lastTurn != null && lastTurn == turnNumber && aiResponseCache.containsKey(cacheKey)) {
-            return aiResponseCache.get(cacheKey);
+        if (lastTurn != null && lastTurn == turnNumber) {
+            String existing = storyPromptService.getLatestStoryPrompt(session.getId());
+            if (existing != null) {
+                return existing;
+            }
         }
         
         return aiResponseCache.computeIfAbsent(cacheKey, key -> {
@@ -465,15 +470,28 @@ public class GameSessionManagerService {
     @Transactional(propagation = Propagation.REQUIRED)
     private String generateStoryElement(GameSessionEntity session, int turnNumber) {
         try {
+            // Get previous story elements for continuity
+            List<Map<String, Object>> previousElements = storyPromptService.getStoryPrompts(session.getId());
+            
             Map<String, Object> request = new HashMap<>();
             request.put("task", "story_prompt");
             request.put("content", session.getContent().getDescription());
             request.put("turn", turnNumber);
             
-            // Don't include used words - focus on story progression
-            // Remove the usedWords parameter to keep story focused on narrative
+            // Include previous story for continuity
+            if (!previousElements.isEmpty()) {
+                List<String> previousStory = previousElements.stream()
+                    .map(element -> (String) element.get("prompt"))
+                    .collect(Collectors.toList());
+                request.put("previousStory", previousStory);
+            }
             
-            return aiService.callAIModel(request).getResult();
+            String newPrompt = aiService.callAIModel(request).getResult();
+            
+            // Save the new story prompt
+            storyPromptService.addStoryPrompt(session.getId(), turnNumber, newPrompt);
+            
+            return newPrompt;
         } catch (Exception e) {
             logger.error("Error generating story element for session {}: {}", session.getId(), e.getMessage(), e);
             return "Continue the conversation based on your role and the story context!";

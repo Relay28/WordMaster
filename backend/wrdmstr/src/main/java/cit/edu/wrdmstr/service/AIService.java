@@ -96,95 +96,153 @@ public class AIService {
      * Call the AI API with the given request
      */
         public AIResponse callAIModel(Map<String, Object> request) {
-            // Format for Gemini API
-            Map<String, Object> content = new HashMap<>();
+            int maxRetries = 3;
+            int retryDelay = 2000; // 2 seconds
             
-            String prompt = buildPromptFromRequest(request);
-            Map<String, Object> textPart = new HashMap<>();
-            textPart.put("text", prompt);
-            
-            List<Map<String, Object>> parts = new ArrayList<>();
-            parts.add(textPart);
-            content.put("parts", parts);
-            
-            Map<String, Object> geminiRequest = new HashMap<>();
-            geminiRequest.put("contents", Collections.singletonList(content));
-            
-            // Add API key as query parameter
-            String fullUrl = apiUrl + "?key=" + apiKey;
-            
-            logger.info("Making API request to: {}", apiUrl);              try {
-                // Make the API call
-                @SuppressWarnings("unchecked")
-                Map<String, Object> response = restTemplate.postForObject(fullUrl, geminiRequest, Map.class);
-                
-                // Parse Gemini response
-                AIResponse result = new AIResponse();
-                if (response != null) {
-                    // Debug logging
-                    logger.debug("Received response: {}", response);
+            for (int attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    // Format for Gemini API
+                    Map<String, Object> content = new HashMap<>();
                     
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
-                    if (candidates != null && !candidates.isEmpty()) {
-                        Map<String, Object> candidate = candidates.get(0);
+                    String prompt = buildPromptFromRequest(request);
+                    Map<String, Object> textPart = new HashMap<>();
+                    textPart.put("text", prompt);
+                    
+                    List<Map<String, Object>> parts = new ArrayList<>();
+                    parts.add(textPart);
+                    content.put("parts", parts);
+                    
+                    Map<String, Object> geminiRequest = new HashMap<>();
+                    geminiRequest.put("contents", Collections.singletonList(content));
+                    
+                    // Add API key as query parameter
+                    String fullUrl = apiUrl + "?key=" + apiKey;
+                    
+                    logger.info("Making API request to: {}", apiUrl);              try {
+                        // Make the API call
                         @SuppressWarnings("unchecked")
-                        Map<String, Object> candidateContent = (Map<String, Object>) candidate.get("content");
+                        Map<String, Object> response = restTemplate.postForObject(fullUrl, geminiRequest, Map.class);
                         
-                        if (candidateContent != null) {
+                        // Parse Gemini response
+                        AIResponse result = new AIResponse();
+                        if (response != null) {
+                            // Debug logging
+                            logger.debug("Received response: {}", response);
+                            
                             @SuppressWarnings("unchecked")
-                            List<Map<String, Object>> candidateParts = (List<Map<String, Object>>) candidateContent.get("parts");
-                            if (candidateParts != null && !candidateParts.isEmpty()) {
-                                Object textObj = candidateParts.get(0).get("text");
-                                result.setResult(textObj != null ? textObj.toString() : "No response text");
+                            List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
+                            if (candidates != null && !candidates.isEmpty()) {
+                                Map<String, Object> candidate = candidates.get(0);
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> candidateContent = (Map<String, Object>) candidate.get("content");
+                                
+                                if (candidateContent != null) {
+                                    @SuppressWarnings("unchecked")
+                                    List<Map<String, Object>> candidateParts = (List<Map<String, Object>>) candidateContent.get("parts");
+                                    if (candidateParts != null && !candidateParts.isEmpty()) {
+                                        Object textObj = candidateParts.get(0).get("text");
+                                        result.setResult(textObj != null ? textObj.toString() : "No response text");
+                                    } else {
+                                        result.setResult("No content parts in response");
+                                    }
+                                } else {
+                                    result.setResult("No content in response candidate");
+                                }
                             } else {
-                                result.setResult("No content parts in response");
+                                result.setResult("No candidates in response");
                             }
                         } else {
-                            result.setResult("No content in response candidate");
+                            result.setResult("Null response from API");
                         }
-                    } else {
-                        result.setResult("No candidates in response");
+                        return result;
+                    } catch (Exception e) {
+                        if (attempt < maxRetries && e.getMessage().contains("503")) {
+                            logger.warn("API overloaded, retrying in {} ms (attempt {}/{})", retryDelay, attempt, maxRetries);
+                            try {
+                                Thread.sleep(retryDelay);
+                                retryDelay *= 2; // Exponential backoff
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            }
+                            continue;
+                        }
+                        
+                        // If all retries failed or it's not a 503 error, use fallback
+                        logger.error("Error calling Gemini API: " + e.getMessage(), e);
+                        // Create a fallback response
+                        AIResponse errorResponse = new AIResponse();
+                          // Task-specific fallbacks with supportive tone for Filipino students
+                        String task = (String) request.get("task");
+                        switch (task) {
+                            case "story_prompt":
+                                errorResponse.setResult("Let's continue our English conversation! Please share your thoughts in English about the topic.");
+                                break;
+                            case "role_prompt":
+                                errorResponse.setResult("Remember to stay in character and use English vocabulary. You're doing great in practicing English!");
+                                break;
+                            case "role_check":
+                                errorResponse.setResult("APPROPRIATE. Your English is improving! Keep practicing with confidence.");
+                                break;
+                            case "word_generation":
+                                errorResponse.setResult("practice");
+                                break;
+                            case "grammar_check":
+                                errorResponse.setResult("MINOR ERRORS - Your English is getting better! Keep practicing your sentence structure and you'll improve even more.");
+                                break;
+                            case "language_validation":
+                                errorResponse.setResult("ENGLISH - Great job using English! Keep up the excellent work.");
+                                break;
+                            case "role_generation":
+                                errorResponse.setResult("- Discussion Leader\n- Researcher\n- Note Taker\n- Presenter\n- Facilitator");
+                                break;
+                            default:
+                                errorResponse.setResult("Please continue practicing in English. You're making wonderful progress!");
+                        }
+                        
+                        return errorResponse;
                     }
-                } else {
-                    result.setResult("Null response from API");
+                } catch (Exception e) {
+                    // Handle errors
+                    logger.error("Error calling Gemini API: " + e.getMessage(), e);
+                    // Create a fallback response
+                    AIResponse errorResponse = new AIResponse();
+                      // Task-specific fallbacks with supportive tone for Filipino students
+                    String task = (String) request.get("task");
+                    switch (task) {
+                        case "story_prompt":
+                            errorResponse.setResult("Let's continue our English conversation! Please share your thoughts in English about the topic.");
+                            break;
+                        case "role_prompt":
+                            errorResponse.setResult("Remember to stay in character and use English vocabulary. You're doing great in practicing English!");
+                            break;
+                        case "role_check":
+                            errorResponse.setResult("APPROPRIATE. Your English is improving! Keep practicing with confidence.");
+                            break;
+                        case "word_generation":
+                            errorResponse.setResult("practice");
+                            break;
+                        case "grammar_check":
+                            errorResponse.setResult("MINOR ERRORS - Your English is getting better! Keep practicing your sentence structure and you'll improve even more.");
+                            break;
+                        case "language_validation":
+                            errorResponse.setResult("ENGLISH - Great job using English! Keep up the excellent work.");
+                            break;
+                        case "role_generation":
+                            errorResponse.setResult("- Discussion Leader\n- Researcher\n- Note Taker\n- Presenter\n- Facilitator");
+                            break;
+                        default:
+                            errorResponse.setResult("Please continue practicing in English. You're making wonderful progress!");
+                    }
+                    
+                    return errorResponse;
                 }
-                return result;
-            } catch (Exception e) {
-                // Handle errors
-                logger.error("Error calling Gemini API: " + e.getMessage(), e);
-                // Create a fallback response
-                AIResponse errorResponse = new AIResponse();
-                  // Task-specific fallbacks with supportive tone for Filipino students
-                String task = (String) request.get("task");
-                switch (task) {
-                    case "story_prompt":
-                        errorResponse.setResult("Let's continue our English conversation! Please share your thoughts in English about the topic.");
-                        break;
-                    case "role_prompt":
-                        errorResponse.setResult("Remember to stay in character and use English vocabulary. You're doing great in practicing English!");
-                        break;
-                    case "role_check":
-                        errorResponse.setResult("APPROPRIATE. Your English is improving! Keep practicing with confidence.");
-                        break;
-                    case "word_generation":
-                        errorResponse.setResult("practice");
-                        break;
-                    case "grammar_check":
-                        errorResponse.setResult("MINOR ERRORS - Your English is getting better! Keep practicing your sentence structure and you'll improve even more.");
-                        break;
-                    case "language_validation":
-                        errorResponse.setResult("ENGLISH - Great job using English! Keep up the excellent work.");
-                        break;
-                    case "role_generation":
-                        errorResponse.setResult("- Discussion Leader\n- Researcher\n- Note Taker\n- Presenter\n- Facilitator");
-                        break;
-                    default:
-                        errorResponse.setResult("Please continue practicing in English. You're making wonderful progress!");
-                }
-                
-                return errorResponse;
             }
+            
+            // If all retries fail, return a generic error response
+            AIResponse errorResponse = new AIResponse();
+            errorResponse.setResult("Error communicating with AI service. Please try again later.");
+            return errorResponse;
         }
 
         // Update the buildPromptFromRequest method to add English enforcement and supportive tone
@@ -214,23 +272,29 @@ public class AIService {
                         "followed by encouraging feedback. Remember, these are young Filipino learners building English confidence - be nurturing and supportive!";
 
                 case "story_prompt":
-                    StringBuilder prompt = new StringBuilder("You are a warm and encouraging English teacher creating conversation starters for Grade 8-9 Filipino students practicing ENGLISH.\n");
-                    prompt.append("Create a natural, engaging prompt IN ENGLISH that will motivate young Filipino learners to respond in English.\n\n");
-                    prompt.append("Topic/Context: ").append(request.get("content")).append("\n");
-                    prompt.append("Story progression stage: ").append(request.get("turn")).append("\n");
+                    StringBuilder prompt = new StringBuilder();
+                    prompt.append("You are creating a coherent, progressive story for English learning.\n");
+                    prompt.append("Topic: ").append(request.get("content")).append("\n");
+                    prompt.append("Current turn: ").append(request.get("turn")).append("\n");
                     
-                    // Focus on story development rather than used words
-                    prompt.append("\nIMPORTANT GUIDELINES:\n");
-                    prompt.append("- Create a story prompt that builds on the given topic/context\n");
-                    prompt.append("- Focus on advancing the narrative or introducing new story elements\n");
-                    prompt.append("- Your response must be in ENGLISH and encourage students to respond in ENGLISH\n");
-                    prompt.append("- Be warm, supportive, and encouraging - these are young Filipino learners\n");
-                    prompt.append("- Create scenarios that naturally require different vocabulary\n");
-                    prompt.append("- Progress the story in interesting directions to maintain engagement\n");
-                    prompt.append("- Don't reference specific words used by students - focus on story continuity\n");
-                    prompt.append("- Include phrases like 'Please respond in English' or 'Let's continue our English story by...'\n");
-                    prompt.append("- Keep it conversational and age-appropriate for Grade 8-9 students\n");
-                    prompt.append("- Show enthusiasm for their English learning journey\n");
+                    // Include previous story elements for continuity
+                    @SuppressWarnings("unchecked")
+                    List<String> previousElements = (List<String>) request.get("previousStory");
+                    if (previousElements != null && !previousElements.isEmpty()) {
+                        prompt.append("\nPrevious story elements:\n");
+                        for (int i = 0; i < previousElements.size(); i++) {
+                            prompt.append("Turn ").append(i + 1).append(": ").append(previousElements.get(i)).append("\n");
+                        }
+                    }
+                    
+                    prompt.append("\nCreate the next story segment that:\n");
+                    prompt.append("- Continues the narrative logically from previous elements\n");
+                    prompt.append("- Introduces new vocabulary naturally within the story context\n");
+                    prompt.append("- Maintains story coherence and character consistency\n");
+                    prompt.append("- Encourages English responses related to the story\n");
+                    prompt.append("- Is engaging and age-appropriate\n");
+                    prompt.append("- Provides clear context for student responses\n\n");
+                    prompt.append("Generate only the story prompt, no additional text:");
                     
                     return prompt.toString();
 
@@ -347,7 +411,7 @@ public class AIService {
                     detectionPrompt.append("Remember: Return the original word bank word, not the variation found in text.");
                     return detectionPrompt.toString();
 
-                case "generate_comprehension_questions":
+                case "comprehension_questions": // Change from "generate_comprehension_questions"
                     StringBuilder questionsPrompt = new StringBuilder();
                     questionsPrompt.append("You are a supportive English teacher creating comprehension questions for Grade 8-9 Filipino students to assess their English understanding.\n\n");
                     
@@ -359,9 +423,7 @@ public class AIService {
                     questionsPrompt.append("5. Focus ONLY on the overall session topic and themes\n\n");
                     
                     questionsPrompt.append("Generate 5 questions based on this OVERALL session content:\n\n");
-                    questionsPrompt.append("SESSION TOPIC: ").append(request.get("sessionTopic")).append("\n");
-                    questionsPrompt.append("SESSION DESCRIPTION: ").append(request.get("sessionDescription")).append("\n\n");
-                    questionsPrompt.append("COLLABORATIVE STORY CONTENT:\n").append(request.get("context")).append("\n\n");
+                    questionsPrompt.append(request.get("sessionSummary")).append("\n\n");
                     
                     questionsPrompt.append("Questions should test understanding of:\n");
                     questionsPrompt.append("1. The main session topic and learning objectives\n");
@@ -433,10 +495,16 @@ public class AIService {
 
                 case "role_generation":
                     int newRoleCount = ((Number) request.get("roleCount")).intValue();
-                    return "Generate " + newRoleCount + " unique role names for a language learning game about: " 
+                    return "Generate " + newRoleCount + " simple role names for Grade 8-9 Filipino students learning English about: " 
                         + request.get("topic") + ".\n\n"
-                        + "Each role should be appropriate for students playing in a conversation scenario. Be creative and diverse.\n"
-                        + "Format your response as a bullet point list with exactly " + newRoleCount + " roles:\n"
+                        + "IMPORTANT GUIDELINES:\n"
+                        + "- Each role should be a simple, clear name (1-2 words maximum)\n"
+                        + "- Roles should be appropriate for students in conversation scenarios\n"
+                        + "- Use simple English that Grade 8-9 Filipino students can understand\n"
+                        + "- Be creative but keep names concise\n"
+                        + "- Roles should also be relevant to the Description\n"
+                        + "- Examples: Speaker, Listener, Moderator, Researcher, etc.\n\n"
+                        + "Format your response as a bullet point list with exactly " + newRoleCount + " simple role names:\n"
                         + buildRoleBulletPoints(newRoleCount) + "\n";
                 
                 default:

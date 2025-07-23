@@ -70,6 +70,10 @@ public class GameSessionEntity {
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StudentProgress> studentProgressRecords = new ArrayList<>();
 
+    @Lob
+    @Column(name = "story_prompts", columnDefinition = "TEXT")
+    private String storyPrompts; // Store as JSON string
+
     public List<StudentProgress> getStudentProgressRecords() {
         return studentProgressRecords;
     }
@@ -77,7 +81,6 @@ public class GameSessionEntity {
     public void setStudentProgressRecords(List<StudentProgress> studentProgressRecords) {
         this.studentProgressRecords = studentProgressRecords;
     }
-
 
     // Getters and setters
 
@@ -213,6 +216,14 @@ public class GameSessionEntity {
 
     public void setCurrentPlayer(PlayerSessionEntity currentPlayer) {
         this.currentPlayer = currentPlayer;
+    }
+
+    public String getStoryPrompts() {
+        return storyPrompts;
+    }
+
+    public void setStoryPrompts(String storyPrompts) {
+        this.storyPrompts = storyPrompts;
     }
 
     public enum SessionStatus {

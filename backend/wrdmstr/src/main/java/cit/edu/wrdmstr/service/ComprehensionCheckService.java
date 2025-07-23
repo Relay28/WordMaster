@@ -3,11 +3,11 @@ package cit.edu.wrdmstr.service;
 import cit.edu.wrdmstr.dto.ComprehensionResultDTO;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
+import cit.edu.wrdmstr.service.AIService.AIResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.checkerframework.checker.units.qual.A;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,160 +33,113 @@ public class ComprehensionCheckService {
     @Autowired private AIService aiService;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private ComprehensionResultRepository comprehensionResultRepository;
+    @Autowired private StoryPromptService storyPromptService;
     
     
     /**
      * Generate comprehension questions based on game session content and collaborative story
      */
     public List<Map<String, Object>> generateComprehensionQuestions(Long sessionId, Long studentId) {
-        String cacheKey = "session_" + sessionId; // Standardize cache key format
-        
-        // Synchronize access to prevent multiple threads from generating questions simultaneously
-        synchronized(ComprehensionCheckService.class) {
-            // Check cache first - session-wide questions
-            if (questionsCache.containsKey(cacheKey)) {
-                logger.info("Returning cached comprehension questions for session {}", sessionId);
-                return questionsCache.get(cacheKey);
-            }
-            
-            logger.info("No cached questions found for session {}. Generating new questions.", sessionId);
-            
-            GameSessionEntity session = gameSessionRepository.findById(sessionId)
+        GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Game session not found"));
-            
-            // Get ALL messages from the session to build the collaborative story
-            List<ChatMessageEntity> allMessages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-            
-            if (allMessages.isEmpty()) {
-                logger.warn("No messages found in session {}, creating default questions", sessionId);
-                List<Map<String, Object>> defaultQuestions = createDefaultSessionQuestions(session);
-                questionsCache.put(cacheKey, defaultQuestions); // Cache the default questions too
-                return defaultQuestions;
-            }
-            
-            // Create a session-wide summary without player attributions
-            String sessionSummary = generateSessionSummary(session, allMessages);
-            
-            // Prepare AI request focused on session content
+
+        // Fix: Handle null studentId case
+        UserEntity student = null;
+        if (studentId != null) {
+            student = userRepository.findById(studentId)
+                    .orElseThrow(() -> new RuntimeException("Student not found"));
+        }
+
+        // Use story prompts instead of chat messages
+        String storyContent = storyPromptService.getStoryPromptsAsText(sessionId);
+        
+        if (storyContent.isEmpty()) {
+            // Fallback to session content if no story prompts exist
+            return createDefaultSessionQuestions(session);
+        }
+
+        String sessionSummary = generateSessionSummaryFromStory(session, storyContent);
+        
+        try {
             Map<String, Object> request = new HashMap<>();
-            request.put("task", "generate_comprehension_questions");
-            request.put("context", sessionSummary);
-            request.put("sessionTopic", session.getContent().getTitle());
-            request.put("sessionDescription", session.getContent().getDescription());
-            
-            // Call AI service
-            String aiResponse = aiService.callAIModel(request).getResult();
-            
-            try {
-                // Parse AI response into list of question objects
-                List<Map<String, Object>> questions = parseComprehensionQuestions(aiResponse);
-                
-                // Ensure all questions have consistent IDs and formatting
-                for (int i = 0; i < questions.size(); i++) {
-                    Map<String, Object> question = questions.get(i);
-                    question.put("id", i + 1); // Consistent numbering
-                    question.put("sessionId", sessionId); // Mark as session-specific
-                }
-                
-                // Cache the questions for the entire session
-                questionsCache.put(cacheKey, questions);
-                logger.info("Cached {} comprehension questions for session {}", questions.size(), sessionId);
-                
-                return questions;
-            } catch (Exception e) {
-                logger.error("Error parsing AI response for comprehension questions: " + e.getMessage(), e);
-                List<Map<String, Object>> defaultQuestions = createDefaultSessionQuestions(session);
-                questionsCache.put(cacheKey, defaultQuestions); // Cache the default questions too
-                return defaultQuestions;
+            request.put("task", "comprehension_questions");
+            request.put("sessionSummary", sessionSummary);
+            request.put("difficulty", "intermediate");
+
+            AIResponse response = aiService.callAIModel(request);
+            List<Map<String, Object>> questions = parseComprehensionQuestions(response.getResult());
+
+            // Only save if we have a student
+            if (student != null) {
+                saveComprehensionResult(session, student, questions, new ArrayList<>());
             }
+
+            return questions;
+        } catch (Exception e) {
+            logger.error("Error generating comprehension questions for session {}: {}", sessionId, e.getMessage());
+            return createDefaultSessionQuestions(session);
         }
     }
-    
-    /**
-     * Generate a session summary without player attributions
-     */
-    private String generateSessionSummary(GameSessionEntity session, List<ChatMessageEntity> allMessages) {
-        // Create a coherent narrative from messages without attributing to specific players
-        StringBuilder storyContent = new StringBuilder();
-        
-        // First, extract just the message content without attributions
-        for (ChatMessageEntity message : allMessages) {
-            storyContent.append(message.getContent()).append(" ");
-        }
-        
-        // Build a properly formatted summary
+
+    private String generateSessionSummaryFromStory(GameSessionEntity session, String storyContent) {
         StringBuilder summary = new StringBuilder();
         summary.append("SESSION TOPIC: ").append(session.getContent().getTitle()).append("\n\n");
         summary.append("SESSION DESCRIPTION: ").append(session.getContent().getDescription()).append("\n\n");
-        summary.append("COLLABORATIVE STORY CONTENT:\n\n");
-        
-        // Format into paragraphs without player names or attributions
-        String[] sentences = storyContent.toString().split("(?<=[.!?])\\s+");
-        int sentenceCount = 0;
-        for (String sentence : sentences) {
-            summary.append(sentence).append(" ");
-            sentenceCount++;
-            if (sentenceCount % 3 == 0) {
-                summary.append("\n\n");
-            }
-        }
+        summary.append(storyContent);
         
         return summary.toString();
     }
-    
-    /**
-     * Create default session-based questions when AI fails or no messages exist
-     */
+
     private List<Map<String, Object>> createDefaultSessionQuestions(GameSessionEntity session) {
-        List<Map<String, Object>> fallbackQuestions = new ArrayList<>();
+        List<Map<String, Object>> defaultQuestions = new ArrayList<>();
         
+        // Create basic questions about the session topic
         Map<String, Object> question1 = new HashMap<>();
-        question1.put("id", 1);
-        question1.put("sessionId", session.getId());
-        question1.put("question", "What was the main topic of this English learning session?");
+        question1.put("question", "What was the main topic of this learning session?");
+        question1.put("type", "multiple_choice");
         question1.put("options", Arrays.asList(
-            session.getContent().getTitle(), 
-            "Random conversation", 
-            "Grammar exercises", 
-            "Vocabulary drills"
+            session.getContent().getTitle(),
+            "Science fiction",
+            "Mathematics",
+            "History"
         ));
         question1.put("correctAnswer", "A");
-        question1.put("type", "multiple_choice");
-        fallbackQuestions.add(question1);
-        
+        defaultQuestions.add(question1);
+
         Map<String, Object> question2 = new HashMap<>();
-        question2.put("id", 2);
-        question2.put("sessionId", session.getId());
-        question2.put("question", "How did the participants work together in this session?");
-        question2.put("options", Arrays.asList(
-            "They created a collaborative story", 
-            "They worked individually", 
-            "They only listened", 
-            "They copied each other"
-        ));
-        question2.put("correctAnswer", "A");
+        question2.put("question", "Describe what you learned from this session.");
         question2.put("type", "multiple_choice");
-        fallbackQuestions.add(question2);
-        
-        Map<String, Object> question3 = new HashMap<>();
-        question3.put("id", 3);
-        question3.put("sessionId", session.getId());
-        question3.put("question", "What was the purpose of this English practice session?");
-        question3.put("options", Arrays.asList(
-            "To improve English communication skills", 
-            "To complete homework", 
-            "To take a test", 
-            "To learn math"
+        question2.put("options", Arrays.asList(
+            "I learned new vocabulary words",
+            "I practiced grammar",
+            "I improved my writing",
+            "All of the above"
         ));
-        question3.put("correctAnswer", "A");
-        question3.put("type", "multiple_choice");
-        fallbackQuestions.add(question3);
-        
-        // Cache the fallback questions too
-        String cacheKey = session.getId() + "_session";
-        questionsCache.put(cacheKey, fallbackQuestions);
-        
-        return fallbackQuestions;
+        question2.put("correctAnswer", "D");
+        defaultQuestions.add(question2);
+
+        return defaultQuestions;
+    }
+    
+    /**
+     * Save comprehension result to database
+     */
+    private void saveComprehensionResult(GameSessionEntity session, UserEntity student, 
+                                       List<Map<String, Object>> questions, 
+                                       List<Map<String, Object>> answers) {
+        try {
+            ComprehensionResultEntity result = new ComprehensionResultEntity();
+            result.setGameSession(session);
+            result.setStudent(student);
+            result.setComprehensionQuestions(objectMapper.writeValueAsString(questions));
+            result.setComprehensionAnswers(objectMapper.writeValueAsString(answers));
+            result.setComprehensionPercentage(0.0); // Will be updated when answers are submitted
+            result.setCreatedAt(new Date());
+            
+            comprehensionResultRepository.save(result);
+        } catch (JsonProcessingException e) {
+            logger.error("Error saving comprehension result: " + e.getMessage(), e);
+        }
     }
     
     // Add method to clear session-based cache
@@ -196,6 +149,7 @@ public class ComprehensionCheckService {
             logger.info("Cleared comprehension questions cache for session {}", sessionId);
         }
     }
+    
     /**
      * Grade comprehension answers and calculate percentage
      */
@@ -328,7 +282,7 @@ public class ComprehensionCheckService {
                 // Convert short answer to multiple choice with generic options
                 if (currentQuestion != null) {
                     currentQuestion.put("type", "multiple_choice");
-                        currentOptions = Arrays.asList(
+                    currentOptions = Arrays.asList(
                        "This is significant because of his ambition to become known throughout the kingdom.",
                             "This matters because it shows his diplomatic approach to royal interactions.", 
                             "His words are important because they demonstrate his military strength.",
@@ -377,7 +331,7 @@ public class ComprehensionCheckService {
         // Check if user is the teacher or a student in this session
         boolean isTeacher = Objects.equals(session.getTeacher().getId(), user.getId());
         boolean isStudentInSession = session.getPlayers().stream()
-            .anyMatch(p -> p.getUser().getId()==(user.getId()));
+            .anyMatch(p -> Objects.equals(p.getUser().getId(), user.getId()));
             
         if (!isTeacher && !isStudentInSession) {
             throw new RuntimeException("You are not authorized to view these results");

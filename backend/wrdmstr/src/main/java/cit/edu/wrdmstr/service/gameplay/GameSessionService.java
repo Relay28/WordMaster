@@ -5,6 +5,7 @@ import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.ComprehensionCheckService;
 import cit.edu.wrdmstr.service.CardService;
+import cit.edu.wrdmstr.service.StoryPromptService;
 import cit.edu.wrdmstr.dto.GameSessionDTO;
 import cit.edu.wrdmstr.dto.PlayerSessionDTO;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ public class GameSessionService {
     private GameSessionManagerService gameSessionManagerService;
 
     @Autowired private CardService cardService;
+    @Autowired private StoryPromptService storyPromptService;
 
 
     public GameSessionEntity createSession(Long contentId, Authentication auth) {
@@ -266,6 +268,9 @@ public class GameSessionService {
     public void deleteSession(Long sessionId) {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
             .orElseThrow(() -> new ResourceNotFoundException("Game session not found"));
+        
+        // Clear story prompts
+        storyPromptService.clearStoryPrompts(sessionId);
         
         // Break the circular reference first  
         session.setCurrentPlayer(null);
