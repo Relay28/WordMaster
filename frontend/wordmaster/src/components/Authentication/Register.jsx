@@ -14,9 +14,12 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import picbg from '../assets/picbg.png';
+import picbg from '../../assets/picbg.png';
 import '@fontsource/press-start-2p';
-import logo from '../assets/LOGO.png';
+import logo from '../../assets/LOGO.png';
+
+
+const API_BASE_URL = 'http://localhost:8080/api';
 
 const Register = () => {
   const theme = useTheme();
@@ -77,12 +80,14 @@ const [role, setRole] = useState('student'); // default to student
 
     try {
       const endpoint = role === 'student' 
-        ? "http://localhost:8080/api/auth/register/student"
-        : "http://localhost:8080/api/auth/register/teacher";
+        ? `${API_BASE_URL}/auth/register/student`
+        : `${API_BASE_URL}/auth/register/teacher`;
       
       const response = await axios.post(endpoint, formData);
-      setSuccess("Registration successful! Redirecting to login...");
-      setTimeout(() => navigate("/login"), 2000);
+      
+      setSuccess("Registration successful! Redirecting to OTP verification...");
+      await axios.post(`${API_BASE_URL}/auth/send-otp`, { email: formData.email });
+      setTimeout(() => navigate("/verify", { state: { email: formData.email } }), 2000);
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed. Try again.");
     }

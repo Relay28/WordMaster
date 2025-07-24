@@ -31,6 +31,17 @@ public class UserEntity {
     @Lob
     private String profilePicture;
 
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean verified = false;
+
+    public boolean isVerified() {
+        return verified;
+    }
+
+    public void setVerified(boolean verified) {
+        this.verified = verified;
+    }
+
     @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL)
     private List<ChatMessageEntity> sentMessages = new ArrayList<>();
 
@@ -206,6 +217,7 @@ public class UserEntity {
     public void setRole(String role) {
         this.role = role;
     }
+
 
 
 }

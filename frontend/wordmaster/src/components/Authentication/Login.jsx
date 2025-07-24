@@ -15,11 +15,11 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
-import { logout, isLoggedIn } from '../utils/authUtils';
-import { useUserAuth } from './context/UserAuthContext';
-import picbg from '../assets/picbg.png';
+import { logout, isLoggedIn } from '../../utils/authUtils';
+import { useUserAuth } from '../context/UserAuthContext';
+import picbg from '../../assets/picbg.png';
 import '@fontsource/press-start-2p';
-import logo from '../assets/LOGO.png';
+import logo from '../../assets/LOGO.png';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 

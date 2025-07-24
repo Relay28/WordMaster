@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Box, CircularProgress, Typography, Button } from '@mui/material';
-import { useUserAuth } from './context/UserAuthContext';
+import { useUserAuth } from '../context/UserAuthContext';
 
 const OAuthSuccessHandler = () => {
   const [loading, setLoading] = useState(true);
