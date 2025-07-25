@@ -302,11 +302,12 @@ public class ContentService {
                 comprehensionResultRepository.deleteByGameSessionId(sessionId);
                 teacherFeedbackRepository.deleteByGameSessionId(sessionId);
                 
-                // Delete player cards for all players in this session
+                // Get player session IDs BEFORE deleting anything
                 List<Long> playerSessionIds = session.getPlayers().stream()
                         .map(PlayerSessionEntity::getId)
                         .collect(Collectors.toList());
                 
+                // Delete player cards first
                 if (!playerSessionIds.isEmpty()) {
                     playerCardRepository.deleteByPlayerSessionIds(playerSessionIds);
                 }
@@ -314,18 +315,25 @@ public class ContentService {
                 // Clear and delete chat messages
                 chatMessageRepository.deleteBySessionId(sessionId);
                 
-                // Clear current player reference
+                // Clear current player reference BEFORE deleting player sessions
                 session.setCurrentPlayer(null);
                 gameSessionRepository.save(session);
                 
-                // Delete player sessions
+                // Clear the players collection to prevent cascade issues
+                session.getPlayers().clear();
+                gameSessionRepository.save(session);
+                
+                // Now delete player sessions using repository method
                 playerSessionRepository.deleteBySessionId(sessionId);
                 
-                // Clear score records
-                List<ScoreRecordEntity> scores = new ArrayList<>(session.getScores());
-                session.getScores().clear();
-                gameSessionRepository.save(session);
-                scoreRecordRepository.deleteAll(scores);
+                // Clear score records - get fresh list after player deletion
+                session = gameSessionRepository.findById(sessionId).orElse(null);
+                if (session != null) {
+                    List<ScoreRecordEntity> scores = new ArrayList<>(session.getScores());
+                    session.getScores().clear();
+                    gameSessionRepository.save(session);
+                    scoreRecordRepository.deleteAll(scores);
+                }
                 
                 // Finally delete the session
                 gameSessionRepository.delete(session);
@@ -334,18 +342,19 @@ public class ContentService {
             // Now handle the content data cleanup
             ContentData contentData = content.getContentData();
             if (contentData != null) {
-                // Clear the bidirectional relationship first
+                // Clear word bank and roles to prevent cascade issues
+                contentData.getWordBank().clear();
+                contentData.getRoles().clear();
+                
+                // Clear the bidirectional relationship
                 content.setContentData(null);
                 contentData.setContent(null);
                 
                 // Save the content to break the relationship
                 contentRepository.save(content);
-                
-                // Now we can safely delete the content data and its related entities
-                // The cascade operations should handle the cleanup automatically
             }
             
-            // Delete the content itself - cascade should handle remaining cleanup
+            // Delete the content itself
             contentRepository.delete(content);
             
             logger.info("Content with ID: {} deleted successfully", id);
