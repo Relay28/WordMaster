@@ -392,8 +392,9 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
             throw new RuntimeException("You are not authorized to access comprehension questions");
         }
         
-        // Generate session-based questions (studentId is still passed for compatibility but not used in generation)
-        return comprehensionCheckService.generateComprehensionQuestions(sessionId, studentId);
+        // Generate session-based questions - this will use the cache
+        // Pass null for studentId to ensure session-wide questions are generated/retrieved       
+        return comprehensionCheckService.generateComprehensionQuestions(sessionId, null);
     }
 
     /**

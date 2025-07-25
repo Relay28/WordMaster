@@ -24,8 +24,9 @@ import java.util.stream.Collectors;
 public class ComprehensionCheckService {
     private static final Logger logger = LoggerFactory.getLogger(ComprehensionCheckService.class);
     
-    // Make this static so it's shared across all instances of the service
-    private static final Map<String, List<Map<String, Object>>> questionsCache = new ConcurrentHashMap<>();
+    // Session-based cache for questions with synchronization
+    private static final Map<Long, List<Map<String, Object>>> sessionQuestionsCache = new ConcurrentHashMap<>();
+    private static final Map<Long, Object> sessionLocks = new ConcurrentHashMap<>();
     
     @Autowired private GameSessionEntityRepository gameSessionRepository;
     @Autowired private UserRepository userRepository;
@@ -38,49 +39,70 @@ public class ComprehensionCheckService {
     
     /**
      * Generate comprehension questions based on game session content and collaborative story
+     * NOW WITH PROPER SESSION-LEVEL CACHING
      */
     public List<Map<String, Object>> generateComprehensionQuestions(Long sessionId, Long studentId) {
-        GameSessionEntity session = gameSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Game session not found"));
-
-        // Fix: Handle null studentId case
-        UserEntity student = null;
-        if (studentId != null) {
-            student = userRepository.findById(studentId)
-                    .orElseThrow(() -> new RuntimeException("Student not found"));
-        }
-
-        // Use story prompts instead of chat messages
-        String storyContent = storyPromptService.getStoryPromptsAsText(sessionId);
+        // Get or create a lock for this session
+        Object sessionLock = sessionLocks.computeIfAbsent(sessionId, k -> new Object());
         
-        if (storyContent.isEmpty()) {
-            // Fallback to session content if no story prompts exist
-            return createDefaultSessionQuestions(session);
-        }
+        synchronized (sessionLock) {
+            // Double-check if questions were cached while waiting for lock
+            if (sessionQuestionsCache.containsKey(sessionId)) {
+                logger.info("Returning cached comprehension questions for session {}", sessionId);
+                return sessionQuestionsCache.get(sessionId);
+            }
+            
+            logger.info("Generating NEW comprehension questions for session {} (first request)", sessionId);
+            
+            GameSessionEntity session = gameSessionRepository.findById(sessionId)
+                    .orElseThrow(() -> new RuntimeException("Game session not found"));
 
-        String sessionSummary = generateSessionSummaryFromStory(session, storyContent);
-        
-        try {
-            Map<String, Object> request = new HashMap<>();
-            request.put("task", "comprehension_questions");
-            request.put("sessionSummary", sessionSummary);
-            request.put("difficulty", "intermediate");
+            // Handle null studentId case
+            UserEntity student = null;
+            if (studentId != null) {
+                student = userRepository.findById(studentId)
+                        .orElseThrow(() -> new RuntimeException("Student not found"));
+            }
 
-            AIResponse response = aiService.callAIModel(request);
-            List<Map<String, Object>> questions = parseComprehensionQuestions(response.getResult());
+            // Use story prompts instead of chat messages
+            String storyContent = storyPromptService.getStoryPromptsAsText(sessionId);
+            
+            List<Map<String, Object>> questions;
+            
+            if (storyContent.isEmpty()) {
+                // Fallback to session content if no story prompts exist
+                questions = createDefaultSessionQuestions(session);
+            } else {
+                String sessionSummary = generateSessionSummaryFromStory(session, storyContent);
+                
+                try {
+                    Map<String, Object> request = new HashMap<>();
+                    request.put("task", "comprehension_questions");
+                    request.put("sessionSummary", sessionSummary);
+                    request.put("difficulty", "intermediate");
 
-            // Only save if we have a student
+                    AIResponse response = aiService.callAIModel(request);
+                    questions = parseComprehensionQuestions(response.getResult());
+
+                } catch (Exception e) {
+                    logger.error("Error generating comprehension questions for session {}: {}", sessionId, e.getMessage());
+                    questions = createDefaultSessionQuestions(session);
+                }
+            }
+            
+            // Cache the questions for the entire session
+            sessionQuestionsCache.put(sessionId, questions);
+            
+            // Only save individual result if we have a student
             if (student != null) {
                 saveComprehensionResult(session, student, questions, new ArrayList<>());
             }
 
+            logger.info("Generated and cached {} comprehension questions for session {}", questions.size(), sessionId);
             return questions;
-        } catch (Exception e) {
-            logger.error("Error generating comprehension questions for session {}: {}", sessionId, e.getMessage());
-            return createDefaultSessionQuestions(session);
         }
     }
-
+    
     private String generateSessionSummaryFromStory(GameSessionEntity session, String storyContent) {
         StringBuilder summary = new StringBuilder();
         summary.append("SESSION TOPIC: ").append(session.getContent().getTitle()).append("\n\n");
@@ -142,10 +164,11 @@ public class ComprehensionCheckService {
         }
     }
     
-    // Add method to clear session-based cache
+    /**
+     * Clear session cache when needed
+     */
     public void clearSessionQuestionsCache(Long sessionId) {
-        String cacheKey = "session_" + sessionId;
-        if (questionsCache.remove(cacheKey) != null) {
+        if (sessionQuestionsCache.remove(sessionId) != null) {
             logger.info("Cleared comprehension questions cache for session {}", sessionId);
         }
     }
@@ -424,12 +447,5 @@ public class ComprehensionCheckService {
         }
         
         return dto;
-    }
-    
-    // Add method to clear cache when needed
-    public void clearQuestionsCache(Long sessionId) {
-        // Remove both old student-specific and new session-based cache entries
-        questionsCache.entrySet().removeIf(entry -> 
-            entry.getKey().startsWith(sessionId + "_"));
     }
 }

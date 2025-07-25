@@ -383,42 +383,49 @@ public class GameSessionService {
         result.put("status", "completed");
         result.put("sessionId", sessionId);
         
-        // If comprehension check requested, generate session-based questions for all players
+        // If comprehension check requested, PRE-GENERATE questions for the session
         if (generateComprehension) {
             try {
-                // Use the wrapper method from GameSessionManagerService to ensure consistent cache usage
+                logger.info("Pre-generating comprehension questions for session {}", sessionId);
+                
+                // PRE-GENERATE the questions using the manager service
+                // This ensures they're cached BEFORE any player tries to access them
                 List<Map<String, Object>> sessionQuestions = 
                     gameSessionManagerService.getOrGenerateComprehensionQuestions(sessionId);
                 
-                // Assign the SAME questions to ALL players who joined the session
-                Map<Long, List<Map<String, Object>>> playerQuestions = new HashMap<>();
-                List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
-                
-                logger.info("Generated {} session-based questions for session {}", sessionQuestions.size(), sessionId);
-                
-                for (PlayerSessionEntity player : players) {
-                    try {
-                        Long studentId = player.getUser().getId();
-                        
-                        // Give the same questions to ALL players regardless of participation
-                        // This ensures consistency in multiplayer games
-                        playerQuestions.put(studentId, sessionQuestions);
-                        logger.info("Assigned {} session-based comprehension questions to player {} in session {}", 
-                                  sessionQuestions.size(), studentId, sessionId);
-                              
-                    } catch (Exception e) {
-                        logger.error("Error processing comprehension questions for player {} in session {}: {}",
-                            player.getUser().getId(), sessionId, e.getMessage(), e);
+                if (sessionQuestions != null && !sessionQuestions.isEmpty()) {
+                    logger.info("Successfully pre-generated {} questions for session {}", sessionQuestions.size(), sessionId);
+                    
+                    // Get all players for assignment
+                    List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
+                    Map<Long, List<Map<String, Object>>> playerQuestions = new HashMap<>();
+                    
+                    // Assign the SAME pre-generated questions to ALL players
+                    for (PlayerSessionEntity player : players) {
+                        try {
+                            Long studentId = player.getUser().getId();
+                            playerQuestions.put(studentId, sessionQuestions);
+                            logger.info("Assigned PRE-GENERATED questions to player {} in session {}", studentId, sessionId);
+                                  
+                        } catch (Exception e) {
+                            logger.error("Error assigning questions to player {} in session {}: {}",
+                                player.getUser().getId(), sessionId, e.getMessage(), e);
+                        }
                     }
+                    
+                    result.put("comprehensionQuestions", playerQuestions);
+                    result.put("questionsGenerated", true);
+                    logger.info("Successfully assigned IDENTICAL comprehension questions to {} players in session {}", 
+                               playerQuestions.size(), sessionId);
+                } else {
+                    logger.warn("No comprehension questions were generated for session {}", sessionId);
+                    result.put("questionsGenerated", false);
                 }
-                
-                result.put("comprehensionQuestions", playerQuestions);
-                logger.info("Successfully assigned comprehension questions to {} players in session {}", 
-                           playerQuestions.size(), sessionId);
                        
             } catch (Exception e) {
-                logger.error("Error generating session comprehension questions for session {}: {}", 
+                logger.error("Error pre-generating session comprehension questions for session {}: {}", 
                             sessionId, e.getMessage(), e);
+                result.put("questionsGenerated", false);
             }
         }
         

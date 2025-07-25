@@ -65,15 +65,39 @@ const GameCore = () => {
         try {
           setLoadingComprehension(true);
           const token = await getToken();
-          const response = await fetch(
-            `${API_URL}/api/teacher-feedback/comprehension/${gameState.sessionId}/student/${user.id}/questions`,
-            { headers: { 'Authorization': `Bearer ${token}` } }
-          );
-          if (response.ok) {
-            const data = await response.json();
-            setComprehensionQuestions(data);
+          
+          // Add retries to ensure questions are available
+          let attempts = 0;
+          let maxAttempts = 5;
+          let questions = null;
+          
+          while (attempts < maxAttempts && !questions) {
+            const response = await fetch(
+              `${API_URL}/api/teacher-feedback/comprehension/${gameState.sessionId}/student/${user.id}/questions`,
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data && data.length > 0) {
+                questions = data;
+                console.log(`Got ${data.length} questions on attempt ${attempts + 1}`);
+              }
+            }
+            
+            if (!questions) {
+              attempts++;
+              if (attempts < maxAttempts) {
+                console.log(`No questions yet, retrying in 1 second... (attempt ${attempts}/${maxAttempts})`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+          }
+          
+          if (questions) {
+            setComprehensionQuestions(questions);
           } else {
-            // If no questions are available, skip to results
+            console.warn("No questions available after all attempts");
             setShowResults(true);
           }
         } catch (e) {

@@ -473,10 +473,28 @@ public class GameSessionManagerService {
             // Get previous story elements for continuity
             List<Map<String, Object>> previousElements = storyPromptService.getStoryPrompts(session.getId());
             
+            // NEW: Get current players and their roles
+            List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
+            Map<String, String> playerRoles = new HashMap<>();
+            List<String> playerNames = new ArrayList<>();
+            
+            for (PlayerSessionEntity player : players) {
+                String playerName = player.getUser().getFname() + " " + player.getUser().getLname();
+                String roleName = player.getRole() != null ? player.getRole().getName() : "Participant";
+                
+                playerRoles.put(playerName, roleName);
+                playerNames.add(playerName);
+            }
+            
             Map<String, Object> request = new HashMap<>();
             request.put("task", "story_prompt");
             request.put("content", session.getContent().getDescription());
             request.put("turn", turnNumber);
+            
+            // NEW: Include player context
+            request.put("playerNames", playerNames);
+            request.put("playerRoles", playerRoles);
+            request.put("currentPlayerCount", players.size());
             
             // Include previous story for continuity
             if (!previousElements.isEmpty()) {
@@ -560,10 +578,19 @@ public class GameSessionManagerService {
         logger.info("Turn update broadcasted for session {}: Turn {}, Player {}", sessionId, gameState.getCurrentTurn(), session.getCurrentPlayer().getId());
     }
 
-    // Add a new method for generating one set of questions for the whole session
+    /**
+     * Get or generate comprehension questions for a session (with proper caching)
+     * This ensures ALL players get the SAME questions
+     */
     public List<Map<String, Object>> getOrGenerateComprehensionQuestions(Long sessionId) {
-    // Always use null for studentId to ensure session-wide questions
-    return comprehensionCheckService.generateComprehensionQuestions(sessionId, null);
+        logger.info("Getting comprehension questions for session {}", sessionId);
+        
+        // This will use the session-level cache in ComprehensionCheckService
+        // Always pass null for studentId to ensure session-wide questions
+        List<Map<String, Object>> questions = comprehensionCheckService.generateComprehensionQuestions(sessionId, null);
+        
+        logger.info("Retrieved {} comprehension questions for session {}", questions.size(), sessionId);
+        return questions;
     }
 
     @Transactional
@@ -757,22 +784,21 @@ public class GameSessionManagerService {
     public void endGame(Long sessionId) {
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
-            // Attempt to fetch session to mark as complete even if not in activeGames
-             GameSessionEntity sessionCheck = gameSessionRepository.findById(sessionId).orElse(null);
-             if (sessionCheck != null && sessionCheck.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
+            GameSessionEntity sessionCheck = gameSessionRepository.findById(sessionId).orElse(null);
+            if (sessionCheck != null && sessionCheck.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
                 sessionCheck.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
                 sessionCheck.setEndedAt(new Date());
                 gameSessionRepository.save(sessionCheck);
-                logger.info("Game session {} marked as COMPLETED as it was not in activeGames map but found in DB.", sessionId);
-             } else {
-                logger.warn("EndGame called for session {} but GameState not found in activeGames and not updateable in DB.", sessionId);
-             }
+                logger.info("Game session {} marked as COMPLETED", sessionId);
+            }
             return;
         }
 
         if (gameState.getStatus() == GameState.Status.COMPLETED) {
             logger.info("Game {} already ended.", sessionId);
-            activeGames.remove(sessionId); // Clean up if somehow re-triggered
+            activeGames.remove(sessionId);
+            // Clear comprehension cache when game ends
+            comprehensionCheckService.clearSessionQuestionsCache(sessionId);
             return;
         }
 
@@ -791,7 +817,11 @@ public class GameSessionManagerService {
 
         gameResultService.processEndGameResults(sessionId);
         activeGames.remove(sessionId);
-        logger.info("Game {} ended and removed from active games.", sessionId);
+        
+        // Clear comprehension cache when game ends
+        comprehensionCheckService.clearSessionQuestionsCache(sessionId);
+        
+        logger.info("Game {} ended and caches cleared.", sessionId);
     }
 
     public void joinGame(Long sessionId, Long userId) {

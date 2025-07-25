@@ -277,6 +277,20 @@ public class AIService {
                     prompt.append("Topic: ").append(request.get("content")).append("\n");
                     prompt.append("Current turn: ").append(request.get("turn")).append("\n");
                     
+                    // NEW: Include player information
+                    @SuppressWarnings("unchecked")
+                    List<String> playerNames = (List<String>) request.get("playerNames");
+                    @SuppressWarnings("unchecked")
+                    Map<String, String> playerRoles = (Map<String, String>) request.get("playerRoles");
+                    
+                    if (playerNames != null && !playerNames.isEmpty()) {
+                        prompt.append("\nPLAYERS IN THIS STORY:\n");
+                        for (String playerName : playerNames) {
+                            String role = playerRoles.get(playerName);
+                            prompt.append("- ").append(playerName).append(" (Role: ").append(role).append(")\n");
+                        }
+                    }
+                    
                     // Include previous story elements for continuity
                     @SuppressWarnings("unchecked")
                     List<String> previousElements = (List<String>) request.get("previousStory");
@@ -289,11 +303,13 @@ public class AIService {
                     
                     prompt.append("\nCreate the next story segment that:\n");
                     prompt.append("- Continues the narrative logically from previous elements\n");
-                    prompt.append("- Introduces new vocabulary naturally within the story context\n");
+                    prompt.append("- INCLUDES the actual player names (").append(String.join(", ", playerNames != null ? playerNames : Arrays.asList("students"))).append(") as characters in the story\n");
+                    prompt.append("- References their assigned roles naturally in the narrative\n");
+                    prompt.append("- Encourages each player to respond according to their specific role\n");
                     prompt.append("- Maintains story coherence and character consistency\n");
-                    prompt.append("- Encourages English responses related to the story\n");
-                    prompt.append("- Is engaging and age-appropriate\n");
-                    prompt.append("- Provides clear context for student responses\n\n");
+                    prompt.append("- Is engaging and age-appropriate for Grade 8-9 Filipino students\n");
+                    prompt.append("- Provides clear context for role-based responses\n\n");
+                    prompt.append("IMPORTANT: Use the actual player names and their roles to create an immersive, personalized story experience.\n\n");
                     prompt.append("Generate only the story prompt, no additional text:");
                     
                     return prompt.toString();
