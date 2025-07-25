@@ -738,21 +738,31 @@ return (
               borderColor: 'divider',
               mb: 2,
               '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
-              '& .MuiTab-root': { ...pixelHeading, fontSize: isMobile ? '10px' : '12px', },
-              '& .Mui-selected': { color: '#5F4B8B !important' }
+              '& .MuiTab-root': { 
+                ...pixelHeading, 
+                fontSize: isMobile ? '10px' : '12px',
+                flexGrow: 1, // This makes each tab grow to fill available space
+                minWidth: 'unset', // Override default minWidth
+                px: 1, // Adjust horizontal padding as needed
+              },
+              '& .Mui-selected': { 
+                color: '#5F4B8B !important',
+              }
             }}
+            variant="fullWidth" // This makes tabs take full width of container
           >
             <Tab label="LEARNING CONTENT" />
-            <Tab label="MEMBERS" />
+            
             {user?.role === 'USER_TEACHER' ? (
               <Tab label="STUDENT REPORTS" />
             ) : (
               <Tab label="GRADE REPORTS" />
             )}
+            <Tab label="MEMBERS" />
           </Tabs>
 
           {/* Members Tab */}
-          {tabValue === 1 && (
+          {tabValue === 2 && (
             <Box>
               {/* <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                 
@@ -877,7 +887,7 @@ return (
           )}
 
              {/* Student Reports Tab */}
-          {tabValue === 2 && user?.role === 'USER_TEACHER' && (
+          {tabValue === 1 && user?.role === 'USER_TEACHER' && (
             <Box>
               {showContentList ? (
                 // Show published content list first
@@ -1137,7 +1147,7 @@ return (
           )}
 
           {/* Grade Reports Tab for Students */}
-          {tabValue === 2 && user?.role !== 'USER_TEACHER' && (
+          {tabValue === 1 && user?.role !== 'USER_TEACHER' && (
             <Box>
               {/* Implement student's grade reports view here */}
               <Typography sx={{ ...pixelHeading, mb: 2 }}>YOUR FEEDBACK REPORTS</Typography>

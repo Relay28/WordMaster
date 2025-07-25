@@ -10,9 +10,9 @@ import {
   IconButton,
   CircularProgress
 } from '@mui/material';
-import { Close, Publish } from '@mui/icons-material';
+import { Close, Unpublished } from '@mui/icons-material';
 
-const PublishConfirmation = ({ 
+const UnpublishConfirmation = ({ 
   open, 
   onClose, 
   onConfirm, 
@@ -38,22 +38,22 @@ const PublishConfirmation = ({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#f8f5ff',
+        backgroundColor: '#fff3e0',
         py: 2,
         px: 3,
-        borderBottom: '1px solid #ede7f6'
+        borderBottom: '1px solid #ffe0b2'
       }}>
-        <Typography variant="h6" fontWeight="200" color="#5F4B8B" sx={{ fontFamily: 'inherit', fontSize: '16px', marginTop: '4px' }}>
-          Publish Content
+        <Typography variant="h6" fontWeight="200" color="#e65100" sx={{ fontFamily: 'inherit', fontSize: '16px', marginTop: '4px' }}>
+          Unpublish Content
         </Typography>
         {!loading && (
           <IconButton 
             onClick={onClose} 
             size="small"
             sx={{
-              color: '#5F4B8B',
+              color: '#e65100',
               '&:hover': {
-                backgroundColor: 'rgba(95, 75, 139, 0.1)'
+                backgroundColor: 'rgba(230, 81, 0, 0.1)'
               }
             }}
           >
@@ -64,10 +64,10 @@ const PublishConfirmation = ({
       
       <DialogContent sx={{ py: 3, px: 3, marginTop: '12px' }}>
         <Typography variant="body1" gutterBottom sx={{ color: '#424242', mb: 2 }}>
-          Are you sure you want to publish <strong>"{title}"</strong>?
+          Are you sure you want to unpublish <strong>"{title}"</strong>?
         </Typography>
         <Typography variant="body2" sx={{ color: '#616161', fontSize: '0.875rem' }}>
-          Once published, this content will be available to students in your classes.
+          Unpublishing will make this content unavailable to students immediately.
         </Typography>
       </DialogContent>
       
@@ -98,16 +98,16 @@ const PublishConfirmation = ({
           disabled={loading}
           startIcon={loading ? 
             <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : 
-            <Publish sx={{ fontSize: '18px' }} />
+            <Unpublished sx={{ fontSize: '18px' }} />
           }
           sx={{
-            backgroundColor: '#5F4B8B',
+            backgroundColor: '#ff9800',
             color: '#ffffff',
             px: 3,
             py: 1,
             '&:hover': { 
-              backgroundColor: '#4a3a6d',
-              boxShadow: '0px 2px 4px rgba(95, 75, 139, 0.3)'
+              backgroundColor: '#fb8c00',
+              boxShadow: '0px 2px 4px rgba(255, 152, 0, 0.3)'
             },
             textTransform: 'none',
             borderRadius: '8px',
@@ -118,11 +118,11 @@ const PublishConfirmation = ({
             }
           }}
         >
-          {loading ? 'Publishing...' : 'Publish Now'}
+          {loading ? 'Unpublishing...' : 'Unpublish Now'}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default PublishConfirmation;
+export default UnpublishConfirmation;

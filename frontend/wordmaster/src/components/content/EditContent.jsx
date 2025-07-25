@@ -26,6 +26,7 @@ import { ArrowBack, Save, Publish, Unpublished, Add, Delete, Image } from '@mui/
 import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
 import PublishConfirmation from './PublishConfirmation';
+import UnpublishConfirmation from './UnpublishConfirmation';
 import picbg from '../../assets/picbg.png';
 import axios from 'axios';
 import API_URL from '../../services/apiConfig';
@@ -865,7 +866,7 @@ const EditContent = () => {
         loading={saving}
       />
       
-      <PublishConfirmation
+      <UnpublishConfirmation
         open={unpublishDialogOpen}
         onClose={() => setUnpublishDialogOpen(false)}
         onConfirm={() => {
