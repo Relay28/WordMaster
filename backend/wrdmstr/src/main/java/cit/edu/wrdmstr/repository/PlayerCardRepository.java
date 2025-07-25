@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface PlayerCardRepository extends JpaRepository<PlayerCard, Long> {
@@ -29,4 +30,15 @@ public interface PlayerCardRepository extends JpaRepository<PlayerCard, Long> {
     @Modifying
     @Query("UPDATE PlayerCard pc SET pc.activated = false WHERE pc.id = :cardId")
     void deactivateCard(@Param("cardId") Long cardId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM PlayerCard pc WHERE pc.playerSession.id = :playerSessionId")
+    void deleteByPlayerSessionId(@Param("playerSessionId") Long playerSessionId);
+
+    // You might also want this for bulk operations
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM PlayerCard pc WHERE pc.playerSession.id IN :playerSessionIds")
+    void deleteByPlayerSessionIds(@Param("playerSessionIds") List<Long> playerSessionIds);
 }
