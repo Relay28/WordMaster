@@ -696,62 +696,172 @@ const cycleDisplayString = isSinglePlayer
               boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
             },
           backgroundImage: `url(${bgGamePlay})`,
-          backgroundSize: 'cover',          // Use 'cover' to fill the box or 'contain' to show the whole image
+          backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat'
+          backgroundRepeat: 'no-repeat',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          position: 'relative'
           }}>
-            {/* Center player */}
-            <Box sx={{ 
-              position: 'relative',
-              width: '500px',
-              height: '500px'
+            {/* Turn Indicator Header */}
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              p: 2,
+              backgroundColor: 'rgba(95, 75, 139, 0.85)',
+              borderTopLeftRadius: '8px',
+              borderTopRightRadius: '8px',
+              textAlign: 'center',
+              backdropFilter: 'blur(4px)'
             }}>
-              {/* Current Player in Center */}
+              <Typography sx={{
+                ...pixelHeading,
+                color: 'white',
+                textShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                fontSize: '16px'
+              }}>
+                {isMyTurn ? "YOUR TURN" : "CURRENT TURN"}
+              </Typography>
+            </Box>
+
+            {/* Current Player Spotlight */}
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mb: 4,
+              mt: 6,
+              p: 3,
+              borderRadius: '50%',
+              width: 200,
+              height: 200,
+              background: 'radial-gradient(circle, rgba(255,255,255,0.9) 30%, rgba(255,255,255,0.3) 100%)',
+              boxShadow: isMyTurn ? '0 0 25px 10px rgba(95, 75, 139, 0.6)' : 'none',
+              border: isMyTurn ? '4px solid #FFD700' : '4px solid #5F4B8B',
+              animation: isMyTurn ? 'pulse 2s infinite' : 'none'
+            }}>
               <Avatar
+                src={gameState.currentPlayer?.profilePicture || undefined}
                 sx={{
-                  position: 'absolute',
-                  top: '45%',
-                  left: '72%',
-                  transform: 'translate(-50%, -50%)',
-                  width: 80,
-                  height: 80,
+                  width: 120,
+                  height: 120,
                   bgcolor: '#5F4B8B',
-                  border: '3px solid white',
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                  border: '4px solid white',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                  mb: 2
                 }}
               >
                 {gameState.currentPlayer?.name?.charAt(0) || '?'}
               </Avatar>
+              <Typography sx={{
+                ...pixelHeading,
+                color: '#5F4B8B',
+                fontSize: '14px',
+                textAlign: 'center',
+                mb: 0.5
+              }}>
+                {gameState.currentPlayer?.name || 'Unknown Player'}
+              </Typography>
+              {gameState.currentPlayer?.role && (
+                <Chip 
+                  label={gameState.currentPlayer.role} 
+                  size="small"
+                  sx={{ 
+                    ...pixelText,
+                    bgcolor: 'rgba(95, 75, 139, 0.2)',
+                    border: '1px solid #5F4B8B'
+                  }}
+                />
+              )}
+            </Box>
 
-              {/* Other players in circle */}
-              {gameState.players?.map((player, index, array) => {
+            {/* Other Players in Circle */}
+            <Box sx={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              gap: 1.5,
+              mt: 2
+            }}>
+              {gameState.players?.map((player, index) => {
+                // Skip current player as they're shown in the spotlight
                 if (player.userId === gameState.currentPlayer?.userId) return null;
-                const angle = (2 * Math.PI * index) / (array.length - 1);
-                const radius = 120;
-                const x = Math.cos(angle) * radius;
-                const y = Math.sin(angle) * radius;
-
+                
                 return (
-                  <Avatar
+                  <Box 
                     key={player.userId}
                     sx={{
-                      position: 'absolute',
-                      top: '75%',
-                      left: '48%',
-                      transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                      width: 80,
-                      height: 80,
-                      bgcolor: '#9575CD',
-                      border: '2px solid white'
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      opacity: 0.7,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        opacity: 1,
+                        transform: 'scale(1.05)'
+                      }
                     }}
-                     src={player.profilePicture || undefined}
                   >
-                   
-                    {player.name?.charAt(0)}
-                  </Avatar>
+                    <Avatar
+                      src={player.profilePicture || undefined}
+                      sx={{
+                        width: 50,
+                        height: 50,
+                        bgcolor: '#9575CD',
+                        border: '2px solid white'
+                      }}
+                    >
+                      {player.name?.charAt(0) || '?'}
+                    </Avatar>
+                    <Typography sx={{
+                      ...pixelText,
+                      fontSize: '8px',
+                      mt: 0.5
+                    }}>
+                      {player.name || 'Player'}
+                    </Typography>
+                  </Box>
                 );
               })}
             </Box>
+
+            {/* Turn Count Indicator */}
+            <Box sx={{
+              position: 'absolute',
+              bottom: 10,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              borderRadius: '20px',
+              bgcolor: 'rgba(0,0,0,0.7)',
+              px: 2,
+              py: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              <Typography sx={{
+                ...pixelText,
+                color: 'white',
+                fontSize: '10px'
+              }}>
+                {cycleDisplayString}
+              </Typography>
+            </Box>
+
+            {/* Add animated style for turn indicator pulse effect */}
+            <style jsx="true">{`
+              @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+                70% { box-shadow: 0 0 0 20px rgba(255, 215, 0, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+              }
+            `}</style>
           </Paper>
       {/* Word Bank Button */}
       <Box
