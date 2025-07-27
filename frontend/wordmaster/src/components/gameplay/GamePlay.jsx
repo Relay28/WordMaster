@@ -92,6 +92,7 @@ const GamePlay = ({
   const timerIntervalRef = useRef(null);
   const lastServerUpdateRef = useRef(Date.now());
   const [proceeding, setProceeding] = useState(false); // <-- Add this line
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -633,25 +634,41 @@ const cycleDisplayString = isSinglePlayer
       height: '90vh',
       display: 'flex',
       flexDirection: 'column', 
+      position: 'relative',
       p: 4, // Added horizontal padding
       gap: 2, // Reduced gap
+
     }}>
    
       {/* Story Prompt Section */}
       <Paper sx={{ 
-        p: 3,
-        borderRadius: '12px',
-        bgcolor: 'rgba(255, 255, 255, 0.9)',
-        border: '4px solid #5F4B8B',
-        boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
-        transform: 'translateY(-2px)',
-        transition: 'all 0.2s ease',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
-        }
-      }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  p: 3,
+  width: '96.5%',
+  borderRadius: '12px',
+  bgcolor: 'rgba(255, 255, 255, 0.9)',
+  border: '4px solid #5F4B8B',
+  boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
+  height: '130px', // Fixed height instead of maxHeight
+  minHeight: '130px', // Ensures it won't shrink below this
+  overflowY: 'auto',  // Enable scrolling
+  '&::-webkit-scrollbar': {
+    width: '6px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'rgba(0,0,0,0.05)',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: '#5F4B8B',
+    borderRadius: '3px',
+  }
+}}>
+       <Box sx={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    flexShrink: 0, // Prevent header from shrinking
+    mb: 2 // Add some margin below header
+  }}>
           <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
             Story Prompt
           </Typography>
@@ -661,9 +678,34 @@ const cycleDisplayString = isSinglePlayer
             size="small"
           />
         </Box>
-        <Typography sx={{ ...pixelText, mt: 1, fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
-          {storyPrompt}
-        </Typography>
+        {/* Scrollable content area */}
+  <Box sx={{
+    flex: 1, // Take up remaining space
+    overflowY: 'auto', // Enable vertical scrolling
+    pr: 1, // Add padding to prevent content from touching scrollbar
+    '&::-webkit-scrollbar': {
+      width: '8px',
+    },
+    '&::-webkit-scrollbar-track': {
+      background: 'rgba(95, 75, 139, 0.1)',
+      borderRadius: '4px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      background: '#5F4B8B',
+      borderRadius: '4px',
+      '&:hover': {
+        background: '#4a3a6d',
+      }
+    }
+  }}>
+    <Typography sx={{ 
+      whiteSpace: 'pre-wrap',
+      fontSize: '1.1rem',
+      lineHeight: '1.6'
+    }}>
+      {storyPrompt}
+    </Typography>
+  </Box>
       </Paper>
 
       {/* Main Content Area */}
@@ -671,6 +713,8 @@ const cycleDisplayString = isSinglePlayer
         display: 'flex',
         flex: 1,
         gap: 2,
+        height: '100vh',
+        paddingBottom: 4,
       }}>
         {/* Left Side - Players Circle and Input */}
         <Box sx={{ 
@@ -680,22 +724,174 @@ const cycleDisplayString = isSinglePlayer
           flexDirection: 'column',
           minWidth: '40vh', // Added to ensure minimum width
           maxWidth: '130vh', 
+          backgroundImage: `url(${bgGamePlay})`,
         }}>
+
+       {/* Trophy Button with Hover Leaderboard */}
+<Box sx={{
+  position: 'absolute',
+  top: 65,
+  left: 20,
+  zIndex: 100,
+  '&:hover .leaderboard-popup': {  // This targets the popup when parent is hovered
+    opacity: 1,
+    visibility: 'visible'
+  }
+}}>
+  {/* Trophy Icon Button */}
+  <IconButton
+    sx={{
+      color: '#FFD700',
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      '&:hover': {
+        backgroundColor: 'rgba(0,0,0,0.5)'
+      }
+    }}
+  >
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M19 5H5V19H19V5Z" stroke="currentColor" strokeWidth="2"/>
+      <path d="M12 9V15" stroke="currentColor" strokeWidth="2"/>
+      <path d="M15 12H9" stroke="currentColor" strokeWidth="2"/>
+      <path d="M7 19V15" stroke="currentColor" strokeWidth="2"/>
+      <path d="M17 19V15" stroke="currentColor" strokeWidth="2"/>
+    </svg>
+  </IconButton>
+
+  {/* Leaderboard Popup */}
+  <Box
+    className="leaderboard-popup"  // Added class for targeting
+    sx={{
+      position: 'absolute',
+      top: 50,
+      left: 0,
+      width: 280,
+      maxHeight: '70vh',
+      borderRadius: '8px',
+      backdropFilter: 'blur(8px)',
+      backgroundColor: 'rgba(54, 57, 63, 0.7)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+      overflow: 'hidden',
+      opacity: 0,
+      visibility: 'hidden',
+      transition: 'all 0.2s ease',
+      '&:hover': {  // Keep visible when hovering popup itself
+        opacity: 1,
+        visibility: 'visible'
+      }
+    }}
+  >
+    {/* Leaderboard Header */}
+    <Box sx={{ 
+      backgroundColor: 'rgba(47, 49, 54, 0.7)', 
+      p: 1.5,
+      display: 'flex',
+      alignItems: 'center'
+    }}>
+      <Typography sx={{ 
+        color: 'white', 
+        fontWeight: 600,
+        fontSize: '14px',
+        flexGrow: 1
+      }}>
+        LEADERBOARD
+      </Typography>
+      <Box sx={{
+        width: '8px',
+        height: '8px',
+        borderRadius: '50%',
+        backgroundColor: '#43b581',
+        mr: 1
+      }}/>
+      <Typography sx={{
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: '12px'
+      }}>
+        {leaderboard.length} players
+      </Typography>
+    </Box>
+
+    {/* Leaderboard List */}
+    <List dense sx={{ p: 0 }}>
+      {leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
+        <ListItem key={player.id} sx={{
+          px: 2,
+          py: 1,
+          backgroundColor: 'transparent',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+          '&:hover': {
+            backgroundColor: 'rgba(79, 84, 92, 0.3)'
+          }
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            {/* Rank */}
+            <Typography sx={{
+              minWidth: '24px',
+              color: index < 3 ? ['#ffd700', '#c0c0c0', '#cd7f32'][index] : 'rgba(255,255,255,0.7)',
+              fontWeight: 600,
+              fontSize: '14px',
+              textAlign: 'center',
+              mr: 1.5
+            }}>
+              #{index + 1}
+            </Typography>
+            
+            {/* Avatar */}
+            <Avatar sx={{
+              width: 32,
+              height: 32,
+              mr: 1.5,
+              backgroundColor: 'rgba(114, 137, 218, 0.7)'
+            }}>
+              {player.name?.charAt(0) || '?'}
+            </Avatar>
+            
+            {/* Name + Role */}
+            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+              <Typography sx={{
+                color: 'white',
+                fontWeight: 500,
+                fontSize: '14px',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis'
+              }}>
+                {player.name || 'Player'}
+              </Typography>
+              <Typography sx={{
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: '12px'
+              }}>
+                {player.role || ' '}
+              </Typography>
+            </Box>
+            
+            {/* Score */}
+            <Box sx={{
+              backgroundColor: 'rgba(114, 137, 218, 0.2)',
+              borderRadius: '4px',
+              px: 1.5,
+              py: 0.5,
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '12px'
+            }}>
+              {player.score}
+            </Box>
+          </Box>
+        </ListItem>
+      ))}
+    </List>
+  </Box>
+</Box>
           {/* Players Circle Area */}
           <Paper sx={{ 
             height: '100%',
             p: 3,
             borderRadius: '12px',
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: 'transparent',
              border: '4px solid #5F4B8B',
             boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
-            transform: 'translateY(-2px)',
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
-            },
-          backgroundImage: `url(${bgGamePlay})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -710,13 +906,13 @@ const cycleDisplayString = isSinglePlayer
               position: 'absolute',
               top: 0,
               left: 0,
-              width: '100%',
+              width: '97.5%',
               p: 2,
               backgroundColor: 'rgba(95, 75, 139, 0.85)',
               borderTopLeftRadius: '8px',
               borderTopRightRadius: '8px',
               textAlign: 'center',
-              backdropFilter: 'blur(4px)'
+              backdropFilter: 'blur(-4px)'
             }}>
               <Typography sx={{
                 ...pixelHeading,
@@ -1071,75 +1267,33 @@ const cycleDisplayString = isSinglePlayer
 </Fade>
           </Box>
 
-        {/* Right Side - Leaderboard and Chat */}
+        {/* Right Side - Chat */}
         <Box sx={{ 
           flex: 2,
           display: 'flex',
           flexDirection: 'column',
           gap: 3,
-          maxWidth: '80vh',
+          maxWidth: '85vh',
         }}>
-          {/* Leaderboard */}
-          <Paper sx={{ 
-            p: 3,
-            borderRadius: '12px',
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            border: '4px solid #5F4B8B',
-            boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
-            transform: 'translateY(-2px)',
-            transition: 'all 0.2s ease',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
-            }
-          }}>
-            <Typography sx={{ ...pixelHeading, color: '#5F4B8B', mb: 2 }}>
-              Leaderboard
-            </Typography>
-            <List dense disablePadding>
-              {leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
-                <ListItem key={player.id || player.userId || index} divider={index < leaderboard.length - 1}>
-                  <Avatar sx={{ bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B', mr: 2, width: 30, height: 30, fontSize: '0.875rem' }}>
-                    {index + 1}
-                  </Avatar>
-                  <ListItemText 
-                    primary={player.name || 'Player'} 
-                    secondary={player.role || 'Role N/A'} 
-                    sx={{ '& .MuiTypography-root': pixelText }}
-                  />
-                  <Typography variant="body1" fontWeight="bold" sx={pixelText}>
-                    {player.score}
-                  </Typography>
-                </ListItem>
-              ))}
-              {(!leaderboard || leaderboard.length === 0) && (
-                <Typography variant="body2" color="text.secondary" sx={pixelText}>Leaderboard is empty.</Typography>
-              )}
-            </List>
-          </Paper>
+          
 
           {/* Chat Area */}
           <Paper sx={{ 
+           
+            height: '100vh',
             flex: 1,
             display: 'flex',
-              overflowY: 'auto',
+            width: '97.5%',
             flexDirection: 'column',
             borderRadius: '12px',
             bgcolor: 'rgba(255, 255, 255, 0.9)',
              border: '4px solid #5F4B8B',
             boxShadow: '8px 8px 0px rgba(0,0,0,0.2)',
-            transform: 'translateY(-2px)',
-              maxHeight: 'calc(60vh - 120px)', // Add max height
           '&::-webkit-scrollbar': {        // Customize scrollbar
             width: '8px'
           },
-                    transition: 'all 0.2s ease',
-            overflow: 'hidden',
-            '&:hover': {
-              transform: 'translateY(-4px)',
-              boxShadow: '10px 10px 0px rgba(0,0,0,0.2)',
-            },
-            position: 'relative'
+            position: 'relative',
+            
           }}>
 <Box sx={{ 
   display: 'flex',
@@ -1149,7 +1303,8 @@ const cycleDisplayString = isSinglePlayer
   borderBottom: '1px solid rgba(0,0,0,0.12)',
   position: 'relative',
   zIndex: 1,
-  bgcolor: gameState.backgroundImage ? 'rgba(0,0,0,0.5)' : 'transparent'
+  bgcolor: gameState.backgroundImage ? 'rgba(0,0,0,0.5)' : 'transparent',
+  flexShrink: 0
 }}>
   <Typography sx={{ 
     ...pixelHeading,
@@ -1158,10 +1313,29 @@ const cycleDisplayString = isSinglePlayer
     Chat Here
   </Typography>
 
-  <Box sx={{ 
+ <Box sx={{ 
+    flex: 1,
+    overflowY: 'auto', // Enable vertical scrolling
+    p: 2,
     display: 'flex',
-    alignItems: 'center',
-    gap: 2,
+    flexDirection: 'column',
+    gap: 1,
+    position: 'relative',
+    zIndex: 1,
+    '&::-webkit-scrollbar': {
+      width: '8px',
+    },
+    '&::-webkit-scrollbar-track': {
+      background: 'rgba(0,0,0,0.05)',
+      borderRadius: '4px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      background: '#5F4B8B',
+      borderRadius: '4px',
+    },
+    '&::-webkit-scrollbar-thumb:hover': {
+      background: '#4a3a6d',
+    }
   }}>
     <LinearProgress 
       variant="determinate" 
