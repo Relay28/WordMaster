@@ -258,8 +258,12 @@ public class AIService {
                         "- 'NO ERRORS' if the message is clear and understandable with good English grammar (minor typos are okay)\n" +
                         "- 'MINOR ERRORS' if there are small English grammar issues but the meaning is clear\n" +
                         "- 'MAJOR ERRORS' if there are significant English grammar problems that affect understanding\n\n" +
-                        "Remember, you're nurturing young Filipino learners who are building confidence in English. Be encouraging and focus on their progress!\n" +
-                        "Start your response with one of these classifications, then provide brief, positive feedback that motivates them to keep improving their English.";
+                        "FEEDBACK FORMAT:\n" +
+                        "Start with the classification, then provide:\n" +
+                        "✓ What they did well (be specific about good grammar/vocabulary used)\n" +
+                        "💡 One specific suggestion for improvement (if needed)\n" +
+                        "🌟 Encouragement for their English learning journey\n\n" +
+                        "Keep feedback under 100 words and focus on building confidence while providing actionable advice.";
 
                 case "role_check":
                     return "You are a kind and supportive English teacher helping Grade 8-9 Filipino students practice English through role-play.\n" +

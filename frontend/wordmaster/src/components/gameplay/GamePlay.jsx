@@ -93,6 +93,7 @@ const GamePlay = ({
   const lastServerUpdateRef = useRef(Date.now());
   const [proceeding, setProceeding] = useState(false); // <-- Add this line
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [writingHints, setWritingHints] = useState([]); // Add this state
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -1435,14 +1436,50 @@ const cycleDisplayString = isSinglePlayer
         <Collapse in={true}>
           <Paper sx={{ 
             mt: 1, 
-            p: 1, 
-            bgcolor: 'rgba(255,255,255,0.9)',
+            p: 1.5, 
+            bgcolor: getGrammarFeedbackColor(msg.grammarStatus),
             border: '1px solid #ccc',
             borderRadius: '8px',
             fontSize: '0.75rem'
           }}>
-            <Typography sx={{whiteSpace: 'pre-wrap', color: 'black' }}>
-              {msg.grammarFeedback}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+              <Box sx={{ 
+                width: 8, 
+                height: 8, 
+                borderRadius: '50%', 
+                bgcolor: getGrammarStatusColor(msg.grammarStatus),
+                mr: 1 
+              }} />
+              <Typography sx={{ 
+                fontSize: '0.7rem', 
+                fontWeight: 'bold',
+                color: '#f7f7f7ff'
+              }}>
+                {getGrammarStatusLabel(msg.grammarStatus)}
+              </Typography>
+            </Box>
+            
+            {/* Enhanced feedback display with better formatting */}
+            <Typography sx={{ 
+              whiteSpace: 'pre-wrap', 
+              color: 'black',
+              lineHeight: 1.4,
+              '& .progressive-feedback': {
+                fontWeight: 'bold',
+                color: '#5F4B8B',
+                borderBottom: '1px solid #5F4B8B',
+                paddingBottom: '4px',
+                marginBottom: '8px',
+                display: 'block'
+              }
+            }}>
+              {/* Split feedback to highlight progressive part */}
+              {msg.grammarFeedback.split('\n\n').map((part, index) => (
+                <span key={index} className={index === 0 ? 'progressive-feedback' : ''}>
+                  {part}
+                  {index < msg.grammarFeedback.split('\n\n').length - 1 && <br />&&<br />}
+                </span>
+              ))}
             </Typography>
           </Paper>
         </Collapse>
@@ -1672,3 +1709,59 @@ const cycleDisplayString = isSinglePlayer
 };
 
 export default GamePlay;
+
+const getGrammarFeedbackColor = (status) => {
+  switch(status) {
+    case 'PERFECT': return 'rgba(76, 175, 80, 0.1)';
+    case 'MINOR_ERRORS': return 'rgba(255, 193, 7, 0.1)';
+    case 'MAJOR_ERRORS': return 'rgba(244, 67, 54, 0.1)';
+    default: return 'rgba(255,255,255,0.9)';
+  }
+};
+
+const getGrammarStatusColor = (status) => {
+  switch(status) {
+    case 'PERFECT': return '#4CAF50';
+    case 'MINOR_ERRORS': return '#FF9800';
+    case 'MAJOR_ERRORS': return '#F44336';
+    default: return '#9E9E9E';
+  }
+};
+
+const getGrammarStatusLabel = (status) => {
+  switch(status) {
+    case 'PERFECT': return 'Excellent English! 🌟';
+    case 'MINOR_ERRORS': return 'Good work! 💡';
+    case 'MAJOR_ERRORS': return 'Keep practicing! 📚';
+    default: return 'Checking...';
+  }
+};
+
+// Add writing hints based on user's role and context
+const getWritingHints = () => {
+  const hints = [
+    "💡 Try using a word from the word bank!",
+    "🎭 Remember to stay in character as " + (gameState.currentPlayer?.role || "your role"),
+    "📚 Use descriptive adjectives to make your sentence more interesting",
+    "🔗 Connect your idea to the story prompt above"
+  ];
+  
+  return hints[Math.floor(Math.random() * hints.length)];
+};
+
+// Add celebration animation for perfect grammar
+{msg.grammarStatus === 'PERFECT' && msg.senderId === user?.id && (
+  <Box sx={{ 
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    animation: 'bounce 0.6s ease-in-out',
+    '@keyframes bounce': {
+      '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0)' },
+      '40%': { transform: 'translateY(-10px)' },
+      '60%': { transform: 'translateY(-5px)' }
+    }
+  }}>
+    ⭐
+  </Box>
+)}

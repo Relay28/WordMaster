@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Date;
 import java.util.List;
 
 public interface ChatMessageEntityRepository extends JpaRepository<ChatMessageEntity, Long> {
@@ -33,4 +34,6 @@ public interface ChatMessageEntityRepository extends JpaRepository<ChatMessageEn
 
     void deleteBySessionId(Long sessionId);
 
+    List<ChatMessageEntity> findBySessionIdAndSenderIdAndTimestampAfterOrderByTimestampDesc(
+    Long sessionId, Long senderId, Date timestamp);
 }

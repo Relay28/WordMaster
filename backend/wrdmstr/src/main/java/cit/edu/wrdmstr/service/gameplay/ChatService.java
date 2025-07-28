@@ -6,6 +6,7 @@ import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
+import cit.edu.wrdmstr.service.ProgressiveFeedbackService;
 import cit.edu.wrdmstr.service.ProgressTrackingService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
@@ -46,6 +47,8 @@ public class ChatService {
 
     @Autowired private VocabularyCheckerService vocabularyCheckerService;
     @Autowired private WordDetectionService wordDetectionService;
+    @Autowired 
+    private ProgressiveFeedbackService progressiveFeedbackService;
 
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
@@ -151,6 +154,20 @@ public class ChatService {
         logger.debug("Saved message: id={}, containsWordBomb={}, vocabFeedback='{}'", 
             savedMessage.getId(), savedMessage.isContainsWordBomb(), 
             savedMessage.getVocabularyFeedback());
+
+        // Generate progressive feedback
+        String progressiveFeedback = progressiveFeedbackService.generateProgressiveFeedback(
+            userId, sessionId, content, grammarResult.getStatus(), 
+            grammarResult.isRoleAppropriate(), vocabResult.getVocabularyScore()
+        );
+        
+        // Combine AI feedback with progressive feedback
+        String enhancedFeedback = grammarResult.getFeedback();
+        if (progressiveFeedback != null && !progressiveFeedback.trim().isEmpty()) {
+            enhancedFeedback = progressiveFeedback + "\n\n" + grammarResult.getFeedback();
+        }
+        
+        message.setGrammarFeedback(truncateFeedback(enhancedFeedback));
 
         return savedMessage;
     }
@@ -420,11 +437,39 @@ public class ChatService {
                                          VocabularyResultDTO vocabResult,
                                          PlayerSessionEntity player,
                                          GameSessionEntity session) {
+        
+        // Generate progressive feedback
+        String progressiveFeedback = progressiveFeedbackService.generateProgressiveFeedback(
+            player.getUser().getId(), session.getId(), message.getContent(), 
+            grammarResult.getStatus(), grammarResult.isRoleAppropriate(), 
+            vocabResult.getVocabularyScore()
+        );
+        
+        // Combine feedbacks
+        String enhancedFeedback = grammarResult.getFeedback();
+        if (progressiveFeedback != null && !progressiveFeedback.trim().isEmpty()) {
+            enhancedFeedback = progressiveFeedback + "\n\n" + grammarResult.getFeedback();
+        }
+        
+        message.setGrammarFeedback(truncateFeedback(enhancedFeedback));
+        
         // Update message with analysis results
         message.setGrammarStatus(grammarResult.getStatus());
         message.setGrammarFeedback(truncateFeedback(grammarResult.getFeedback()));
         message.setVocabularyScore(vocabResult.getVocabularyScore());
-        message.setVocabularyFeedback(truncateFeedback(vocabResult.getFeedback()));
+        
+        // Handle vocabulary feedback display
+        if (vocabResult.getVocabularyScore() > 0) {
+            String vocabFeedback = String.format(
+                "Vocabulary Score: %d/10 🌟 %s", 
+                vocabResult.getVocabularyScore(),
+                vocabResult.getFeedback()
+            );
+            message.setVocabularyFeedback(truncateFeedback(vocabFeedback));
+        } else {
+            message.setVocabularyFeedback(truncateFeedback(vocabResult.getFeedback()));
+        }
+        
         message.setRoleAppropriate(grammarResult.isRoleAppropriate());
         message.setWordUsed(String.join(", ", vocabResult.getUsedWords()));
         
