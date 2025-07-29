@@ -35,7 +35,8 @@ import { BagClosed, BagOpen } from '../../assets/BagIcons';
 import { 
   Close,
   Games,
-  AutoFixHigh 
+  AutoFixHigh ,
+  ExpandMore
 } from '@mui/icons-material';
 import bgGamePlay from '../../assets/bg-gameplay.png';
 import CardDisplay from './CardDisplay';  // Import the CardDisplay component
@@ -94,6 +95,7 @@ const GamePlay = ({
   const [proceeding, setProceeding] = useState(false); // <-- Add this line
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [writingHints, setWritingHints] = useState([]); // Add this state
+  const [openFeedbackIndex, setOpenFeedbackIndex] = useState(null);
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -108,18 +110,28 @@ const GamePlay = ({
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
-  useEffect(() => {
+//   useEffect(() => {
+//   if (gameState.messages) {
+//     // Sort messages by timestamp
+//     const sortedMessages = [...gameState.messages].sort((a, b) => 
+//       new Date(a.timestamp) - new Date(b.timestamp)
+//     );
+    
+//     // Add debug logging for roleAppropriate
+//     sortedMessages.forEach(msg => {
+//       console.log(`Message: "${msg.content.substring(0, 20)}..." - roleAppropriate: ${msg.roleAppropriate} (type: ${typeof msg.roleAppropriate})`);
+//     });
+    
+//     setLocalMessages(sortedMessages);
+//   }
+// }, [gameState.messages]);
+
+useEffect(() => {
   if (gameState.messages) {
     // Sort messages by timestamp
     const sortedMessages = [...gameState.messages].sort((a, b) => 
       new Date(a.timestamp) - new Date(b.timestamp)
     );
-    
-    // Add debug logging for roleAppropriate
-    sortedMessages.forEach(msg => {
-      console.log(`Message: "${msg.content.substring(0, 20)}..." - roleAppropriate: ${msg.roleAppropriate} (type: ${typeof msg.roleAppropriate})`);
-    });
-    
     setLocalMessages(sortedMessages);
   }
 }, [gameState.messages]);
@@ -716,6 +728,8 @@ const cycleDisplayString = isSinglePlayer
         gap: 2,
         height: '100vh',
         paddingBottom: 4,
+        width: '99%',
+        margin: 0,
       }}>
         {/* Left Side - Players Circle and Input */}
         <Box sx={{ 
@@ -725,166 +739,217 @@ const cycleDisplayString = isSinglePlayer
           flexDirection: 'column',
           minWidth: '40vh', // Added to ensure minimum width
           maxWidth: '130vh', 
+           border: '4px solid #5F4B8B',
           backgroundImage: `url(${bgGamePlay})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          borderRadius: '20px', // <-- Add this line for rounded corners
+          overflow: 'hidden',
+          minHeight: '80vh', // Ensure it has a minimum height
+          
         }}>
 
        {/* Trophy Button with Hover Leaderboard */}
-<Box sx={{
-  position: 'absolute',
-  top: 65,
-  left: 20,
-  zIndex: 100,
-  '&:hover .leaderboard-popup': {  // This targets the popup when parent is hovered
-    opacity: 1,
-    visibility: 'visible'
-  }
-}}>
-  {/* Trophy Icon Button */}
-  <IconButton
-    sx={{
-      color: '#FFD700',
-      backgroundColor: 'rgba(0,0,0,0.3)',
-      '&:hover': {
-        backgroundColor: 'rgba(0,0,0,0.5)'
-      }
-    }}
-  >
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <path d="M19 5H5V19H19V5Z" stroke="currentColor" strokeWidth="2"/>
-      <path d="M12 9V15" stroke="currentColor" strokeWidth="2"/>
-      <path d="M15 12H9" stroke="currentColor" strokeWidth="2"/>
-      <path d="M7 19V15" stroke="currentColor" strokeWidth="2"/>
-      <path d="M17 19V15" stroke="currentColor" strokeWidth="2"/>
-    </svg>
-  </IconButton>
+<Box
+  sx={{
+    position: 'absolute',
+    top: 24, // adjust as needed
+    left: 0,
+    width: '100%',
+    zIndex: 100,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    px: 3,
+    pointerEvents: 'none',
 
-  {/* Leaderboard Popup */}
+  }}
+>
+  {/* Main container for icon and cycle indicator */}
+  {/* Left: Trophy + Leaderboard */}
   <Box
-    className="leaderboard-popup"  // Added class for targeting
     sx={{
-      position: 'absolute',
-      top: 50,
-      left: 0,
-      width: 280,
-      maxHeight: '70vh',
-      borderRadius: '8px',
-      backdropFilter: 'blur(8px)',
-      backgroundColor: 'rgba(54, 57, 63, 0.7)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
-      overflow: 'hidden',
-      opacity: 0,
-      visibility: 'hidden',
-      transition: 'all 0.2s ease',
-      '&:hover': {  // Keep visible when hovering popup itself
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center',
+      pointerEvents: 'auto',
+      top: 55,
+      '&:hover .leaderboard-popup': {
         opacity: 1,
         visibility: 'visible'
       }
     }}
   >
-    {/* Leaderboard Header */}
-    <Box sx={{ 
-      backgroundColor: 'rgba(47, 49, 54, 0.7)', 
-      p: 1.5,
-      display: 'flex',
-      alignItems: 'center'
-    }}>
-      <Typography sx={{ 
-        color: 'white', 
-        fontWeight: 600,
-        fontSize: '14px',
-        flexGrow: 1
-      }}>
-        LEADERBOARD
-      </Typography>
-      <Box sx={{
-        width: '8px',
-        height: '8px',
-        borderRadius: '50%',
-        backgroundColor: '#43b581',
-        mr: 1
-      }}/>
-      <Typography sx={{
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: '12px'
-      }}>
-        {leaderboard.length} players
-      </Typography>
-    </Box>
+    <IconButton
+      sx={{
+        color: '#FFD700',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        '&:hover': {
+          backgroundColor: 'rgba(0,0,0,0.5)'
+        }
+      }}
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M19 5H5V19H19V5Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12 9V15" stroke="currentColor" strokeWidth="2"/>
+        <path d="M15 12H9" stroke="currentColor" strokeWidth="2"/>
+        <path d="M7 19V15" stroke="currentColor" strokeWidth="2"/>
+        <path d="M17 19V15" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    </IconButton>
 
-    {/* Leaderboard List */}
-    <List dense sx={{ p: 0 }}>
-      {leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
-        <ListItem key={player.id} sx={{
-          px: 2,
-          py: 1,
-          backgroundColor: 'transparent',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-          '&:hover': {
-            backgroundColor: 'rgba(79, 84, 92, 0.3)'
-          }
+    {/* Leaderboard Popup */}
+    <Box
+      className="leaderboard-popup"
+      sx={{
+        position: 'absolute',
+        top: 40,
+        left: 0,
+        width: 280,
+        maxHeight: '70vh',
+        borderRadius: '8px',
+        backdropFilter: 'blur(8px)',
+        backgroundColor: 'rgba(54, 57, 63, 0.7)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+        overflow: 'hidden',
+        opacity: 0,
+        visibility: 'hidden',
+        transition: 'all 0.2s ease',
+        mt: 1,
+        zIndex: 200,
+      }}
+    >
+      {/* Leaderboard Header */}
+      <Box sx={{
+        backgroundColor: 'rgba(47, 49, 54, 0.7)',
+        p: 1.5,
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        <Typography sx={{
+          color: 'white',
+          fontWeight: 600,
+          fontSize: '14px',
+          flexGrow: 1
         }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-            {/* Rank */}
-            <Typography sx={{
-              minWidth: '24px',
-              color: index < 3 ? ['#ffd700', '#c0c0c0', '#cd7f32'][index] : 'rgba(255,255,255,0.7)',
-              fontWeight: 600,
-              fontSize: '14px',
-              textAlign: 'center',
-              mr: 1.5
-            }}>
-              #{index + 1}
-            </Typography>
-            
-            {/* Avatar */}
-            <Avatar sx={{
-              width: 32,
-              height: 32,
-              mr: 1.5,
-              backgroundColor: 'rgba(114, 137, 218, 0.7)'
-            }}>
-              {player.name?.charAt(0) || '?'}
-            </Avatar>
-            
-            {/* Name + Role */}
-            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          LEADERBOARD
+        </Typography>
+        <Box sx={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: '#43b581',
+          mr: 1
+        }}/>
+        <Typography sx={{
+          color: 'rgba(255,255,255,0.7)',
+          fontSize: '12px'
+        }}>
+          {leaderboard.length} players
+        </Typography>
+      </Box>
+      {/* Leaderboard List */}
+      <List dense sx={{ p: 0 }}>
+        {leaderboard.sort((a, b) => b.score - a.score).map((player, index) => (
+          <ListItem key={player.id} sx={{
+            px: 2,
+            py: 1,
+            backgroundColor: 'transparent',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+            '&:hover': {
+              backgroundColor: 'rgba(79, 84, 92, 0.3)'
+            }
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              {/* Rank */}
               <Typography sx={{
-                color: 'white',
-                fontWeight: 500,
+                minWidth: '24px',
+                color: index < 3 ? ['#ffd700', '#c0c0c0', '#cd7f32'][index] : 'rgba(255,255,255,0.7)',
+                fontWeight: 600,
                 fontSize: '14px',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
+                textAlign: 'center',
+                mr: 1.5
               }}>
-                {player.name || 'Player'}
+                #{index + 1}
               </Typography>
-              <Typography sx={{
-                color: 'rgba(255,255,255,0.6)',
+              {/* Avatar */}
+              <Avatar sx={{
+                width: 32,
+                height: 32,
+                mr: 1.5,
+                backgroundColor: 'rgba(114, 137, 218, 0.7)'
+              }}>
+                {player.name?.charAt(0) || '?'}
+              </Avatar>
+              {/* Name + Role */}
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Typography sx={{
+                  color: 'white',
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {player.name || 'Player'}
+                </Typography>
+                <Typography sx={{
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: '12px'
+                }}>
+                  {player.role || ' '}
+                </Typography>
+              </Box>
+              {/* Score */}
+              <Box sx={{
+                backgroundColor: 'rgba(114, 137, 218, 0.2)',
+                borderRadius: '4px',
+                px: 1.5,
+                py: 0.5,
+                color: 'white',
+                fontWeight: 600,
                 fontSize: '12px'
               }}>
-                {player.role || ' '}
-              </Typography>
+                {player.score}
+              </Box>
             </Box>
-            
-            {/* Score */}
-            <Box sx={{
-              backgroundColor: 'rgba(114, 137, 218, 0.2)',
-              borderRadius: '4px',
-              px: 1.5,
-              py: 0.5,
-              color: 'white',
-              fontWeight: 600,
-              fontSize: '12px'
-            }}>
-              {player.score}
-            </Box>
-          </Box>
-        </ListItem>
-      ))}
-    </List>
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  </Box>
+  {/* Right: Cycle/Turn Indicator */}
+  <Box
+    sx={{
+      borderRadius: '20px',
+      bgcolor: 'rgba(0,0,0,0.7)',
+      px: 2,
+      py: 1,
+      display: 'flex',
+      alignItems: 'center',
+      minWidth: '60px',
+      pointerEvents: 'auto',
+      boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      left: -50,
+      top: 55,
+      position: 'relative',
+    }}
+  >
+    <Typography sx={{
+      color: 'white',
+      fontSize: '13px',
+      fontWeight: 'bold',
+      whiteSpace: 'nowrap'
+    }}>
+      {cycleDisplayString}
+    </Typography>
   </Box>
 </Box>
+
+
           {/* Players Circle Area */}
           <Paper sx={{ 
             height: '100%',
@@ -919,9 +984,10 @@ const cycleDisplayString = isSinglePlayer
                 ...pixelHeading,
                 color: 'white',
                 textShadow: '2px 2px 0px rgba(0,0,0,0.3)',
-                fontSize: '16px'
+                fontSize: '13px'
               }}>
-                {isMyTurn ? "YOUR TURN" : "CURRENT TURN"}
+                {/* {isMyTurn ? "YOUR TURN" : "CURRENT TURN"} */}
+                {isMyTurn ? "YOUR TURN" : `${gameState.currentPlayer?.name || "Player"}'s TURN`}
               </Typography>
             </Box>
 
@@ -935,8 +1001,8 @@ const cycleDisplayString = isSinglePlayer
               mt: 6,
               p: 3,
               borderRadius: '50%',
-              width: 200,
-              height: 200,
+              width: 230,
+              height: 230,
               background: 'radial-gradient(circle, rgba(255,255,255,0.9) 30%, rgba(255,255,255,0.3) 100%)',
               boxShadow: isMyTurn ? '0 0 25px 10px rgba(95, 75, 139, 0.6)' : 'none',
               border: isMyTurn ? '4px solid #FFD700' : '4px solid #5F4B8B',
@@ -965,19 +1031,32 @@ const cycleDisplayString = isSinglePlayer
                 {gameState.currentPlayer?.name || 'Unknown Player'}
               </Typography>
               {gameState.currentPlayer?.role && (
-                <Chip 
-                  label={gameState.currentPlayer.role} 
-                  size="small"
-                  sx={{ 
-                    ...pixelText,
-                    bgcolor: 'rgba(95, 75, 139, 0.2)',
-                    border: '1px solid #5F4B8B'
+                <Tooltip title={gameState.currentPlayer.role}
+                  arrow
+                  componentsProps={{
+                    tooltip: {
+                      sx: {
+                        fontSize: '0.9rem', // Increase as needed
+                        letterSpacing: '0.5px',
+                        p: 2,
+                      }
+                    }
                   }}
-                />
+                >                 
+                   <Chip 
+                    label={gameState.currentPlayer.role} 
+                    size="small"
+                    sx={{ 
+                      ...pixelText,
+                      bgcolor: 'rgba(95, 75, 139, 0.2)',
+                      border: '1px solid #5F4B8B'
+                    }}
+                  />
+                </Tooltip>
               )}
             </Box>
 
-            {/* Other Players in Circle */}
+            {/* Other Players in Circle
             <Box sx={{
               width: '100%',
               display: 'flex',
@@ -1026,30 +1105,7 @@ const cycleDisplayString = isSinglePlayer
                   </Box>
                 );
               })}
-            </Box>
-
-            {/* Turn Count Indicator */}
-            <Box sx={{
-              position: 'absolute',
-              bottom: 10,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              borderRadius: '20px',
-              bgcolor: 'rgba(0,0,0,0.7)',
-              px: 2,
-              py: 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1
-            }}>
-              <Typography sx={{
-                ...pixelText,
-                color: 'white',
-                fontSize: '10px'
-              }}>
-                {cycleDisplayString}
-              </Typography>
-            </Box>
+            </Box> */}
 
             {/* Add animated style for turn indicator pulse effect */}
             <style jsx="true">{`
@@ -1090,7 +1146,7 @@ const cycleDisplayString = isSinglePlayer
         {isWordBankOpen ? <BagOpen /> : <BagClosed />}
       </Box>
 
-      {/* Power Cards Button - Added next to Word Bank */}
+      {/* Power Cards Button - Added next to Word Bank
       <Box sx={{
         position: 'absolute',
         bottom: 20,
@@ -1132,66 +1188,59 @@ const cycleDisplayString = isSinglePlayer
             <AutoFixHigh />
           </IconButton>
         </Badge>
-      </Box>
+      </Box> */}
 
-      {/* Card Selection Dialog */}
-      <Fade in={showCards}>
-        <Paper sx={{ 
-          position: 'absolute',
-          bottom: 120,
-          right: 110, // Position it above the power cards button
-          width: 280,
-          maxHeight: '60vh',
-          overflowY: 'auto',
-          p: 2,
-          borderRadius: '8px',
-          boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
-          zIndex: 1000,
-          bgcolor: 'rgba(255,255,255,0.95)',
-          backdropFilter: 'blur(5px)',
-          border: '2px solid #5F4B8B',
-        }}>
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            mb: 1.5 
-          }}>
-            <Typography sx={{ ...pixelHeading, color: '#5F4B8B', fontSize: '12px' }}>
-              POWER CARDS
-            </Typography>
-            <IconButton size="small" onClick={() => setShowCards(false)}>
-              <Close fontSize="small" />
-            </IconButton>
-          </Box>
-          
-          {loadingCards ? (
-            <Box sx={{ p: 2, textAlign: 'center' }}>
-              <CircularProgress size={24} sx={{ color: '#5F4B8B' }} />
-            </Box>
-          ) : playerCards.length > 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {playerCards.map(card => (
-                <CardDisplay
-                  key={card.id}
-                  card={card}
-                  isSelected={selectedCard?.id === card.id}
-                  onUse={handleUseCard}
-                  disabled={!isMyTurn || pendingCardUse}
-                  isProcessing={pendingCardUse && selectedCard?.id === card.id}
-                  pixelText={pixelText}
-                />
-              ))}
-            </Box>
-          ) : (
-            <Box sx={{ p: 2, textAlign: 'center' }}>
-              <Typography sx={{ ...pixelText, fontSize: '8px', color: '#666' }}>
-                No power cards available.
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-      </Fade>
+      {/* Power-Up Cards Floating at Bottom */}
+<Box
+  sx={{
+    position: 'absolute',
+    bottom: 45,
+    left: '48.5%',
+    transform: 'translateX(-50%)',
+    width: 350,
+    height: 120,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    zIndex: 10,
+    pointerEvents: 'none', // so it doesn't block other UI
+    px:0,
+    margin: 0
+  }}
+>
+  {[0, 1, 2].map((i) => (
+    <Box
+      key={i}
+      sx={{
+        position: 'relative',
+        width: 120,
+        height: 180,
+        mx: -0.2, // overlap a bit
+        pointerEvents: 'auto', // enable hover/click
+        zIndex: 5 + i,
+        transition: 'transform 0.3s cubic-bezier(.4,2,.6,1), box-shadow 0.3s',
+        transform: 'translateY(80px) scale(0.85)', // only top part visible
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        borderRadius: '12px',
+        cursor: 'pointer',
+        '&:hover': {
+          transform: 'translateY(-10px) scale(1.05)',
+          boxShadow: '0 8px 24px rgba(95,75,139,0.25)',
+          zIndex: 100,
+        },
+      }}
+    >
+      <CardDisplay
+        card={playerCards[i]}
+        isSelected={selectedCard?.id === playerCards[i]?.id}
+        onUse={handleUseCard}
+        disabled={!isMyTurn || pendingCardUse}
+        isProcessing={pendingCardUse && selectedCard?.id === playerCards[i]?.id}
+        pixelText={pixelText}
+      />
+    </Box>
+  ))}
+</Box>
 
       {/* Word Bank Popup */}
       <Fade in={isWordBankOpen}>
@@ -1280,11 +1329,10 @@ const cycleDisplayString = isSinglePlayer
 
           {/* Chat Area */}
           <Paper sx={{ 
-           
             height: '100vh',
             flex: 1,
             display: 'flex',
-            width: '97.5%',
+            width: '100%',
             flexDirection: 'column',
             borderRadius: '12px',
             bgcolor: 'rgba(255, 255, 255, 0.9)',
@@ -1303,7 +1351,6 @@ const cycleDisplayString = isSinglePlayer
   p: 2,
   borderBottom: '1px solid rgba(0,0,0,0.12)',
   position: 'relative',
-  zIndex: 1,
   bgcolor: gameState.backgroundImage ? 'rgba(0,0,0,0.5)' : 'transparent',
   flexShrink: 0
 }}>
@@ -1315,28 +1362,10 @@ const cycleDisplayString = isSinglePlayer
   </Typography>
 
  <Box sx={{ 
-    flex: 1,
-    overflowY: 'auto', // Enable vertical scrolling
-    p: 2,
+    p: 0,
     display: 'flex',
-    flexDirection: 'column',
+    justifyContent: 'space-between',
     gap: 1,
-    position: 'relative',
-    zIndex: 1,
-    '&::-webkit-scrollbar': {
-      width: '8px',
-    },
-    '&::-webkit-scrollbar-track': {
-      background: 'rgba(0,0,0,0.05)',
-      borderRadius: '4px',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      background: '#5F4B8B',
-      borderRadius: '4px',
-    },
-    '&::-webkit-scrollbar-thumb:hover': {
-      background: '#4a3a6d',
-    }
   }}>
     <LinearProgress 
       variant="determinate" 
@@ -1358,7 +1387,8 @@ const cycleDisplayString = isSinglePlayer
       ...pixelText,
       color:'#5F4B8B',
       minWidth: 40,
-      fontSize: '0.8rem'
+      fontSize: '0.8rem',
+      ml: 1
     }}>
       {Math.ceil(gameState.timeRemaining)}s
     </Typography>
@@ -1389,7 +1419,8 @@ const cycleDisplayString = isSinglePlayer
     }}
   >
     <Box sx={{
-      maxWidth: '70%',
+      maxWidth: '60%',
+      wordBreak: 'break-word',
       p: 1,
       borderRadius: '8px',
       bgcolor: msg.senderId === user?.id ? '#5F4B8B' : '#f0f0f0',
@@ -1432,58 +1463,140 @@ const cycleDisplayString = isSinglePlayer
       </Typography>
       
       {/* Grammar feedback - only show for user's own messages and when not processing */}
-      {msg.grammarFeedback && msg.senderId === user?.id && msg.grammarStatus !== 'PROCESSING' && (
-        <Collapse in={true}>
-          <Paper sx={{ 
-            mt: 1, 
-            p: 1.5, 
-            bgcolor: getGrammarFeedbackColor(msg.grammarStatus),
-            border: '1px solid #ccc',
-            borderRadius: '8px',
-            fontSize: '0.75rem'
-          }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-              <Box sx={{ 
-                width: 8, 
-                height: 8, 
-                borderRadius: '50%', 
-                bgcolor: getGrammarStatusColor(msg.grammarStatus),
-                mr: 1 
-              }} />
-              <Typography sx={{ 
-                fontSize: '0.7rem', 
-                fontWeight: 'bold',
-                color: '#f7f7f7ff'
-              }}>
-                {getGrammarStatusLabel(msg.grammarStatus)}
-              </Typography>
-            </Box>
-            
-            {/* Enhanced feedback display with better formatting */}
-            <Typography sx={{ 
-              whiteSpace: 'pre-wrap', 
-              color: 'black',
-              lineHeight: 1.4,
-              '& .progressive-feedback': {
-                fontWeight: 'bold',
-                color: '#5F4B8B',
-                borderBottom: '1px solid #5F4B8B',
-                paddingBottom: '4px',
-                marginBottom: '8px',
-                display: 'block'
-              }
+
+{msg.grammarFeedback && msg.senderId === user?.id && msg.grammarStatus !== 'PROCESSING' && (
+  <Box sx={{ position: 'relative', width: '100%' }}>
+    {/* Feedback summary bar below the bubble */}
+    <Box
+  sx={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    mt: 1.5,
+    ml: 0,
+    bgcolor: 'white',
+    borderRadius: '12px',
+    px: 2,
+    py: 0.7,
+    minWidth: '55%',
+    boxShadow: '0 2px 8px rgba(95,75,139,0.10)',
+    border: `1.5px solid ${getGrammarStatusColor(msg.grammarStatus)}`,
+    wordBreak: 'break-word',
+    flexWrap: 'wrap',
+    alignSelf: 'flex-start',
+
+  }}
+>
+  <Typography
+    sx={{
+      fontSize: '12px',
+      color: getGrammarStatusColor(msg.grammarStatus),
+      fontWeight: 700,
+      userSelect: 'none'
+    }}
+  >
+    {getGrammarStatusLabel(msg.grammarStatus)}
+  </Typography>
+  <IconButton
+    onClick={() => setOpenFeedbackIndex(openFeedbackIndex === index ? null : index)}
+    sx={{
+      bgcolor: '#ffffffff',
+      color: 'black',
+      width: 24,
+      height: 24,
+      borderRadius: '50%',
+      p: 0,
+      ml: 0.5,
+      '&:hover': { bgcolor: '#cdc1e7ff' },
+    }}
+    size="small"
+  >
+    <ExpandMore sx={{ fontSize: 18 }} />
+  </IconButton>
+</Box>
+    {/* Feedback Dropdown */}
+    {openFeedbackIndex === index && (
+      <Box
+        ref={el => {
+          if (el && el.parentElement && el.parentElement.parentElement) {
+            const bubble = el.parentElement.parentElement;
+            el.style.width = `${bubble.offsetWidth}px`;
+          }
+        }}
+        sx={{
+          position: 'absolute',
+          right: 0,
+          top: '110%',
+          left: '-12px',
+          minWidth: 220,
+          bgcolor: 'rgba(255,255,255,0.99)',
+          borderRadius: 3,
+          boxShadow: '0 8px 32px 0 rgba(95,75,139,0.18), 0 1.5px 6px 0 rgba(0,0,0,0.08)',
+          border: '3px solid #5F4B8B',
+          zIndex: 2000,
+          p: 0,
+          textAlign: 'left',
+          animation: 'fadeIn 0.18s',
+          overflow: 'hidden',
+          mt: 1,
+        }}
+      >
+        {/* Accent bar */}
+        <Box sx={{
+          width: '100%',
+          height: 10,
+          bgcolor: getGrammarStatusColor(msg.grammarStatus),
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          mb: 1,
+        }} />
+        <Box sx={{ p: 3, pt: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+            <Box sx={{
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              bgcolor: getGrammarStatusColor(msg.grammarStatus),
+              mr: 1.5
+            }} />
+            <Typography sx={{
+              fontWeight: 700,
+              color: getGrammarStatusColor(msg.grammarStatus),
+              fontSize: '1rem',
+              letterSpacing: 0.2,
+              textShadow: '0 1px 0 #fff'
             }}>
-              {/* Split feedback to highlight progressive part */}
-              {msg.grammarFeedback.split('\n\n').map((part, index) => (
-                <span key={index} className={index === 0 ? 'progressive-feedback' : ''}>
-                  {part}
-                  {index < msg.grammarFeedback.split('\n\n').length - 1 && <br />&&<br />}
-                </span>
-              ))}
+              {getGrammarStatusLabel(msg.grammarStatus)}
             </Typography>
-          </Paper>
-        </Collapse>
-      )}
+          </Box>
+          <Typography sx={{
+            whiteSpace: 'pre-wrap',
+            color: '#222',
+            fontSize: '0.9rem',
+            lineHeight: 1.7,
+          }}>
+            {msg.grammarFeedback}
+          </Typography>
+        </Box>
+      </Box>
+    )}
+  </Box>
+)}
+{msg.grammarStatus === 'PERFECT' && msg.senderId === user?.id && (
+  <Box sx={{ 
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    animation: 'bounce 0.6s ease-in-out',
+    '@keyframes bounce': {
+      '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0)' },
+      '40%': { transform: 'translateY(-10px)' },
+      '60%': { transform: 'translateY(-5px)' }
+    }
+  }}>
+    ⭐
+  </Box>
+)}
     </Box>
   </Box>
 ))}
@@ -1552,7 +1665,8 @@ const cycleDisplayString = isSinglePlayer
                 borderTop: '1px solid rgba(0,0,0,0.12)',
                 bgcolor: 'rgba(255,255,255,0.95)',
                 position: 'relative',
-                zIndex: 1
+                zIndex: 1,
+                borderRadius: '0 0 12px 12px',
               }}>
                 <Box sx={{ 
                   display: 'flex',
@@ -1749,19 +1863,3 @@ const getWritingHints = () => {
   return hints[Math.floor(Math.random() * hints.length)];
 };
 
-// Add celebration animation for perfect grammar
-{msg.grammarStatus === 'PERFECT' && msg.senderId === user?.id && (
-  <Box sx={{ 
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    animation: 'bounce 0.6s ease-in-out',
-    '@keyframes bounce': {
-      '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0)' },
-      '40%': { transform: 'translateY(-10px)' },
-      '60%': { transform: 'translateY(-5px)' }
-    }
-  }}>
-    ⭐
-  </Box>
-)}

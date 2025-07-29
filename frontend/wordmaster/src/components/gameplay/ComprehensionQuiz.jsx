@@ -189,7 +189,16 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
     }
     
     return (
-      <Container maxWidth="md">
+      <Container maxWidth="md"
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          // Optional: remove default padding for perfect centering
+          px: 0,
+        }}
+      >
         <Fade in={true} timeout={800}>
           <Paper elevation={5} sx={{ 
             p: 4, 
