@@ -113,23 +113,23 @@ const UserProfileContainer = () => {
 
   return (
     <Box sx={{ 
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100%',
-  width: '100%',
-  margin: 0,
-  padding: 0,
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  overflow: 'hidden',
-  background: `url(${BGforProfile})`,
-  backgroundSize: 'contain',
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat',
-  backgroundAttachment: 'fixed',
-  imageRendering: 'pixelated',
-}}>
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      width: '100%',
+      margin: 0,
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      overflow: 'hidden',
+      background: `url(${BGforProfile})`,
+      backgroundSize: 'contain',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
+    }}>
       {/* Main Content */}
       <Box sx={{ 
         flex: 1,
@@ -144,13 +144,11 @@ const UserProfileContainer = () => {
         <Box
           sx={{
             flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'top',
             p: 2,
-            mt: 15,
-            ml: 51,
+            mt: '5%',
+            ml: '19%',
           }}
         >
           {/* Reserve space for alert */}
@@ -191,8 +189,8 @@ const UserProfileContainer = () => {
           <Box
             sx={{
               position: 'fixed',
-              bottom: '150px',
-              left: '420px',
+              bottom: '18%',
+              left: '15%',
               cursor: 'pointer',
               transition: 'transform 0.2s',
               '&:hover': {
@@ -201,6 +199,8 @@ const UserProfileContainer = () => {
               '&:active': {
                 transform: 'scale(0.95)',
               },
+              width: 'fit-content',
+              height: 'fit-content',
             }}
             onClick={() => navigate('/homepage')}
           >
@@ -208,9 +208,10 @@ const UserProfileContainer = () => {
               src={backbtn} 
               alt="Back to Home"
               style={{
-                width: '120px',
-                height: 'auto',
+                width: '80px', // Use fixed width instead of percentage
+                height: 'auto', // Maintain aspect ratio
                 imageRendering: 'pixelated',
+                display: 'block',
               }}
             />
           </Box>
@@ -224,7 +225,7 @@ const UserProfileContainer = () => {
             alignItems: 'center',
             justifyContent: 'top',
             p: 4,
-            mt: 10,
+            mt: '8%',
           }}
         >
           <Box
@@ -240,10 +241,10 @@ const UserProfileContainer = () => {
               overflow: 'hidden'
             }}
           >
-          <Typography sx={{...pixelHeading, color:"Black"}}>
+          <Typography sx={{...pixelHeading, color:"Black", ml: 8}}>
             Choose Character
           </Typography>
-            <Grid container spacing={2} justifyContent="center" sx={{ mt: 5 }}>
+            <Grid container spacing={2} justifyContent="center" sx={{ mt: 5, ml: 5, }}>
               {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
                 <Grid item xs={4} sm={4} md={4} key={index} display="flex" justifyContent="center"> 
                   <img
@@ -312,12 +313,13 @@ const ProfilePicture = ({
       <Avatar
         src={profilePicture || undefined}
         sx={{
-          width: 150,
-          height: 150,
+          width: '30%',
+          height: '30%',
           fontSize: 40,
           border: '2px solid #5F4B8B',
           color: "#5F4B8B",
           borderRadius: '10%',
+          ml: '32%',
         }}
       >
         {!profilePicture && initials}
@@ -381,11 +383,11 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
   <Paper 
     elevation={3} 
     sx={{ 
-      width: '90%', 
+      width: '85%', 
       p: 3, 
       borderRadius: '12px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-      maxHeight: 400,
+      maxHeight: 300,
       overflow: 'auto',
       position: 'relative',
       '&::before': {
@@ -395,8 +397,8 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         left: 0,
         right: 0,
         height: '8px', // adjust height as needed
-        borderTopLeftRadius: '12px',
-        borderTopRightRadius: '12px',
+        borderTopLeftRadius: '5px',
+        borderTopRightRadius: '5px',
         background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
         opacity: 0.9,
         zIndex: 2
@@ -406,9 +408,9 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
     <Typography variant="h5" fontWeight="bold" gutterBottom sx={pixelHeading}>
       Personal Information
     </Typography>
-    <Divider sx={{ my: 2 }} />
+    <Divider sx={{ my: 1 }} />
 
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       <Box display="flex" gap={2} mb={2}>
         <TextField
           fullWidth
@@ -465,7 +467,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         FormHelperTextProps={{ sx: pixelText }}
         sx={{ 
           pixelText,
-          mb: 3,
+          mb: 1,
           backgroundColor: '#f5f5f5',
           '& .MuiInputBase-input': {
             color: '#666',
