@@ -20,7 +20,6 @@ const ClassroomDetailsPage = lazy(() => import('./components/Classroom/Classroom
 const GamePage = lazy(() => import('./components/gameplay/GamePage'));
 const CreateGameSession = lazy(() => import('./components/gameplay/CreateGameSession'));
 const GameCore = lazy(() => import('./components/gameplay/GameCore'));
-const ContentDashboard = lazy(() => import('./components/content/ContentDashboard'));
 const EditContent = lazy(() => import('./components/content/EditContent'));
 const ContentDetails = lazy(() => import('./components/content/ContentDetails'));
 const ContentUpload = lazy(() => import('./components/content/contentUpload/ContentUpload'));
