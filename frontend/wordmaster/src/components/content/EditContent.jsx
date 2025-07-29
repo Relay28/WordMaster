@@ -49,7 +49,8 @@ const EditContent = () => {
     title: '',
     description: '',
     backgroundTheme: 'default',
-    published: false
+    published: false,
+    classroomId: null
   });
   
   const [scenarioSettings, setScenarioSettings] = useState({
@@ -136,7 +137,8 @@ const EditContent = () => {
         title: data.title || '',
         description: data.description || '',
         backgroundTheme: data.backgroundTheme || 'default',
-        published: data.published || false
+        published: data.published || false,
+        classroomId: data.classroomId || ''
       };
       
       const scenarioState = {
@@ -379,8 +381,8 @@ const EditContent = () => {
       } else {
         successMessage = `Content "${formData.title}" has been updated.`;
       }
-      
-      navigate('/content/dashboard', { 
+      const classroomId = formData.classroomId ? String(formData.classroomId) : '';
+      navigate(`/classroom/${classroomId}`, { 
         state: { 
           message: successMessage,
           success: true
@@ -457,7 +459,9 @@ const EditContent = () => {
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center" gap={2}>
             <IconButton 
-              onClick={() => navigate('/content/dashboard')}
+            
+              onClick={() => {const classroomId = formData.classroomId ? String(formData.classroomId) : '';
+                navigate(`/classroom/${classroomId}`)}}
               sx={{
                 color: '#5F4B8B',
                 backgroundColor: 'rgba(255, 255, 255, 0.7)',

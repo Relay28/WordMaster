@@ -18,7 +18,7 @@ import API_URL from '../../services/apiConfig';
 import { styled } from '@mui/material/styles';
 
 const ContentCard = styled(Card)(({ theme }) => ({
-  width: '70vh', // Will respect Grid container width
+  width: 530, // Takes full width of Grid item
   height: 225,
   borderRadius: '16px',
   background: 'rgba(255, 255, 255, 0.9)',
@@ -86,7 +86,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
         console.log(item),
         <Grid item xs={12} sm={6} md={4} key={item.id}>
           <ContentCard>
-            <CardActionArea onClick={() => handleContentClick(item.id)}>
+            <CardActionArea component="div" onClick={() => handleContentClick(item.id)}>
               <CardContent sx={{ p: 3, pb: 8, position: 'relative', height: '100%',
                 display: 'flex',
                 flexDirection: 'column',

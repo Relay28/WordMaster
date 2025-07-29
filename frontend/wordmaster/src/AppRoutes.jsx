@@ -145,7 +145,6 @@ const AppRoutes = () => {
 
           {/* Teacher Routes */}
           <Route element={<ProtectedTeacherRoute />}>
-            <Route path="/content/dashboard" element={<ContentDashboard />} />
             <Route path="/content/upload" element={<ContentUpload />} />
             <Route path="/content/edit/:id" element={<EditContent />} />
             <Route path="/content/:id" element={<ContentDetails />} />
