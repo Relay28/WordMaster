@@ -22,9 +22,19 @@ import {
   Tab,
   Tooltip,
   Pagination,
-  Stack, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, 
+  Stack, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogContentText, 
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText
 } from '@mui/material';
-import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline, ChevronLeft } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline, ChevronLeft, Download } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useClassroomDetails } from './ClassroomDetailFunctions';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -75,6 +85,12 @@ const ClassroomDetailsPage = () => {
   const [sessionToDelete, setSessionToDelete] = useState(null);
   const [deleteContentDialogOpen, setDeleteContentDialogOpen] = useState(false);
   const [contentToDelete, setContentToDelete] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [selectedExportDate, setSelectedExportDate] = useState('');
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [selectedContentForExport, setSelectedContentForExport] = useState(null);
+  const [availableDates, setAvailableDates] = useState([]);
+  const [loadingDates, setLoadingDates] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [tabValue, setTabValue] = useState(0);
@@ -495,6 +511,158 @@ const confirmDeleteSession = async () => {
     }
   }, [tabValue, classroom?.id, user?.role, contentList]);
 
+  const handleExportReports = async (content) => {
+    setSelectedContentForExport(content);
+    setExportDialogOpen(true);
+    
+    // Fetch available dates for this content
+    try {
+      setLoadingDates(true);
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const response = await fetch(
+        `${API_URL}/api/export/available-dates/${content.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const dates = await response.json();
+        setAvailableDates(dates);
+      } else {
+        console.warn('Could not fetch available dates');
+        setAvailableDates([]);
+      }
+    } catch (err) {
+      console.error('Error fetching available dates:', err);
+      setAvailableDates([]);
+    } finally {
+      setLoadingDates(false);
+    }
+  };
+
+  const confirmExportReports = async () => {
+    if (!selectedContentForExport) return;
+    
+    try {
+      setExportLoading(true);
+      const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+      
+      console.log('=== EXPORT REQUEST START ===');
+      console.log('Content ID:', selectedContentForExport.id);
+      console.log('Selected date:', selectedExportDate);
+      console.log('User role:', user?.role);
+      
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const params = new URLSearchParams();
+      if (selectedExportDate) {
+        params.append('date', selectedExportDate);
+      }
+      
+      const url = `${API_URL}/api/export/student-reports/${selectedContentForExport.id}?${params}`;
+      console.log('Export URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        let errorMessage = 'Failed to export reports';
+        
+        try {
+          const errorText = await response.text();
+          console.error('Error response body:', errorText);
+          
+          if (response.status === 401) {
+            errorMessage = 'Authentication failed. Please log in again.';
+          } else if (response.status === 403) {
+            errorMessage = 'Access denied. You can only export reports for your own content.';
+          } else if (response.status === 400) {
+            errorMessage = errorText || 'No data available for export.';
+          } else {
+            errorMessage = errorText || `Server error (${response.status})`;
+          }
+        } catch (e) {
+          console.error('Could not read error response:', e);
+          errorMessage = `Server error (${response.status})`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Get the blob
+      const blob = await response.blob();
+      console.log('Blob received - Size:', blob.size, 'Type:', blob.type);
+      
+      if (blob.size === 0) {
+        throw new Error('Received empty file from server');
+      }
+      
+      // Verify it's actually an Excel file
+      if (!blob.type.includes('officedocument') && !blob.type.includes('excel') && !blob.type.includes('sheet')) {
+        console.warn('Unexpected blob type:', blob.type);
+        // Try to read as text to see if it's an error message
+        try {
+          const text = await blob.text();
+          if (text.length < 1000) { // If it's short, it might be an error message
+            console.error('Received text instead of Excel:', text);
+            throw new Error('Server returned an error: ' + text);
+          }
+        } catch (e) {
+          // If we can't read it as text, assume it's binary Excel data
+          console.log('Could not read as text, assuming it is Excel data');
+        }
+      }
+      
+      // Create download
+      const url2 = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url2;
+      
+      const dateStr = selectedExportDate ? selectedExportDate.replace(/-/g, '') : new Date().toISOString().split('T')[0].replace(/-/g, '');
+      const sanitizedTitle = selectedContentForExport.title.replace(/[^a-zA-Z0-9]/g, '_');
+      link.download = `class_record_${sanitizedTitle}_${dateStr}.xlsx`;
+      
+      console.log('Download filename:', link.download);
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url2);
+      
+      console.log('=== EXPORT SUCCESS ===');
+      
+      // Close dialog
+      setExportDialogOpen(false);
+      setSelectedExportDate('');
+      setSelectedContentForExport(null);
+      setAvailableDates([]);
+      
+    } catch (err) {
+      console.error("=== EXPORT ERROR ===", err);
+      setContentError(err.message || "Failed to export reports. Please try again.");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   if (!authChecked || loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -841,6 +1009,25 @@ return (
                               }}
                             >
                               VIEW SESSIONS
+                            </Button>
+                            <Button
+                              fullWidth
+                              variant="contained"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleExportReports(content);
+                              }}
+                              size="small"
+                              startIcon={<Download />}
+                              sx={{
+                                ...pixelButton,
+                                fontSize: '7px',
+                                mt: 1,
+                                backgroundColor: '#6c63ff',
+                                '&:hover': { backgroundColor: '#5a52e0' }
+                              }}
+                            >
+                              EXPORT REPORTS
                             </Button>
                           </Paper>
                         </Grid>
@@ -1649,6 +1836,101 @@ return (
     </Button>
   </DialogActions>
 </Dialog>
+
+<Dialog
+    open={exportDialogOpen}
+    onClose={() => {
+      setExportDialogOpen(false);
+      setSelectedExportDate('');
+      setAvailableDates([]);
+    }}
+    PaperProps={{
+      sx: {
+        borderRadius: '16px',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(8px)',
+        boxShadow: '0 8px 32px rgba(31, 38, 135, 0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+      }
+    }}
+  >
+    <DialogTitle sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+      Export Class Record
+    </DialogTitle>
+    <DialogContent sx={{ minWidth: '400px' }}>
+      <DialogContentText sx={{ ...pixelText, color: '#666', mb: 3 }}>
+        Export class record for: {selectedContentForExport?.title}
+      </DialogContentText>
+      
+      {loadingDates ? (
+        <Box display="flex" justifyContent="center" py={2}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : (
+        <FormControl fullWidth sx={{ mt: 2 }}>
+          <InputLabel style={pixelText}>Filter by Date (Optional)</InputLabel>
+          <Select
+            value={selectedExportDate}
+            onChange={(e) => setSelectedExportDate(e.target.value)}
+            label="Filter by Date (Optional)"
+            sx={{
+              '& .MuiSelect-select': pixelText,
+            }}
+          >
+            <MenuItem value="">
+              <em style={pixelText}>All Dates</em>
+            </MenuItem>
+            {availableDates.map((date) => (
+              <MenuItem key={date} value={date} style={pixelText}>
+                {new Date(date + 'T00:00:00').toLocaleDateString()}
+              </MenuItem>
+            ))}
+          </Select>
+          <FormHelperText style={pixelText}>
+            {availableDates.length === 0 
+              ? "No session dates available" 
+              : `${availableDates.length} session date(s) available`}
+          </FormHelperText>
+        </FormControl>
+      )}
+    </DialogContent>
+    <DialogActions sx={{ p: 2, gap: 1 }}>
+      <Button
+        onClick={() => {
+          setExportDialogOpen(false);
+          setSelectedExportDate('');
+          setAvailableDates([]);
+        }}
+        variant="outlined"
+        sx={{
+          ...pixelButton,
+          color: '#5F4B8B',
+          borderColor: '#5F4B8B',
+          '&:hover': {
+            borderColor: '#4a3a6d',
+            backgroundColor: 'rgba(95, 75, 139, 0.1)'
+          }
+        }}
+      >
+        CANCEL
+      </Button>
+      <Button
+        onClick={confirmExportReports}
+        variant="contained"
+        disabled={exportLoading}
+        sx={{
+          ...pixelButton,
+          backgroundColor: '#6c63ff',
+          color: 'white',
+          '&:hover': {
+            backgroundColor: '#5a52e0'
+          }
+        }}
+      >
+        {exportLoading ? 'EXPORTING...' : 'EXPORT CLASS RECORD'}
+      </Button>
+    </DialogActions>
+  </Dialog>
 
 
     </Box>
