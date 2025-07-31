@@ -32,7 +32,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormHelperText
+  FormHelperText,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline, ChevronLeft, Download } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
@@ -98,7 +100,9 @@ const ClassroomDetailsPage = () => {
   const [loadingContent, setLoadingContent] = useState(false);
   const [contentError, setContentError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add this line
-  const isMobile = window.innerWidth < 768;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const [page, setPage] = useState(1);
   const [itemsPerPage] = useState(2); 
@@ -135,21 +139,21 @@ const ClassroomDetailsPage = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: isMobile ? '8px' : isTablet ? '9px' : '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: isMobile ? '12px' : isTablet ? '13px' : '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: isMobile ? '8px' : isTablet ? '9px' : '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -914,19 +918,18 @@ return (
               '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
               '& .MuiTab-root': { 
                 ...pixelHeading, 
-                fontSize: isMobile ? '10px' : '12px',
-                flexGrow: 1, // This makes each tab grow to fill available space
-                minWidth: 'unset', // Override default minWidth
-                px: 1, // Adjust horizontal padding as needed
+                fontSize: isMobile ? '7px' : isTablet ? '11px' : '12px',
+                flexGrow: 1,
+                minWidth: 'unset',
+                px: 1,
               },
               '& .Mui-selected': { 
                 color: '#5F4B8B !important',
               }
             }}
-            variant="fullWidth" // This makes tabs take full width of container
+            variant="fullWidth"
           >
             <Tab label="LEARNING CONTENT" />
-            
             {user?.role === 'USER_TEACHER' ? (
               <Tab label="STUDENT REPORTS" />
             ) : (
@@ -935,7 +938,7 @@ return (
             <Tab label="MEMBERS" />
           </Tabs>
 
-             {/* Student Reports Tab */}
+          {/* Student Reports Tab */}
           {tabValue === 1 && user?.role === 'USER_TEACHER' && (
             <Box>
               {showContentList ? (
@@ -1454,9 +1457,15 @@ return (
           {/* Content Tab */}
           {tabValue === 0 && (
             <Box>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Box 
+                display="flex" 
+                justifyContent="flex-start"
+                alignItems="center" 
+                mb={2}
+                gap={isMobile ? 1 : 1}
+              >
                 {isClassroomTeacher && (
-                  <Box display="flex" gap={1}>
+                  <>
                     <Button
                       variant="contained"
                       startIcon={<Add />}
@@ -1464,6 +1473,10 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#5F4B8B',
+                        minWidth: isMobile ? 0 : undefined,
+                        px: isMobile ? 1 : isTablet ? 1.5 : 2,
+                        fontSize: isMobile ? '7px' : isTablet ? '9px' : '10px',
+                        height: isMobile ? '28px' : isTablet ? '30px' : '32px',
                         '&:hover': { 
                           backgroundColor: '#4a3a6d',
                           transform: 'translateY(-2px)'
@@ -1474,7 +1487,9 @@ return (
                           boxShadow: '0 2px 0 #4a3a6d'
                         },
                         transition: 'all 0.2s ease',
-                        height: '32px'
+                        order: 0,
+                        flex: undefined,
+                        justifyContent: undefined
                       }}
                     >
                       CREATE
@@ -1486,6 +1501,10 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#6c63ff',
+                        minWidth: isMobile ? 0 : undefined,
+                        px: isMobile ? 1 : isTablet ? 1.5 : 2,
+                        fontSize: isMobile ? '7px' : isTablet ? '9px' : '10px',
+                        height: isMobile ? '28px' : isTablet ? '30px' : '32px',
                         '&:hover': { 
                           backgroundColor: '#5a52e0',
                           transform: 'translateY(-2px)'
@@ -1496,12 +1515,14 @@ return (
                           boxShadow: '0 2px 0 #5a52e0'
                         },
                         transition: 'all 0.2s ease',
-                        height: '32px'
+                        order: 0,
+                        flex: undefined,
+                        justifyContent: undefined
                       }}
                     >
                       AI GENERATE
                     </Button>
-                  </Box>
+                  </>
                 )}
               </Box>
               

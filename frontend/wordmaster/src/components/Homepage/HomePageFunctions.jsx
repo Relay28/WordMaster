@@ -146,6 +146,7 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
     anchorEl,
     joinSuccess,
     createSuccess,
+    setError,
     
     // Handlers
     setJoinClassOpen,

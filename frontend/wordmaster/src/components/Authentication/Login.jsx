@@ -34,24 +34,25 @@ const Login = () => {
   const { login } = useUserAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: isMobile ? '7px' : isTablet ? '8px' : '9px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: isMobile ? '10px' : isTablet ? '12px' : '13px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: isMobile ? '7px' : isTablet ? '8px' : '9px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -141,72 +142,80 @@ const Login = () => {
 
   return (
     <Box sx={{ 
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100vh',
-  width: '100vw',
-  margin: 0,
-  padding: 0,
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  overflow: 'hidden',
-  background: `
-    linear-gradient(to bottom, 
-      rgba(249, 249, 249, 10) 0%, 
-      rgba(249, 249, 249, 10) 40%, 
-      rgba(249, 249, 249, 0.1) 100%),
-    url(${picbg})`,
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat',
-  backgroundAttachment: 'fixed',
-  imageRendering: 'pixelated',
-}}>
-  <Box sx={{ 
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'auto',
-    '&::-webkit-scrollbar': {
-      width: '8px',
-    },
-    '&::-webkit-scrollbar-track': {
-      backgroundColor: 'rgba(95, 75, 139, 0.1)',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: '#5F4B8B',
-      borderRadius: '4px',
-      '&:hover': {
-        backgroundColor: '#4a3a6d',
-      },
-    },
-  }}>
-    <Container maxWidth="sm" sx={{
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      p: isMobile ? 3 : 4,
-      my: 4,
-      width: '100%',
-      maxWidth: '500px',
-      backgroundColor: 'rgba(255, 255, 255, 0.85)',
-      borderRadius: '16px',
-      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
-      border: '1px solid rgba(255, 255, 255, 0.3)',
-      backdropFilter: 'blur(8px)',
+      height: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      overflow: 'hidden',
+      background: `
+        linear-gradient(to bottom, 
+          rgba(249, 249, 249, 0.9) 20%, 
+          rgba(249, 249, 249, 10) 40%, 
+          rgba(249, 249, 249, 0.1) 100%),
+        url(${picbg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
     }}>
-
+      <Box sx={{ 
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'auto',
+        py: isMobile ? 2 : 0,
+        px: isMobile ? 0 : 0,
+        '&::-webkit-scrollbar': {
+          width: '8px',
+        },
+        '&::-webkit-scrollbar-track': {
+          backgroundColor: 'rgba(95, 75, 139, 0.1)',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: '#5F4B8B',
+          borderRadius: '4px',
+          '&:hover': {
+            backgroundColor: '#4a3a6d',
+          },
+        },
+      }}>
+        <Container
+          maxWidth="sm"
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: isMobile ? 1.5 : 0,
+            my: isMobile ? 0 : 4,
+            width: '100%',
+            maxWidth: isMobile ? '100vw' : isTablet ? '420px' : '500px',
+            backgroundColor: isMobile
+              ? 'rgba(255,255,255,0.85)'
+              : 'rgba(255, 255, 255, 0.92)',
+            borderRadius: isMobile ? '0px' : isTablet ? '14px' : '16px',
+            boxShadow: isMobile ? 'none' : '0 8px 32px rgba(31, 38, 135, 0.15)',
+            border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.3)',
+            backdropFilter: 'blur(8px)',
+            minHeight: isMobile ? '87vh' : isTablet ? '14px' : '80vh',
+            justifyContent: isMobile ? 'flex-start' : 'center',
+          }}
+        >
           {/* Logo */}
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: isMobile ? 1 : 2, mt: isMobile ? 2 : 0, width: '100%', display: 'flex', justifyContent: 'center' }}>
             <img
               src={logo}
               alt="WordMaster Logo"
               style={{
-                height: isMobile ? '60px' : '80px',
+                height: isMobile ? '48px' : isTablet ? '70px' : '80px',
                 width: 'auto',
                 objectFit: 'contain'
               }}
@@ -215,33 +224,43 @@ const Login = () => {
 
           <Typography sx={{ 
             ...pixelHeading,
-            fontSize: isMobile ? '18px' : '24px',
+            fontSize: isMobile ? '13px' : isTablet ? '16px' : '18px',
             color: '#5F4B8B',
             textAlign: 'center',
-            mb: 1
+            mb: isMobile ? 0.5 : 1,
+            letterSpacing: isMobile ? '0.5px' : '1px'
           }}>
             WORDMASTER
           </Typography>
 
           {/* Heading */}
           <Typography sx={{ 
-            fontSize: isMobile ? '12px' : '14px',
+            fontSize: isMobile ? '10px' : isTablet ? '13px' : '16px',
             color: '#4a5568',
             textAlign: 'center',
-            mb: 4,
-            fontSize: isMobile ? '20px' : '22px',
+            mb: isMobile ? 2 : 4,
+            fontWeight: 500
           }}>
             Ready to start your adventure?
           </Typography>
 
           {/* Error message */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3, ...pixelText }}>
+            <Alert severity="error" sx={{ mb: isMobile ? 2 : 3, ...pixelText }}>
               {error}
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleRegularLogin} sx={{ mt: 2 }}>
+          <Box
+            component="form"
+            onSubmit={handleRegularLogin}
+            sx={{
+              mt: isMobile ? 0 : 2,
+              width: '100%',
+              maxWidth: isMobile ? '95vw' : '100%',
+              px: isMobile ? 1 : 0,
+            }}
+          >
             {/* Email Input */}
             <TextField
               label="Email"
@@ -250,9 +269,23 @@ const Login = () => {
               variant="outlined"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              InputProps={{
+                style: {
+                  // fontFamily removed
+                  fontSize: isMobile ? '12px' : isTablet ? '14px' : '15px'
+                }
+              }}
+              InputLabelProps={{
+                style: {
+                  // fontFamily removed
+                  fontSize: isMobile ? '12px' : isTablet ? '14px' : '15px'
+                }
+              }}
               sx={{
+                mb: isMobile ? 1 : 2,
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
+                  borderRadius: isMobile ? '6px' : '8px',
+                  background: isMobile ? 'rgba(255,255,255,0.95)' : undefined,
                   '& fieldset': {
                     borderColor: '#5F4B8B',
                   },
@@ -260,7 +293,6 @@ const Login = () => {
                     borderColor: '#5F4B8B',
                   },
                 },
-                
               }}
             />
 
@@ -282,11 +314,23 @@ const Login = () => {
                   >
                     {passwordVisible ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
-                )
+                ),
+                style: {
+                  // fontFamily removed
+                  fontSize: isMobile ? '12px' : isTablet ? '14px' : '15px'
+                }
+              }}
+              InputLabelProps={{
+                style: {
+                  // fontFamily removed
+                  fontSize: isMobile ? '12px' : isTablet ? '14px' : '15px'
+                }
               }}
               sx={{
+                mb: isMobile ? 1 : 2,
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
+                  borderRadius: isMobile ? '6px' : '8px',
+                  background: isMobile ? 'rgba(255,255,255,0.95)' : undefined,
                   '& fieldset': {
                     borderColor: '#5F4B8B',
                   },
@@ -294,25 +338,8 @@ const Login = () => {
                     borderColor: '#5F4B8B',
                   },
                 },
-                
               }}
             />
-
-            {/* Forgot Password */}
-            {/*
-            <Typography align="right" sx={{ 
-              mb: 3,
-              ...pixelText,
-              fontSize: '8px',
-              color: '#5F4B8B',
-              '&:hover': {
-                textDecoration: 'underline',
-                cursor: 'pointer'
-              }
-            }}>
-              Forgot Password?
-            </Typography>
-            */}
 
             {/* Login Button */}
             <Button
@@ -324,9 +351,11 @@ const Login = () => {
                 ...pixelButton,
                 backgroundColor: '#5F4B8B',
                 color: 'white',
-                borderRadius: '8px',
-                py: 1.5,
-                mb: 2,
+                borderRadius: isMobile ? '6px' : isTablet ? '10px' : '12px',
+                py: isMobile ? 1 : isTablet ? 1.2 : 1.5,
+                mb: isMobile ? 1.5 : 2,
+                fontSize: isMobile ? '9px' : isTablet ? '10px' : '11px',
+                boxShadow: isMobile ? '0 2px 8px rgba(95, 75, 139, 0.10)' : undefined,
                 '&:hover': {
                   backgroundColor: '#4a3a6d',
                   transform: 'translateY(-2px)',
@@ -341,15 +370,19 @@ const Login = () => {
                 }
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'LOGIN'}
+              {loading ? <CircularProgress size={isMobile ? 14 : isTablet ? 16 : 20} color="inherit" /> : 'LOGIN'}
             </Button>
 
             {/* OR Divider */}
-            <Divider sx={{ my: 3, '&::before, &::after': { borderColor: '#5F4B8B' } }}>
-              <Typography sx={{ 
+            <Divider sx={{
+              my: isMobile ? 2 : 3,
+              '&::before, &::after': { borderColor: '#5F4B8B' }
+            }}>
+              <Typography sx={{
                 ...pixelText,
                 color: '#5F4B8B',
-                px: 1
+                px: 1,
+                fontSize: isMobile ? '9px' : '10px'
               }}>
                 OR
               </Typography>
@@ -374,13 +407,14 @@ const Login = () => {
               }
               sx={{
                 ...pixelButton,
-                boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+                boxShadow: isMobile ? '0 2px 8px rgba(95, 75, 139, 0.10)' : '0 8px 32px rgba(31, 38, 135, 0.15)',
                 border: '1px solid rgba(255, 255, 255, 0.3)',
                 backdropFilter: 'blur(10px)',
                 color: '#5F4B8B',
                 borderColor: '#5F4B8B',
-                borderRadius: '8px',
-                py: 1.5,
+                borderRadius: isMobile ? '6px' : isTablet ? '10px' : '12px',
+                py: isMobile ? 1 : isTablet ? 1.2 : 1.5,
+                fontSize: isMobile ? '8px' : isTablet ? '10px' : '11px',
                 '&:hover': {
                   backgroundColor: 'rgba(38, 23, 71, 0.1)',
                   borderColor: '#4a3a6d',
@@ -396,11 +430,12 @@ const Login = () => {
             </Button>
 
             {/* Signup Link */}
-            <Typography sx={{ 
-              mt: 3,
+            <Typography sx={{
+              mt: isMobile ? 2 : 3,
               textAlign: 'center',
               ...pixelText,
               color: '#3e2c85',
+              fontSize: isMobile ? '8px' : '9px',
               '& a': {
                 color: '#251a51',
                 textDecoration: 'none',
@@ -415,7 +450,6 @@ const Login = () => {
         </Container>
       </Box>
     </Box>
-   
   );
 };
 
