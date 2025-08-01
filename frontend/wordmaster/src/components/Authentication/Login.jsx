@@ -38,7 +38,6 @@ const Login = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '7px' : isTablet ? '8px' : '9px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
