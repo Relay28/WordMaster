@@ -16,7 +16,7 @@ import picbg from '../../assets/picbg.png';
 import '@fontsource/press-start-2p';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
-const AIContentGenerator = () => {
+const AiContentGenerator = () => {
   const { getToken } = useUserAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -351,4 +351,4 @@ const AIContentGenerator = () => {
   );
 };
 
-export default AIContentGenerator;
+export default AiContentGenerator;

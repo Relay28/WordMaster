@@ -7,11 +7,22 @@ public class PlayerCardDTO {
     private String description;
     private int pointsBonus;
     private boolean used;
+    private boolean activated;  // Add the activated field
 
-    // Getters and setters
-    // ...
+    // Constructors
+    public PlayerCardDTO() {}
 
+    public PlayerCardDTO(Long id, Long cardId, String name, String description, int pointsBonus, boolean used, boolean activated) {
+        this.id = id;
+        this.cardId = cardId;
+        this.name = name;
+        this.description = description;
+        this.pointsBonus = pointsBonus;
+        this.used = used;
+        this.activated = activated;
+    }
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -59,5 +70,12 @@ public class PlayerCardDTO {
     public void setUsed(boolean used) {
         this.used = used;
     }
+    
+    public boolean isActivated() {
+        return activated;
+    }
+    
+    public void setActivated(boolean activated) {
+        this.activated = activated;
+    }
 }
-

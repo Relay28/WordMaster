@@ -27,6 +27,10 @@ public class AuthService {
     private AuthenticationManager authenticationManager;
 
     public AuthResponse login(AuthRequest request) {
+        UserEntity user = userService.findByEmail(request.getEmail());
+        if (user == null || !user.isVerified()) {
+            throw new RuntimeException("Account not verified. Please check your email for OTP.");
+        }
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -34,8 +38,6 @@ public class AuthService {
                 )
         );
 
-
-        UserEntity user = userService.findByEmail(request.getEmail());
         UserDetails userDetails = userService.loadUserByUsername(request.getEmail());
 
         if(!user.isActive()){

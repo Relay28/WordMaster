@@ -3,9 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Box, Typography, Container, Button, 
   Paper, CircularProgress, Alert, 
-  FormControl, InputLabel, Select, MenuItem,
-  useMediaQuery, IconButton,
-  useTheme
+  FormControl, Select, MenuItem,
+  useTheme, useMediaQuery, IconButton
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useLocation } from 'react-router-dom';
@@ -19,6 +18,7 @@ const CreateGameSession = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   
   const [contents, setContents] = useState([]);
   const [selectedContent, setSelectedContent] = useState('');
@@ -29,21 +29,21 @@ const CreateGameSession = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: isMobile ? '6px' : isTablet ? '8px' : '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: isMobile ? '10px' : isTablet ? '12px' : '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: isMobile ? '6px' : isTablet ? '8px' : '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -152,10 +152,10 @@ const CreateGameSession = () => {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        p: 2,
+        p: isMobile ? 1 : 2,
         backdropFilter: 'blur(2px)'
       }}>
-        <CircularProgress />
+        <CircularProgress size={isMobile ? 20 : 40} />
       </Box>
     );
   }
@@ -180,35 +180,36 @@ const CreateGameSession = () => {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      p: 2,
+      p: isMobile ? 1 : 2,
       backdropFilter: 'blur(2px)'
     }}>
       {/* Back Button */}
-            <IconButton 
-              onClick={() => navigate('/homepage')}
-              sx={{
-                position: 'absolute',
-                top: 8,
-                left: 8,
-                color: '#5F4B8B',
-                backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                border: '2px solid #5F4B8B',
-                borderRadius: '4px',
-                width: '32px',
-                height: '32px',
-                '&:hover': {
-                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
-                  transform: 'translateY(-1px)'
-                },
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <ChevronLeftIcon fontSize="small" />
-            </IconButton>
-      <Container maxWidth="md">
+      <IconButton 
+        onClick={() => navigate('/homepage')}
+        sx={{
+          position: 'absolute',
+          top: isMobile ? 4 : 8,
+          left: isMobile ? 4 : 8,
+          color: '#5F4B8B',
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          border: '2px solid #5F4B8B',
+          borderRadius: '4px',
+          width: isMobile ? '24px' : '32px',
+          height: isMobile ? '24px' : '32px',
+          '&:hover': {
+            backgroundColor: 'rgba(95, 75, 139, 0.1)',
+            transform: 'translateY(-1px)'
+          },
+          transition: 'all 0.2s ease'
+        }}
+      >
+        <ChevronLeftIcon fontSize={isMobile ? "small" : "medium"} />
+      </IconButton>
+      
+      <Container maxWidth={isMobile ? "sm" : "md"}>
         <Paper elevation={3} sx={{ 
-          p: isMobile ? 2 : 4, 
-          borderRadius: '12px',
+          p: isMobile ? 1.5 : 4, 
+          borderRadius: isMobile ? '8px' : '12px',
           background: 'rgba(255,255,255,0.8)',
           backdropFilter: 'blur(8px)',
           border: '1px solid rgba(255,255,255,0.3)',
@@ -221,7 +222,7 @@ const CreateGameSession = () => {
             top: 0,
             left: 0,
             right: 0,
-            height: '6px',
+            height: isMobile ? '4px' : '6px',
             background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
             opacity: 0.8
           }
@@ -229,55 +230,125 @@ const CreateGameSession = () => {
           <Typography variant="h5" sx={{ 
             ...pixelHeading,
             fontWeight: 'bold', 
-            mb: 3,
+            mb: isMobile ? 2 : isTablet ? 2.5 : 3,
             color: '#2d3748',
-            fontSize: isMobile ? '14px' : '16px'
+            fontSize: isMobile ? '10px' : isTablet ? '13px' : '16px'
           }}>
             CREATE NEW GAME SESSION
           </Typography>
           
           {error && (
             <Alert severity="error" sx={{ 
-              mb: 3,
+              mb: isMobile ? 2 : 3,
               '& .MuiAlert-message': pixelText
             }}>
               {error}
             </Alert>
           )}
           
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel sx={pixelText}>Select Content</InputLabel>
-            <Select
-              value={selectedContent}
-              onChange={handleContentChange}
-              label="Select Content"
-              sx={{
-                '& .MuiSelect-select': {
-                  ...pixelText,
-                  py: isMobile ? 1 : 1.5
-                }
-              }}
-            >
-              {contents.length > 0 ? (
-                contents.map((content) => (
-                  <MenuItem key={content.id} value={content.id} sx={pixelText}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Class sx={{ 
-                        color: '#5F4B8B', 
-                        mr: 1,
-                        fontSize: isMobile ? '16px' : '20px'
-                      }} />
-                      {content.title}
-                    </Box>
+          <Box sx={{ mb: isMobile ? 1 : 3 }}>
+            
+            <FormControl fullWidth>
+              <Select
+                value={selectedContent}
+                onChange={handleContentChange}
+                sx={{
+                  minWidth: 0,
+                  transition: 'width 0.2s ease',
+                  '& .MuiSelect-select': {
+                    fontFamily: 'Arial, sans-serif',
+                    fontSize: isMobile ? '10px' : isTablet ? '12px' : '14px',
+                    py: isMobile ? 0.75 : isTablet ? 1 : 1.5,
+                    minHeight: isMobile ? '20px' : isTablet ? '28px' : 'auto',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  },
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderRadius: isMobile ? '4px' : isTablet ? '6px' : '8px'
+                  },
+                  '& .MuiSelect-icon': {
+                    right: '8px'
+                  }
+                }}
+                displayEmpty
+                renderValue={(selected) => {
+                  if (!selected) {
+                    return (
+                      <Typography sx={{
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: isMobile ? '10px' : isTablet ? '12px' : '14px',
+                        color: '#999',
+                        padding: isMobile ? '4px' : isTablet ? '6px' : '8px',
+                      }}>
+                        Select Content
+                      </Typography>
+                    );
+                  }
+                  const selectedItem = contents.find(content => content.id === selected);
+                  return selectedItem ? selectedItem.title : '';
+                }}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      maxWidth: '100%',
+                      width: 'auto'
+                    }
+                  }
+                }}
+              >
+                {contents.length > 0 ? (
+                  contents.map((content) => (
+                    <MenuItem 
+                      key={content.id} 
+                      value={content.id} 
+                      sx={{
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: isMobile ? '12px' : isTablet ? '13px' : '14px',
+                        minHeight: 'auto',
+                        py: isMobile ? 0.5 : isTablet ? 0.75 : 1
+                      }}
+                    >
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        width: '100%',
+                        overflow: 'hidden'
+                      }}>
+                        <Class sx={{ 
+                          color: '#5F4B8B', 
+                          mr: isMobile ? 0.5 : isTablet ? 0.75 : 1,
+                          fontSize: isMobile ? '12px' : isTablet ? '16px' : '20px',
+                          flexShrink: 0
+                        }} />
+                        <Typography sx={{
+                          fontFamily: 'Arial, sans-serif',
+                          fontSize: isMobile ? '12px' : isTablet ? '13px' : '14px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {content.title}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem 
+                    disabled 
+                    sx={{
+                      fontFamily: 'Arial, sans-serif',
+                      fontSize: isMobile ? '12px' : isTablet ? '13px' : '14px',
+                      minHeight: 'auto'
+                    }}
+                  >
+                    No content available
                   </MenuItem>
-                ))
-              ) : (
-                <MenuItem disabled sx={pixelText}>No content available</MenuItem>
-              )}
-            </Select>
-          </FormControl>
+                )}
+              </Select>
+            </FormControl>
+          </Box>
           
-          <Box display="flex" justifyContent="space-between" flexDirection={isMobile ? 'column' : 'row'} gap={2}>
+          <Box display="flex" justifyContent="space-between" flexDirection="row" gap={isMobile ? 1 : isTablet ? 1.5 : 2}>
             <Button 
               variant="contained"
               onClick={() => navigate('/homepage')}
@@ -289,19 +360,20 @@ const CreateGameSession = () => {
                   transform: 'translateY(-2px)'
                 },
                 borderRadius: '4px',
-                px: 3,
-                py: isMobile ? 1 : 1.5,
-                minWidth: isMobile ? '100%' : 'auto',
+                px: isMobile ? 1.5 : isTablet ? 2 : 3,
+                py: isMobile ? 0.5 : isTablet ? 1 : 1.5,
+                minWidth: isMobile ? 'auto' : 'auto',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                 transition: 'all 0.1s ease',
+                height: isMobile ? '28px' : isTablet ? '32px' : 'auto',
+                flex: isMobile ? '0 0 auto' : 'none',
                 '&:active': {
                   transform: 'translateY(1px)',
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
                   borderStyle: 'inset'
-                },
-                order: isMobile ? 2 : 1
+                }
               }}
             >
               CANCEL
@@ -318,13 +390,15 @@ const CreateGameSession = () => {
                   transform: 'translateY(-2px)'
                 },
                 borderRadius: '4px',
-                px: 3,
-                py: isMobile ? 1 : 1.5,
-                minWidth: isMobile ? '100%' : 'auto',
+                px: isMobile ? 1.5 : isTablet ? 2 : 3,
+                py: isMobile ? 0.5 : isTablet ? 1 : 1.5,
+                minWidth: isMobile ? 'auto' : 'auto',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                 transition: 'all 0.1s ease',
+                height: isMobile ? '28px' : isTablet ? '32px' : 'auto',
+                flex: isMobile ? '0 0 auto' : 'none',
                 '&:active': {
                   transform: 'translateY(1px)',
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -335,20 +409,19 @@ const CreateGameSession = () => {
                   color: '#a0a0a0',
                   borderStyle: 'none',
                   boxShadow: 'none'
-                },
-                order: 1
+                }
               }}
             >
               {creating ? (
                 <CircularProgress 
-                  size={24} 
+                  size={isMobile ? 16 : isTablet ? 20 : 24} 
                   sx={{ 
                     color: 'inherit',
                     filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
                   }} 
                 />
               ) : (
-                'CREATE GAME SESSION'
+                isMobile ? 'CREATE GAME SESSION' : 'CREATE GAME SESSION'
               )}
             </Button>
           </Box>

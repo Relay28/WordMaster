@@ -110,7 +110,7 @@ const confirmDelete = async () => {
     const token = await getToken();
     await contentService.deleteContent(id, token);
     setDeleteDialogOpen(false);
-    navigate('/content/dashboard', {
+    navigate(`/classroom/${content.classroomId}`, {
       state: {
         message: 'Content deleted successfully',
         success: true
@@ -160,7 +160,7 @@ const confirmDelete = async () => {
         <Alert severity="error">Content not found or you don't have permission to view it.</Alert>
         <Button 
           variant="contained" 
-          onClick={() => navigate('/content/dashboard')}
+          onClick={() => navigate(`/classroom/${content.classroomId}`)}
           sx={{ mt: 2 }}
         >
           Return to Dashboard
@@ -219,7 +219,7 @@ const confirmDelete = async () => {
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Box display="flex" alignItems="center" gap={2}>
             <IconButton 
-              onClick={() => navigate('/content/dashboard')}
+              onClick={() => navigate(`/classroom/${content.classroomId}`)}
               sx={{
                 color: '#5F4B8B',
                 backgroundColor: 'rgba(255, 255, 255, 0.7)',

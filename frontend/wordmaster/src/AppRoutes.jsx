@@ -7,24 +7,24 @@ import picbg from '../src/assets/picbg.png';
 import '@fontsource/press-start-2p';
 // Lazy load all components
 const UserProfile = lazy(() => import('./Profile/UserProfileContainer'));
-const Login = lazy(() => import('./components/Login'));
-const Register = lazy(() => import('./components/Register'));
+const Login = lazy(() => import('./components/Authentication/Login'));
+const Register = lazy(() => import('./components/Authentication/Register'));
+const OTPVerification = lazy(() => import('./components/Authentication/OTPVerification'));
 const AdminLogin = lazy(() => import('./components/admin/AdminLogin'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 const HomePage = lazy(() => import('./components/Homepage/HomePage'));
 const StudentHomePage = lazy(() => import('./components/Homepage/StudentHomePage'));
-const OAuthSuccessHandler = lazy(() => import('./components/OAuthSuccessHandler'));
+const OAuthSuccessHandler = lazy(() => import('./components/Authentication/OAuthSuccessHandler'));
 const SetupPage = lazy(() => import('./components/user/SetupPage.'));
 const ClassroomDetailsPage = lazy(() => import('./components/Classroom/Classroom Details Page'));
 const GamePage = lazy(() => import('./components/gameplay/GamePage'));
 const CreateGameSession = lazy(() => import('./components/gameplay/CreateGameSession'));
 const GameCore = lazy(() => import('./components/gameplay/GameCore'));
-const ContentDashboard = lazy(() => import('./components/content/ContentDashboard'));
 const EditContent = lazy(() => import('./components/content/EditContent'));
 const ContentDetails = lazy(() => import('./components/content/ContentDetails'));
 const ContentUpload = lazy(() => import('./components/content/contentUpload/ContentUpload'));
 const WaitingRoomPage = lazy(() => import('./components/WaitingRoom/WaitingRoomPage'));
-const AIContentGenerator = lazy(() => import('./components/content/AIContentGenerator'));
+const AIContentGenerator = lazy(() => import('./components/content/AiContentGenerator'));
 const SessionProgressView = lazy(() => import('./components/gameplay/SessionProgressView'));
 const TeacherContentSessions = lazy(() => import('./components/gameplay/SessionManager'));
 const StudentReportPage = lazy(() => import('./components/Reports/StudentReportPage'));
@@ -123,6 +123,7 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
+        <Route path="/verify" element={<OTPVerification />} />
         <Route path="/setup" element={<SetupPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
 
@@ -143,7 +144,6 @@ const AppRoutes = () => {
 
           {/* Teacher Routes */}
           <Route element={<ProtectedTeacherRoute />}>
-            <Route path="/content/dashboard" element={<ContentDashboard />} />
             <Route path="/content/upload" element={<ContentUpload />} />
             <Route path="/content/edit/:id" element={<EditContent />} />
             <Route path="/content/:id" element={<ContentDetails />} />

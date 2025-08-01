@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Box,
   Button,
@@ -23,6 +24,8 @@ import { useUserAuth } from '../components/context/UserAuthContext';
 import { useUserProfile } from './UserProfileFunctions'; // Updated import to match the hook location
 import '@fontsource/press-start-2p'
 import picbg from '../assets/picbg.png';
+import BGforProfile from '../assets/BGforProfile.png';
+import backbtn from '../assets/backbtn.png';
 
 import farmer from '../assets/ch-farmer.png';
 import king from '../assets/ch-king.png';
@@ -34,6 +37,8 @@ import wizard from '../assets/ch-wizard.png';
 
 const UserProfileContainer = () => {
   const { user, authChecked, logout, getToken, setUser } = useUserAuth();
+
+  const navigate = useNavigate();
 
   const handleImageSelect = async (imgPath) => {
     try {
@@ -108,142 +113,42 @@ const UserProfileContainer = () => {
 
   return (
     <Box sx={{ 
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100vh',
-  width: '100vw',
-  margin: 0,
-  padding: 0,
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  overflow: 'hidden',
-  background: `
-    linear-gradient(to bottom, 
-      rgba(249, 249, 249, 10) 0%, 
-      rgba(249, 249, 249, 10) 40%, 
-      rgba(249, 249, 249, 0.1) 100%),
-    url(${picbg})`,
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  backgroundRepeat: 'no-repeat',
-  backgroundAttachment: 'fixed',
-  imageRendering: 'pixelated',
-}}>
-      {/* Header */}
-      <Box sx={{ 
-        backgroundColor: 'white',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        py: 2,
-        px: { xs: 2, md: 6 },
-        position: 'relative'
-      }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" position="relative">
-          <IconButton onClick={() => window.history.back()} sx={{ color: '#5F4B8B', zIndex: 1 }}>
-            <ArrowBack />
-          </IconButton>
-          <Typography
-            sx={{
-              ...pixelHeading,
-              color: "#5F4B8B",
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              textAlign: "center",
-              width: "100%",
-              pointerEvents: "none"
-            }}
-          >
-            Profile
-          </Typography>
-          <Button
-            variant="text"
-            color="error"
-            onClick={() => setDeactivateDialogOpen(true)}
-            sx={{ textTransform: 'none', zIndex: 1 }}
-          >
-            Deactivate Account
-          </Button>
-        </Box>
-      </Box>
-
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      width: '100%',
+      margin: 0,
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      overflow: 'hidden',
+      background: `url(${BGforProfile})`,
+      backgroundSize: 'contain',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
+    }}>
       {/* Main Content */}
       <Box sx={{ 
         flex: 1,
-        width: '100%',
+        width: '80%',
         overflow: 'auto',
         // Optional: custom scrollbar styling
         '&::-webkit-scrollbar': { width: '8px' },
         '&::-webkit-scrollbar-thumb': { backgroundColor: '#5F4B8B', borderRadius: '4px' }
       }}>
         <Box sx={{ display: 'flex', width: '100%', minHeight: '100%' }}>
-        {/* Left Column */}
+        {/* left Column */}
         <Box
           sx={{
             flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'top',
-            p: 4,
-            mt: 1
-          }}
-        >
-          <Box
-            sx={{
-              background: 'rgba(95, 75, 139, 0.2)', // #5F4B8B with opacity
-              borderRadius: 4,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-              p: 3,
-              width: '100%',
-              maxWidth: 420,
-              mb: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              overflow: 'hidden'
-            }}
-          >
-          <Typography sx={{...pixelHeading, color:"Black"}}>
-            Choose Character
-          </Typography>
-            <Grid container spacing={2} justifyContent="center" sx={{ mt: 2 }}>
-              {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
-                <Grid item xs={4} sm={4} md={4} key={index} display="flex" justifyContent="center"> 
-                  <img
-                    src={src}
-                    alt={`Option ${index + 1}`}
-                    style={{
-                      width: '100%',
-                      maxWidth: 100,
-                      height: 'auto',
-                      aspectRatio: '1/1',
-                      objectFit: 'cover',
-                      borderRadius: '50%',
-                      cursor: 'pointer',
-                      border: formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent',
-                      transition: 'border 0.2s',
-                      opacity: 1,
-                    }}
-                    onClick={() => uploadProfilePicture && handleImageSelect(src)}
-                    onMouseOver={e => (e.currentTarget.style.border = '2px solid #5F4B8B')}
-                    onMouseOut={e => (e.currentTarget.style.border = formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent')}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        </Box>
-        {/* Right Column */}
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'top',
             p: 2,
+            mt: '5%',
+            ml: '19%',
           }}
         >
           {/* Reserve space for alert */}
@@ -281,8 +186,92 @@ const UserProfileContainer = () => {
             pixelText={pixelText}
             handleCancel={handleCancel}
           />
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: '18%',
+              left: '15%',
+              cursor: 'pointer',
+              transition: 'transform 0.2s',
+              '&:hover': {
+                transform: 'scale(1.1)',
+              },
+              '&:active': {
+                transform: 'scale(0.95)',
+              },
+              width: 'fit-content',
+              height: 'fit-content',
+            }}
+            onClick={() => navigate('/homepage')}
+          >
+            <img 
+              src={backbtn} 
+              alt="Back to Home"
+              style={{
+                width: '80px', // Use fixed width instead of percentage
+                height: 'auto', // Maintain aspect ratio
+                imageRendering: 'pixelated',
+                display: 'block',
+              }}
+            />
+          </Box>
         </Box>
-      </Box>
+        {/* Right Column */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'top',
+            p: 4,
+            mt: '8%',
+          }}
+        >
+          <Box
+            sx={{
+              borderRadius: 4,
+              p: 3,
+              width: '100%',
+              maxWidth: 420,
+              mb: 4,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              overflow: 'hidden'
+            }}
+          >
+          <Typography sx={{...pixelHeading, color:"Black", ml: 8}}>
+            Choose Character
+          </Typography>
+            <Grid container spacing={2} justifyContent="center" sx={{ mt: 5, ml: 5, }}>
+              {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
+                <Grid item xs={4} sm={4} md={4} key={index} display="flex" justifyContent="center"> 
+                  <img
+                    src={src}
+                    alt={`Option ${index + 1}`}
+                    style={{
+                      width: '100%',
+                      maxWidth: 100,
+                      height: 'auto',
+                      aspectRatio: '1/1',
+                      objectFit: 'cover',
+                      borderRadius: '10%',
+                      cursor: 'pointer',
+                      border: formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent',
+                      transition: 'border 0.2s',
+                      opacity: 1,
+                    }}
+                    onClick={() => uploadProfilePicture && handleImageSelect(src)}
+                    onMouseOver={e => (e.currentTarget.style.border = '2px solid #5F4B8B')}
+                    onMouseOut={e => (e.currentTarget.style.border = formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent')}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        </Box>
+      </Box>  
       </Box>
       <DeactivateDialog 
         open={deactivateDialogOpen}
@@ -324,13 +313,13 @@ const ProfilePicture = ({
       <Avatar
         src={profilePicture || undefined}
         sx={{
-          width: 120,
-          height: 120,
+          width: '30%',
+          height: '30%',
           fontSize: 40,
-          bgcolor: '#5F4B8B',
           border: '2px solid #5F4B8B',
-          backgroundColor: 'white ',
           color: "#5F4B8B",
+          borderRadius: '10%',
+          ml: '32%',
         }}
       >
         {!profilePicture && initials}
@@ -394,11 +383,11 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
   <Paper 
     elevation={3} 
     sx={{ 
-      width: '90%', 
+      width: '85%', 
       p: 3, 
       borderRadius: '12px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-      maxHeight: 400,
+      maxHeight: 300,
       overflow: 'auto',
       position: 'relative',
       '&::before': {
@@ -408,8 +397,8 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         left: 0,
         right: 0,
         height: '8px', // adjust height as needed
-        borderTopLeftRadius: '12px',
-        borderTopRightRadius: '12px',
+        borderTopLeftRadius: '5px',
+        borderTopRightRadius: '5px',
         background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
         opacity: 0.9,
         zIndex: 2
@@ -419,9 +408,9 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
     <Typography variant="h5" fontWeight="bold" gutterBottom sx={pixelHeading}>
       Personal Information
     </Typography>
-    <Divider sx={{ my: 2 }} />
+    <Divider sx={{ my: 1 }} />
 
-    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+    <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       <Box display="flex" gap={2} mb={2}>
         <TextField
           fullWidth
@@ -478,7 +467,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         FormHelperTextProps={{ sx: pixelText }}
         sx={{ 
           pixelText,
-          mb: 3,
+          mb: 1,
           backgroundColor: '#f5f5f5',
           '& .MuiInputBase-input': {
             color: '#666',

@@ -440,7 +440,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
           <Typography sx={{ 
             ...pixelText, 
             color: '#4a5568',
-            fontSize: '14px',
+            fontSize: '10px',
             fontWeight: 100
           }}>
             Teacher
@@ -545,7 +545,7 @@ const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit
           }
         }}
       >
-        <Close />
+         <Close sx={{ fontSize: 16 }} /> 
       </IconButton>
     </DialogTitle>
     <Divider sx={{ my: 0.1 }} />
@@ -607,7 +607,7 @@ const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit
           borderRadius: '8px',
           boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
           textTransform: 'none',
-          fontSize: isMobile ? '14px' : '16px',
+          fontSize: isMobile ? '10px' : '12px',
           fontWeight: 500,
           height: isMobile ? '36px' : '48px',
           '&:hover': { 
@@ -646,7 +646,7 @@ const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit
       >
         {loading ? (
           <CircularProgress 
-            size={24} 
+            size={15} 
             color="inherit" 
             thickness={4}
             sx={{ color: 'inherit' }}

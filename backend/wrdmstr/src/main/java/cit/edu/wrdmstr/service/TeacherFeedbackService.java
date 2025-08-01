@@ -374,7 +374,7 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
     }
 
     /**
-     * Generate comprehension questions for a student
+     * Generate comprehension questions for a student (now session-based)
      */
     public List<Map<String, Object>> generateComprehensionQuestions(Long sessionId, Long studentId, Authentication auth) {
         // Verify authority
@@ -392,7 +392,9 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
             throw new RuntimeException("You are not authorized to access comprehension questions");
         }
         
-        return comprehensionCheckService.generateComprehensionQuestions(sessionId, studentId);
+        // Generate session-based questions - this will use the cache
+        // Pass null for studentId to ensure session-wide questions are generated/retrieved       
+        return comprehensionCheckService.generateComprehensionQuestions(sessionId, null);
     }
 
     /**

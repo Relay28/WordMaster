@@ -16,6 +16,7 @@ import cit.edu.wrdmstr.repository.GrammarResultRepository;
 import cit.edu.wrdmstr.repository.VocabularyResultRepository;
 import cit.edu.wrdmstr.repository.ComprehensionResultRepository;
 import cit.edu.wrdmstr.repository.TeacherFeedbackRepository;
+import cit.edu.wrdmstr.repository.PlayerCardRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -55,6 +56,8 @@ public class ContentService {
     private ComprehensionResultRepository comprehensionResultRepository;
     @Autowired
     private TeacherFeedbackRepository teacherFeedbackRepository;
+    @Autowired
+    private PlayerCardRepository playerCardRepository;
     
     @Autowired
     public ContentService(ContentRepository contentRepository,
@@ -251,13 +254,21 @@ public class ContentService {
         }
 
         // Always check and clear current player references to avoid foreign key constraint errors
-        // regardless of what's being updated (group size, word bank, etc.)
         List<GameSessionEntity> affectedSessions = gameSessionRepository.findByContentId(content.getId());
         for (GameSessionEntity session : affectedSessions) {
-            // Clear the current_player reference to avoid foreign key constraint
+            // Clear the current_player reference
             if (session.getCurrentPlayer() != null) {
                 session.setCurrentPlayer(null);
                 gameSessionRepository.save(session);
+            }
+            
+            // Clean up player cards for all players in this session
+            List<Long> playerSessionIds = session.getPlayers().stream()
+                    .map(PlayerSessionEntity::getId)
+                    .collect(Collectors.toList());
+            
+            if (!playerSessionIds.isEmpty()) {
+                playerCardRepository.deleteByPlayerSessionIds(playerSessionIds);
             }
         }
         
@@ -280,90 +291,72 @@ public class ContentService {
         logger.info("Starting deletion of content ID: {}", id);
 
         try {
-            // For each session associated with this content
-            for (GameSessionEntity session : gameSessionRepository.findByContentId(content.getId())) {
+            // First, clean up all game sessions and their related data
+            List<GameSessionEntity> sessions = gameSessionRepository.findByContentId(content.getId());
+            for (GameSessionEntity session : sessions) {
                 Long sessionId = session.getId();
                 
-                // DELETE THESE FIRST - before deleting the session
+                // Delete assessment results first
                 grammarResultRepository.deleteByGameSessionId(sessionId);
                 vocabularyResultRepository.deleteByGameSessionId(sessionId);
                 comprehensionResultRepository.deleteByGameSessionId(sessionId);
                 teacherFeedbackRepository.deleteByGameSessionId(sessionId);
                 
-                // Clear score records properly
-                List<ScoreRecordEntity> scores = new ArrayList<>(session.getScores());
-                session.getScores().clear(); // Clear the collection first
-                gameSessionRepository.save(session); // Save to persist the empty collection
-                scoreRecordRepository.deleteAll(scores); // Then delete the detached entities
+                // Get player session IDs BEFORE deleting anything
+                List<Long> playerSessionIds = session.getPlayers().stream()
+                        .map(PlayerSessionEntity::getId)
+                        .collect(Collectors.toList());
                 
-                // Handle player sessions similarly
-                for (PlayerSessionEntity player : new ArrayList<>(session.getPlayers())) {
-                    // Clear messages and detach from player
-                    List<ChatMessageEntity> messages = new ArrayList<>(player.getMessages());
-                    player.getMessages().clear();
-                    
-                    // Remove role reference
-                    player.setRole(null);
-                    playerSessionRepository.save(player);
-                    
-                    // Now delete the detached messages
-                    chatMessageRepository.deleteAll(messages);
+                // Delete player cards first
+                if (!playerSessionIds.isEmpty()) {
+                    playerCardRepository.deleteByPlayerSessionIds(playerSessionIds);
                 }
                 
-                // Clear session messages similarly
-                List<ChatMessageEntity> sessionMessages = new ArrayList<>(session.getMessages());
-                session.getMessages().clear();
-                gameSessionRepository.save(session);
-                chatMessageRepository.deleteAll(sessionMessages);
+                // Clear and delete chat messages
+                chatMessageRepository.deleteBySessionId(sessionId);
                 
-                // Clear references
+                // Clear current player reference BEFORE deleting player sessions
                 session.setCurrentPlayer(null);
-                session.setContent(null);
-                
-                // Properly detach player entities by removing them from the session
-                List<PlayerSessionEntity> playersToRemove = new ArrayList<>(session.getPlayers());
-                for (PlayerSessionEntity player : playersToRemove) {
-                    // First delete the player entity itself (since it can't exist without session)
-                    playerSessionRepository.delete(player);
-                }
-                // Now clear the collection
-                session.getPlayers().clear();
-
-                
-                // Set primitive values
-                session.setCurrentCycle(0);
-                session.setCurrentTurn(0);
-                session.setTotalTurns(0);
-                session.setTimePerTurn(60);
-                
-                // Save these changes
                 gameSessionRepository.save(session);
                 
-                // Now delete the session
+                // Clear the players collection to prevent cascade issues
+                session.getPlayers().clear();
+                gameSessionRepository.save(session);
+                
+                // Now delete player sessions using repository method
+                playerSessionRepository.deleteBySessionId(sessionId);
+                
+                // Clear score records - get fresh list after player deletion
+                session = gameSessionRepository.findById(sessionId).orElse(null);
+                if (session != null) {
+                    List<ScoreRecordEntity> scores = new ArrayList<>(session.getScores());
+                    session.getScores().clear();
+                    gameSessionRepository.save(session);
+                    scoreRecordRepository.deleteAll(scores);
+                }
+                
+                // Finally delete the session
                 gameSessionRepository.delete(session);
             }
             
-            // Now delete the content and related data
-            if (content.getContentData() != null) {
-                ContentData contentData = content.getContentData();
+            // Now handle the content data cleanup
+            ContentData contentData = content.getContentData();
+            if (contentData != null) {
+                // Clear word bank and roles to prevent cascade issues
+                contentData.getWordBank().clear();
+                contentData.getRoles().clear();
                 
-                // Clear word bank items and roles
-                if (contentData.getWordBank() != null && !contentData.getWordBank().isEmpty()) {
-                    wordBankItemRepository.deleteAll(contentData.getWordBank());
-                }
+                // Clear the bidirectional relationship
+                content.setContentData(null);
+                contentData.setContent(null);
                 
-                if (contentData.getRoles() != null && !contentData.getRoles().isEmpty()) {
-                    roleRepository.deleteAll(contentData.getRoles());
-                }
-                
-                if (contentData.getPowerupCards() != null && !contentData.getPowerupCards().isEmpty()) {
-                    // Clean up cards if they exist
-                    contentData.setPowerupCards(new ArrayList<>());
-                }
+                // Save the content to break the relationship
+                contentRepository.save(content);
             }
             
             // Delete the content itself
             contentRepository.delete(content);
+            
             logger.info("Content with ID: {} deleted successfully", id);
         } catch (Exception e) {
             logger.error("Error deleting content with ID: {}", id, e);
@@ -561,7 +554,7 @@ public class ContentService {
                     logger.debug("Found word: {} with description and example", word);
                 } else if (parsingRoles && !item.isEmpty()) {
                     generatedRoles.add(item);
-                    logger.debug("Added role: {}", item);
+                    logger.debug("Started parsing ROLES section");
                 }
             }
         }

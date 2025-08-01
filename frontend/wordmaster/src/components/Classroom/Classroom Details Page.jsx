@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -22,9 +22,21 @@ import {
   Tab,
   Tooltip,
   Pagination,
-  Stack, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
+  Stack, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogContentText, 
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
-import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline, ChevronLeft } from '@mui/icons-material';
+import { Edit, Delete, Save, Cancel, Person, ArrowBack, Class, Description, Add, PersonRemove, DeleteOutline, ChevronLeft, Download } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useClassroomDetails } from './ClassroomDetailFunctions';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -75,6 +87,12 @@ const ClassroomDetailsPage = () => {
   const [sessionToDelete, setSessionToDelete] = useState(null);
   const [deleteContentDialogOpen, setDeleteContentDialogOpen] = useState(false);
   const [contentToDelete, setContentToDelete] = useState(null);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [selectedExportDate, setSelectedExportDate] = useState('');
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [selectedContentForExport, setSelectedContentForExport] = useState(null);
+  const [availableDates, setAvailableDates] = useState([]);
+  const [loadingDates, setLoadingDates] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [tabValue, setTabValue] = useState(0);
@@ -82,7 +100,9 @@ const ClassroomDetailsPage = () => {
   const [loadingContent, setLoadingContent] = useState(false);
   const [contentError, setContentError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add this line
-  const isMobile = window.innerWidth < 768;
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const [page, setPage] = useState(1);
   const [itemsPerPage] = useState(2); 
@@ -119,21 +139,21 @@ const ClassroomDetailsPage = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: isMobile ? '8px' : isTablet ? '9px' : '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: isMobile ? '12px' : isTablet ? '13px' : '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: isMobile ? '8px' : isTablet ? '9px' : '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -144,7 +164,11 @@ const ClassroomDetailsPage = () => {
   };
 
   const fetchGameSessions = async () => {
-  if (!classroom) return;
+  console.log("Fetching game sessions...");
+  if (!classroom?.id) {
+    console.error("No classroom ID - cannot fetch sessions");
+    return;
+  }
   
   setLoadingGameSessions(true);
   setGameSessionsError(null);
@@ -322,7 +346,7 @@ const confirmDeleteContent = async () => {
   }, [location.state]);
 
   useEffect(() => {
-    if (tabValue === 2) {
+    if (tabValue === 1) {
       if (user?.role === 'USER_TEACHER') {
         fetchGameSessions();
       } else {
@@ -330,6 +354,8 @@ const confirmDeleteContent = async () => {
       }
     }
   }, [tabValue, classroom?.id, user?.role]);
+
+
 
   // Fetch student feedback
   const fetchStudentFeedback = async () => {
@@ -482,12 +508,164 @@ const confirmDeleteSession = async () => {
 
   // Fetch published content when tab changes to Student Reports
   useEffect(() => {
-    if (tabValue === 2 && user?.role === 'USER_TEACHER') {
+    if (tabValue === 1 && user?.role === 'USER_TEACHER') {
       fetchPublishedContent();
-    } else if (tabValue === 2) {
+    } else if (tabValue === 1) {
       fetchStudentFeedback();
     }
   }, [tabValue, classroom?.id, user?.role, contentList]);
+
+  const handleExportReports = async (content) => {
+    setSelectedContentForExport(content);
+    setExportDialogOpen(true);
+    
+    // Fetch available dates for this content
+    try {
+      setLoadingDates(true);
+      const token = await getToken();
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const response = await fetch(
+        `${API_URL}/api/export/available-dates/${content.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const dates = await response.json();
+        setAvailableDates(dates);
+      } else {
+        console.warn('Could not fetch available dates');
+        setAvailableDates([]);
+      }
+    } catch (err) {
+      console.error('Error fetching available dates:', err);
+      setAvailableDates([]);
+    } finally {
+      setLoadingDates(false);
+    }
+  };
+
+  const confirmExportReports = async () => {
+    if (!selectedContentForExport) return;
+    
+    try {
+      setExportLoading(true);
+      const token = await getToken();
+      
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.');
+      }
+      
+      console.log('=== EXPORT REQUEST START ===');
+      console.log('Content ID:', selectedContentForExport.id);
+      console.log('Selected date:', selectedExportDate);
+      console.log('User role:', user?.role);
+      
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      const params = new URLSearchParams();
+      if (selectedExportDate) {
+        params.append('date', selectedExportDate);
+      }
+      
+      const url = `${API_URL}/api/export/student-reports/${selectedContentForExport.id}?${params}`;
+      console.log('Export URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (!response.ok) {
+        let errorMessage = 'Failed to export reports';
+        
+        try {
+          const errorText = await response.text();
+          console.error('Error response body:', errorText);
+          
+          if (response.status === 401) {
+            errorMessage = 'Authentication failed. Please log in again.';
+          } else if (response.status === 403) {
+            errorMessage = 'Access denied. You can only export reports for your own content.';
+          } else if (response.status === 400) {
+            errorMessage = errorText || 'No data available for export.';
+          } else {
+            errorMessage = errorText || `Server error (${response.status})`;
+          }
+        } catch (e) {
+          console.error('Could not read error response:', e);
+          errorMessage = `Server error (${response.status})`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Get the blob
+      const blob = await response.blob();
+      console.log('Blob received - Size:', blob.size, 'Type:', blob.type);
+      
+      if (blob.size === 0) {
+        throw new Error('Received empty file from server');
+      }
+      
+      // Verify it's actually an Excel file
+      if (!blob.type.includes('officedocument') && !blob.type.includes('excel') && !blob.type.includes('sheet')) {
+        console.warn('Unexpected blob type:', blob.type);
+        // Try to read as text to see if it's an error message
+        try {
+          const text = await blob.text();
+          if (text.length < 1000) { // If it's short, it might be an error message
+            console.error('Received text instead of Excel:', text);
+            throw new Error('Server returned an error: ' + text);
+          }
+        } catch (e) {
+          // If we can't read it as text, assume it's binary Excel data
+          console.log('Could not read as text, assuming it is Excel data');
+        }
+      }
+      
+      // Create download
+      const url2 = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url2;
+      
+      const dateStr = selectedExportDate ? selectedExportDate.replace(/-/g, '') : new Date().toISOString().split('T')[0].replace(/-/g, '');
+      const sanitizedTitle = selectedContentForExport.title.replace(/[^a-zA-Z0-9]/g, '_');
+      link.download = `class_record_${sanitizedTitle}_${dateStr}.xlsx`;
+      
+      console.log('Download filename:', link.download);
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url2);
+      
+      console.log('=== EXPORT SUCCESS ===');
+      
+      // Close dialog
+      setExportDialogOpen(false);
+      setSelectedExportDate('');
+      setSelectedContentForExport(null);
+      setAvailableDates([]);
+      
+    } catch (err) {
+      console.error("=== EXPORT ERROR ===", err);
+      setContentError(err.message || "Failed to export reports. Please try again.");
+    } finally {
+      setExportLoading(false);
+    }
+  };
 
   if (!authChecked || loading) {
     return (
@@ -510,7 +688,7 @@ return (
   display: 'flex',
   flexDirection: 'column',
   height: '100vh',
-  width: '100vw',
+  width: '100%',
   margin: 0,
   padding: 0,
   position: 'fixed',
@@ -738,151 +916,35 @@ return (
               borderColor: 'divider',
               mb: 2,
               '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
-              '& .MuiTab-root': { ...pixelHeading, fontSize: isMobile ? '10px' : '12px', },
-              '& .Mui-selected': { color: '#5F4B8B !important' }
+              '& .MuiTab-root': { 
+                ...pixelHeading, 
+                fontSize: isMobile ? '7px' : isTablet ? '11px' : '12px',
+                flexGrow: 1,
+                minWidth: 'unset',
+                px: 1,
+              },
+              '& .Mui-selected': { 
+                color: '#5F4B8B !important',
+              }
             }}
+            variant="fullWidth"
           >
             <Tab label="LEARNING CONTENT" />
-            <Tab label="MEMBERS" />
             {user?.role === 'USER_TEACHER' ? (
               <Tab label="STUDENT REPORTS" />
             ) : (
               <Tab label="GRADE REPORTS" />
             )}
+            <Tab label="MEMBERS" />
           </Tabs>
 
-          {/* Members Tab */}
-          {tabValue === 1 && (
-            <Box>
-              {/* <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                
-                <Chip 
-                  label={`${classroom.studentCount + 1} TOTAL`} 
-                  color="primary"
-                  size="small"
-                  sx={{pixelText, fontSize: isMobile ? '10px' : '12px',}}
-                />
-              </Box>
-              <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
-               */}
-              {/* Teacher Card */}
-              <List>
-                <ListItem sx={{ 
-                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
-                  borderRadius: '4px',
-                  mb: 1
-                }}>
-                  <ListItemAvatar>
-                    <Avatar
-                      src={classroom.teacher.profilePicture || undefined}
-                      sx={{ bgcolor: '#5F4B8B' }}
-                    >
-                      {!classroom.teacher.profilePicture && (
-                        <>
-                          {classroom.teacher.fname?.charAt(0)}
-                          {classroom.teacher.lname?.charAt(0)}
-                        </>
-                      )}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>
-                        {`${classroom.teacher.fname} ${classroom.teacher.lname}`}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                        TEACHER
-                      </Typography>
-                    }
-                  />
-                  <Chip 
-                    label="OWNER" 
-                    color="primary" 
-                    size="small" 
-                    sx={{ 
-                      ...pixelText,
-                      fontSize: '8px',
-                      height: '20px'
-                    }} 
-                  />
-                </ListItem>
-
-                {/* Students List */}
-                {members.length > 0 ? (
-                  members.map((member) => (
-                    <ListItem 
-                      key={member.id}
-                      sx={{
-                        '&:hover': {
-                          backgroundColor: 'rgba(95, 75, 139, 0.05)'
-                        }
-                      }}
-                    >
-                      <ListItemAvatar>
-                        <Avatar
-                          src={member.profilePicture || undefined}
-                          sx={{ bgcolor: '#6c63ff' }}
-                        >
-                          {!member.profilePicture && (
-                            <>
-                              {member.fname?.charAt(0)}
-                              {member.lname?.charAt(0)}
-                            </>
-                          )}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Typography sx={{ ...pixelText }}>
-                            {`${member.fname} ${member.lname}`}
-                          </Typography>
-                        }
-                        secondary={
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                            STUDENT
-                          </Typography>
-                        }
-                      />
-                      {isClassroomTeacher && (
-                        <ListItemSecondaryAction>
-                          <Tooltip title="Remove student">
-                            <IconButton 
-                              edge="end" 
-                              onClick={() => handleRemoveStudent(member.id)}
-                              sx={{
-                                color: '#ff5252',
-                                '&:hover': {
-                                  transform: 'scale(1.1)',
-                                  backgroundColor: 'rgba(255, 82, 82, 0.1)'
-                                },
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <PersonRemove />
-                            </IconButton>
-                          </Tooltip>
-                        </ListItemSecondaryAction>
-                      )}
-                    </ListItem>
-                  ))
-                ) : (
-                  <Typography sx={{ ...pixelText, color: 'text.secondary', p: 2 }}>
-                    NO STUDENTS ENROLLED YET
-                  </Typography>
-                )}
-              </List>
-            </Box>
-          )}
-
-             {/* Student Reports Tab */}
-          {tabValue === 2 && user?.role === 'USER_TEACHER' && (
+          {/* Student Reports Tab */}
+          {tabValue === 1 && user?.role === 'USER_TEACHER' && (
             <Box>
               {showContentList ? (
                 // Show published content list first
                 <>
-                  <Typography sx={{ ...pixelHeading, mb: 2 }}>SELECT CONTENT TO VIEW GAME SESSIONS:</Typography>
+                  <Typography sx={{ ...pixelText, mb: 2 }}>SELECT CONTENT TO VIEW GAME SESSIONS:</Typography>
                   {publishedContent.length === 0 ? (
                     <Paper 
                       elevation={0} 
@@ -894,7 +956,7 @@ return (
                         border: '1px solid rgba(0,0,0,0.05)'
                       }}
                     >
-                      <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
+                      <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 1, fontSize: '12px' }}>
                         NO PUBLISHED CONTENT AVAILABLE
                       </Typography>
                       <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
@@ -951,6 +1013,25 @@ return (
                             >
                               VIEW SESSIONS
                             </Button>
+                            <Button
+                              fullWidth
+                              variant="contained"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleExportReports(content);
+                              }}
+                              size="small"
+                              startIcon={<Download />}
+                              sx={{
+                                ...pixelButton,
+                                fontSize: '7px',
+                                mt: 1,
+                                backgroundColor: '#6c63ff',
+                                '&:hover': { backgroundColor: '#5a52e0' }
+                              }}
+                            >
+                              EXPORT REPORTS
+                            </Button>
                           </Paper>
                         </Grid>
                       ))}
@@ -961,19 +1042,28 @@ return (
                 // Show sessions for selected content
                 <>
                   <Box display="flex" alignItems="center" mb={2}>
-                    <Button
-                      startIcon={<ChevronLeft />}
-                      onClick={handleBackToContentList}
-                      sx={{
-                        ...pixelButton,
-                        color: '#5F4B8B',
-                        mr: 2,
-                        '&:hover': { backgroundColor: 'rgba(95, 75, 139, 0.1)' }
-                      }}
-                    >
-                      BACK
-                    </Button>
-                    <Typography sx={{ ...pixelHeading }}>
+                    <IconButton
+  onClick={handleBackToContentList}
+  sx={{
+    ...pixelButton,
+    color: '#5F4B8B',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    border: '2px solid #5F4B8B',
+    borderRadius: '4px',
+    width: '32px',
+    height: '32px',
+    mr: 2,
+    '&:hover': { 
+      backgroundColor: 'rgba(95, 75, 139, 0.1)',
+      transform: 'translateY(-1px)'
+    },
+    transition: 'all 0.2s ease',
+  }}
+>
+  <ChevronLeft sx={{ fontSize: '16px' }} />
+</IconButton>
+              
+                    <Typography sx={{ ...pixelText }}>
                       {selectedContent?.title} - GAME SESSIONS
                     </Typography>
                   </Box>
@@ -1137,7 +1227,7 @@ return (
           )}
 
           {/* Grade Reports Tab for Students */}
-          {tabValue === 2 && user?.role !== 'USER_TEACHER' && (
+          {tabValue === 1 && user?.role !== 'USER_TEACHER' && (
             <Box>
               {/* Implement student's grade reports view here */}
               <Typography sx={{ ...pixelHeading, mb: 2 }}>YOUR FEEDBACK REPORTS</Typography>
@@ -1239,12 +1329,143 @@ return (
           )    
        }
 
+                 {/* Members Tab */}
+          {tabValue === 2 && (
+            <Box>
+              {/* <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                
+                <Chip 
+                  label={`${classroom.studentCount + 1} TOTAL`} 
+                  color="primary"
+                  size="small"
+                  sx={{pixelText, fontSize: isMobile ? '10px' : '12px',}}
+                />
+              </Box>
+              <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
+               */}
+              {/* Teacher Card */}
+              <List>
+                <ListItem sx={{ 
+                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  borderRadius: '4px',
+                  mb: 1
+                }}>
+                  <ListItemAvatar>
+                    <Avatar
+                      src={classroom.teacher.profilePicture || undefined}
+                      sx={{ bgcolor: '#5F4B8B' }}
+                    >
+                      {!classroom.teacher.profilePicture && (
+                        <>
+                          {classroom.teacher.fname?.charAt(0)}
+                          {classroom.teacher.lname?.charAt(0)}
+                        </>
+                      )}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>
+                        {`${classroom.teacher.fname} ${classroom.teacher.lname}`}
+                      </Typography>
+                    }
+                    secondary={
+                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                        TEACHER
+                      </Typography>
+                    }
+                  />
+                  <Chip 
+                    label="OWNER" 
+                    color="primary" 
+                    size="small" 
+                    sx={{ 
+                      ...pixelText,
+                      fontSize: '8px',
+                      height: '20px'
+                    }} 
+                  />
+                </ListItem>
+
+                {/* Students List */}
+                {members.length > 0 ? (
+                  members.map((member) => (
+                    <ListItem 
+                      key={member.id}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'rgba(95, 75, 139, 0.05)'
+                        }
+                      }}
+                    >
+                      <ListItemAvatar>
+                        <Avatar
+                          src={member.profilePicture || undefined}
+                          sx={{ bgcolor: '#6c63ff' }}
+                        >
+                          {!member.profilePicture && (
+                            <>
+                              {member.fname?.charAt(0)}
+                              {member.lname?.charAt(0)}
+                            </>
+                          )}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={
+                          <Typography sx={{ ...pixelText }}>
+                            {`${member.fname} ${member.lname}`}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                            STUDENT
+                          </Typography>
+                        }
+                      />
+                      {isClassroomTeacher && (
+                        <ListItemSecondaryAction>
+                          <Tooltip title="Remove student">
+                            <IconButton 
+                              edge="end" 
+                              onClick={() => handleRemoveStudent(member.id)}
+                              sx={{
+                                color: '#ff5252',
+                                '&:hover': {
+                                  transform: 'scale(1.1)',
+                                  backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                                },
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <PersonRemove />
+                            </IconButton>
+                          </Tooltip>
+                        </ListItemSecondaryAction>
+                      )}
+                    </ListItem>
+                  ))
+                ) : (
+                  <Typography sx={{ ...pixelText, color: 'text.secondary', p: 2 }}>
+                    NO STUDENTS ENROLLED YET
+                  </Typography>
+                )}
+              </List>
+            </Box>
+          )}
+
           {/* Content Tab */}
           {tabValue === 0 && (
             <Box>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Box 
+                display="flex" 
+                justifyContent="flex-start"
+                alignItems="center" 
+                mb={2}
+                gap={isMobile ? 1 : 1}
+              >
                 {isClassroomTeacher && (
-                  <Box display="flex" gap={1}>
+                  <>
                     <Button
                       variant="contained"
                       startIcon={<Add />}
@@ -1252,6 +1473,10 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#5F4B8B',
+                        minWidth: isMobile ? 0 : undefined,
+                        px: isMobile ? 1 : isTablet ? 1.5 : 2,
+                        fontSize: isMobile ? '7px' : isTablet ? '9px' : '10px',
+                        height: isMobile ? '28px' : isTablet ? '30px' : '32px',
                         '&:hover': { 
                           backgroundColor: '#4a3a6d',
                           transform: 'translateY(-2px)'
@@ -1262,7 +1487,9 @@ return (
                           boxShadow: '0 2px 0 #4a3a6d'
                         },
                         transition: 'all 0.2s ease',
-                        height: '32px'
+                        order: 0,
+                        flex: undefined,
+                        justifyContent: undefined
                       }}
                     >
                       CREATE
@@ -1274,6 +1501,10 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#6c63ff',
+                        minWidth: isMobile ? 0 : undefined,
+                        px: isMobile ? 1 : isTablet ? 1.5 : 2,
+                        fontSize: isMobile ? '7px' : isTablet ? '9px' : '10px',
+                        height: isMobile ? '28px' : isTablet ? '30px' : '32px',
                         '&:hover': { 
                           backgroundColor: '#5a52e0',
                           transform: 'translateY(-2px)'
@@ -1284,12 +1515,14 @@ return (
                           boxShadow: '0 2px 0 #5a52e0'
                         },
                         transition: 'all 0.2s ease',
-                        height: '32px'
+                        order: 0,
+                        flex: undefined,
+                        justifyContent: undefined
                       }}
                     >
                       AI GENERATE
                     </Button>
-                  </Box>
+                  </>
                 )}
               </Box>
               
@@ -1624,6 +1857,101 @@ return (
     </Button>
   </DialogActions>
 </Dialog>
+
+<Dialog
+    open={exportDialogOpen}
+    onClose={() => {
+      setExportDialogOpen(false);
+      setSelectedExportDate('');
+      setAvailableDates([]);
+    }}
+    PaperProps={{
+      sx: {
+        borderRadius: '16px',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(8px)',
+        boxShadow: '0 8px 32px rgba(31, 38, 135, 0.2)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+      }
+    }}
+  >
+    <DialogTitle sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+      Export Class Record
+    </DialogTitle>
+    <DialogContent sx={{ minWidth: '400px' }}>
+      <DialogContentText sx={{ ...pixelText, color: '#666', mb: 3 }}>
+        Export class record for: {selectedContentForExport?.title}
+      </DialogContentText>
+      
+      {loadingDates ? (
+        <Box display="flex" justifyContent="center" py={2}>
+          <CircularProgress size={24} />
+        </Box>
+      ) : (
+        <FormControl fullWidth sx={{ mt: 2 }}>
+          <InputLabel style={pixelText}>Filter by Date (Optional)</InputLabel>
+          <Select
+            value={selectedExportDate}
+            onChange={(e) => setSelectedExportDate(e.target.value)}
+            label="Filter by Date (Optional)"
+            sx={{
+              '& .MuiSelect-select': pixelText,
+            }}
+          >
+            <MenuItem value="">
+              <em style={pixelText}>All Dates</em>
+            </MenuItem>
+            {availableDates.map((date) => (
+              <MenuItem key={date} value={date} style={pixelText}>
+                {new Date(date + 'T00:00:00').toLocaleDateString()}
+              </MenuItem>
+            ))}
+          </Select>
+          <FormHelperText style={pixelText}>
+            {availableDates.length === 0 
+              ? "No session dates available" 
+              : `${availableDates.length} session date(s) available`}
+          </FormHelperText>
+        </FormControl>
+      )}
+    </DialogContent>
+    <DialogActions sx={{ p: 2, gap: 1 }}>
+      <Button
+        onClick={() => {
+          setExportDialogOpen(false);
+          setSelectedExportDate('');
+          setAvailableDates([]);
+        }}
+        variant="outlined"
+        sx={{
+          ...pixelButton,
+          color: '#5F4B8B',
+          borderColor: '#5F4B8B',
+          '&:hover': {
+            borderColor: '#4a3a6d',
+            backgroundColor: 'rgba(95, 75, 139, 0.1)'
+          }
+        }}
+      >
+        CANCEL
+      </Button>
+      <Button
+        onClick={confirmExportReports}
+        variant="contained"
+        disabled={exportLoading}
+        sx={{
+          ...pixelButton,
+          backgroundColor: '#6c63ff',
+          color: 'white',
+          '&:hover': {
+            backgroundColor: '#5a52e0'
+          }
+        }}
+      >
+        {exportLoading ? 'EXPORTING...' : 'EXPORT CLASS RECORD'}
+      </Button>
+    </DialogActions>
+  </Dialog>
 
 
     </Box>

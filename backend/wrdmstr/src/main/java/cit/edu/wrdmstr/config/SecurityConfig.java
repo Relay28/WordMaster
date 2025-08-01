@@ -70,7 +70,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/grammar/check").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/api/sessions/**").authenticated() // <-- ENSURE THIS LINE EXISTS
+                        .requestMatchers("/api/sessions/**").authenticated()
+                        .requestMatchers("/api/export/**").permitAll()
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());

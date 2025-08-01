@@ -4,12 +4,15 @@ import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.ComprehensionCheckService;
+import cit.edu.wrdmstr.service.CardService;
+import cit.edu.wrdmstr.service.StoryPromptService;
 import cit.edu.wrdmstr.dto.GameSessionDTO;
 import cit.edu.wrdmstr.dto.PlayerSessionDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -26,7 +29,6 @@ public class GameSessionService {
     @Autowired private GameSessionEntityRepository gameSessionRepository;
     @Autowired private ContentRepository contentRepository;
     @Autowired private UserRepository userRepository;
-
     @Autowired private PlayerSessionEntityRepository playerSessionRepository;
     @Autowired private ClassroomRepository classroomRepository;
     @Autowired private WordBankItemRepository wordBankItemRepository;
@@ -38,6 +40,14 @@ public class GameSessionService {
     @Autowired private GrammarResultRepository grammarResultRepository;
     @Autowired private VocabularyResultRepository vocabularyResultRepository;
     @Autowired private ComprehensionResultRepository comprehensionResultRepository;
+    
+    // Add this field
+    @Autowired @Lazy
+    private GameSessionManagerService gameSessionManagerService;
+
+    @Autowired private CardService cardService;
+    @Autowired private StoryPromptService storyPromptService;
+
 
     public GameSessionEntity createSession(Long contentId, Authentication auth) {
         String email = auth.getName();
@@ -259,6 +269,9 @@ public class GameSessionService {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
             .orElseThrow(() -> new ResourceNotFoundException("Game session not found"));
         
+        // Clear story prompts
+        storyPromptService.clearStoryPrompts(sessionId);
+        
         // Break the circular reference first  
         session.setCurrentPlayer(null);
         gameSessionRepository.save(session);
@@ -332,6 +345,19 @@ public class GameSessionService {
         playerSession.setTotalScore(0);
         playerSession.setGrammarStreak(0);
 
+        PlayerSessionEntity savedPlayer = playerSessionRepository.save(playerSession);
+        
+        // Draw cards for the player after successful join
+        try {
+            // First ensure cards exist for the content
+            cardService.generateCardsForContent(session.getContent().getId());
+            // Then draw cards for the player
+            cardService.drawCardsForPlayer(savedPlayer.getId());
+        } catch (Exception e) {
+            logger.error("Failed to draw cards for player {} in session {}: {}", 
+                        userId, sessionId, e.getMessage());
+        }
+
         return playerSessionRepository.save(playerSession);
     }
 
@@ -347,9 +373,6 @@ public class GameSessionService {
 
     /**
      * End a game session and optionally generate comprehension questions for all participants
-     * @param sessionId the ID of the session to end
-     * @param generateComprehension whether to generate comprehension questions
-     * @return Map containing session status and any generated comprehension data
      */
     @Transactional
     public Map<String, Object> endSessionWithComprehension(Long sessionId, boolean generateComprehension) {
@@ -360,32 +383,50 @@ public class GameSessionService {
         result.put("status", "completed");
         result.put("sessionId", sessionId);
         
-        // If comprehension check requested, generate questions for all players
+        // If comprehension check requested, PRE-GENERATE questions for the session
         if (generateComprehension) {
-            Map<Long, List<Map<String, Object>>> playerQuestions = new HashMap<>();
-            
-            List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
-            for (PlayerSessionEntity player : players) {
-                try {
-                    Long studentId = player.getUser().getId();
+            try {
+                logger.info("Pre-generating comprehension questions for session {}", sessionId);
+                
+                // PRE-GENERATE the questions using the manager service
+                // This ensures they're cached BEFORE any player tries to access them
+                List<Map<String, Object>> sessionQuestions = 
+                    gameSessionManagerService.getOrGenerateComprehensionQuestions(sessionId);
+                
+                if (sessionQuestions != null && !sessionQuestions.isEmpty()) {
+                    logger.info("Successfully pre-generated {} questions for session {}", sessionQuestions.size(), sessionId);
                     
-                    // Check if player had any messages in the session
-                    List<ChatMessageEntity> messages = chatmessageRepository
-                        .findBySessionIdAndSenderIdOrderByTimestampAsc(sessionId, studentId);
+                    // Get all players for assignment
+                    List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
+                    Map<Long, List<Map<String, Object>>> playerQuestions = new HashMap<>();
                     
-                    if (!messages.isEmpty()) {
-                        List<Map<String, Object>> questions = 
-                            comprehensionCheckService.generateComprehensionQuestions(sessionId, studentId);
-                        
-                        playerQuestions.put(studentId, questions);
+                    // Assign the SAME pre-generated questions to ALL players
+                    for (PlayerSessionEntity player : players) {
+                        try {
+                            Long studentId = player.getUser().getId();
+                            playerQuestions.put(studentId, sessionQuestions);
+                            logger.info("Assigned PRE-GENERATED questions to player {} in session {}", studentId, sessionId);
+                                  
+                        } catch (Exception e) {
+                            logger.error("Error assigning questions to player {} in session {}: {}",
+                                player.getUser().getId(), sessionId, e.getMessage(), e);
+                        }
                     }
-                } catch (Exception e) {
-                    logger.error("Error generating comprehension questions for player {} in session {}: {}",
-                        player.getUser().getId(), sessionId, e.getMessage(), e);
+                    
+                    result.put("comprehensionQuestions", playerQuestions);
+                    result.put("questionsGenerated", true);
+                    logger.info("Successfully assigned IDENTICAL comprehension questions to {} players in session {}", 
+                               playerQuestions.size(), sessionId);
+                } else {
+                    logger.warn("No comprehension questions were generated for session {}", sessionId);
+                    result.put("questionsGenerated", false);
                 }
+                       
+            } catch (Exception e) {
+                logger.error("Error pre-generating session comprehension questions for session {}: {}", 
+                            sessionId, e.getMessage(), e);
+                result.put("questionsGenerated", false);
             }
-            
-            result.put("comprehensionQuestions", playerQuestions);
         }
         
         return result;

@@ -1,15 +1,14 @@
 package cit.edu.wrdmstr.service.gameplay;
 
-import cit.edu.wrdmstr.dto.GameStateDTO;
-import cit.edu.wrdmstr.dto.PlayerSessionDTO;
-import cit.edu.wrdmstr.dto.TurnInfoDTO;
-import cit.edu.wrdmstr.dto.WordBankItemDTO;
-import cit.edu.wrdmstr.dto.WordSubmissionDTO;
+import cit.edu.wrdmstr.dto.*;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.CardService;
+import cit.edu.wrdmstr.service.ComprehensionCheckService;
 import cit.edu.wrdmstr.service.ProgressTrackingService;
+import cit.edu.wrdmstr.service.StoryPromptService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,13 +37,15 @@ public class GameSessionManagerService {
     private final ChatService chatService;
     private final GameSessionService gameSessionService;
     private final UserRepository userRepository;
-
+    @Autowired private StoryPromptService storyPromptService;
     @Autowired private CardService cardService;
     private final GrammarCheckerService grammarCheckerService;
     private final AIService aiService;
     @Autowired private ScoreService scoreService;
+    @Autowired private WordDetectionService wordDetectionService;
     private final StudentProgressRepository progressRepository;
     @Autowired private GameResultService gameResultService;
+    @Autowired private ComprehensionCheckService comprehensionCheckService;
     @Autowired
     private ProgressTrackingService progressTrackingService;
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
@@ -221,8 +222,11 @@ public class GameSessionManagerService {
         
         // Check if we've already generated for this turn
         Integer lastTurn = lastStoryTurn.get(session.getId());
-        if (lastTurn != null && lastTurn == turnNumber && aiResponseCache.containsKey(cacheKey)) {
-            return aiResponseCache.get(cacheKey);
+        if (lastTurn != null && lastTurn == turnNumber) {
+            String existing = storyPromptService.getLatestStoryPrompt(session.getId());
+            if (existing != null) {
+                return existing;
+            }
         }
         
         return aiResponseCache.computeIfAbsent(cacheKey, key -> {
@@ -249,10 +253,20 @@ public class GameSessionManagerService {
         session.setStatus(GameSessionEntity.SessionStatus.ACTIVE);
         session.setStartedAt(new Date());
 
+        if (session.getContent() != null) {
+            cardService.generateCardsForContent(session.getContent().getId());
+        } else {
+            throw new RuntimeException("Cannot start game: no content assigned to session");
+        }
         // Use active players only
         List<PlayerSessionEntity> players = playerRepository.findActiveBySessionId(sessionId);
         if (players.isEmpty()) {
             throw new RuntimeException("No active players found for session " + sessionId);
+        }
+
+        // Generate cards for all players in the session
+        for (PlayerSessionEntity player : players) {
+            cardService.drawCardsForPlayer(player.getId());
         }
 
         GameState gameState = new GameState();
@@ -354,7 +368,8 @@ public class GameSessionManagerService {
             }
         }
         
-        String initialStoryElement = generateStoryElementCached(session, 1); // Using cached version
+        // Generate initial story prompt only once at game start
+        String initialStoryElement = generateStoryElementCached(session, 1);
         Map<String, Object> storyUpdate = new HashMap<>();
         storyUpdate.put("type", "storyUpdate");
         storyUpdate.put("content", initialStoryElement);
@@ -455,22 +470,49 @@ public class GameSessionManagerService {
     @Transactional(propagation = Propagation.REQUIRED)
     private String generateStoryElement(GameSessionEntity session, int turnNumber) {
         try {
+            // Get previous story elements for continuity
+            List<Map<String, Object>> previousElements = storyPromptService.getStoryPrompts(session.getId());
+            
+            // NEW: Get current players and their roles
+            List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
+            Map<String, String> playerRoles = new HashMap<>();
+            List<String> playerNames = new ArrayList<>();
+            
+            for (PlayerSessionEntity player : players) {
+                String playerName = player.getUser().getFname() + " " + player.getUser().getLname();
+                String roleName = player.getRole() != null ? player.getRole().getName() : "Participant";
+                
+                playerRoles.put(playerName, roleName);
+                playerNames.add(playerName);
+            }
+            
             Map<String, Object> request = new HashMap<>();
             request.put("task", "story_prompt");
             request.put("content", session.getContent().getDescription());
             request.put("turn", turnNumber);
             
-            GameState gameState = activeGames.get(session.getId());
-            if (gameState != null && gameState.getUsedWords() != null && !gameState.getUsedWords().isEmpty()) {
-                request.put("usedWords", gameState.getUsedWords());
-            } else {
-                request.put("usedWords", Collections.emptyList());
+            // NEW: Include player context
+            request.put("playerNames", playerNames);
+            request.put("playerRoles", playerRoles);
+            request.put("currentPlayerCount", players.size());
+            
+            // Include previous story for continuity
+            if (!previousElements.isEmpty()) {
+                List<String> previousStory = previousElements.stream()
+                    .map(element -> (String) element.get("prompt"))
+                    .collect(Collectors.toList());
+                request.put("previousStory", previousStory);
             }
             
-            return aiService.callAIModel(request).getResult();
+            String newPrompt = aiService.callAIModel(request).getResult();
+            
+            // Save the new story prompt
+            storyPromptService.addStoryPrompt(session.getId(), turnNumber, newPrompt);
+            
+            return newPrompt;
         } catch (Exception e) {
             logger.error("Error generating story element for session {}: {}", session.getId(), e.getMessage(), e);
-            return "Continue the conversation based on your role!"; // Fallback
+            return "Continue the conversation based on your role and the story context!";
         }
     }
     
@@ -489,17 +531,7 @@ public class GameSessionManagerService {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalStateException("Game session not found for starting next turn: " + sessionId));
         GameState gameState = activeGames.get(sessionId);
-        if (gameState == null) {
-            logger.error("Game state not found for session: {}", sessionId);
-            return;
-        }
-
-        PlayerSessionEntity currentPlayer = session.getCurrentPlayer();
-        if (currentPlayer == null) {
-            logger.error("No current player set for session: {}", sessionId);
-            return;
-        }
-
+        
         // Reset timer immediately
         gameState.setStatus(GameState.Status.TURN_IN_PROGRESS);
         gameState.setLastTurnTime(System.currentTimeMillis()); // Use current time for accuracy
@@ -512,17 +544,18 @@ public class GameSessionManagerService {
         
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/timer", initialTimerUpdate);
 
-        if (gameState.getCurrentTurn() > 1 || gameState.getStoryPrompt() == null) {
-            String storyElement = generateStoryElementCached(session, gameState.getCurrentTurn());
-            gameState.setStoryPrompt(storyElement);
+        // Remove automatic story generation here - only generate at cycle boundaries
+        // Only broadcast existing story prompt, don't generate new one
+        if (gameState.getStoryPrompt() != null) {
             Map<String, Object> storyUpdate = new HashMap<>();
-            storyUpdate.put("type", "storyUpdate");
-            storyUpdate.put("content", storyElement);
+            storyUpdate.put("type", "storyRefresh");
+            storyUpdate.put("content", gameState.getStoryPrompt());
             messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", storyUpdate);
         }
 
         broadcastTurnUpdate(sessionId, gameState, session);
-        logger.info("Turn {} started for player {} in session {}", gameState.getCurrentTurn(), currentPlayer.getId(), sessionId);
+        logger.info("Turn {} started for player {} in session {}", gameState.getCurrentTurn(), 
+                    session.getCurrentPlayer().getId(), sessionId);
     }
 
     // Method to broadcast turn updates, can be customized further
@@ -545,6 +578,20 @@ public class GameSessionManagerService {
         logger.info("Turn update broadcasted for session {}: Turn {}, Player {}", sessionId, gameState.getCurrentTurn(), session.getCurrentPlayer().getId());
     }
 
+    /**
+     * Get or generate comprehension questions for a session (with proper caching)
+     * This ensures ALL players get the SAME questions
+     */
+    public List<Map<String, Object>> getOrGenerateComprehensionQuestions(Long sessionId) {
+        logger.info("Getting comprehension questions for session {}", sessionId);
+        
+        // This will use the session-level cache in ComprehensionCheckService
+        // Always pass null for studentId to ensure session-wide questions
+        List<Map<String, Object>> questions = comprehensionCheckService.generateComprehensionQuestions(sessionId, null);
+        
+        logger.info("Retrieved {} comprehension questions for session {}", questions.size(), sessionId);
+        return questions;
+    }
 
     @Transactional
     public boolean submitWord(Long sessionId, Long userId, WordSubmissionDTO submission) {
@@ -600,13 +647,8 @@ public class GameSessionManagerService {
             .orElseThrow(() -> new RuntimeException("Game session not found"));
         List<WordBankItem> wordBankItems = wordBankRepository.findByContentData(
             session.getContent().getContentData());
-        List<String> usedWordsFromBank = new ArrayList<>();
-        for (WordBankItem item : wordBankItems) {
-            String word = item.getWord().toLowerCase();
-            if (submission.getWord().toLowerCase().contains(word)) {
-                usedWordsFromBank.add(word);
-            }
-        }
+        List<String> usedWordsFromBank = wordDetectionService.detectWordBankUsage(
+            submission.getWord(), wordBankItems);
         if (!usedWordsFromBank.isEmpty()) {
             gameState.getUsedWords().addAll(usedWordsFromBank);
         } else {
@@ -695,6 +737,10 @@ public class GameSessionManagerService {
                 session.setCurrentCycle(newCycle);
                 gameState.setCurrentCycle(newCycle);
                 logger.info("Session {} (Multiplayer): Advanced to Cycle {}. Current Turn: {}", sessionId, newCycle, upcomingTurnGlobal);
+                
+                generateAndBroadcastNewStoryPrompt(sessionId, session, gameState, upcomingTurnGlobal);
+                
+                // Clear used words for new cycle
                 gameState.getUsedWords().clear();
                 Map<String, Object> cycleUpdate = new HashMap<>();
                 cycleUpdate.put("type", "cycleChange");
@@ -712,6 +758,23 @@ public class GameSessionManagerService {
         startNextTurn(sessionId);
     }
 
+    private void generateAndBroadcastNewStoryPrompt(Long sessionId, GameSessionEntity session, 
+                                                  GameState gameState, int turnNumber) {
+        try {
+            String newStoryElement = generateStoryElementCached(session, turnNumber);
+            gameState.setStoryPrompt(newStoryElement);
+            
+            Map<String, Object> storyUpdate = new HashMap<>();
+            storyUpdate.put("type", "storyUpdate");
+            storyUpdate.put("content", newStoryElement);
+            storyUpdate.put("turnNumber", turnNumber);
+            
+            messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", storyUpdate);
+            logger.info("New story prompt generated for session {} at turn {}", sessionId, turnNumber);
+        } catch (Exception e) {
+            logger.error("Error generating new story prompt for session {}: {}", sessionId, e.getMessage());
+        }
+    }
 
     private double calculateTurnCompletionRate(StudentProgress progress, GameSessionEntity session) {
         if (session.getTotalTurns() <= 0) return 0;
@@ -721,22 +784,21 @@ public class GameSessionManagerService {
     public void endGame(Long sessionId) {
         GameState gameState = activeGames.get(sessionId);
         if (gameState == null) {
-            // Attempt to fetch session to mark as complete even if not in activeGames
-             GameSessionEntity sessionCheck = gameSessionRepository.findById(sessionId).orElse(null);
-             if (sessionCheck != null && sessionCheck.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
+            GameSessionEntity sessionCheck = gameSessionRepository.findById(sessionId).orElse(null);
+            if (sessionCheck != null && sessionCheck.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
                 sessionCheck.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
                 sessionCheck.setEndedAt(new Date());
                 gameSessionRepository.save(sessionCheck);
-                logger.info("Game session {} marked as COMPLETED as it was not in activeGames map but found in DB.", sessionId);
-             } else {
-                logger.warn("EndGame called for session {} but GameState not found in activeGames and not updateable in DB.", sessionId);
-             }
+                logger.info("Game session {} marked as COMPLETED", sessionId);
+            }
             return;
         }
 
         if (gameState.getStatus() == GameState.Status.COMPLETED) {
             logger.info("Game {} already ended.", sessionId);
-            activeGames.remove(sessionId); // Clean up if somehow re-triggered
+            activeGames.remove(sessionId);
+            // Clear comprehension cache when game ends
+            comprehensionCheckService.clearSessionQuestionsCache(sessionId);
             return;
         }
 
@@ -755,7 +817,11 @@ public class GameSessionManagerService {
 
         gameResultService.processEndGameResults(sessionId);
         activeGames.remove(sessionId);
-        logger.info("Game {} ended and removed from active games.", sessionId);
+        
+        // Clear comprehension cache when game ends
+        comprehensionCheckService.clearSessionQuestionsCache(sessionId);
+        
+        logger.info("Game {} ended and caches cleared.", sessionId);
     }
 
     public void joinGame(Long sessionId, Long userId) {
@@ -844,6 +910,20 @@ public class GameSessionManagerService {
                 List<WordBankItemDTO> wordBankDTOs = enrichWordBankItems(wordBankItems);
                 dto.setWordBank(wordBankDTOs);
             }
+        }
+        // Add player cards to game state
+        if (session.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
+            List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId);
+            Map<Long, List<PlayerCardDTO>> playerCards = new HashMap<>();
+
+            for (PlayerSessionEntity player : players) {
+                List<PlayerCardDTO> cards = cardService.getPlayerCards(player.getId());
+                playerCards.put(player.getId(), cards);
+            }
+
+            dto.setPlayerCards(playerCards.values().stream()
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList()));
         }
         
         dto.setLeaderboard(scoreService.getSessionLeaderboard(sessionId));
@@ -1009,6 +1089,7 @@ public class GameSessionManagerService {
         private Map<String, Object> contentInfo;
         private int currentCycle;
         private String storyPrompt;
+        private List<PowerupCard> cards = new ArrayList<>();
         private int configuredTurnCycles;
 
         enum Status {
