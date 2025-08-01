@@ -24,7 +24,7 @@ const EditContent = lazy(() => import('./components/content/EditContent'));
 const ContentDetails = lazy(() => import('./components/content/ContentDetails'));
 const ContentUpload = lazy(() => import('./components/content/contentUpload/ContentUpload'));
 const WaitingRoomPage = lazy(() => import('./components/WaitingRoom/WaitingRoomPage'));
-const AIContentGenerator = lazy(() => import('./components/content/AIContentGenerator'));
+const AIContentGenerator = lazy(() => import('./components/content/AiContentGenerator'));
 const SessionProgressView = lazy(() => import('./components/gameplay/SessionProgressView'));
 const TeacherContentSessions = lazy(() => import('./components/gameplay/SessionManager'));
 const StudentReportPage = lazy(() => import('./components/Reports/StudentReportPage'));
