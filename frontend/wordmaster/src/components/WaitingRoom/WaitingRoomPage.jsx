@@ -8,7 +8,7 @@ import {
 import { useUserAuth } from '../context/UserAuthContext';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
-import API_URL from '../../services/apiConfig';
+import apiConfig from '../../services/apiConfig';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -60,7 +60,7 @@ const WaitingRoomPage = () => {
     const fetchStudents = async () => {
       try {
         const token = await getToken();
-        const response = await fetch(`${API_URL}/waiting-room/content/${contentId}/students`, {
+        const response = await fetch(`${apiConfig.API_URL}/waiting-room/content/${contentId}/students`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -81,7 +81,7 @@ const WaitingRoomPage = () => {
   const initializeWebSocket = async () => {
   try {
     const token = await getToken();
-    const socket = new SockJS(`${API_URL}/ws?token=${token}`);
+    const socket = new SockJS(`${apiConfig.API_URLv2}/ws?token=${token}`);
     const client = new Client({
       webSocketFactory: () => socket,
       connectHeaders: {
@@ -133,7 +133,7 @@ const WaitingRoomPage = () => {
     try {
       setLoading(true);
       const token = await getToken();
-      const response = await fetch(`${API_URL}/waiting-room/content/${contentId}/start`, {
+      const response = await fetch(`${apiConfig.API_URL}/waiting-room/content/${contentId}/start`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -12,6 +12,7 @@ import picbg from '../../assets/picbg.png';
 import CardDisplay from './CardDisplay'; // Import the CardDisplay component
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL ;
+const API_URLv2 = import.meta.env.VITE_API_URLv2 ;
 
 const GameCore = () => {
   const { sessionId } = useParams();
@@ -124,7 +125,7 @@ const GameCore = () => {
         }
         
         // Create SockJS instance with token in query parameter as fallback
-        const socket = new SockJS(`${API_URL}/ws?token=${token}`);
+        const socket = new SockJS(`${API_URLv2}/ws?token=${token}`);
         
         client = new Client({
           webSocketFactory: () => socket,

@@ -11,7 +11,7 @@ import { useUserAuth } from '../context/UserAuthContext';
 import GameCore from './GameCore';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
-import API_URL from '../../services/apiConfig';
+import apiConfig from '../../services/apiConfig'; // Import API configuration
 
 const GamePage = ({
   // content
@@ -59,7 +59,7 @@ const GamePage = ({
       try {
         setLoading(true);
         const token = await getToken();   
-        const response = await fetch(`${API_URL}/api/classrooms`, {
+        const response = await fetch(`${apiConfig.API_URL}/classrooms`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -90,9 +90,8 @@ const GamePage = ({
       try {
         setLoading(true);
         const token = await getToken();
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        
-        const response = await fetch(`${API_URL}/api/content/classroom/${selectedClassroom}/published`, {
+
+        const response = await fetch(`${apiConfig.API_URL}/content/classroom/${selectedClassroom}/published`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -133,7 +132,7 @@ const GamePage = ({
   try {
     setLoading(true);
     const token = await getToken();
-    const response = await fetch(`${API_URL}/api/waiting-room/content/${selectedContent}/join`, {
+    const response = await fetch(`${apiConfig.API_URL}/waiting-room/content/${selectedContent}/join`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

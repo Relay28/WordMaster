@@ -124,7 +124,7 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
       const token = await getToken();
       
       const response = await fetch(
-        `${API_URL}/api/teacher-feedback/comprehension/${sessionId}/student/${studentId}/answers`,
+        `${API_URL}/teacher-feedback/comprehension/${sessionId}/student/${studentId}/answers`,
         {
           method: 'POST',
           headers: {

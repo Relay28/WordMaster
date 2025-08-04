@@ -10,7 +10,7 @@ import { useUserAuth } from '../context/UserAuthContext';
 import { useLocation } from 'react-router-dom';
 import { Class, PersonOutline } from "@mui/icons-material";
 import picbg from '../../assets/picbg.png';
-import API_URL from '../../services/apiConfig';
+import apiConfig from '../../services/apiConfig';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 const CreateGameSession = () => {
@@ -54,7 +54,7 @@ const CreateGameSession = () => {
       try {
         const token = await getToken();
         
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+        const apiUrl = import.meta.env.VITE_API_URL;
         console.log('Using API URL:', apiUrl);
 
         const params = new URLSearchParams(location.search);
@@ -63,7 +63,7 @@ const CreateGameSession = () => {
           setSelectedContent(contentId);
         }
 
-        const response = await fetch(`${apiUrl}/api/content/published`, {
+        const response = await fetch(`${apiUrl}/content/published`, {
           headers: { 
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json',
@@ -107,7 +107,7 @@ const CreateGameSession = () => {
   try {
     setLoading(true);
     const token = await getToken();
-    const response = await fetch(`${API_URL}/api/waiting-room/content/${selectedContent}/join`, {
+    const response = await fetch(`${apiConfig.API_URL}/waiting-room/content/${selectedContent}/join`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

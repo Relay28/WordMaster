@@ -35,7 +35,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
         
         const response = await fetch(
-          `${API_URL}/api/sessions/${gameState.sessionId}/leaderboard`,
+          `${API_URL}/sessions/${gameState.sessionId}/leaderboard`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -72,7 +72,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
         
         const response = await fetch(
-          `${API_URL}/api/teacher-feedback/comprehension/${gameState.sessionId}/student/${user.id}/questions`, 
+          `${API_URL}/teacher-feedback/comprehension/${gameState.sessionId}/student/${user.id}/questions`, 
           {
             headers: {
               'Authorization': `Bearer ${token}`
