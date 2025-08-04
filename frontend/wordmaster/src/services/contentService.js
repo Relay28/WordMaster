@@ -5,7 +5,7 @@ const contentService = {
   // Get all content for the teacher
   getAllContent: async (token) => {
     try {
-      const response = await axios.get(`${API_URL}/api/content`, {
+      const response = await axios.get(`${API_URL}/content`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -20,7 +20,7 @@ const contentService = {
   // Get content by ID
   getContentById: async (id, token) => {
     try {
-      const response = await axios.get(`${API_URL}/api/content/${id}`, {
+      const response = await axios.get(`${API_URL}/content/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -35,7 +35,7 @@ const contentService = {
   // Get content created by the authenticated user
   getContentByCreator: async (token) => {
     try {
-      const response = await axios.get(`${API_URL}/api/content/creator`, {
+      const response = await axios.get(`${API_URL}/content/creator`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -50,7 +50,7 @@ const contentService = {
   // Get published content
   getPublishedContent: async (token) => {
     try {
-      const response = await axios.get(`${API_URL}/api/content/published`, {
+      const response = await axios.get(`${API_URL}/content/published`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -65,7 +65,7 @@ const contentService = {
   // Create content
   createContent: async (contentData, token) => {
     try {
-      const response = await axios.post(`${API_URL}/api/content`, contentData, {
+      const response = await axios.post(`${API_URL}/content`, contentData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -81,7 +81,7 @@ const contentService = {
   // Update content
   updateContent: async (id, contentData, token) => {
     try {
-      const response = await axios.put(`${API_URL}/api/content/${id}`, contentData, {
+      const response = await axios.put(`${API_URL}/content/${id}`, contentData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -97,7 +97,7 @@ const contentService = {
   // Delete content
   deleteContent: async (id, token) => {
     try {
-      await axios.delete(`${API_URL}/api/content/${id}`, {
+      await axios.delete(`${API_URL}/content/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -114,7 +114,7 @@ const contentService = {
   // Publish content
   publishContent: async (id, token) => {
     try {
-      const response = await axios.put(`${API_URL}/api/content/${id}/publish`, {}, {
+      const response = await axios.put(`${API_URL}/content/${id}/publish`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -129,7 +129,7 @@ const contentService = {
   // Unpublish content
   unpublishContent: async (id, token) => {
     try {
-      const response = await axios.put(`${API_URL}/api/content/${id}/unpublish`, {}, {
+      const response = await axios.put(`${API_URL}/content/${id}/unpublish`, {}, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -144,7 +144,7 @@ const contentService = {
   // Get content for a classroom
   getContentByClassroom: async (classroomId, token) => {
     try {
-      const response = await axios.get(`${API_URL}/api/content/classroom/${classroomId}`, {
+      const response = await axios.get(`${API_URL}/content/classroom/${classroomId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -159,7 +159,7 @@ const contentService = {
   // Get published content for a classroom
   getPublishedContentByClassroom: async (classroomId, token) => {
     try {
-      const response = await axios.get(`${API_URL}/api/content/classroom/${classroomId}/published`, {
+      const response = await axios.get(`${API_URL}/content/classroom/${classroomId}/published`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -175,7 +175,7 @@ const contentService = {
   createContentForClassroom: async (contentData, classroomId, token) => {
     try {
       const response = await axios.post(
-        `${API_URL}/api/content/classroom/${classroomId}`, 
+        `${API_URL}/content/classroom/${classroomId}`, 
         contentData, 
         {
           headers: {
