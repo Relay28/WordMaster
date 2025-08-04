@@ -93,12 +93,29 @@ public class CardService {
 
         // Generate new cards based on content data
         List<PowerupCard> newCards = new ArrayList<>();
-        newCards.add(createCard(content, "USE_ADJECTIVE", "Use an adjective in your sentence", 10));
-        newCards.add(createCard(content, "USE_NOUN", "Use a noun in your sentence", 10));
-        newCards.add(createCard(content, "LONG_SENTENCE", "Write a sentence longer than 50 characters", 15));
-        newCards.add(createCard(content, "COMPLEX_SENTENCE", "Write a complex sentence with multiple clauses", 20));
+        // In CardService.generateCardsForContent method
 
-        // Save the generated cards
+
+    // Grammar-focused cards
+            newCards.add(createCard(content, "USE_PAST_TENSE", "Use a verb in past tense form", 15));
+            newCards.add(createCard(content, "USE_PRESENT_PERFECT", "Use present perfect tense (have/has + verb)", 20));
+            newCards.add(createCard(content, "USE_CONJUNCTION", "Use a conjunction (and, but, or, because)", 10));
+
+    // Vocabulary expansion cards
+
+            newCards.add(createCard(content, "USE_ACADEMIC_WORD", "Use an academic vocabulary word", 25));
+            newCards.add(createCard(content, "USE_PHRASAL_VERB", "Use a phrasal verb (e.g., 'give up', 'look after')", 20));
+
+    // Communication skills cards
+            newCards.add(createCard(content, "ASK_QUESTION", "Form a proper question", 15));
+            newCards.add(createCard(content, "EXPRESS_OPINION", "Express your opinion using 'I think' or 'In my opinion'", 15));
+            newCards.add(createCard(content, "POLITE_RESPONSE", "Give a polite response using courtesy words", 10));
+
+    // Advanced cards
+            newCards.add(createCard(content, "USE_CONDITIONALS", "Use an if-clause in your sentence", 25));
+            newCards.add(createCard(content, "REPORTED_SPEECH", "Use reported speech to relay information", 30));
+            newCards.add(createCard(content, "ACTIVE_PASSIVE", "Transform a sentence from active to passive voice", 25));
+            // Save the generated cards
         for (PowerupCard card : newCards) {
             cardRepository.save(card);
         }
@@ -151,7 +168,6 @@ public class CardService {
             return new ArrayList<>();
         }
     }
-
     @Transactional
     public Map<String, Object> useCardWithMessage(Long playerCardId, String message) {
         Map<String, Object> result = new HashMap<>();
@@ -169,8 +185,8 @@ public class CardService {
             PowerupCard card = playerCard.getCard();
             boolean conditionMet = checkCardCondition(card, message);
 
-            logger.info("Card condition check for card {} with message '{}': {}", 
-                       card.getTriggerCondition(), message, conditionMet ? "PASSED" : "FAILED");
+            logger.info("Card condition check for card {} with message '{}': {}",
+                    card.getTriggerCondition(), message, conditionMet ? "PASSED" : "FAILED");
 
             if (conditionMet) {
                 // Award points
@@ -179,9 +195,12 @@ public class CardService {
                 player.setTotalScore(oldScore + card.getPointsBonus());
                 playerRepository.save(player);
 
-                // Mark card as used
+                // Mark old card as used
                 playerCard.setUsed(true);
                 playerCardRepository.save(playerCard);
+
+                // Draw a replacement card
+                PlayerCard replacementCard = drawReplacementCard(player);
 
                 result.put("success", true);
                 result.put("message", "Card used successfully!");
@@ -189,8 +208,13 @@ public class CardService {
                 result.put("cardName", card.getName());
                 result.put("newTotalScore", player.getTotalScore());
 
-                logger.info("Player {} used card {} successfully, gained {} points",
-                           player.getId(), card.getName(), card.getPointsBonus());
+                // Add replacement card info
+                if (replacementCard != null) {
+                    result.put("replacementCard", convertToDTO(replacementCard));
+                }
+
+                logger.info("Player {} used card {} successfully, gained {} points, received replacement card",
+                        player.getId(), card.getName(), card.getPointsBonus());
             } else {
                 result.put("success", false);
                 result.put("message", "Card conditions not met for " + card.getName() + ". Try using " + getHintForCard(card.getTriggerCondition()));
@@ -208,6 +232,29 @@ public class CardService {
     }
 
     @Transactional
+    private PlayerCard drawReplacementCard(PlayerSessionEntity player) {
+        try {
+            List<PowerupCard> availableCards = cardRepository.findByContentData(
+                    player.getSession().getContent().getContentData()
+            );
+
+            if (!availableCards.isEmpty()) {
+                PowerupCard newCard = availableCards.get(random.nextInt(availableCards.size()));
+
+                PlayerCard replacementCard = new PlayerCard();
+                replacementCard.setPlayerSession(player);
+                replacementCard.setCard(newCard);
+                replacementCard.setUsed(false);
+
+                return playerCardRepository.save(replacementCard);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to draw replacement card for player {}: {}", player.getId(), e.getMessage());
+        }
+        return null;
+    }
+
+    @Transactional
     public boolean useCard(Long playerCardId, String message) {
         Map<String, Object> result = useCardWithMessage(playerCardId, message);
         return (Boolean) result.getOrDefault("success", false);
@@ -215,48 +262,47 @@ public class CardService {
 
     private boolean checkCardCondition(PowerupCard card, String message) {
         String condition = card.getTriggerCondition();
-        
-        // Normalize the message: convert to lowercase and trim spaces
         String normalizedMessage = message.toLowerCase().trim();
 
         switch (condition) {
-            case "USE_ADJECTIVE":
-                // More generous adjective detection
-                return containsPartOfSpeech(normalizedMessage, "ADJECTIVE") ||
-                       // Common adjective suffixes
-                       normalizedMessage.matches(".*(ful|ous|ish|able|ible|al|ent|ive|less|y|ian|en|ese|ic|ical|ly|ed)\\b.*");
+            case "USE_PAST_TENSE":
+                return message.matches(".*\\b(ed|was|were|had|did|went|came|saw|made|took|got|said|found|thought|told|became|left|felt|put|brought|began|kept|held|wrote|stood|heard|let|meant|set|met|ran|paid|sat|spoke|lay|led|read|grew|lost|fell|sent|built)\\b.*");
 
-            case "USE_NOUN":
-                // More generous noun detection
-                return containsPartOfSpeech(normalizedMessage, "NOUN") ||
-                       // Check for capitalized words (proper nouns) and common noun patterns
-                       normalizedMessage.matches(".*\\b[A-Z][a-z]+\\b.*") ||
-                       normalizedMessage.matches(".*(ness|ship|ment|ity|ance|ence|sion|tion|hood|dom|ism|ist|er|or|ian)\\b.*");
+            case "USE_PRESENT_PERFECT":
+                return message.matches(".*(have|has)\\s+(\\w+ed|been|had|done|made|gone|taken|seen|come|known|given|found|thought|told|become|left|felt|put|brought|begun|kept|held|written|stood|heard|let|meant|set|met|run|paid|sat|spoken|lain|led|read|grown|lost|fallen|sent|built)\\b.*");
 
-            case "LONG_SENTENCE":
-                // Relaxed length constraint - characters instead of words
-                return normalizedMessage.length() > 30;
+            case "USE_CONJUNCTION":
+                return message.matches(".*\\b(and|but|or|nor|for|yet|so|because|although|since|unless|while|where|if|before|after|as|when|though|whether|even though|in case|provided that|assuming that)\\b.*");
 
-            case "COMPLEX_SENTENCE":
-                // More generous detection of complex sentences
-                return normalizedMessage.split("[,;.]").length > 1 ||
-                       normalizedMessage.matches(".*(because|since|although|though|while|if|when|after|before|as|so|that|which|who|whom|whose|where|how|why).*");
+
+            case "USE_ACADEMIC_WORD":
+                return message.matches(".*\\b(analyze|evaluate|conclude|demonstrate|establish|indicate|interpret|investigate|obtain|participate|process|require|similar|significant|specific|theory|achieve|acquire|affect|approach|concept|context|data|define|environment|factor|function|identify|method|proceed|research|respond|strategy|structure|valid)\\b.*");
+
+            case "USE_PHRASAL_VERB":
+                return message.matches(".*\\b(give up|look after|take off|get along|bring up|come across|figure out|look forward|put off|turn down|carry on|come back|find out|get over|go through|make up|pick up|point out|set up|take care|think about|work out|break down|bring about|catch up|check out|come up|get away|hold on|look into|put on|run into|take over|turn out)\\b.*");
+
+            case "ASK_QUESTION":
+                return message.matches("^(what|who|where|when|why|how|is|are|was|were|do|does|did|have|has|had|can|could|will|would|should|may|might)\\b.*\\?$");
+
+            case "EXPRESS_OPINION":
+                return message.matches(".*(i think|in my opinion|i believe|i feel|from my perspective|in my view|as i see it|to my mind|if you ask me|personally|in my experience).*");
+
+            case "POLITE_RESPONSE":
+                return message.matches(".*(please|thank you|thanks|excuse me|pardon|sorry|would you|could you|may i|appreciate|grateful|kind|pleasure|welcome).*");
+
+            case "USE_CONDITIONALS":
+                return message.matches(".*(if|unless|provided that|assuming that|as long as|in case).*");
+
+            case "REPORTED_SPEECH":
+                return message.matches(".*(said that|told that|mentioned that|reported that|announced that|claimed that|suggested that|explained that|stated that|declared that).*");
+
+            case "ACTIVE_PASSIVE":
+                return message.matches(".*(is|are|was|were|been|being|be)\\s+(\\w+ed|done|made|given|taken|seen|found|brought|sent|built|written|spoken|known)\\s+by\\b.*");
 
             default:
                 logger.warn("Unknown card condition: {}", condition);
-                return true; // Default to success for unknown conditions
+                return false;
         }
-    }
-
-    // This would use an NLP service to check parts of speech
-    private boolean containsPartOfSpeech(String message, String posTag) {
-        // Expanded wordlists for better detection
-        if (posTag.equals("ADJECTIVE")) {
-            return message.matches(".*\\b(amazing|great|big|small|happy|good|bad|beautiful|ugly|smart|clever|important|difficult|easy|hard|soft|hot|cold|new|old|young|tall|short|high|low|fast|slow|early|late|strong|weak|rich|poor|clean|dirty|bright|dark|loud|quiet|sweet|sour|bitter|salty|rough|smooth|thick|thin|heavy|light|wide|narrow|deep|shallow|sharp|blunt|dry|wet|fresh|stale|safe|dangerous|healthy|sick|wild|tame|raw|cooked|empty|full|free|busy|open|closed|public|private|different|same|right|wrong|left|correct|interesting|boring|funny|serious|strange|normal|possible|impossible|necessary|useful|useless|valuable|cheap|expensive|popular|common|rare|lucky|real|fake|true|false|best|worst|special|usual|favorite|friendly)\\b.*");
-        } else if (posTag.equals("NOUN")) {
-            return message.matches(".*\\b(man|woman|child|boy|girl|person|dog|cat|house|car|school|book|tree|water|food|phone|computer|teacher|student|friend|city|country|world|day|night|time|year|way|thing|life|family|home|work|job|money|business|problem|idea|information|power|love|health|name|place|room|area|history|story|fact|paper|group|number|game|party|news|music|people|art|science|nature|animal|movie|show|video|picture|program|system|company|office|service|store|market|case|community|service|language|knowledge|quality|education|experience|government|organization|society|example|property|religion|member|energy|team|relationship|adventure|moment|hour|minute|second|month|week|weekend|morning|afternoon|evening|night|floor|wall|door|window|road|street|road|building|town|area|field|garden|park|mountain|river|lake|ocean|sea|beach|airport|station|hotel|restaurant|mall|shop|store|product|customer|price|machine|device|tool|part|project|material|plant|virus)\\b.*");
-        }
-        return false;
     }
 
     private PlayerCardDTO convertToDTO(PlayerCard card) {
@@ -267,20 +313,49 @@ public class CardService {
         dto.setDescription(card.getCard().getDescription());
         dto.setPointsBonus(card.getCard().getPointsBonus());
         dto.setUsed(card.isUsed());
+        dto.setActivated(card.isActivated()); // Include the activated field
         return dto;
     }
 
     // Helper method to give users more specific hints
     private String getHintForCard(String triggerCondition) {
         switch (triggerCondition) {
-            case "USE_ADJECTIVE":
-                return "a descriptive word like 'beautiful', 'great', 'interesting', etc.";
-            case "USE_NOUN":
-                return "a person, place or thing like 'teacher', 'school', 'book', etc.";
-            case "LONG_SENTENCE":
-                return "a longer sentence with more words (at least 30 characters)";
-            case "COMPLEX_SENTENCE":
-                return "a sentence with multiple parts or connecting words like 'because', 'when', 'if', etc.";
+            case "USE_PAST_TENSE":
+                return "a verb in past tense like 'walked', 'played', 'went', 'saw', etc.";
+
+            case "USE_PRESENT_PERFECT":
+                return "a phrase using 'have' or 'has' with a past participle like 'have seen', 'has gone', etc.";
+
+            case "USE_CONJUNCTION":
+                return "connecting words like 'and', 'but', 'because', 'although', etc.";
+
+            case "USE_SYNONYM":
+                return "different words with similar meanings like 'big/large', 'happy/joyful', etc.";
+
+            case "USE_ACADEMIC_WORD":
+                return "formal words like 'analyze', 'evaluate', 'demonstrate', 'investigate', etc.";
+
+            case "USE_PHRASAL_VERB":
+                return "verb combinations like 'give up', 'look after', 'take off', etc.";
+
+            case "ASK_QUESTION":
+                return "a sentence starting with 'what', 'who', 'where', 'when', 'why', 'how' and ending with '?'";
+
+            case "EXPRESS_OPINION":
+                return "phrases like 'I think', 'in my opinion', 'I believe', etc.";
+
+            case "POLITE_RESPONSE":
+                return "polite words like 'please', 'thank you', 'excuse me', etc.";
+
+            case "USE_CONDITIONALS":
+                return "a sentence using 'if', 'unless', or 'as long as'";
+
+            case "REPORTED_SPEECH":
+                return "reporting what someone said using 'said that', 'told that', etc.";
+
+            case "ACTIVE_PASSIVE":
+                return "a sentence in passive form like 'was done by', 'is made by', etc.";
+
             default:
                 return "the right keywords for this card";
         }
