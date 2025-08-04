@@ -60,7 +60,7 @@ const WaitingRoomPage = () => {
     const fetchStudents = async () => {
       try {
         const token = await getToken();
-        const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/students`, {
+        const response = await fetch(`${API_URL}/waiting-room/content/${contentId}/students`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -133,7 +133,7 @@ const WaitingRoomPage = () => {
     try {
       setLoading(true);
       const token = await getToken();
-      const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/start`, {
+      const response = await fetch(`${API_URL}/waiting-room/content/${contentId}/start`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -242,7 +242,7 @@ useEffect(() => {
           return;
         }
 
-        const response = await fetch(`${API_URL}/api/game/${sessionId}/leaderboard`, {
+        const response = await fetch(`${API_URL}/game/${sessionId}/leaderboard`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -493,7 +493,7 @@ useEffect(() => {
 
       // Fallback implementation if parent didn't provide onUseCard
       const token = await getToken();
-      const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
+      const response = await fetch(`${API_URL}/cards/use/${cardId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -534,7 +534,7 @@ useEffect(() => {
   const fetchUpdatedGameState = useCallback(async () => {
     try {
       const token = await getToken();
-      const response = await fetch(`${API_URL}/api/sessions/${gameState.sessionId}/state`, {
+      const response = await fetch(`${API_URL}/sessions/${gameState.sessionId}/state`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
