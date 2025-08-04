@@ -13,6 +13,8 @@ import {
 import picbg from '../../assets/picbg.png'
 import { Person, EmojiEvents, ArrowBack, QuestionAnswer, Class, AccessTime, People } from '@mui/icons-material';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const TeacherContentSessions = () => {
       const navigate = useNavigate();
   const { getToken } = useUserAuth();
@@ -61,7 +63,7 @@ const TeacherContentSessions = () => {
     try {
       const token = await getToken();
       await axios.post(
-        `http://localhost:8080/api/sessions/${sessionId}/end`,
+        `${API_BASE_URL}/sessions/${sessionId}/end`,
         {},
         {
           headers: {
@@ -82,7 +84,7 @@ const TeacherContentSessions = () => {
         setLoading(true);
         const token = await getToken();
         const response = await axios.get(
-          `http://localhost:8080/api/sessions/teacher/sessions/content/${contentId}/active`,
+          `${API_BASE_URL}/sessions/teacher/sessions/content/${contentId}/active`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

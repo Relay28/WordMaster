@@ -20,6 +20,9 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 const defaultTheme = createTheme();
 
+
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,7 +37,7 @@ const AdminLogin = () => {
     setError('');
 
     try {
-        const response = await axios.post('http://localhost:8080/api/admin/users/login', {
+        const response = await axios.post(`${API_BASE_URL}/admin/users/login`, {
             email,
             password
           });

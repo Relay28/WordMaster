@@ -18,7 +18,7 @@ import picbg from '../../assets/picbg.png';
 import '@fontsource/press-start-2p';
 import logo from '../../assets/LOGO.png';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const OTPVerification = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
