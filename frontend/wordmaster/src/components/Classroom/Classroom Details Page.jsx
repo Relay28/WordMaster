@@ -135,7 +135,7 @@ const ClassroomDetailsPage = () => {
 
   const indexOfLastItem = page * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = contentList.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = (contentList || []).slice(indexOfFirstItem, indexOfLastItem);
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -177,7 +177,7 @@ const ClassroomDetailsPage = () => {
     const token = await getToken();
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
     
-    const response = await fetch(`${API_URL}/api/game/classroom/${classroom.id}`, {
+    const response = await fetch(`${API_URL}/game/classroom/${classroom.id}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -207,7 +207,7 @@ const ClassroomDetailsPage = () => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
       // Change the endpoint to match the controller mapping
-      const response = await fetch(`${API_URL}/api/teacher-feedback/summary/${sessionId}`, {
+      const response = await fetch(`${API_URL}/teacher-feedback/summary/${sessionId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -230,38 +230,71 @@ const ClassroomDetailsPage = () => {
   };
   
   // Fetch classroom content
-  useEffect(() => {
-    const fetchClassroomContent = async () => {
-      if (!classroom) return;
-      
-      console.log("Fetching content for classroom ID:", classroom.id);
-      setLoadingContent(true);
-      
-      try {
-        const token = await getToken();
-        let data;
-        
-        if (user?.role === 'USER_STUDENT') {
-          // Fetch only published content for students
-          data = await contentService.getPublishedContentByClassroom(classroom.id, token);
-        } else {
-          // Fetch all content for teachers
-          data = await contentService.getContentByClassroom(classroom.id, token);
-        }
-        
-        console.log("Classroom content data:", data);
-        setContentList(data);
-        setContentError(null);
-      } catch (err) {
-        console.error("Error loading classroom content:", err);
-        setContentError("Failed to load content for this classroom.");
-      } finally {
-        setLoadingContent(false);
+  const fetchClassroomContent = async () => {
+    if (!classroom?.id) {
+      console.log("No classroom ID available");
+      return;
+    }
+    
+    console.log("Fetching content for classroom ID:", classroom.id);
+    setLoadingContent(true);
+    setContentError(null);
+    
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error('No authentication token available');
       }
-    };
+      
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      // Choose the correct endpoint based on user role
+      const endpoint = user?.role === 'USER_STUDENT' 
+        ? `/content/classroom/${classroom.id}/published`
+        : `/content/classroom/${classroom.id}`;
+      
+      console.log("Making request to:", `${API_URL}${endpoint}`);
+      
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log("Response status:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error Response:", errorText);
+        throw new Error(`Failed to fetch content: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Fetched content data:", data);
+      
+      // Ensure data is always an array
+      const contentArray = Array.isArray(data) ? data : [];
+      setContentList(contentArray);
+      setContentError(null);
+      
+    } catch (err) {
+      console.error("Error in fetchClassroomContent:", err);
+      setContentError(err.message || "Failed to load content for this classroom.");
+      setContentList([]); // Ensure contentList is always an array
+    } finally {
+      setLoadingContent(false);
+    }
+  };
 
-    fetchClassroomContent();
-  }, [classroom, getToken, refreshTrigger, user?.role]); // Added user?.role to dependencies
+  // Make sure this useEffect calls the function properly
+  useEffect(() => {
+    if (classroom?.id && authChecked && user) {
+      fetchClassroomContent();
+    }
+  }, [classroom?.id, authChecked, user, refreshTrigger]);
+
   const handleCreateContent = () => {
     if (!classroom) return;
     console.log("Navigating to create content with classroom:", classroom.id); // Debug logging
@@ -370,7 +403,7 @@ const confirmDeleteContent = async () => {
       
       // Fix the URL path to include the /api/teacher-feedback prefix
       const response = await fetch(
-        `${API_URL}/api/teacher-feedback/student-feedback/classroom/${classroom.id}/student/${user.id}`, 
+        `${API_URL}/teacher-feedback/student-feedback/classroom/${classroom.id}/student/${user.id}`, 
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -410,7 +443,7 @@ const confirmDeleteSession = async () => {
     const token = await getToken();
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
     
-    const response = await fetch(`${API_URL}/api/sessions/${sessionToDelete}`, {
+    const response = await fetch(`${API_URL}/sessions/${sessionToDelete}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -470,7 +503,7 @@ const confirmDeleteSession = async () => {
       const token = await getToken();
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
-      const response = await fetch(`${API_URL}/api/game/content/${contentId}/completed`, {
+      const response = await fetch(`${API_URL}/game/content/${contentId}/completed`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -526,7 +559,7 @@ const confirmDeleteSession = async () => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
       const response = await fetch(
-        `${API_URL}/api/export/available-dates/${content.id}`,
+        `${API_URL}/export/available-dates/${content.id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -572,7 +605,7 @@ const confirmDeleteSession = async () => {
         params.append('date', selectedExportDate);
       }
       
-      const url = `${API_URL}/api/export/student-reports/${selectedContentForExport.id}?${params}`;
+      const url = `${API_URL}/export/student-reports/${selectedContentForExport.id}?${params}`;
       console.log('Export URL:', url);
       
       const response = await fetch(url, {

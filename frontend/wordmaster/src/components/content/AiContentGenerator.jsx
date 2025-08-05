@@ -67,7 +67,7 @@ const AiContentGenerator = () => {
         classroomId: classroomId || null
       };
       
-      const response = await fetch(`${API_URL}/api/content/generate`, {
+      const response = await fetch(`${API_URL}/content/generate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
