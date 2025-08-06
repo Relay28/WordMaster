@@ -124,7 +124,7 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
       const token = await getToken();
       
       const response = await fetch(
-        `${API_URL}/teacher-feedback/comprehension/${sessionId}/student/${studentId}/answers`,
+        `${API_URL}/api/teacher-feedback/comprehension/${sessionId}/student/${studentId}/answers`,
         {
           method: 'POST',
           headers: {
@@ -196,7 +196,7 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
           alignItems: 'center',
           justifyContent: 'center',
           // Optional: remove default padding for perfect centering
-          px: 0,
+          marginTop: 20,
         }}
       >
         <Fade in={true} timeout={800}>

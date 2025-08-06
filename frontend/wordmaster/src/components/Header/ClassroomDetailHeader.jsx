@@ -20,7 +20,7 @@ const ClassroomDetailHeader = ({
   avatarInitials,
   user,
   anchorEl,
-  isMobile,
+  ismobile,
   pixelText,
   pixelHeading,
   handleMenuOpen,
@@ -34,7 +34,7 @@ const ClassroomDetailHeader = ({
     <Box sx={{ 
       backgroundColor: 'white',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      py: isMobile ? 1.5 : 2,
+      py: ismobile ? 1.5 : 2,
       px: { xs: 1.5, md: 6 },
       position: 'relative',
       overflow: 'hidden',
@@ -43,7 +43,7 @@ const ClassroomDetailHeader = ({
         <Box 
           display="flex" 
           alignItems="center" 
-          gap={isMobile ? 1.5 : 4}
+          gap={ismobile ? 1.5 : 4}
         >
           <IconButton 
             onClick={() => navigate('/homepage')}
@@ -52,8 +52,8 @@ const ClassroomDetailHeader = ({
               backgroundColor: 'rgba(255, 255, 255, 0.7)',
               border: '2px solid #5F4B8B',
               borderRadius: '4px',
-              width: isMobile ? '24px' : '32px',
-              height: isMobile ? '24px' : '32px',
+              width: ismobile ? '24px' : '32px',
+              height: ismobile ? '24px' : '32px',
               '&:hover': {
                 backgroundColor: 'rgba(95, 75, 139, 0.1)',
                 transform: 'translateY(-1px)'
@@ -61,22 +61,22 @@ const ClassroomDetailHeader = ({
               transition: 'all 0.2s ease'
             }}
           >
-            <ChevronLeftIcon fontSize={isMobile ? "small" : "medium"} />
+            <ChevronLeftIcon fontSize={ismobile ? "small" : "medium"} />
           </IconButton>
           <Typography sx={{ 
             ...pixelHeading,
             color: '#5F4B8B',
-            fontSize: isMobile ? '9px' : '16px',
+            fontSize: ismobile ? '9px' : '16px',
             '&:hover': {
               color: '#6c63ff'
             },
-            marginLeft: isMobile ? '4px' : '8px'
+            marginLeft: ismobile ? '4px' : '8px'
           }}>
             Classroom Details
           </Typography>
         </Box>
-        <Box display="flex" alignItems="center" gap={isMobile ? 1.5 : 2}>
-          {!isMobile && (
+        <Box display="flex" alignItems="center" gap={ismobile ? 1.5 : 2}>
+          {!ismobile && (
             <Box textAlign="right">
               <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
                 {displayName}
@@ -89,8 +89,8 @@ const ClassroomDetailHeader = ({
           <IconButton onClick={handleMenuOpen} size="small" sx={{ p: 0 }}>
             <Avatar 
               sx={{ 
-                width: isMobile ? 28 : 40, 
-                height: isMobile ? 28 : 40, 
+                width: ismobile ? 28 : 40, 
+                height: ismobile ? 28 : 40, 
                 bgcolor: '#5F4B8B',
                 color: 'white'
               }}

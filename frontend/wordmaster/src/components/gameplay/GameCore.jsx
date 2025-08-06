@@ -12,7 +12,6 @@ import picbg from '../../assets/picbg.png';
 import CardDisplay from './CardDisplay'; // Import the CardDisplay component
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL ;
-const API_URLv2 = import.meta.env.VITE_API_URLv2 ;
 
 const GameCore = () => {
   const { sessionId } = useParams();
@@ -74,7 +73,7 @@ const GameCore = () => {
           
           while (attempts < maxAttempts && !questions) {
             const response = await fetch(
-              `${API_URL}/teacher-feedback/comprehension/${gameState.sessionId}/student/${user.id}/questions`,
+              `${API_URL}/api/teacher-feedback/comprehension/${gameState.sessionId}/student/${user.id}/questions`,
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
             
@@ -125,8 +124,8 @@ const GameCore = () => {
         }
         
         // Create SockJS instance with token in query parameter as fallback
-        const socket = new SockJS(`${API_URLv2}/ws?token=${token}`);
-        
+        const socket = new SockJS(`${API_URL}/ws?token=${token}`);
+
         client = new Client({
           webSocketFactory: () => socket,
           
@@ -284,7 +283,7 @@ const fetchSessionMessages = useCallback(async () => {
       return;
     }
 
-    const response = await fetch(`${API_URL}/chat/sessions/${sessionId}/messages`, {
+    const response = await fetch(`${API_URL}/api/chat/sessions/${sessionId}/messages`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Cache-Control': 'no-cache',
@@ -318,14 +317,14 @@ const fetchGameState = useCallback(async () => {
     
     // Fetch game state
     const [gameResponse, messagesResponse] = await Promise.all([
-      fetch(`${API_URL}/sessions/${sessionId}/state`, {
+      fetch(`${API_URL}/api/sessions/${sessionId}/state`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache'
         }
       }),
-      fetch(`${API_URL}/chat/sessions/${sessionId}/messages`, {
+      fetch(`${API_URL}/api/chat/sessions/${sessionId}/messages`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Cache-Control': 'no-cache',
@@ -568,7 +567,7 @@ useEffect(() => {
       setLoadingCards(true);
       const token = await getToken();
       const response = await fetch(
-        `${API_URL}/cards/player/${gameState.sessionId}/user/${user.id}`,
+        `${API_URL}/api/cards/player/${gameState.sessionId}/user/${user.id}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       
@@ -615,7 +614,7 @@ useEffect(() => {
       console.log('[Cards Debug] Using card:', cardId, 'with sentence:', sentence);
       
       const token = await getToken();
-      const response = await fetch(`${API_URL}/cards/use/${cardId}`, {
+      const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

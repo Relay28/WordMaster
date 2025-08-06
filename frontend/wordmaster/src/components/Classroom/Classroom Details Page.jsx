@@ -101,8 +101,8 @@ const ClassroomDetailsPage = () => {
   const [contentError, setContentError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add this line
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const istablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const [page, setPage] = useState(1);
   const [itemsPerPage] = useState(2); 
@@ -139,21 +139,21 @@ const ClassroomDetailsPage = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : isTablet ? '9px' : '10px',
+    fontSize: ismobile ? '8px' : istablet ? '9px' : '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : isTablet ? '13px' : '14px',
+    fontSize: ismobile ? '12px' : istablet ? '13px' : '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : isTablet ? '9px' : '10px',
+    fontSize: ismobile ? '8px' : istablet ? '9px' : '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -177,7 +177,7 @@ const ClassroomDetailsPage = () => {
     const token = await getToken();
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
     
-    const response = await fetch(`${API_URL}/game/classroom/${classroom.id}`, {
+    const response = await fetch(`${API_URL}/api/game/classroom/${classroom.id}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -207,7 +207,7 @@ const ClassroomDetailsPage = () => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
       // Change the endpoint to match the controller mapping
-      const response = await fetch(`${API_URL}/teacher-feedback/summary/${sessionId}`, {
+      const response = await fetch(`${API_URL}/api/teacher-feedback/summary/${sessionId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -250,8 +250,8 @@ const ClassroomDetailsPage = () => {
       
       // Choose the correct endpoint based on user role
       const endpoint = user?.role === 'USER_STUDENT' 
-        ? `/content/classroom/${classroom.id}/published`
-        : `/content/classroom/${classroom.id}`;
+        ? `/api/content/classroom/${classroom.id}/published`
+        : `/api/content/classroom/${classroom.id}`;
       
       console.log("Making request to:", `${API_URL}${endpoint}`);
       
@@ -403,7 +403,7 @@ const confirmDeleteContent = async () => {
       
       // Fix the URL path to include the /api/teacher-feedback prefix
       const response = await fetch(
-        `${API_URL}/teacher-feedback/student-feedback/classroom/${classroom.id}/student/${user.id}`, 
+        `${API_URL}/api/teacher-feedback/student-feedback/classroom/${classroom.id}/student/${user.id}`, 
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -443,7 +443,7 @@ const confirmDeleteSession = async () => {
     const token = await getToken();
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
     
-    const response = await fetch(`${API_URL}/sessions/${sessionToDelete}`, {
+    const response = await fetch(`${API_URL}/api/sessions/${sessionToDelete}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -503,7 +503,7 @@ const confirmDeleteSession = async () => {
       const token = await getToken();
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
-      const response = await fetch(`${API_URL}/game/content/${contentId}/completed`, {
+      const response = await fetch(`${API_URL}/api/game/content/${contentId}/completed`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -559,7 +559,7 @@ const confirmDeleteSession = async () => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
       const response = await fetch(
-        `${API_URL}/export/available-dates/${content.id}`,
+        `${API_URL}/api/export/available-dates/${content.id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -605,7 +605,7 @@ const confirmDeleteSession = async () => {
         params.append('date', selectedExportDate);
       }
       
-      const url = `${API_URL}/export/student-reports/${selectedContentForExport.id}?${params}`;
+      const url = `${API_URL}/api/export/student-reports/${selectedContentForExport.id}?${params}`;
       console.log('Export URL:', url);
       
       const response = await fetch(url, {
@@ -747,7 +747,7 @@ return (
         avatarInitials={avatarInitials}
         user={user}
         anchorEl={anchorEl}
-        isMobile={isMobile}
+        ismobile={ismobile}
         pixelText={pixelText}
         pixelHeading={pixelHeading}
         handleMenuOpen={handleMenuOpen}
@@ -836,7 +836,7 @@ return (
               </Box>
             ) : (
               <Box>
-                <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px', mb: 1 }}>
+                <Typography sx={{ ...pixelHeading, fontSize: ismobile ? '16px' : '20px', mb: 1 }}>
                   {classroom.name}
                 </Typography>
                 {classroom.description && (
@@ -951,7 +951,7 @@ return (
               '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
               '& .MuiTab-root': { 
                 ...pixelHeading, 
-                fontSize: isMobile ? '7px' : isTablet ? '11px' : '12px',
+                fontSize: ismobile ? '7px' : istablet ? '11px' : '12px',
                 flexGrow: 1,
                 minWidth: 'unset',
                 px: 1,
@@ -1371,7 +1371,7 @@ return (
                   label={`${classroom.studentCount + 1} TOTAL`} 
                   color="primary"
                   size="small"
-                  sx={{pixelText, fontSize: isMobile ? '10px' : '12px',}}
+                  sx={{pixelText, fontSize: ismobile ? '10px' : '12px',}}
                 />
               </Box>
               <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
@@ -1495,7 +1495,7 @@ return (
                 justifyContent="flex-start"
                 alignItems="center" 
                 mb={2}
-                gap={isMobile ? 1 : 1}
+                gap={ismobile ? 1 : 1}
               >
                 {isClassroomTeacher && (
                   <>
@@ -1506,10 +1506,10 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#5F4B8B',
-                        minWidth: isMobile ? 0 : undefined,
-                        px: isMobile ? 1 : isTablet ? 1.5 : 2,
-                        fontSize: isMobile ? '7px' : isTablet ? '9px' : '10px',
-                        height: isMobile ? '28px' : isTablet ? '30px' : '32px',
+                        minWidth: ismobile ? 0 : undefined,
+                        px: ismobile ? 1 : istablet ? 1.5 : 2,
+                        fontSize: ismobile ? '7px' : istablet ? '9px' : '10px',
+                        height: ismobile ? '28px' : istablet ? '30px' : '32px',
                         '&:hover': { 
                           backgroundColor: '#4a3a6d',
                           transform: 'translateY(-2px)'
@@ -1534,10 +1534,10 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#6c63ff',
-                        minWidth: isMobile ? 0 : undefined,
-                        px: isMobile ? 1 : isTablet ? 1.5 : 2,
-                        fontSize: isMobile ? '7px' : isTablet ? '9px' : '10px',
-                        height: isMobile ? '28px' : isTablet ? '30px' : '32px',
+                        minWidth: ismobile ? 0 : undefined,
+                        px: ismobile ? 1 : istablet ? 1.5 : 2,
+                        fontSize: ismobile ? '7px' : istablet ? '9px' : '10px',
+                        height: ismobile ? '28px' : istablet ? '30px' : '32px',
                         '&:hover': { 
                           backgroundColor: '#5a52e0',
                           transform: 'translateY(-2px)'
@@ -1584,7 +1584,9 @@ return (
                     NO CONTENT AVAILABLE
                   </Typography>
                   <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
-                    CREATE YOUR FIRST CONTENT
+                    {user?.role === 'USER_TEACHER'
+                      ? 'CREATE YOUR FIRST CONTENT'
+                      : "Your teacher hasn't created/published a content yet."}
                   </Typography>
                   {isClassroomTeacher && (
                     <Button
@@ -1663,9 +1665,9 @@ return (
                 onChange={handlePageChange}
                 variant="outlined"
                 shape="rounded"
-                size={isMobile ? "small" : "medium"}
-                siblingCount={isMobile ? 0 : 1}
-                boundaryCount={isMobile ? 1 : 2}
+                size={ismobile ? "small" : "medium"}
+                siblingCount={ismobile ? 0 : 1}
+                boundaryCount={ismobile ? 1 : 2}
               />
             </Box>
           </Stack>

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useUserAuth } from '../components/context/UserAuthContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 export const useUserProfile = (user, authChecked, logout, getToken) => {
   const [editMode, setEditMode] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
@@ -39,7 +39,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
       formData.append('file', file);
       
       const response = await axios.post(
-        `${API_BASE_URL}/profile/upload-picture`,
+        `${API_URL}/api/profile/upload-picture`,
         formData,
         {
           headers: {
@@ -76,7 +76,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
       setLoading(true);
       const token = await getToken(); // Make sure to await the token
       
-      const response = await axios.get(`${API_BASE_URL}/profile`, {
+      const response = await axios.get(`${API_URL}/api/profile`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -132,7 +132,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
         // currentPassword: formData.currentPassword // Sent as 'password' to backend
       };
 
-      const response = await axios.put(`${API_BASE_URL}/profile`, updateDto, {
+      const response = await axios.put(`${API_URL}/api/profile`, updateDto, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -173,7 +173,7 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
       
       const token = await getToken(); // Make sure to await the token
 
-      await axios.delete(`${API_BASE_URL}/profile`, {
+      await axios.delete(`${API_URL}/api/profile`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

@@ -81,7 +81,7 @@ const GamePlay = ({
   const [showCards, setShowCards] = useState(false);
   const chatEndRef = useRef(null);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isProcessing, setIsProcessing] = useState(false); // For single-player processing
   const [localMessages, setLocalMessages] = useState([]);
   const [optimisticGameState, setOptimisticGameState] = useState(gameState); // Add this line
@@ -99,14 +99,14 @@ const GamePlay = ({
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: ismobile ? '8px' : '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: ismobile ? '12px' : '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
@@ -242,7 +242,7 @@ useEffect(() => {
           return;
         }
 
-        const response = await fetch(`${API_URL}/game/${sessionId}/leaderboard`, {
+        const response = await fetch(`${API_URL}/api/game/${sessionId}/leaderboard`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -493,7 +493,7 @@ useEffect(() => {
 
       // Fallback implementation if parent didn't provide onUseCard
       const token = await getToken();
-      const response = await fetch(`${API_URL}/cards/use/${cardId}`, {
+      const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -534,7 +534,7 @@ useEffect(() => {
   const fetchUpdatedGameState = useCallback(async () => {
     try {
       const token = await getToken();
-      const response = await fetch(`${API_URL}/sessions/${gameState.sessionId}/state`, {
+      const response = await fetch(`${API_URL}/api/sessions/${gameState.sessionId}/state`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -1437,7 +1437,7 @@ const cycleDisplayString = isSinglePlayer
         </Box>
       )}
       
-      <Typography sx={{fontSize: isMobile ? '14px' : '18px' }}>
+      <Typography sx={{fontSize: ismobile ? '14px' : '18px' }}>
         <strong>{msg.senderName}:</strong> {msg.content}
       </Typography>
       

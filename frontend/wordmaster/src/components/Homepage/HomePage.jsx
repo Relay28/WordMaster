@@ -59,25 +59,25 @@ const HomePage = () => {
   } = useHomePage(authChecked, user, getToken, login, logout);
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '12px',
+    fontSize: ismobile ? '8px' : '12px',
     lineHeight: '1.4',
     letterSpacing: '0.3px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '18px',
+    fontSize: ismobile ? '12px' : '18px',
     lineHeight: '1.4',
     letterSpacing: '0.8px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '12px',
+    fontSize: ismobile ? '8px' : '12px',
     letterSpacing: '0.3px',
     textTransform: 'uppercase'
   };
@@ -131,7 +131,7 @@ const HomePage = () => {
         avatarInitials={avatarInitials}
         user={user}
         anchorEl={anchorEl}
-        isMobile={isMobile}
+        ismobile={ismobile}
         pixelText={pixelText}
         pixelHeading={pixelHeading}
         handleMenuOpen={handleMenuOpen}
@@ -143,7 +143,7 @@ const HomePage = () => {
       flex: 1,
       width: '100%',
       overflow: 'auto',
-      px: isMobile ? 0.5 : 0, // less padding on mobile
+      px: ismobile ? 0.5 : 0, // less padding on mobile
       // Custom scrollbar styling
       '&::-webkit-scrollbar': {
         width: '8px',
@@ -160,22 +160,22 @@ const HomePage = () => {
       },
     }}>
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ py: isMobile ? 2 : 4, flex: 1 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={isMobile ? 2 : 4} flexWrap="wrap" gap={isMobile ? 1 : 2}>
+      <Container maxWidth="lg" sx={{ py: ismobile ? 2 : 4, flex: 1 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={ismobile ? 2 : 4} flexWrap="wrap" gap={ismobile ? 1 : 2}>
           <Typography sx={{ 
             ...pixelHeading, 
             color: 'text.primary',
-            fontSize: isMobile ? '10px' : '18px'
+            fontSize: ismobile ? '10px' : '18px'
           }}>
             YOUR CLASSES
           </Typography>
 
-          <Box display="flex" gap={isMobile ? 1 : 2} width={isMobile ? 'auto' : 'auto'} sx={{ '& button': { position: 'relative' } }}>
+          <Box display="flex" gap={ismobile ? 1 : 2} width={ismobile ? 'auto' : 'auto'} sx={{ '& button': { position: 'relative' } }}>
             
             <Button
               variant="contained"
               startIcon={<Add sx={{ 
-                fontSize: isMobile ? '8px' : '14px',
+                fontSize: ismobile ? '8px' : '14px',
                 filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
               }} />}
               onClick={() => setCreateClassOpen(true)}
@@ -187,14 +187,14 @@ const HomePage = () => {
                   transform: 'translateY(-2px)'
                 },
                 borderRadius: '4',
-                px: isMobile ? 1 : 3,
-                py: isMobile ? 0.25 : 1,
-                minWidth: isMobile ? 'auto' : '140px',
+                px: ismobile ? 1 : 3,
+                py: ismobile ? 0.25 : 1,
+                minWidth: ismobile ? 'auto' : '140px',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                 transition: 'all 0.1s ease',
-                fontSize: isMobile ? '6px' : '12px',
+                fontSize: ismobile ? '6px' : '12px',
                 '&:active': {
                   transform: 'translateY(1px)',
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -202,7 +202,7 @@ const HomePage = () => {
                 },
               }}
             >
-              {isMobile ? 'CLASS' : 'CREATE CLASS'}
+              {ismobile ? 'CLASS' : 'CREATE CLASS'}
             </Button>
 
             <Button
@@ -216,14 +216,14 @@ const HomePage = () => {
                   transform: 'translateY(-2px)'
                 },
                 borderRadius: '4',
-                px: isMobile ? 1 : 3,
-                py: isMobile ? 0.25 : 1,
-                minWidth: isMobile ? 'auto' : '120px',
+                px: ismobile ? 1 : 3,
+                py: ismobile ? 0.25 : 1,
+                minWidth: ismobile ? 'auto' : '120px',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                 transition: 'all 0.1s ease',
-                fontSize: isMobile ? '6px' : '12px',
+                fontSize: ismobile ? '6px' : '12px',
                 '&:active': {
                   transform: 'translateY(1px)',
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -231,11 +231,11 @@ const HomePage = () => {
                 },
               }}
             >
-              {isMobile ? '▶ GAME' : '▶ CREATE GAME'}
+              {ismobile ? '▶ GAME' : '▶ CREATE GAME'}
             </Button>
           </Box>
         </Box>
-        <Divider sx={{ my: isMobile ? 2 : 3 }} />
+        <Divider sx={{ my: ismobile ? 2 : 3 }} />
 
         {/* Error message */}
         {error && (
@@ -270,7 +270,7 @@ const HomePage = () => {
             </Typography>
             <Button
               variant="contained"
-              startIcon={<Add sx={{ fontSize: isMobile ? '12px' : '14px' }} />}
+              startIcon={<Add sx={{ fontSize: ismobile ? '12px' : '14px' }} />}
               onClick={() => setCreateClassOpen(true)}
               sx={{
                 ...pixelButton,
@@ -286,7 +286,7 @@ const HomePage = () => {
           </Box>
         ) : (
           <>
-            <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={isMobile ? 2 : 3}>
+            <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' }} gap={ismobile ? 2 : 3}>
               {currentClasses.map((classroom) => (
                 <ClassroomCard 
                   key={classroom.id} 
@@ -294,7 +294,7 @@ const HomePage = () => {
                   onClick={() => navigate(`/classroom/${classroom.id}`)}
                   pixelText={pixelText}
                   pixelHeading={pixelHeading}
-                  isMobile={isMobile}
+                  ismobile={ismobile}
                 />
               ))}
             </Box>
@@ -336,7 +336,7 @@ const HomePage = () => {
         onSubmit={handleCreateClass}
         pixelText={pixelText}
         pixelHeading={pixelHeading}
-        isMobile={isMobile}
+        ismobile={ismobile}
       />
 
       {/* Success Snackbar */}
@@ -366,10 +366,10 @@ const HomePage = () => {
   );
 };
 
-const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }) => (
+const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, ismobile }) => (
   <Card 
     sx={{ 
-      borderRadius: isMobile ? '8px' : '10px',
+      borderRadius: ismobile ? '8px' : '10px',
       boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
       border: '1px solid rgba(255,255,255,0.3)',
       transition: 'all 0.3s ease',
@@ -388,7 +388,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
         top: 0,
         left: 0,
         right: 0,
-        height: isMobile ? '4px' : '6px',
+        height: ismobile ? '4px' : '6px',
         background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
         opacity: 0.8
       }
@@ -396,29 +396,29 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
     onClick={onClick}
   >
     <CardContent sx={{ 
-      p: isMobile ? 1 : 2, 
-      pt: isMobile ? 1 : 2,
-      pb: isMobile ? 1 : 2
+      p: ismobile ? 1 : 2, 
+      pt: ismobile ? 1 : 2,
+      pb: ismobile ? 1 : 2
     }}>
-      <Box display="flex" alignItems="center" mb={isMobile ? 0.5 : 1}>
+      <Box display="flex" alignItems="center" mb={ismobile ? 0.5 : 1}>
         <Box sx={{
-          p: isMobile ? 0.25 : 0.5,
-          mr: isMobile ? 0.25 : 0.5,
+          p: ismobile ? 0.25 : 0.5,
+          mr: ismobile ? 0.25 : 0.5,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}>
           <Class sx={{ 
             color: '#5F4B8B', 
-            fontSize: isMobile ? '16px' : '22px'
+            fontSize: ismobile ? '16px' : '22px'
           }} />
         </Box>
         <Typography sx={{ 
           ...pixelHeading, 
           color: '#2d3748',
-          fontSize: isMobile ? '10px' : '16px',
+          fontSize: ismobile ? '10px' : '16px',
           fontWeight: 700,
-          lineHeight: isMobile ? 1.3 : 2,
+          lineHeight: ismobile ? 1.3 : 2,
           letterSpacing: '-0.5px'
         }}>
           {classroom.name || `CLASS ${classroom.id}`}
@@ -427,25 +427,25 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
         
       <Box sx={{
         backgroundColor: 'rgba(245, 245, 247, 0.7)',
-        borderRadius: isMobile ? '8px' : '12px',
-        p: isMobile ? 0.75 : 1,
-        mb: isMobile ? 1 : 2,
+        borderRadius: ismobile ? '8px' : '12px',
+        p: ismobile ? 0.75 : 1,
+        mb: ismobile ? 1 : 2,
         border: '1px solid rgba(0,0,0,0.05)'
       }}>
         <Box sx={{
           display: 'flex',
           alignItems: 'center',
-          mb: isMobile ? 0.25 : 0.5
+          mb: ismobile ? 0.25 : 0.5
         }}>
           <PersonOutline sx={{ 
-            fontSize: isMobile ? '14px' : '18px', 
+            fontSize: ismobile ? '14px' : '18px', 
             color: '#5F4B8B',
-            mr: isMobile ? 0.5 : 1 
+            mr: ismobile ? 0.5 : 1 
           }} />
           <Typography sx={{ 
             ...pixelText, 
             color: '#4a5568',
-            fontSize: isMobile ? '8px' : '10px',
+            fontSize: ismobile ? '8px' : '10px',
             fontWeight: 100
           }}>
             Students
@@ -453,9 +453,9 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
         </Box>
         <Typography sx={{ 
           color: '#2d3748',
-          fontSize: isMobile ? '11px' : '14px',
+          fontSize: ismobile ? '11px' : '14px',
           fontWeight: 500,
-          pl: isMobile ? '22px' : '26px' // Align with icon
+          pl: ismobile ? '22px' : '26px' // Align with icon
         }}>
           {classroom.studentCount || 0} enrolled
         </Typography>
@@ -473,12 +473,12 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
           background: 'linear-gradient(135deg, #6c63ff, #5F4B8B)',
           color: '#fff',
           border: 'none',
-          borderRadius: isMobile ? '6px' : '8px',
+          borderRadius: ismobile ? '6px' : '8px',
           boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
           textTransform: 'none',
-          fontSize: isMobile ? '8px' : '10px',
+          fontSize: ismobile ? '8px' : '10px',
           fontWeight: 150,
-          height: isMobile ? '26px' : '30px',
+          height: ismobile ? '26px' : '30px',
           '&:hover': { 
             background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
             boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',
@@ -513,14 +513,14 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
   </Card>
 );
 
-const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubmit, pixelText, pixelHeading, isMobile }) => (
+const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubmit, pixelText, pixelHeading, ismobile }) => (
   <Dialog 
     open={open} 
     onClose={onClose}
     PaperProps={{ 
       sx: { 
         borderRadius: '12px',
-        width: isMobile ? '90vw' : '440px',
+        width: ismobile ? '90vw' : '440px',
         maxWidth: 'none',
         boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.12)'
       } 
@@ -611,9 +611,9 @@ const CreateClassDialog = ({ open, className, loading, onClose, onChange, onSubm
           borderRadius: '8px',
           boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
           textTransform: 'none',
-          fontSize: isMobile ? '10px' : '12px',
+          fontSize: ismobile ? '10px' : '12px',
           fontWeight: 500,
-          height: isMobile ? '36px' : '48px',
+          height: ismobile ? '36px' : '48px',
           '&:hover': { 
             background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
             boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',

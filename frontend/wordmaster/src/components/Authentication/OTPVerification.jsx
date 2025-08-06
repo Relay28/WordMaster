@@ -18,7 +18,7 @@ import picbg from '../../assets/picbg.png';
 import '@fontsource/press-start-2p';
 import logo from '../../assets/LOGO.png';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const OTPVerification = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -31,26 +31,26 @@ const OTPVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const istablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '7px' : isTablet ? '8px' : '9px',
+    fontSize: ismobile ? '7px' : istablet ? '8px' : '9px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '10px' : isTablet ? '12px' : '13px',
+    fontSize: ismobile ? '10px' : istablet ? '12px' : '13px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '7px' : isTablet ? '8px' : '9px',
+    fontSize: ismobile ? '7px' : istablet ? '8px' : '9px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -112,7 +112,7 @@ const OTPVerification = () => {
   setError('');
   setSuccess('');
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/verify-otp`, {
+    const response = await axios.post(`${API_URL}/api/auth/verify-otp`, {
       email,
       otp: otpCode
     });
@@ -137,7 +137,7 @@ const OTPVerification = () => {
     
     try {
       
-        await axios.post(`${API_BASE_URL}/auth/resend-otp`, { email });
+        await axios.post(`${API_URL}/api/auth/resend-otp`, { email });
         setSuccess('New OTP sent successfully!');
         
         // Start countdown again
@@ -210,28 +210,28 @@ const OTPVerification = () => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          p: isMobile ? 1.5 : 0,
-          my: isMobile ? 0 : 4,
+          p: ismobile ? 1.5 : 0,
+          my: ismobile ? 0 : 4,
           width: '100%',
-          maxWidth: isMobile ? '100vw' : isTablet ? '420px' : '500px',
-          backgroundColor: isMobile
+          maxWidth: ismobile ? '100vw' : istablet ? '420px' : '500px',
+          backgroundColor: ismobile
             ? 'rgba(255,255,255,0.85)'
             : 'rgba(255, 255, 255, 0.92)',
-          borderRadius: isMobile ? '0px' : isTablet ? '14px' : '16px',
-          boxShadow: isMobile ? 'none' : '0 8px 32px rgba(31, 38, 135, 0.15)',
-          border: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.3)',
+          borderRadius: ismobile ? '0px' : istablet ? '14px' : '16px',
+          boxShadow: ismobile ? 'none' : '0 8px 32px rgba(31, 38, 135, 0.15)',
+          border: ismobile ? 'none' : '1px solid rgba(255, 255, 255, 0.3)',
           backdropFilter: 'blur(8px)',
-          minHeight: isMobile ? '75vh' : isTablet ? '80vh' : '80vh',
-          justifyContent: isMobile ? 'flex-start' : 'center',
+          minHeight: ismobile ? '75vh' : istablet ? '80vh' : '80vh',
+          justifyContent: ismobile ? 'flex-start' : 'center',
         }}>
 
           {/* Logo */}
-          <Box sx={{ mb: isMobile ? 1 : 2, mt: isMobile ? 2 : 0, width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mb: ismobile ? 1 : 2, mt: ismobile ? 2 : 0, width: '100%', display: 'flex', justifyContent: 'center' }}>
             <img
               src={logo}
               alt="WordMaster Logo"
               style={{
-                height: isMobile ? '48px' : isTablet ? '70px' : '80px',
+                height: ismobile ? '48px' : istablet ? '70px' : '80px',
                 width: 'auto',
                 objectFit: 'contain'
               }}
@@ -240,21 +240,21 @@ const OTPVerification = () => {
 
           <Typography sx={{ 
             ...pixelHeading,
-            fontSize: isMobile ? '13px' : isTablet ? '16px' : '18px',
+            fontSize: ismobile ? '13px' : istablet ? '16px' : '18px',
             color: '#5F4B8B',
             textAlign: 'center',
-            mb: isMobile ? 0.5 : 1,
-            letterSpacing: isMobile ? '0.5px' : '1px'
+            mb: ismobile ? 0.5 : 1,
+            letterSpacing: ismobile ? '0.5px' : '1px'
           }}>
             OTP VERIFICATION
           </Typography>
 
           {/* Heading */}
           <Typography sx={{ 
-            fontSize: isMobile ? '10px' : isTablet ? '13px' : '16px',
+            fontSize: ismobile ? '10px' : istablet ? '13px' : '16px',
             color: '#4a5568',
             textAlign: 'center',
-            mb: isMobile ? 2 : 4,
+            mb: ismobile ? 2 : 4,
             fontWeight: 500
           }}>
             Enter the 6-digit code sent to {email}
@@ -291,15 +291,15 @@ const OTPVerification = () => {
                     maxLength: 1,
                     style: {
                       textAlign: 'center',
-                      fontSize: isMobile ? '18px' : isTablet ? '22px' : '24px',
-                      padding: isMobile ? '8px' : isTablet ? '10px' : '12px'
+                      fontSize: ismobile ? '18px' : istablet ? '22px' : '24px',
+                      padding: ismobile ? '8px' : istablet ? '10px' : '12px'
                     }
                   }}
                   sx={{
-                    width: isMobile ? '36px' : isTablet ? '56px' : '70px',
+                    width: ismobile ? '36px' : istablet ? '56px' : '70px',
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: isMobile ? '6px' : '8px',
-                      background: isMobile ? 'rgba(255,255,255,0.95)' : undefined,
+                      borderRadius: ismobile ? '6px' : '8px',
+                      background: ismobile ? 'rgba(255,255,255,0.95)' : undefined,
                       '& fieldset': {
                         borderColor: '#5F4B8B',
                       },
@@ -322,11 +322,11 @@ const OTPVerification = () => {
                 ...pixelButton,
                 backgroundColor: '#5F4B8B',
                 color: 'white',
-                borderRadius: isMobile ? '6px' : isTablet ? '10px' : '12px',
-                py: isMobile ? 1 : isTablet ? 1.2 : 1.5,
-                mb: isMobile ? 1.5 : 2,
-                fontSize: isMobile ? '9px' : isTablet ? '10px' : '11px',
-                boxShadow: isMobile ? '0 2px 8px rgba(95, 75, 139, 0.10)' : undefined,
+                borderRadius: ismobile ? '6px' : istablet ? '10px' : '12px',
+                py: ismobile ? 1 : istablet ? 1.2 : 1.5,
+                mb: ismobile ? 1.5 : 2,
+                fontSize: ismobile ? '9px' : istablet ? '10px' : '11px',
+                boxShadow: ismobile ? '0 2px 8px rgba(95, 75, 139, 0.10)' : undefined,
                 '&:hover': {
                   backgroundColor: '#4a3a6d',
                   transform: 'translateY(-2px)',
@@ -341,7 +341,7 @@ const OTPVerification = () => {
                 }
               }}
             >
-              {loading ? <CircularProgress size={isMobile ? 14 : isTablet ? 16 : 20} color="inherit" /> : 'VERIFY'}
+              {loading ? <CircularProgress size={ismobile ? 14 : istablet ? 16 : 20} color="inherit" /> : 'VERIFY'}
             </Button>
 
             {/* Resend OTP */}
@@ -350,7 +350,7 @@ const OTPVerification = () => {
                 ...pixelText,
                 color: '#5F4B8B',
                 mb: 1,
-                fontSize: isMobile ? '7px' : '9px'
+                fontSize: ismobile ? '7px' : '9px'
               }}>
                 Didn't receive the code?
                 <Button
@@ -360,7 +360,7 @@ const OTPVerification = () => {
                 sx={{
                   ...pixelButton,
                   color: '#5F4B8B',
-                  fontSize: isMobile ? '7px' : '9px',
+                  fontSize: ismobile ? '7px' : '9px',
                   textDecoration: resendDisabled ? 'none' : 'underline',
                   textDecorationColor: '#5F4B8B', // Optional: set underline color
                   minWidth: 'unset',
@@ -384,7 +384,7 @@ const OTPVerification = () => {
               textAlign: 'center',
               ...pixelText,
               color: '#3e2c85',
-              fontSize: isMobile ? '8px' : '9px',
+              fontSize: ismobile ? '8px' : '9px',
               '& a': {
                 color: '#251a51',
                 textDecoration: 'none',

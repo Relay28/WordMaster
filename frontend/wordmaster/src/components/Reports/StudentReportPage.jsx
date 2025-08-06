@@ -13,12 +13,13 @@ import ComprehensionResultsView from './ComprehensionResultsView';
 import GrammarVocabResultsView from './GrammarVocabResultsView'; // Import the new component
 import ChatMessagesView from './ChatMessagesView';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const StudentReportPage = () => {
   const { sessionId, studentId } = useParams();
   const { user, getToken } = useUserAuth();
   const navigate = useNavigate();
-  const isMobile = window.innerWidth < 768;
+  const ismobile = window.innerWidth < 768;
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,21 +38,21 @@ const StudentReportPage = () => {
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: ismobile ? '8px' : '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: ismobile ? '12px' : '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: ismobile ? '8px' : '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -61,8 +62,6 @@ const StudentReportPage = () => {
       try {
         setLoading(true);
         const token = await getToken();
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        
         const response = await fetch(
           `${API_URL}/api/teacher-feedback/analytics/${sessionId}/student/${studentId}`, 
           {
@@ -106,8 +105,6 @@ const StudentReportPage = () => {
   try {
     setLoading(true);
     const token = await getToken();
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-    
     const response = await fetch(`${API_URL}/api/teacher-feedback/save`, {
       method: 'POST',
       headers: {
@@ -167,8 +164,6 @@ const StudentReportPage = () => {
   try {
     setLoading(true);
     const token = await getToken();
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-    
     // Call the endpoint that triggers AIService.generate_feedback
     const response = await fetch(`${API_URL}/api/ai-feedback/generate/${sessionId}/${studentId}`, {
       method: 'GET',
@@ -212,8 +207,6 @@ const StudentReportPage = () => {
     const fetchComprehensionData = async () => {
       try {
         const token = await getToken();
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        
         const response = await fetch(
           `${API_URL}/api/comprehension/session/${sessionId}/student/${studentId}`, 
           {
@@ -345,7 +338,7 @@ const StudentReportPage = () => {
             >
               Back
             </Button>
-            <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px' }}>
+            <Typography sx={{ ...pixelHeading, fontSize: ismobile ? '16px' : '20px' }}>
               Student Report
             </Typography>
           </Box>
@@ -372,7 +365,7 @@ const StudentReportPage = () => {
                 </Avatar>
               </Grid>
               <Grid item xs={12} md={10}>
-                <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px', mb: 1 }}>
+                <Typography sx={{ ...pixelHeading, fontSize: ismobile ? '16px' : '20px', mb: 1 }}>
                   {studentDetails.studentName}
                 </Typography>
                 <Typography sx={{ ...pixelText, color: '#5F4B8B', mb: 2 }}>
@@ -507,14 +500,14 @@ const StudentReportPage = () => {
                     >
                       <ListItemText 
                         primary={
-                          <Typography sx={{ ...pixelText, fontSize: isMobile ? '7px' : '8px' }}>
+                          <Typography sx={{ ...pixelText, fontSize: ismobile ? '7px' : '8px' }}>
                             {item.reason}
                           </Typography>
                         }
                       />
                       <Typography sx={{ 
                         ...pixelText, 
-                        fontSize: isMobile ? '8px' : '10px', 
+                        fontSize: ismobile ? '8px' : '10px', 
                         fontWeight: 'bold', 
                         color: '#5F4B8B'
                       }}>

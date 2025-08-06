@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Box, CircularProgress, Typography, Button } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const OAuthSuccessHandler = () => {
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ const OAuthSuccessHandler = () => {
         // Handle setup based on role
         try {
           // Try to check setup status with timeout for slow connections
-          const setupResponse = await axios.get(`${API_BASE_URL}/profile/setup/status`, {
+          const setupResponse = await axios.get(`${API_URL}/api/profile/setup/status`, {
             headers: {
               Authorization: `Bearer ${authData.token}`
             },

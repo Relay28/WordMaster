@@ -21,7 +21,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 const defaultTheme = createTheme();
 
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -37,7 +37,7 @@ const AdminLogin = () => {
     setError('');
 
     try {
-        const response = await axios.post(`${API_BASE_URL}/admin/users/login`, {
+        const response = await axios.post(`${API_URL}/api/admin/users/login`, {
             email,
             password
           });

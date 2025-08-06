@@ -22,7 +22,7 @@ const GamePage = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // New state for classroom/content selection
   const [classrooms, setClassrooms] = useState([]);
@@ -33,21 +33,21 @@ const GamePage = ({
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: ismobile ? '8px' : '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: ismobile ? '12px' : '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: ismobile ? '8px' : '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -59,7 +59,7 @@ const GamePage = ({
       try {
         setLoading(true);
         const token = await getToken();   
-        const response = await fetch(`${apiConfig.API_URL}/classrooms`, {
+        const response = await fetch(`${apiConfig.API_URL}/api/classrooms`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -91,7 +91,7 @@ const GamePage = ({
         setLoading(true);
         const token = await getToken();
 
-        const response = await fetch(`${apiConfig.API_URL}/content/classroom/${selectedClassroom}/published`, {
+        const response = await fetch(`${apiConfig.API_URL}/api/content/classroom/${selectedClassroom}/published`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -132,7 +132,7 @@ const GamePage = ({
   try {
     setLoading(true);
     const token = await getToken();
-    const response = await fetch(`${apiConfig.API_URL}/waiting-room/content/${selectedContent}/join`, {
+    const response = await fetch(`${apiConfig.API_URL}/api/waiting-room/content/${selectedContent}/join`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -204,7 +204,7 @@ const GamePage = ({
 
       <Container maxWidth="md">
         <Paper elevation={3} sx={{ 
-          p: isMobile ? 2 : 4, 
+          p: ismobile ? 2 : 4, 
           borderRadius: '12px',
           background: 'rgba(255,255,255,0.8)',
           backdropFilter: 'blur(8px)',
@@ -228,7 +228,7 @@ const GamePage = ({
             fontWeight: 'bold', 
             mb: 3,
             color: '#2d3748',
-            fontSize: isMobile ? '14px' : '16px'
+            fontSize: ismobile ? '14px' : '16px'
           }}>
             {step === 1 ? 'SELECT CLASSROOM' : 'SELECT CONTENT'}
           </Typography>
@@ -252,7 +252,7 @@ const GamePage = ({
                 sx={{
                   '& .MuiSelect-select': {
                     ...pixelText,
-                    py: isMobile ? 1 : 1.5
+                    py: ismobile ? 1 : 1.5
                   }
                 }}
               >
@@ -263,7 +263,7 @@ const GamePage = ({
                         <School sx={{ 
                           color: '#5F4B8B', 
                           mr: 1,
-                          fontSize: isMobile ? '16px' : '20px'
+                          fontSize: ismobile ? '16px' : '20px'
                         }} />
                         {classroom.name}
                       </Box>
@@ -286,7 +286,7 @@ const GamePage = ({
                 sx={{
                   '& .MuiSelect-select': {
                     ...pixelText,
-                    py: isMobile ? 1 : 1.5
+                    py: ismobile ? 1 : 1.5
                   }
                 }}
               >
@@ -297,7 +297,7 @@ const GamePage = ({
                         <Class sx={{ 
                           color: '#5F4B8B', 
                           mr: 1,
-                          fontSize: isMobile ? '16px' : '20px'
+                          fontSize: ismobile ? '16px' : '20px'
                         }} />
                         {content.title}
                       </Box>
@@ -312,7 +312,7 @@ const GamePage = ({
             </FormControl>
           )}
           
-          <Box display="flex" justifyContent="space-between" flexDirection={isMobile ? 'column' : 'row'} gap={2}>
+          <Box display="flex" justifyContent="space-between" flexDirection={ismobile ? 'column' : 'row'} gap={2}>
             <Button 
               variant="contained"
               onClick={() => step === 1 ? navigate('/homepage') : setStep(1)}
@@ -325,8 +325,8 @@ const GamePage = ({
                 },
                 borderRadius: '4px',
                 px: 3,
-                py: isMobile ? 1 : 1.5,
-                minWidth: isMobile ? '100%' : 'auto',
+                py: ismobile ? 1 : 1.5,
+                minWidth: ismobile ? '100%' : 'auto',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
@@ -336,7 +336,7 @@ const GamePage = ({
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
                   borderStyle: 'inset'
                 },
-                order: isMobile ? 2 : 1
+                order: ismobile ? 2 : 1
               }}
             >
               {step === 1 ? 'CANCEL' : 'BACK'}
@@ -356,8 +356,8 @@ const GamePage = ({
                   },
                   borderRadius: '4px',
                   px: 3,
-                  py: isMobile ? 1 : 1.5,
-                  minWidth: isMobile ? '100%' : 'auto',
+                  py: ismobile ? 1 : 1.5,
+                  minWidth: ismobile ? '100%' : 'auto',
                   borderStyle: 'outset',
                   boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                   textShadow: '1px 1px 0 rgba(0,0,0,0.5)',

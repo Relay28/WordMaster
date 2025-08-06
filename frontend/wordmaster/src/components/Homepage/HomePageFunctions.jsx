@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getUserClassrooms, joinClassroom, createClassroom } from '../utils/classroomService';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const useHomePage = (authChecked, user, getToken, login, logout) => {
   const navigate = useNavigate();
@@ -41,7 +41,7 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       if (authChecked && getToken() && !user) {
         setLoadingProfile(true);
         try {
-          const response = await axios.get(`${API_BASE_URL}/profile`, {
+          const response = await axios.get(`${API_URL}/api/profile`, {
             headers: { Authorization: `Bearer ${getToken()}` }
           });
           if (response.data) {

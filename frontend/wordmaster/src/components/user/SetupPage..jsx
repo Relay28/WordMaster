@@ -19,7 +19,7 @@ import { useUserAuth } from '../context/UserAuthContext';
 
 // Import the image - adjust the path as needed
 import setupPageImage from '../../assets/Setup.png';
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 const SetupPage = () => {
   const [role, setRole] = useState('USER_STUDENT');
@@ -35,7 +35,7 @@ const SetupPage = () => {
     const checkSetupStatus = async () => {
       try {
         const response = await axios.get(
-          `${API_BASE_URL}/profile/setup/status`,
+          `${API_URL}/api/profile/setup/status`,
           {
             headers: {
               Authorization: `Bearer ${getToken()}`
@@ -71,7 +71,7 @@ const SetupPage = () => {
 
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/profile/setup`,
+        `${API_URL}/api/profile/setup`,
         {
           fname,
           lname,
