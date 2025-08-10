@@ -26,6 +26,7 @@ import '@fontsource/press-start-2p'
 import picbg from '../assets/picbg.png';
 import BGforProfile from '../assets/BGforProfile.png';
 import backbtn from '../assets/backbtn.png';
+import BookforProfile from '../assets/BookforProfile.png';
 
 import farmer from '../assets/ch-farmer.png';
 import king from '../assets/ch-king.png';
@@ -111,179 +112,220 @@ const UserProfileContainer = () => {
     );
   }
 
-  return (
-    <Box sx={{ 
+return (
+  <Box sx={{ 
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    width: '100%',
+    margin: 0,
+    padding: 0,
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    overflow: 'hidden',
+    background: `url(${BGforProfile})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
+    imageRendering: 'pixelated',
+  }}>
+    {/* Main Content */}
+  <Box
+    sx={{
+      flex: 1,
       display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
       width: '100%',
-      margin: 0,
-      padding: 0,
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      overflow: 'hidden',
-      background: `url(${BGforProfile})`,
+      height: '100%', // Adjust height to fit the book layout
+      overflow: 'hidden', // Prevent content from overflowing outside the book
+      borderRadius: '15px',
+      background: `url(${BookforProfile})`,
+      backgroundSize: '100%',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      boxSizing: 'border-box', // optional but good practice
+      position: 'relative', // if needed for inner absolute positioning
+    }}
+  >
+  <Box
+    sx={{
+      flex: 1,
+      display: 'flex',
+      width: '70%',
+      height: '70%', // Adjust height to fit the book layout
+      overflow: 'hidden', // Prevent content from overflowing outside the book
+      borderRadius: '15px',
       backgroundSize: 'contain',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed',
-      imageRendering: 'pixelated',
-    }}>
-      {/* Main Content */}
-      <Box sx={{ 
-        flex: 1,
-        width: '80%',
-        overflow: 'auto',
-        // Optional: custom scrollbar styling
-        '&::-webkit-scrollbar': { width: '8px' },
-        '&::-webkit-scrollbar-thumb': { backgroundColor: '#5F4B8B', borderRadius: '4px' }
-      }}>
-        <Box sx={{ display: 'flex', width: '100%', minHeight: '100%' }}>
-        {/* left Column */}
+      boxSizing: 'border-box', // optional but good practice
+      position: 'relative', // if needed for inner absolute positioning
+      mt: '5%',
+    }}
+  >
+      {/* Left Column */}
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'top',
+          p: 2,
+          overflow: 'hidden',
+          overflowX: 'hidden',  // prevent horizontal scroll
+          mt: '2%',
+        }}
+      >
+        {/* Reserve space for alert */}
+        {/*
+        <Box sx={{ height: 32, mb: 3, width: '95%' }}>
+          {error && (
+            <Alert severity="error" sx={{ width: '95%' }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert severity="success" sx={{ width: '95%' }} onClose={() => setSuccess(null)}>
+              {success}
+            </Alert>
+          )}
+        </Box>*/}
+
+        <ProfilePicture 
+          firstName={formData.firstName} 
+          lastName={formData.lastName}
+          profilePicture={formData.profilePicture}
+          editMode={editMode}
+          uploadProfilePicture={uploadProfilePicture}
+          loading={loading}
+          handleImageSelect={handleImageSelect}
+        />
+
+        <PersonalInformation 
+          formData={formData}
+          editMode={editMode}
+          handleChange={handleChange}
+          handleSubmit={handleSubmit}
+          setEditMode={setEditMode}
+          loading={loading}
+          pixelHeading={pixelHeading}
+          pixelText={pixelText}
+          handleCancel={handleCancel}
+        />
         <Box
           sx={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'top',
-            p: 2,
-            mt: '5%',
-            ml: '19%',
+            position: 'fixed',
+            bottom: '18%',
+            left: '15%',
+            cursor: 'pointer',
+            transition: 'transform 0.2s',
+            '&:hover': {
+              transform: 'scale(1.1)',
+            },
+            '&:active': {
+              transform: 'scale(0.95)',
+            },
+            width: 'fit-content',
+            height: 'fit-content',
           }}
+          onClick={() => navigate('/homepage')}
         >
-          {/* Reserve space for alert */}
-          <Box sx={{ height: 32, mb: 3, width: '95%' }}>
-            {error && (
-              <Alert severity="error" sx={{ width: '95%' }} onClose={() => setError(null)}>
-                {error}
-              </Alert>
-            )}
-            {success && (
-              <Alert severity="success" sx={{ width: '95%' }} onClose={() => setSuccess(null)}>
-                {success}
-              </Alert>
-            )}
-          </Box>
-
-          <ProfilePicture 
-            firstName={formData.firstName} 
-            lastName={formData.lastName}
-            profilePicture={formData.profilePicture}
-            editMode={editMode}
-            uploadProfilePicture={uploadProfilePicture}
-            loading={loading}
-            handleImageSelect={handleImageSelect}
-          />
-
-          <PersonalInformation 
-            formData={formData}
-            editMode={editMode}
-            handleChange={handleChange}
-            handleSubmit={handleSubmit}
-            setEditMode={setEditMode}
-            loading={loading}
-            pixelHeading={pixelHeading}
-            pixelText={pixelText}
-            handleCancel={handleCancel}
-          />
-          <Box
-            sx={{
-              position: 'fixed',
-              bottom: '18%',
-              left: '15%',
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              '&:hover': {
-                transform: 'scale(1.1)',
-              },
-              '&:active': {
-                transform: 'scale(0.95)',
-              },
-              width: 'fit-content',
-              height: 'fit-content',
+          <img 
+            src={backbtn} 
+            alt="Back to Home"
+            style={{
+              width: '80px',
+              height: 'auto',
+              imageRendering: 'pixelated',
+              display: 'block',
             }}
-            onClick={() => navigate('/homepage')}
-          >
-            <img 
-              src={backbtn} 
-              alt="Back to Home"
-              style={{
-                width: '80px', // Use fixed width instead of percentage
-                height: 'auto', // Maintain aspect ratio
-                imageRendering: 'pixelated',
-                display: 'block',
-              }}
-            />
-          </Box>
+          />
         </Box>
-        {/* Right Column */}
+      </Box>
+
+      {/* Right Column */}
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          p: 4,
+          height: '100%',       // match parent height
+          overflowY: 'auto',    // scroll vertically only
+          overflowX: 'hidden',  // prevent horizontal scroll
+          position: 'relative',
+            '&::-webkit-scrollbar': { width: '8px' },
+            '&::-webkit-scrollbar-thumb': {
+              backgroundColor: '#5F4B8B',
+              borderRadius: '4px',
+            },
+            '&::-webkit-scrollbar-track': {
+              backgroundColor: '#f1f1f1',
+            },
+        }}
+      >
         <Box
           sx={{
-            flex: 1,
+            borderRadius: 4,
+            p: 3,
+            width: '100%',
+            maxWidth: 420,
+            mb: 4,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'top',
-            p: 4,
-            mt: '8%',
+            overflow: 'hidden',
+            mr: 15,
           }}
         >
-          <Box
-            sx={{
-              borderRadius: 4,
-              p: 3,
-              width: '100%',
-              maxWidth: 420,
-              mb: 4,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              overflow: 'hidden'
-            }}
-          >
           <Typography sx={{...pixelHeading, color:"Black", ml: 8}}>
             Choose Character
           </Typography>
-            <Grid container spacing={2} justifyContent="center" sx={{ mt: 5, ml: 5, }}>
-              {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
-                <Grid item xs={4} sm={4} md={4} key={index} display="flex" justifyContent="center"> 
-                  <img
-                    src={src}
-                    alt={`Option ${index + 1}`}
-                    style={{
-                      width: '100%',
-                      maxWidth: 100,
-                      height: 'auto',
-                      aspectRatio: '1/1',
-                      objectFit: 'cover',
-                      borderRadius: '10%',
-                      cursor: 'pointer',
-                      border: formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent',
-                      transition: 'border 0.2s',
-                      opacity: 1,
-                    }}
-                    onClick={() => uploadProfilePicture && handleImageSelect(src)}
-                    onMouseOver={e => (e.currentTarget.style.border = '2px solid #5F4B8B')}
-                    onMouseOut={e => (e.currentTarget.style.border = formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent')}
-                  />
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
+          <Grid container spacing={2} justifyContent="center" sx={{ mt: 5, ml: 5, }}>
+            {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
+              <Grid item xs={4} sm={4} md={4} key={index} display="flex" justifyContent="center"> 
+                <img
+                  src={src}
+                  alt={`Option ${index + 1}`}
+                  style={{
+                    width: '100%',
+                    maxWidth: 100,
+                    height: 'auto',
+                    aspectRatio: '1/1',
+                    objectFit: 'cover',
+                    borderRadius: '10%',
+                    cursor: 'pointer',
+                    border: formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent',
+                    transition: 'border 0.2s',
+                    opacity: 1,
+                  }}
+                  onClick={() => uploadProfilePicture && handleImageSelect(src)}
+                  onMouseOver={e => (e.currentTarget.style.border = '2px solid #5F4B8B')}
+                  onMouseOut={e => (e.currentTarget.style.border = formData.profilePicture === src ? '3px solid #5F4B8B' : '2px solid transparent')}
+                />
+              </Grid>
+            ))}
+          </Grid>
         </Box>
-      </Box>  
       </Box>
-      <DeactivateDialog 
-        open={deactivateDialogOpen}
-        onClose={() => setDeactivateDialogOpen(false)}
-        onDeactivate={handleDeactivate}
-        isDeactivating={isDeactivating}
-        error={error}
-        setError={setError} // Pass setError to the dialog
-      />
-    </Box>
+    </Box>  
+    <DeactivateDialog 
+      open={deactivateDialogOpen}
+      onClose={() => setDeactivateDialogOpen(false)}
+      onDeactivate={handleDeactivate}
+      isDeactivating={isDeactivating}
+      error={error}
+      setError={setError} // Pass setError to the dialog
+    />
+  </Box>
+  </Box>
   );
 };
+
 
 const ProfilePicture = ({
   firstName,
@@ -313,13 +355,13 @@ const ProfilePicture = ({
       <Avatar
         src={profilePicture || undefined}
         sx={{
-          width: '30%',
-          height: '30%',
+          width: '120px',
+          height: '120px',
           fontSize: 40,
           border: '2px solid #5F4B8B',
           color: "#5F4B8B",
           borderRadius: '10%',
-          ml: '32%',
+          ml: 20,
         }}
       >
         {!profilePicture && initials}
@@ -381,14 +423,14 @@ const ProfilePicture = ({
 
 const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading, pixelHeading, pixelText, handleCancel}) => (
   <Paper 
-    elevation={3} 
     sx={{ 
-      width: '85%', 
+      width: '60%',
+      boxShadow: "none",
+      ml: '29%', 
       p: 3, 
       borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-      maxHeight: 300,
-      overflow: 'auto',
+      maxHeight: '30%',
+      backgroundColor: 'transparent',
       position: 'relative',
       '&::before': {
         content: '""',
@@ -396,11 +438,9 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         top: 0,
         left: 0,
         right: 0,
-        height: '8px', // adjust height as needed
+        height: '6px', // adjust height as needed
         borderTopLeftRadius: '5px',
         borderTopRightRadius: '5px',
-        background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
-        opacity: 0.9,
         zIndex: 2
       }
     }}
@@ -459,7 +499,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
           ),
           endAdornment: (
             <InputAdornment position="end">
-              <Lock color="action" sx={{ opacity: 0.7 }} />
+              <Lock color="action" sx={{ opacity: 0.9 }} />
             </InputAdornment>
           ),
           readOnly: true,
@@ -555,7 +595,7 @@ const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
             fontSize: { xs: '8px', sm: '10px' },
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
-            boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+            
             transition: 'all 0.1s ease',
             '&:hover': {
               backgroundColor: '#f0edf5',
@@ -564,7 +604,7 @@ const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
             },
             '&:active': {
               transform: 'translateY(1px)',
-              boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+              
               borderStyle: 'inset'
             },
           }}
@@ -586,7 +626,7 @@ const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
             fontSize: { xs: '8px', sm: '10px' },
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
-            boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+            
             transition: 'all 0.1s ease',
             '&:hover': {
               backgroundColor: '#4a3a6d',
@@ -594,7 +634,7 @@ const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
             },
             '&:active': {
               transform: 'translateY(1px)',
-              boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+              
               borderStyle: 'inset'
             },
           }}
@@ -616,7 +656,7 @@ const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
           fontSize: { xs: '8px', sm: '10px' },
           letterSpacing: '0.5px',
           textTransform: 'uppercase',
-          boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+          
           transition: 'all 0.1s ease',
           '&:hover': {
             backgroundColor: '#4a3a6d',
@@ -624,7 +664,7 @@ const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
           },
           '&:active': {
             transform: 'translateY(1px)',
-            boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+            
             borderStyle: 'inset'
           },
         }}
