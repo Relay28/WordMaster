@@ -251,29 +251,27 @@ public class AIService {
             
             switch (task) {
                 case "grammar_check":
-                    return "You are a supportive and encouraging English teacher helping Grade 8-9 Filipino students learn English.\n" +
-                        "Check the following text: \"" + request.get("text") + "\"\n\n" +
-                        "IMPORTANT: First verify that the text is written in ENGLISH. If the text contains Filipino/Tagalog words or is not in English, respond with 'MAJOR ERRORS - Please write in English only. I believe you can do it!'\n\n" +
-                        "If the text is in English, evaluate it with kindness and classify it as one of:\n" +
-                        "- 'NO ERRORS' if the message is clear and understandable with good English grammar (minor typos are okay)\n" +
-                        "- 'MINOR ERRORS' if there are small English grammar issues but the meaning is clear\n" +
-                        "- 'MAJOR ERRORS' if there are significant English grammar problems that affect understanding\n\n" +
-                        "FEEDBACK FORMAT:\n" +
-                        "Start with the classification, then provide:\n" +
-                        "✓ What they did well (be specific about good grammar/vocabulary used)\n" +
-                        "💡 One specific suggestion for improvement (if needed)\n" +
-                        "🌟 Encouragement for their English learning journey\n\n" +
-                        "Keep feedback under 100 words and focus on building confidence while providing actionable advice.";
+                    return "You are a supportive English teacher helping Grade 8-9 Filipino students.\n" +
+                        "Analyze: \"" + request.get("text") + "\"\n\n" +
+                        "Respond with EXACTLY this format:\n" +
+                        "[STATUS] - [One encouraging comment]\n" +
+                        "✓ [What they did well - be specific]\n" +
+                        "💡 [One actionable improvement tip]\n\n" +
+                        "STATUS options: NO ERRORS, MINOR ERRORS, MAJOR ERRORS\n" +
+                        "Keep total response under 50 words. Focus on the most important feedback only.";
 
                 case "role_check":
-                    return "You are a kind and supportive English teacher helping Grade 8-9 Filipino students practice English through role-play.\n" +
+                    return "You are helping Grade 8-9 Filipino students practice English through role-play.\n" +
                         "Role: " + request.getOrDefault("role", "student") + "\n" +
                         "Context: " + request.getOrDefault("context", "general topics") + "\n" +
                         "Message: \"" + request.getOrDefault("text", "") + "\"\n\n" +
-                        "CRITICAL: First check if the message is written in ENGLISH. If it contains Filipino/Tagalog or is not in English, respond with 'NOT APPROPRIATE - Please use English only. You're doing great - just remember to practice in English!'\n\n" +
-                        "If the message is in English, analyze if the vocabulary, tone, and content match what would be expected from someone in this role.\n" +
-                        "YOUR RESPONSE MUST BEGIN EXACTLY with either 'APPROPRIATE' or 'NOT APPROPRIATE' (in capital letters),\n" +
-                        "followed by encouraging feedback. Remember, these are young Filipino learners building English confidence - be nurturing and supportive!";
+                        "STEP 1 - Language Check:\n" +
+                        "If message contains Filipino/Tagalog words or is not in English, respond: 'NOT APPROPRIATE - Please use English only. You're doing great!'\n\n" +
+                        "STEP 2 - Role Appropriateness:\n" +
+                        "If message is in English, check if vocabulary, tone, and content fit the assigned role.\n\n" +
+                        "RESPONSE FORMAT:\n" +
+                        "Start with 'APPROPRIATE' or 'NOT APPROPRIATE' followed by brief encouraging feedback.\n" +
+                        "Keep total response under 25 words. Be supportive but concise.";
 
                 case "story_prompt":
                     StringBuilder prompt = new StringBuilder();
@@ -412,23 +410,23 @@ public class AIService {
                     
                 case "word_bank_detection":
                     StringBuilder detectionPrompt = new StringBuilder();
-                    detectionPrompt.append("You are helping Grade 8-9 Filipino students learning English detect word bank usage.\n\n");
-                    detectionPrompt.append("Text to analyze: \"").append(request.get("text")).append("\"\n");
-                    detectionPrompt.append("Word bank words: ").append(request.get("wordBank")).append("\n\n");
-                    detectionPrompt.append("TASK: Identify which word bank words (or their variations) appear in the text.\n\n");
-                    detectionPrompt.append("RULES FOR DETECTION:\n");
-                    detectionPrompt.append("- Match exact forms: 'run' matches 'run'\n");
-                    detectionPrompt.append("- Match tense variations: 'run' matches 'ran', 'running', 'runs'\n");
-                    detectionPrompt.append("- Match plural/singular: 'book' matches 'books', 'child' matches 'children'\n");
-                    detectionPrompt.append("- Match common word forms: 'happy' matches 'happiness', 'happily'\n");
-                    detectionPrompt.append("- Only match if the meaning is clearly related\n");
-                    detectionPrompt.append("- Be encouraging - these are young English learners\n\n");
-                    detectionPrompt.append("RESPONSE FORMAT:\n");
-                    detectionPrompt.append("- If words found: Return comma-separated list of the BASE word bank words that were used\n");
-                    detectionPrompt.append("- If no words found: Return 'none'\n");
-                    detectionPrompt.append("- Example: If text contains 'running' and word bank has 'run', return 'run'\n");
-                    detectionPrompt.append("- Example: If text contains 'books' and word bank has 'book', return 'book'\n\n");
-                    detectionPrompt.append("Remember: Return the original word bank word, not the variation found in text.");
+                    detectionPrompt.append("TASK: Detect word bank usage in student text.\n\n");
+                    detectionPrompt.append("Text: \"").append(request.get("text")).append("\"\n");
+                    detectionPrompt.append("Word Bank: ").append(request.get("wordBank")).append("\n\n");
+                    
+                    detectionPrompt.append("DETECTION RULES (ALL MUST BE APPLIED):\n");
+                    detectionPrompt.append("1. Exact matches: 'run' = 'run'\n");
+                    detectionPrompt.append("2. Tense variations: 'run' = 'ran', 'running', 'runs'\n");
+                    detectionPrompt.append("3. Plural/singular: 'book' = 'books', 'child' = 'children'\n");
+                    detectionPrompt.append("4. Word forms: 'happy' = 'happiness', 'happily'\n");
+                    detectionPrompt.append("5. Only semantically related words count\n\n");
+                    
+                    detectionPrompt.append("OUTPUT REQUIREMENTS:\n");
+                    detectionPrompt.append("- Found words: Return comma-separated list of BASE word bank words\n");
+                    detectionPrompt.append("- No words found: Return 'none'\n");
+                    detectionPrompt.append("- Example: Text has 'running', word bank has 'run' → return 'run'\n");
+                    detectionPrompt.append("- Example: Text has 'books', word bank has 'book' → return 'book'\n\n");
+                    detectionPrompt.append("CRITICAL: Return original word bank words, not text variations.");
                     return detectionPrompt.toString();
 
                 case "comprehension_questions": // Change from "generate_comprehension_questions"
@@ -464,53 +462,34 @@ public class AIService {
 
                 case "vocabulary_check":
                     String studentName2 = (String) request.get("studentName");
-                    return "Analyze this Grade 8-9 Filipino student's English vocabulary usage:\n\n" +
+                    return "Analyze Grade 8-9 Filipino student's English vocabulary usage:\n\n" +
                         (studentName2 != null && !studentName2.trim().isEmpty() ? "Student: " + studentName2 + "\n" : "") +
                         "Text: \"" + request.get("text") + "\"\n" +
                         "Word bank words used: " + request.get("usedWords") + "\n\n" +
-                        "Provide a specific analysis of the actual vocabulary used. Include exact words and examples from their text. Format as:\n\n" +
+                        "REQUIRED ANALYSIS FORMAT:\n\n" +
                         "1. VOCABULARY LEVEL: (Basic/Intermediate/Advanced)\n\n" +
                         "2. STRENGTHS:\n" +
-                        "   2.1. 'First strength' - Include specific words/examples from their text\n" +
-                        "   2.2. 'Second strength' - Include specific words/examples from their text\n" +
-                        "   2.3. 'Third strength'' - Include specific words/examples from their text\n\n" +
+                        "   2.1. [Specific strength with exact words from text]\n" +
+                        "   2.2. [Second strength with examples]\n\n" +
                         "3. AREAS FOR IMPROVEMENT:\n" +
-                        "   3.1. 'First area' - Be specific about what's missing/could improve\n" +
-                        "   3.2. 'Second area'- Be specific about what's missing/could improve\n" +
-                        "   3.3. 'Third area' - Be specific about what's missing/could improve\n\n" +
+                        "   3.1. [Specific gap with concrete suggestion]\n" +
+                        "   3.2. [Second area with actionable advice]\n\n" +
                         "4. TEACHING RECOMMENDATIONS:\n" +
-                        "   4.1. 'Specific activity' for this student based on their actual text\n" +
-                        "   4.2. 'pecific activity' for this student based on their actual text\n" +
-                        "   4.3. 'Specific activity' for this student based on their actual text\n" +
-                        "   4.4. 'Specific activity' for this student based on their actual text\n\n" +
-                        "Keep your analysis focused on their actual vocabulary usage. Max 150 words.";
-
-                case "generate_vocabulary_exercises":
-                    StringBuilder exercisesPrompt = new StringBuilder();
-                    exercisesPrompt.append("You are a caring and supportive English teacher creating vocabulary exercises for Grade 8-9 Filipino students learning English.\n\n");
+                        "   4.1. [Specific activity based on their actual text]\n" +
+                        "   4.2. [Second targeted activity]\n\n" +
+                        "CONSTRAINTS:\n" +
+                        "- Each point: maximum 2 sentences\n" +
+                        "- Use exact words/phrases from student text\n" +
+                        "- Base recommendations on actual usage patterns\n" +
+                        "- Be encouraging but specific";
                     
-                    exercisesPrompt.append("Word bank: ").append(request.get("wordBank")).append("\n\n");
-                    exercisesPrompt.append("Words already used by student: ").append(request.get("usedWords")).append("\n\n");
-                    exercisesPrompt.append("Student name: ").append(request.get("studentName")).append("\n\n");
-                    
-                    exercisesPrompt.append("Create 3 encouraging ENGLISH vocabulary exercises that build confidence:\n");
-                    exercisesPrompt.append("1. A fill-in-the-blank exercise using ENGLISH words\n");
-                    exercisesPrompt.append("2. A word matching exercise with ENGLISH vocabulary\n");
-                    exercisesPrompt.append("3. A sentence completion exercise in ENGLISH\n\n");
-                    exercisesPrompt.append("Focus on English words the student hasn't used yet to expand their vocabulary.\n");
-                    exercisesPrompt.append("Make exercises encouraging and age-appropriate for Filipino learners.\n");
-                    exercisesPrompt.append("Format as JSON for easy parsing, ensuring all content promotes English learning.");
-                    
-                    return exercisesPrompt.toString();
-                    
-                // Add language validation for Filipino students
                 case "language_validation":
                     return "You are helping Grade 8-9 Filipino students practice ENGLISH communication.\n" +
                         "Text to check: \"" + request.get("text") + "\"\n\n" +
                         "Check if this text is written in ENGLISH (not Filipino/Tagalog).\n" +
                         "Respond with either:\n" +
                         "- 'ENGLISH' if the text is primarily in English\n" +
-                        "- 'NOT ENGLISH' if the text contains Filipino/Tagalog words or is in another language\n\n" +
+                        "- 'NOT ENGLISH' if the text contains Filipino words or is in another language\n\n" +
                         "Be encouraging - these are young learners building English confidence!";
 
                 case "role_generation":

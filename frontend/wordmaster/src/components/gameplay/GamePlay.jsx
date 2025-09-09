@@ -65,20 +65,22 @@ const GamePlay = ({
   const { user, getToken } = useUserAuth();
   const [sentence, setSentence] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [storyPrompt, setStoryPrompt] = useState(gameState?.storyPrompt || ''); // For AI-generated story prompts
-  const [rolePrompt, setRolePrompt] = useState('');   // For AI-generated role-specific hints
-  const [pointsNotification, setPointsNotification] = useState(false);
+  const [storyPrompt, setStoryPrompt] = useState('');
+  const [showTurnComplete, setShowTurnComplete] = useState(false);
   const [pointsData, setPointsData] = useState({ points: 0, reason: '' });
-  const [showUsedWords, setShowUsedWords] = useState(false); // New state for toggling used words visibility
-  const [wordUsedNotification, setWordUsedNotification] = useState(false);
-  const [usedWordMessage, setUsedWordMessage] = useState('');
+  const [pointsNotification, setPointsNotification] = useState(false);
+  // Add processing state specifically for message processing
+  const [messageProcessing, setMessageProcessing] = useState(false);
+  const [rolePrompt, setRolePrompt] = useState('');
+  const [previousCycle, setPreviousCycle] = useState(gameState.currentCycle);
   const [cycleTransitionActive, setCycleTransitionActive] = useState(false);
   const [showCycleTransition, setShowCycleTransition] = useState(false);
-  const [previousCycle, setPreviousCycle] = useState(gameState?.currentCycle || null); // Already present
   const [leaderboard, setLeaderboard] = useState([]); // Already present
   const [cardResult, setCardResult] = useState(null);
   const [cardResultOpen, setCardResultOpen] = useState(false);
   const [showCards, setShowCards] = useState(false);
+  const [wordUsedNotification, setWordUsedNotification] = useState(false);
+  const [usedWordMessage, setUsedWordMessage] = useState('');
   const chatEndRef = useRef(null);
   const theme = useTheme();
   const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -382,23 +384,24 @@ useEffect(() => {
   };
   
   const handleSubmit = async () => {
-    if (!sentence.trim() || submitting) return;
+    if (!sentence.trim() || submitting || messageProcessing) return;
     
     setSubmitting(true);
+    setMessageProcessing(true); // Start processing state
     const currentSentence = sentence.trim();
     
-    // Immediately clear input and show optimistic message
+    // Immediately clear input
     setSentence('');
     
-    // Create optimistic message with pending status
+    // Create optimistic message with better ID
     const optimisticMessage = {
-      id: `temp-${Date.now()}`,
+      id: `optimistic-${user.id}-${Date.now()}`, // Better unique ID
       senderId: user.id,
       senderName: `${user.fname} ${user.lname}`,
       content: currentSentence,
       timestamp: new Date(),
-      grammarStatus: 'PROCESSING', // New status to show it's being processed
-      grammarFeedback: 'Processing...',
+      grammarStatus: 'PROCESSING',
+      grammarFeedback: 'Processing your message...',
       isOptimistic: true,
       containsWordBomb: false,
       wordUsed: '',
@@ -411,7 +414,10 @@ useEffect(() => {
     try {
       const token = await getToken();
       if (!token) {
+        // Remove optimistic message on auth error
+        setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         setSubmitting(false);
+        setMessageProcessing(false); // Reset processing state
         alert('Authentication error. Please log in again.');
         return;
       }
@@ -435,14 +441,32 @@ useEffect(() => {
 
     } catch (error) {
       console.error('Error sending sentence:', error);
-      // Remove optimistic message on error
+      // Remove optimistic message on error and restore input
       setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
-      setSentence(currentSentence); // Restore input
+      setSentence(currentSentence);
+      setMessageProcessing(false); // Reset processing state on error
       alert('Failed to send sentence. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
+  
+  // Add effect to monitor message processing completion
+  useEffect(() => {
+    if (messageProcessing && localMessages.length > 0) {
+      // Check if the latest message from current user has completed processing
+      const userMessages = localMessages.filter(msg => msg.senderId === user?.id);
+      const latestUserMessage = userMessages[userMessages.length - 1];
+      
+      if (latestUserMessage && 
+          latestUserMessage.grammarStatus !== 'PROCESSING' && 
+          latestUserMessage.grammarFeedback !== 'Processing your message...' &&
+          !latestUserMessage.isOptimistic) {
+        console.log('Message processing completed, re-enabling input');
+        setMessageProcessing(false);
+      }
+    }
+  }, [localMessages, messageProcessing, user?.id]);
 
   // Enhanced handleUseCard function
   const handleUseCard = async (cardId) => {
@@ -1676,12 +1700,18 @@ const cycleDisplayString = isSinglePlayer
                   <TextField
                     fullWidth
                     variant="outlined"
-                    placeholder={isMyTurn ? "Type your message..." : "Waiting for your turn..."}
+                    placeholder={
+                      messageProcessing 
+                        ? "Processing message..." 
+                        : isMyTurn 
+                          ? "Type your message..." 
+                          : "Waiting for your turn..."
+                    }
                     value={sentence}
                     onChange={handleSentenceChange}
-                    disabled={!isMyTurn || submitting}
+                    disabled={!isMyTurn || submitting || messageProcessing}
                     onKeyPress={(ev) => {
-                      if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn) {
+                      if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn && !messageProcessing) {
                         handleSubmit();
                         ev.preventDefault();
                       }
@@ -1689,14 +1719,17 @@ const cycleDisplayString = isSinglePlayer
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: '50px',
-                        bgcolor: 'white'
+                        bgcolor: messageProcessing ? '#f5f5f5' : 'white',
+                        '& input': {
+                          color: messageProcessing ? '#999' : 'inherit'
+                        }
                       }
                     }}
                   />
                   <Button
                     variant="contained"
                     onClick={handleSubmit}
-                    disabled={!isMyTurn || submitting || !sentence.trim()}
+                    disabled={!isMyTurn || submitting || !sentence.trim() || messageProcessing}
                     sx={{
                       bgcolor: '#5F4B8B',
                       borderRadius: '50px',
@@ -1708,9 +1741,37 @@ const cycleDisplayString = isSinglePlayer
                       '&.Mui-disabled': { bgcolor: '#c5c5c5' }
                     }}
                   >
-                    {submitting ? <CircularProgress size={20} color="inherit"/> : '➤'}
+                    {submitting || messageProcessing ? (
+                      <CircularProgress size={20} color="inherit"/>
+                    ) : (
+                      '➤'
+                    )}
                   </Button>
                 </Box>
+                
+                {/* Processing indicator */}
+                {messageProcessing && (
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mt: 1,
+                    py: 0.5,
+                    px: 2,
+                    bgcolor: 'rgba(95, 75, 139, 0.1)',
+                    borderRadius: '20px',
+                    border: '1px solid rgba(95, 75, 139, 0.2)'
+                  }}>
+                    <CircularProgress size={16} sx={{ mr: 1, color: '#5F4B8B' }} />
+                    <Typography sx={{
+                      ...pixelText,
+                      color: '#5F4B8B',
+                      fontSize: '8px'
+                    }}>
+                      Processing your message...
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             )}
           </Paper>

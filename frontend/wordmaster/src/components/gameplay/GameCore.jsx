@@ -233,6 +233,26 @@ const GameCore = () => {
       }
     };
   }, [sessionId, getToken, user]);
+
+  // Add this useEffect after the existing ones to detect game completion
+useEffect(() => {
+  // Check if game should be marked as ended based on server state
+  const shouldGameEnd = (
+    gameState.status === 'COMPLETED' || 
+    gameState.status === 'ENDED' ||
+    (gameState.currentTurn > gameState.totalTurns && gameState.totalTurns > 0)
+  );
+  
+  if (shouldGameEnd && !gameEnded) {
+    console.log('[GameCore] Detecting game completion from server state:', {
+      status: gameState.status,
+      currentTurn: gameState.currentTurn,
+      totalTurns: gameState.totalTurns,
+      gameEnded
+    });
+    setGameEnded(true);
+  }
+}, [gameState.status, gameState.currentTurn, gameState.totalTurns, gameEnded]);
 // In GameCore.js
 // Replace the existing handleChatMessage function
 
@@ -244,31 +264,63 @@ const handleChatMessage = (message) => {
     setGameState(prev => {
       const messages = prev.messages || [];
       
-      // Check if this is an update to an existing optimistic message
+      // Only replace optimistic messages when we have COMPLETED processing
       const existingIndex = messages.findIndex(msg => 
         msg.isOptimistic && 
         msg.senderId === chatData.senderId && 
         msg.content === chatData.content &&
-        Math.abs(new Date(msg.timestamp).getTime() - new Date(chatData.timestamp).getTime()) < 5000 // Within 5 seconds
+        // Fix: Only replace when grammar processing is truly complete
+        chatData.grammarStatus && 
+        chatData.grammarStatus !== 'PROCESSING' &&
+        chatData.grammarFeedback && 
+        chatData.grammarFeedback !== 'Processing...' &&
+        chatData.grammarFeedback !== 'Processing your message...'
       );
       
       if (existingIndex !== -1) {
-        // Replace optimistic message with real one
+        // Replace optimistic message with real processed message
         const updatedMessages = [...messages];
-        updatedMessages[existingIndex] = { ...chatData, isOptimistic: false };
+        updatedMessages[existingIndex] = { 
+          ...chatData, 
+          isOptimistic: false 
+        };
+        
         return {
           ...prev,
           messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         };
       } else {
-        // Add new message
-        return {
-          ...prev,
-          messages: [...messages, chatData].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-        };
+        // Handle updates to existing real messages (for progressive updates)
+        const existingRealIndex = messages.findIndex(msg => 
+          !msg.isOptimistic && 
+          msg.id === chatData.id
+        );
+        
+        if (existingRealIndex !== -1) {
+          // Update existing real message with new processing status
+          const updatedMessages = [...messages];
+          updatedMessages[existingRealIndex] = chatData;
+          return {
+            ...prev,
+            messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          };
+        }
+        
+        // Add new message if it doesn't exist
+        const isDuplicate = messages.some(msg => 
+          msg.id === chatData.id
+        );
+        
+        if (!isDuplicate) {
+          return {
+            ...prev,
+            messages: [...messages, chatData].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          };
+        }
+        
+        return prev;
       }
     });
-    
   } catch (error) {
     console.error('Error handling chat message:', error);
   }
