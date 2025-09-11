@@ -5,11 +5,13 @@ import { isLoggedIn } from './utils/authUtils';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import picbg from '../src/assets/picbg.png';
 import '@fontsource/press-start-2p';
+
 // Lazy load all components
 const UserProfile = lazy(() => import('./Profile/UserProfileContainer'));
 const Login = lazy(() => import('./components/Authentication/Login'));
 const Register = lazy(() => import('./components/Authentication/Register'));
 const OTPVerification = lazy(() => import('./components/Authentication/OTPVerification'));
+const ForgotPassword = lazy(() => import('./components/Authentication/ForgotPassword'));
 const AdminLogin = lazy(() => import('./components/admin/AdminLogin'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 const HomePage = lazy(() => import('./components/Homepage/HomePage'));
@@ -124,6 +126,7 @@ const AppRoutes = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
         <Route path="/verify" element={<OTPVerification />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/setup" element={<SetupPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
 

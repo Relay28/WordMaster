@@ -324,6 +324,24 @@ const Login = () => {
               }}
             />
 
+            {/* Forgot Password Link */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, width: '100%' }}>
+              <Link 
+                to="/forgot-password" 
+                style={{ 
+                  textDecoration: 'none',
+                  fontSize: '12px',
+                  color: '#5F4B8B',
+                  fontWeight: 500,
+                  '&:hover': {
+                    textDecoration: 'underline'
+                  }
+                }}
+              >
+                Forgot Password?
+              </Link>
+            </Box>
+
             {/* Login Button */}
             <Button
               fullWidth

@@ -25,14 +25,18 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import jakarta.servlet.http.HttpServletResponse;
 
+import cit.edu.wrdmstr.dto.ApiResponse;
+import cit.edu.wrdmstr.dto.ChangePasswordRequest;
+import cit.edu.wrdmstr.dto.ForgotPasswordRequest;
+import cit.edu.wrdmstr.dto.ResetPasswordRequest;
+import cit.edu.wrdmstr.service.PasswordResetService;
+import org.springframework.security.core.Authentication;
+
 // import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -55,6 +59,9 @@ public class AuthController {
     
     @Value("${spring.security.oauth2.client.registration.azure.client-secret}")
     private String clientSecret;
+
+    @Autowired
+    private PasswordResetService passwordResetService;
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
@@ -187,6 +194,43 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Error converting AuthResponse to JSON", e);
             throw new RuntimeException("Failed to serialize auth response", e);
+        }
+    }
+
+    // Add these methods to your AuthController
+    @PostMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            Authentication authentication) {
+        String email = authentication.getName();
+        boolean success = passwordResetService.changePassword(email, request.getCurrentPassword(), request.getNewPassword());
+
+        if (success) {
+            return ResponseEntity.ok(new ApiResponse(true, "Password changed successfully"));
+        } else {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "Current password is incorrect"));
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        boolean success = passwordResetService.sendResetCode(request.getEmail());
+
+        if (success) {
+            return ResponseEntity.ok(new ApiResponse(true, "Reset code sent successfully"));
+        } else {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "Email not found"));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        boolean success = passwordResetService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword());
+
+        if (success) {
+            return ResponseEntity.ok(new ApiResponse(true, "Password reset successfully"));
+        } else {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "Invalid or expired reset code"));
         }
     }
 }
