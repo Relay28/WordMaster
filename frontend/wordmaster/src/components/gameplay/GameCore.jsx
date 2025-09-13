@@ -9,7 +9,7 @@ import ComprehensionQuiz from './ComprehensionQuiz';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import picbg from '../../assets/picbg.png';
-import CardDisplay from './CardDisplay'; // Import the CardDisplay component
+// import CardDisplay from './CardDisplay'; // Import the CardDisplay component
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL ;
 
@@ -28,10 +28,10 @@ const GameCore = () => {
   const [comprehensionQuestions, setComprehensionQuestions] = useState(null);
   const [loadingComprehension, setLoadingComprehension] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
-  const [playerCards, setPlayerCards] = useState([]);
-  const [loadingCards, setLoadingCards] = useState(false);
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [pendingCardUse, setPendingCardUse] = useState(false);
+  // const [playerCards, setPlayerCards] = useState([]);
+  // const [loadingCards, setLoadingCards] = useState(false);
+  // const [selectedCard, setSelectedCard] = useState(null);
+  // const [pendingCardUse, setPendingCardUse] = useState(false);
 
   const handleProceedToComprehension = () => {
     setLoadingComprehension(true);
@@ -612,122 +612,122 @@ useEffect(() => {
   }, [stompClient, getToken]);
   
   // Fetch player cards when game state changes
-  const fetchPlayerCards = useCallback(async () => {
-    if (!gameState.sessionId || !user?.id) return;
+  // const fetchPlayerCards = useCallback(async () => {
+  //   if (!gameState.sessionId || !user?.id) return;
     
-    try {
-      setLoadingCards(true);
-      const token = await getToken();
-      const response = await fetch(
-        `${API_URL}/api/cards/player/${gameState.sessionId}/user/${user.id}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
+  //   try {
+  //     setLoadingCards(true);
+  //     const token = await getToken();
+  //     const response = await fetch(
+  //       `${API_URL}/api/cards/player/${gameState.sessionId}/user/${user.id}`,
+  //       { headers: { 'Authorization': `Bearer ${token}` } }
+  //     );
       
-      if (response.ok) {
-        const cards = await response.json();
-        setPlayerCards(cards);
-        console.log('[Cards Debug] Fetched cards:', cards);
-      } else {
-        console.error('[Cards Debug] Failed to fetch cards:', response.status);
-      }
-    } catch (error) {
-      console.error('Error fetching player cards:', error);
-    } finally {
-      setLoadingCards(false);
-    }
-  }, [gameState.sessionId, user?.id, getToken]);
+  //     if (response.ok) {
+  //       const cards = await response.json();
+  //       setPlayerCards(cards);
+  //       console.log('[Cards Debug] Fetched cards:', cards);
+  //     } else {
+  //       console.error('[Cards Debug] Failed to fetch cards:', response.status);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching player cards:', error);
+  //   } finally {
+  //     setLoadingCards(false);
+  //   }
+  // }, [gameState.sessionId, user?.id, getToken]);
 
-  // Handle card selection
-  const handleCardSelect = useCallback((card) => {
-    console.log('[Cards Debug] Card selected:', card);
-    setSelectedCard(card);
-  }, []);
+  // // Handle card selection
+  // const handleCardSelect = useCallback((card) => {
+  //   console.log('[Cards Debug] Card selected:', card);
+  //   setSelectedCard(card);
+  // }, []);
 
-  // Handle card deselection
-  const handleCardDeselect = useCallback(() => {
-    console.log('[Cards Debug] Card deselected');
-    setSelectedCard(null);
-  }, []);
+  // // Handle card deselection
+  // const handleCardDeselect = useCallback(() => {
+  //   console.log('[Cards Debug] Card deselected');
+  //   setSelectedCard(null);
+  // }, []);
 
-  // Enhanced card usage with sentence integration
-  const handleUseCard = useCallback(async (cardId, sentence) => {
-    if (!sentence?.trim()) {
-      console.error('[Cards Debug] No sentence provided for card use');
-      return { success: false, message: 'Please write a sentence first before using a card!' };
-    }
+  // // Enhanced card usage with sentence integration
+  // const handleUseCard = useCallback(async (cardId, sentence) => {
+  //   if (!sentence?.trim()) {
+  //     console.error('[Cards Debug] No sentence provided for card use');
+  //     return { success: false, message: 'Please write a sentence first before using a card!' };
+  //   }
 
-    if (pendingCardUse) {
-      console.log('[Cards Debug] Card use already in progress');
-      return { success: false, message: 'Card use already in progress' };
-    }
+  //   if (pendingCardUse) {
+  //     console.log('[Cards Debug] Card use already in progress');
+  //     return { success: false, message: 'Card use already in progress' };
+  //   }
 
-    try {
-      setPendingCardUse(true);
-      console.log('[Cards Debug] Using card:', cardId, 'with sentence:', sentence);
+  //   try {
+  //     setPendingCardUse(true);
+  //     console.log('[Cards Debug] Using card:', cardId, 'with sentence:', sentence);
       
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: sentence })
-      });
+  //     const token = await getToken();
+  //     const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({ message: sentence })
+  //     });
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log('[Cards Debug] Card use result:', result);
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       console.log('[Cards Debug] Card use result:', result);
         
-        if (result.success) {
-          // Refresh cards to update the UI
-          await fetchPlayerCards();
-          // Clear selected card after successful use
-          setSelectedCard(null);
-          // Return success with points info
-          return {
-            success: true,
-            pointsAwarded: result.pointsAwarded || 0,
-            cardName: result.cardName || 'Power Card',
-            message: result.message || 'Card used successfully!'
-          };
-        } else {
-          return {
-            success: false,
-            message: result.message || 'Card conditions not met'
-          };
-        }
-      } else {
-        return {
-          success: false,
-          message: 'Failed to use card'
-        };
-      }
-    } catch (error) {
-      console.error('Error using card:', error);
-      return {
-        success: false,
-        message: 'Error using card: ' + error.message
-      };
-    } finally {
-      setPendingCardUse(false);
-    }
-  }, [getToken, fetchPlayerCards, pendingCardUse]);
+  //       if (result.success) {
+  //         // Refresh cards to update the UI
+  //         await fetchPlayerCards();
+  //         // Clear selected card after successful use
+  //         setSelectedCard(null);
+  //         // Return success with points info
+  //         return {
+  //           success: true,
+  //           pointsAwarded: result.pointsAwarded || 0,
+  //           cardName: result.cardName || 'Power Card',
+  //           message: result.message || 'Card used successfully!'
+  //         };
+  //       } else {
+  //         return {
+  //           success: false,
+  //           message: result.message || 'Card conditions not met'
+  //         };
+  //       }
+  //     } else {
+  //       return {
+  //         success: false,
+  //         message: 'Failed to use card'
+  //       };
+  //     }
+  //   } catch (error) {
+  //     console.error('Error using card:', error);
+  //     return {
+  //       success: false,
+  //       message: 'Error using card: ' + error.message
+  //     };
+  //   } finally {
+  //     setPendingCardUse(false);
+  //   }
+  // }, [getToken, fetchPlayerCards, pendingCardUse]);
   
-  // Fetch cards when game state is loaded
-  useEffect(() => {
-    if (gameState.sessionId && user?.id && 
-        (gameState.status === 'ACTIVE' || gameState.status === 'TURN_IN_PROGRESS')) {
-      fetchPlayerCards();
-    }
-  }, [gameState.sessionId, gameState.status, user?.id, fetchPlayerCards]);
+  // // Fetch cards when game state is loaded
+  // useEffect(() => {
+  //   if (gameState.sessionId && user?.id && 
+  //       (gameState.status === 'ACTIVE' || gameState.status === 'TURN_IN_PROGRESS')) {
+  //     fetchPlayerCards();
+  //   }
+  // }, [gameState.sessionId, gameState.status, user?.id, fetchPlayerCards]);
 
-  // Debug card state
-  useEffect(() => {
-    if (playerCards.length > 0) {
-      console.log('[Cards Debug] Available cards:', playerCards);
-    }
-  }, [playerCards]);
+  // // Debug card state
+  // useEffect(() => {
+  //   if (playerCards.length > 0) {
+  //     console.log('[Cards Debug] Available cards:', playerCards);
+  //   }
+  // }, [playerCards]);
 
   // Determine which component to render based on game state
   const renderGameContent = () => {
@@ -862,14 +862,14 @@ useEffect(() => {
           onGameStateUpdate={handleGameStateUpdate}
           gameEnded={gameEnded}
           onProceedToResults={handleProceedToComprehension}
-          playerCards={playerCards}
-          onRefreshCards={fetchPlayerCards}
-          loadingCards={loadingCards}
-          selectedCard={selectedCard}
-          onCardSelect={handleCardSelect}
-          onCardDeselect={handleCardDeselect}
-          onUseCard={handleUseCard}
-          pendingCardUse={pendingCardUse}
+          // playerCards={playerCards}
+          // onRefreshCards={fetchPlayerCards}
+          // loadingCards={loadingCards}
+          // selectedCard={selectedCard}
+          // onCardSelect={handleCardSelect}
+          // onCardDeselect={handleCardDeselect}
+          // onUseCard={handleUseCard}
+          // pendingCardUse={pendingCardUse}
         />);
     } else {
       return (

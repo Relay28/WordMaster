@@ -385,11 +385,18 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
   
   return (
-    <Container maxWidth="md">
-      <Fade in={true}>
-        <Paper elevation={5} sx={{ 
-          p: { xs: 2, sm: 4 }, 
-          borderRadius: '16px',
+    <Box sx={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <Container maxWidth="md">
+        <Fade in={true}>
+          <Paper elevation={5} sx={{ 
+            p: { xs: 2, sm: 4 }, 
+            borderRadius: '16px',
           backgroundColor: 'rgba(255,255,255,0.9)',
           border: '4px solid #5F4B8B'
         }}>
@@ -700,6 +707,7 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
         </Paper>
       </Fade>
     </Container>
+    </Box>
   );
 };
 

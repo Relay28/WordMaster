@@ -39,7 +39,7 @@ import {
   ExpandMore
 } from '@mui/icons-material';
 import bgGamePlay from '../../assets/bg-gameplay.png';
-import CardDisplay from './CardDisplay';  // Import the CardDisplay component
+// import CardDisplay from './CardDisplay';  // Import the CardDisplay component
 
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -469,90 +469,90 @@ useEffect(() => {
   }, [localMessages, messageProcessing, user?.id]);
 
   // Enhanced handleUseCard function
-  const handleUseCard = async (cardId) => {
-    if (!sentence.trim()) {
-      setCardResult({
-        success: false,
-        message: 'Please write a sentence first before using a card!'
-      });
-      setCardResultOpen(true);
-      return;
-    }
+  // const handleUseCard = async (cardId) => {
+  //   if (!sentence.trim()) {
+  //     setCardResult({
+  //       success: false,
+  //       message: 'Please write a sentence first before using a card!'
+  //     });
+  //     setCardResultOpen(true);
+  //     return;
+  //   }
 
-    if (!isMyTurn) {
-      setCardResult({
-        success: false,
-        message: "You can only use cards during your turn."
-      });
-      setCardResultOpen(true);
-      return;
-    }
+  //   if (!isMyTurn) {
+  //     setCardResult({
+  //       success: false,
+  //       message: "You can only use cards during your turn."
+  //     });
+  //     setCardResultOpen(true);
+  //     return;
+  //   }
 
-    if (pendingCardUse) {
-      setCardResult({
-        success: false,
-        message: "A card is already being processed..."
-      });
-      setCardResultOpen(true);
-      return;
-    }
+  //   if (pendingCardUse) {
+  //     setCardResult({
+  //       success: false,
+  //       message: "A card is already being processed..."
+  //     });
+  //     setCardResultOpen(true);
+  //     return;
+  //   }
 
-    try {
-      // Use the provided onUseCard function from props if available
-      if (onUseCard) {
-        const result = await onUseCard(cardId, sentence);
-        setCardResult(result);
-        setCardResultOpen(true);
+  //   try {
+  //     // Use the provided onUseCard function from props if available
+  //     if (onUseCard) {
+  //       const result = await onUseCard(cardId, sentence);
+  //       setCardResult(result);
+  //       setCardResultOpen(true);
 
-        // If the card was used successfully, show points notification
-        if (result.success) {
-          setPointsData({
-            points: result.pointsAwarded || 0,
-            reason: `Card bonus: ${result.cardName || 'Power Card'}`
-          });
-          setPointsNotification(true);
-        }
-        return;
-      }
+  //       // If the card was used successfully, show points notification
+  //       if (result.success) {
+  //         setPointsData({
+  //           points: result.pointsAwarded || 0,
+  //           reason: `Card bonus: ${result.cardName || 'Power Card'}`
+  //         });
+  //         setPointsNotification(true);
+  //       }
+  //       return;
+  //     }
 
-      // Fallback implementation if parent didn't provide onUseCard
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: sentence })
-      });
+  //     // Fallback implementation if parent didn't provide onUseCard
+  //     const token = await getToken();
+  //     const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({ message: sentence })
+  //     });
 
-      if (response.ok) {
-        const result = await response.json();
-        setCardResult(result);
-        setCardResultOpen(true);
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       setCardResult(result);
+  //       setCardResultOpen(true);
         
-        if (result.success) {
-          setPointsData({
-            points: result.pointsAwarded || 10,
-            reason: `Card bonus!`
-          });
-          setPointsNotification(true);
+  //       if (result.success) {
+  //         setPointsData({
+  //           points: result.pointsAwarded || 10,
+  //           reason: `Card bonus!`
+  //         });
+  //         setPointsNotification(true);
           
-          // Refresh cards to update the UI
-          if (onRefreshCards) {
-            onRefreshCards();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error using card:', error);
-      setCardResult({
-        success: false,
-        message: 'Error using card: ' + (error.message || 'Unknown error')
-      });
-      setCardResultOpen(true);
-    }
-  };
+  //         // Refresh cards to update the UI
+  //         if (onRefreshCards) {
+  //           onRefreshCards();
+  //         }
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error using card:', error);
+  //     setCardResult({
+  //       success: false,
+  //       message: 'Error using card: ' + (error.message || 'Unknown error')
+  //     });
+  //     setCardResultOpen(true);
+  //   }
+  // };
 
   // Non-blocking state refresh
   const fetchUpdatedGameState = useCallback(async () => {
@@ -1215,7 +1215,7 @@ const cycleDisplayString = isSinglePlayer
       </Box> */}
 
       {/* Power-Up Cards Floating at Bottom */}
-<Box
+{/* <Box
   sx={{
     position: 'absolute',
     bottom: 45,
@@ -1254,17 +1254,17 @@ const cycleDisplayString = isSinglePlayer
         },
       }}
     >
-      <CardDisplay
+      {/* <CardDisplay
         card={playerCards[i]}
         isSelected={selectedCard?.id === playerCards[i]?.id}
         onUse={handleUseCard}
         disabled={!isMyTurn || pendingCardUse}
         isProcessing={pendingCardUse && selectedCard?.id === playerCards[i]?.id}
         pixelText={pixelText}
-      />
+      /> 
     </Box>
   ))}
-</Box>
+</Box> */}
 
       {/* Word Bank Popup */}
       <Fade in={isWordBankOpen}>
