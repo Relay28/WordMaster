@@ -473,13 +473,13 @@ public class GameSessionManagerService {
             // Get previous story elements for continuity
             List<Map<String, Object>> previousElements = storyPromptService.getStoryPrompts(session.getId());
             
-            // NEW: Get current players and their roles
+            // Get current players and their roles
             List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
             Map<String, String> playerRoles = new HashMap<>();
             List<String> playerNames = new ArrayList<>();
             
             for (PlayerSessionEntity player : players) {
-                String playerName = player.getUser().getFname() + " " + player.getUser().getLname();
+                String playerName = player.getUser().getFname(); // Use only first name
                 String roleName = player.getRole() != null ? player.getRole().getName() : "Participant";
                 
                 playerRoles.put(playerName, roleName);
@@ -488,10 +488,11 @@ public class GameSessionManagerService {
             
             Map<String, Object> request = new HashMap<>();
             request.put("task", "story_prompt");
-            request.put("content", session.getContent().getDescription());
+            request.put("content", session.getContent().getTitle()); // Use title as main topic
+            request.put("contentDescription", session.getContent().getDescription()); // Add full description
             request.put("turn", turnNumber);
             
-            // NEW: Include player context
+            // Include player context
             request.put("playerNames", playerNames);
             request.put("playerRoles", playerRoles);
             request.put("currentPlayerCount", players.size());
@@ -506,14 +507,89 @@ public class GameSessionManagerService {
             
             String newPrompt = aiService.callAIModel(request).getResult();
             
-            // Save the new story prompt
-            storyPromptService.addStoryPrompt(session.getId(), turnNumber, newPrompt);
+            // Clean the prompt to ensure it meets requirements
+            String cleanedPrompt = cleanStoryPrompt(newPrompt);
             
-            return newPrompt;
+            // Save the cleaned story prompt
+            storyPromptService.addStoryPrompt(session.getId(), turnNumber, cleanedPrompt);
+            
+            return cleanedPrompt;
         } catch (Exception e) {
             logger.error("Error generating story element for session {}: {}", session.getId(), e.getMessage(), e);
-            return "Continue the conversation based on your role and the story context!";
+            
+            // Provide content-relevant fallback
+            String contentTitle = session.getContent() != null ? session.getContent().getTitle() : "the topic";
+            return "The group continues their discussion about " + contentTitle + ". What should they focus on next?";
         }
+    }
+
+
+    // Add this method to clean story prompts
+    private String cleanStoryPrompt(String rawStory) {
+        if (rawStory == null || rawStory.trim().isEmpty()) {
+            return "Let's continue our story! What happens next?";
+        }
+        
+        String cleaned = rawStory.trim();
+        
+        // Remove markdown formatting
+        cleaned = cleaned.replaceAll("\\*\\*([^*]+)\\*\\*", "$1"); // Remove **bold**
+        cleaned = cleaned.replaceAll("\\*([^*]+)\\*", "$1"); // Remove *italic*
+        cleaned = cleaned.replaceAll("#{1,6}\\s*", ""); // Remove headers
+        cleaned = cleaned.replaceAll("Turn \\d+:", ""); // Remove "Turn X:"
+        cleaned = cleaned.replaceAll("\\(([^)]+)\\)", ""); // Remove parenthetical directions
+        
+        // Remove gender pronouns and replace with neutral alternatives
+        cleaned = cleaned.replaceAll("\\bhe\\b", "they");
+        cleaned = cleaned.replaceAll("\\bHe\\b", "They");
+        cleaned = cleaned.replaceAll("\\bshe\\b", "they");
+        cleaned = cleaned.replaceAll("\\bShe\\b", "They");
+        cleaned = cleaned.replaceAll("\\bhim\\b", "them");
+        cleaned = cleaned.replaceAll("\\bHim\\b", "Them");
+        cleaned = cleaned.replaceAll("\\bher\\b", "them");
+        cleaned = cleaned.replaceAll("\\bHer\\b", "Them");
+        cleaned = cleaned.replaceAll("\\bhis\\b", "their");
+        cleaned = cleaned.replaceAll("\\bHis\\b", "Their");
+        cleaned = cleaned.replaceAll("\\bhers\\b", "theirs");
+        cleaned = cleaned.replaceAll("\\bHers\\b", "Theirs");
+        
+        // Remove complex punctuation
+        cleaned = cleaned.replaceAll("[\u201C\u201D\u2018\u2019\u201E\u201A]", "\""); // Normalize quotes
+        cleaned = cleaned.replaceAll("…", "..."); // Normalize ellipsis
+        
+        // Split into sentences and limit length
+        String[] sentences = cleaned.split("\\. ");
+        StringBuilder result = new StringBuilder();
+        int sentenceCount = 0;
+        
+        for (String sentence : sentences) {
+            if (sentenceCount >= 4) break; // Max 4 sentences
+            
+            sentence = sentence.trim();
+            if (!sentence.isEmpty()) {
+                // Skip overly complex sentences (>20 words)
+                String[] words = sentence.split("\\s+");
+                if (words.length <= 20) {
+                    if (result.length() > 0) result.append(". ");
+                    result.append(sentence);
+                    sentenceCount++;
+                }
+            }
+        }
+        
+        String finalStory = result.toString().trim();
+        
+        // Ensure it ends with proper punctuation
+        if (!finalStory.endsWith(".") && !finalStory.endsWith("?") && !finalStory.endsWith("!")) {
+            finalStory += ".";
+        }
+        
+        // If still too long, provide a simple fallback
+        if (finalStory.length() > 300) {
+            return "The story continues. What do you think should happen next? Share your ideas!";
+        }
+        
+        return finalStory;
     }
     
     private void assignWordBombs(List<PlayerSessionEntity> players, List<WordBankItem> wordBank) {

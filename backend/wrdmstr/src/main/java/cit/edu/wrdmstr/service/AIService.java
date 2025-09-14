@@ -12,6 +12,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Arrays;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -176,7 +177,25 @@ public class AIService {
                         String task = (String) request.get("task");
                         switch (task) {
                             case "story_prompt":
-                                errorResponse.setResult("Let's continue our English conversation! Please share your thoughts in English about the topic.");
+                                // Try to get content information from request for better fallbacks
+                                String contentTopic = (String) request.get("content");
+                                if (contentTopic != null && !contentTopic.trim().isEmpty()) {
+                                    String[] contentAwareFallbacks = {
+                                        "The group is discussing " + contentTopic + ". What aspect should they explore next?",
+                                        "Everyone is learning about " + contentTopic + ". What question should they ask?",
+                                        "The students are working on " + contentTopic + " together. What should they focus on?",
+                                        "The team is exploring " + contentTopic + ". What should they investigate next?"
+                                    };
+                                    errorResponse.setResult(contentAwareFallbacks[new Random().nextInt(contentAwareFallbacks.length)]);
+                                } else {
+                                    String[] simpleFallbacks = {
+                                        "The group is working together on their project. What should they do next?",
+                                        "Something interesting is about to happen. How do you think the story should continue?",
+                                        "The students are having a good conversation. What topic should they discuss now?",
+                                        "Everyone is excited about the next part of the story. What do you suggest happens?"
+                                    };
+                                    errorResponse.setResult(simpleFallbacks[new Random().nextInt(simpleFallbacks.length)]);
+                                }
                                 break;
                             case "role_prompt":
                                 errorResponse.setResult("Remember to stay in character and use English vocabulary. You're doing great in practicing English!");
@@ -211,7 +230,25 @@ public class AIService {
                     String task = (String) request.get("task");
                     switch (task) {
                         case "story_prompt":
-                            errorResponse.setResult("Let's continue our English conversation! Please share your thoughts in English about the topic.");
+                            // Try to get content information from request for better fallbacks
+                            String contentTopic = (String) request.get("content");
+                            if (contentTopic != null && !contentTopic.trim().isEmpty()) {
+                                String[] contentAwareFallbacks = {
+                                    "The group is discussing " + contentTopic + ". What aspect should they explore next?",
+                                    "Everyone is learning about " + contentTopic + ". What question should they ask?",
+                                    "The students are working on " + contentTopic + " together. What should they focus on?",
+                                    "The team is exploring " + contentTopic + ". What should they investigate next?"
+                                };
+                                errorResponse.setResult(contentAwareFallbacks[new Random().nextInt(contentAwareFallbacks.length)]);
+                            } else {
+                                String[] simpleFallbacks = {
+                                    "The group is working together on their project. What should they do next?",
+                                    "Something interesting is about to happen. How do you think the story should continue?",
+                                    "The students are having a good conversation. What topic should they discuss now?",
+                                    "Everyone is excited about the next part of the story. What do you suggest happens?"
+                                };
+                                errorResponse.setResult(simpleFallbacks[new Random().nextInt(simpleFallbacks.length)]);
+                            }
                             break;
                         case "role_prompt":
                             errorResponse.setResult("Remember to stay in character and use English vocabulary. You're doing great in practicing English!");
@@ -275,44 +312,65 @@ public class AIService {
 
                 case "story_prompt":
                     StringBuilder prompt = new StringBuilder();
-                    prompt.append("You are creating a coherent, progressive story for English learning.\n");
-                    prompt.append("Topic: ").append(request.get("content")).append("\n");
-                    prompt.append("Current turn: ").append(request.get("turn")).append("\n");
+                    prompt.append("You are creating simple, engaging story prompts for Grade 8-9 Filipino students learning English.\n\n");
                     
-                    // NEW: Include player information
+                    prompt.append("CRITICAL REQUIREMENTS:\n");
+                    prompt.append("- Write at a Grade 8-9 reading level (simple vocabulary, clear sentences)\n");
+                    prompt.append("- Maximum 3-4 sentences total\n");
+                    prompt.append("- Use common English words that Filipino students know\n");
+                    prompt.append("- NO special formatting (**, ##, Turn X:, etc.)\n");
+                    prompt.append("- NO gender assumptions (use 'they/them' or names only)\n");
+                    prompt.append("- MUST relate directly to the content topic and roles\n");
+                    prompt.append("- End with a simple question or choice for the next player\n\n");
+                    
+                    // Make content information more prominent
+                    prompt.append("CONTENT TOPIC: ").append(request.get("content")).append("\n");
+                    prompt.append("CONTENT DESCRIPTION: ").append(request.getOrDefault("contentDescription", "")).append("\n");
+                    prompt.append("Current turn: ").append(request.get("turn")).append("\n\n");
+                    
+                    // Include player roles prominently
                     @SuppressWarnings("unchecked")
                     List<String> playerNames = (List<String>) request.get("playerNames");
                     @SuppressWarnings("unchecked")
                     Map<String, String> playerRoles = (Map<String, String>) request.get("playerRoles");
                     
                     if (playerNames != null && !playerNames.isEmpty()) {
-                        prompt.append("\nPLAYERS IN THIS STORY:\n");
+                        prompt.append("STUDENTS AND THEIR ROLES:\n");
                         for (String playerName : playerNames) {
-                            String role = playerRoles.get(playerName);
-                            prompt.append("- ").append(playerName).append(" (Role: ").append(role).append(")\n");
+                            String role = playerRoles != null ? playerRoles.get(playerName) : "Student";
+                            prompt.append("- ").append(playerName).append(" as ").append(role).append("\n");
                         }
+                        prompt.append("\n");
                     }
                     
-                    // Include previous story elements for continuity
+                    // Include previous story for continuity
                     @SuppressWarnings("unchecked")
                     List<String> previousElements = (List<String>) request.get("previousStory");
                     if (previousElements != null && !previousElements.isEmpty()) {
-                        prompt.append("\nPrevious story elements:\n");
-                        for (int i = 0; i < previousElements.size(); i++) {
-                            prompt.append("Turn ").append(i + 1).append(": ").append(previousElements.get(i)).append("\n");
+                        prompt.append("PREVIOUS STORY PARTS:\n");
+                        for (int i = Math.max(0, previousElements.size() - 2); i < previousElements.size(); i++) {
+                            prompt.append("Part ").append(i + 1).append(": ").append(previousElements.get(i)).append("\n");
                         }
+                        prompt.append("\n");
                     }
                     
-                    prompt.append("\nCreate the next story segment that:\n");
-                    prompt.append("- Continues the narrative logically from previous elements\n");
-                    prompt.append("- INCLUDES the actual player names (").append(String.join(", ", playerNames != null ? playerNames : Arrays.asList("students"))).append(") as characters in the story\n");
-                    prompt.append("- References their assigned roles naturally in the narrative\n");
-                    prompt.append("- Encourages each player to respond according to their specific role\n");
-                    prompt.append("- Maintains story coherence and character consistency\n");
-                    prompt.append("- Is engaging and age-appropriate for Grade 8-9 Filipino students\n");
-                    prompt.append("- Provides clear context for role-based responses\n\n");
-                    prompt.append("IMPORTANT: Use the actual player names and their roles to create an immersive, personalized story experience.\n\n");
-                    prompt.append("Generate only the story prompt, no additional text:");
+                    prompt.append("CREATE A STORY PROMPT THAT:\n");
+                    prompt.append("- Directly relates to the content topic: ").append(request.get("content")).append("\n");
+                    prompt.append("- Incorporates the student roles meaningfully\n");
+                    prompt.append("- Uses gender-neutral language (they/them or just names)\n");
+                    prompt.append("- Uses simple English vocabulary\n");
+                    prompt.append("- Creates a situation where students can use their roles\n");
+                    prompt.append("- Continues logically from previous story parts\n");
+                    prompt.append("- Ends with a clear question or choice for the next student\n\n");
+                    
+                    prompt.append("EXAMPLE FORMATS:\n");
+                    prompt.append("Topic: Environmental Science, Roles: Researcher, Reporter\n");
+                    prompt.append("→ 'The team is studying pollution in the river. Alex the Researcher found some interesting data. Sam the Reporter needs to share this with the community. What should they do next?'\n\n");
+                    
+                    prompt.append("Topic: History, Roles: Explorer, Guide, Historian\n");
+                    prompt.append("→ 'The group arrived at the ancient ruins. Maya the Explorer wants to investigate. Jordan the Guide knows the safe paths. What should the team explore first?'\n\n");
+                    
+                    prompt.append("Write ONLY the story prompt (no formatting, no extra text):");
                     
                     return prompt.toString();
 
@@ -531,5 +589,61 @@ public class AIService {
         public void setResult(String result) {
             this.result = result;
         }
+    }
+
+    /**
+     * Clean and validate story prompts for Grade 8-9 students
+     */
+    private String cleanStoryPrompt(String rawStory) {
+        if (rawStory == null || rawStory.trim().isEmpty()) {
+            return "Let's continue our story! What happens next?";
+        }
+        
+        String cleaned = rawStory.trim();
+        
+        // Remove markdown formatting
+        cleaned = cleaned.replaceAll("\\*\\*([^*]+)\\*\\*", "$1"); // Remove **bold**
+        cleaned = cleaned.replaceAll("\\*([^*]+)\\*", "$1"); // Remove *italic*
+        cleaned = cleaned.replaceAll("#{1,6}\\s*", ""); // Remove headers
+        cleaned = cleaned.replaceAll("Turn \\d+:", ""); // Remove "Turn X:"
+        cleaned = cleaned.replaceAll("\\(([^)]+)\\)", ""); // Remove parenthetical directions
+        
+        // Remove complex punctuation
+        cleaned = cleaned.replaceAll("[\u201C\u201D\u2018\u2019\u201E\u201A]", "\""); // Normalize quotes
+        cleaned = cleaned.replaceAll("…", "..."); // Normalize ellipsis
+        
+        // Split into sentences and limit length
+        String[] sentences = cleaned.split("\\. ");
+        StringBuilder result = new StringBuilder();
+        int sentenceCount = 0;
+        
+        for (String sentence : sentences) {
+            if (sentenceCount >= 4) break; // Max 4 sentences
+            
+            sentence = sentence.trim();
+            if (!sentence.isEmpty()) {
+                // Skip overly complex sentences (>20 words)
+                String[] words = sentence.split("\\s+");
+                if (words.length <= 20) {
+                    if (result.length() > 0) result.append(". ");
+                    result.append(sentence);
+                    sentenceCount++;
+                }
+            }
+        }
+        
+        String finalStory = result.toString().trim();
+        
+        // Ensure it ends with proper punctuation
+        if (!finalStory.endsWith(".") && !finalStory.endsWith("?") && !finalStory.endsWith("!")) {
+            finalStory += ".";
+        }
+        
+        // If still too long, provide a simple fallback
+        if (finalStory.length() > 300) {
+            return "The story continues. What do you think should happen next? Share your ideas!";
+        }
+        
+        return finalStory;
     }
 }
