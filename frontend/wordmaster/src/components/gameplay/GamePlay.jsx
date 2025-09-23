@@ -39,6 +39,7 @@ import {
   ExpandMore
 } from '@mui/icons-material';
 import bgGamePlay from '../../assets/bg-gameplay.png';
+import bgpurple from '../../assets/bgpurple.gif';
 // import CardDisplay from './CardDisplay';  // Import the CardDisplay component
 
 // Add API URL configuration
@@ -91,7 +92,6 @@ const GamePlay = ({
   const [optimisticGameState, setOptimisticGameState] = useState(gameState); // Add this line
   const processingTimeoutRef = useRef(null); // Add this line
   const isSinglePlayer = gameState.players?.length === 1;
-  const [isWordBankOpen, setIsWordBankOpen] = useState(false);
   const [localTimeRemaining, setLocalTimeRemaining] = useState(gameState.timeRemaining);
   const [timerActive, setTimerActive] = useState(false);
   const timerIntervalRef = useRef(null);
@@ -827,7 +827,7 @@ const cycleDisplayString = isSinglePlayer
           minWidth: '40vh', // Added to ensure minimum width
           maxWidth: '130vh', 
            border: '4px solid #5F4B8B',
-          backgroundImage: `url(${bgGamePlay})`,
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${bgpurple})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -1085,7 +1085,7 @@ const cycleDisplayString = isSinglePlayer
               alignItems: 'center',
               justifyContent: 'center',
               mb: 4,
-              mt: 6,
+              mt: 2,
               p: 3,
               borderRadius: '50%',
               width: 230,
@@ -1203,35 +1203,135 @@ const cycleDisplayString = isSinglePlayer
               }
             `}</style>
           </Paper>
-      {/* Word Bank Button */}
-      <Box
-        onClick={() => setIsWordBankOpen(!isWordBankOpen)}
-        sx={{
-          position: 'absolute',
-          bottom: 20,
-          right: 20,
-          width: 80,
-          height: 80,
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          animation: isWordBankOpen ? 'float 2s ease-in-out infinite' : 'none',
-          transform: isWordBankOpen ? 'rotate(-15deg)' : 'none',
-          zIndex: 2,
-          '&:hover': {
-            transform: isWordBankOpen ? 'rotate(-15deg) scale(1.1)' : 'scale(1.1)',
-          },
-          '@keyframes float': {
-            '0%, 100%': {
-              transform: 'rotate(-15deg) translateY(0)',
-            },
-            '50%': {
-              transform: 'rotate(-15deg) translateY(-10px)',
-            },
-          },
-        }}
+
+   {/* Word Bank Container - Always visible with matching aesthetics */}
+<Paper sx={{ 
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  width: '97%',
+  p: 3, // Increased padding to match left pane style
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(8px)',
+  borderTop: '4px solid #5F4B8B', // Thicker border to match left pane style
+  maxHeight: '15%',
+  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  zIndex: 5,
+  borderRadius: '0 0 16px 16px',
+  boxShadow: '0 -4px 8px rgba(0,0,0,0.1)', // Add subtle shadow for depth
+}}>
+  <Box sx={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    mb: 2 // Increased margin
+  }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+      <Typography sx={{ 
+        ...pixelHeading, 
+        color: '#5F4B8B', 
+        fontSize: ismobile ? '12px' : '14px', // Match the font size from other headings
+        textShadow: '1px 1px 0px rgba(255,255,255,0.8)' // Add subtle text shadow
+      }}>
+        WORD BANK
+      </Typography>
+      {gameState.wordBank && gameState.wordBank.length > 0 && (
+        <Typography sx={{ 
+          ...pixelText, 
+          fontSize: '8px', 
+          color: '#5F4B8B', 
+          opacity: 0.6,
+          mt: 0.5
+        }}>
+          CLICK A WORD TO ADD IT TO YOUR MESSAGE
+        </Typography>
+      )}
+    </Box>
+    <Chip 
+      label={`${getWordBank().length || 0} words`} 
+      size="small"
+      sx={{ 
+        bgcolor: 'rgba(95, 75, 139, 0.2)', // Slightly darker to match theme
+        borderRadius: '8px',
+        height: '22px', // Slightly larger
+        border: '2px solid #5F4B8B', // Add border to match theme
+        '& .MuiChip-label': {
+          px: 1.5,
+          fontSize: '0.7rem',
+          fontWeight: 'bold',
+          color: '#5F4B8B'
+        }
+      }}
+    />
+  </Box>
+  
+  {/* Word bank content area */}
+  <Box sx={{ 
+    display: 'flex', 
+    flexWrap: 'wrap', 
+    gap: 1.5, // Increased gap for better spacing
+    pb: 1 // Add padding at bottom
+  }}>
+    {gameState.wordBank && gameState.wordBank.map((wordItem, index) => (
+      <Tooltip
+        key={index}
+        title={
+          <Box sx={{ ...pixelText, p: 1 }}>
+            <Typography sx={{ fontWeight: 'bold', mb: 1 }}>
+              {wordItem.description || "NO DESCRIPTION AVAILABLE"}
+            </Typography>
+            {wordItem.exampleUsage && (
+              <Typography sx={{ fontStyle: 'italic' }}>
+                EXAMPLE: "{wordItem.exampleUsage}"
+              </Typography>
+            )}
+          </Box>
+        }
+        arrow
+        placement="top"
       >
-        {isWordBankOpen ? <BagOpen /> : <BagClosed />}
-      </Box>
+        <Chip 
+          label={typeof wordItem === 'string' ? wordItem : wordItem.word}
+          sx={{
+            ...pixelText,
+            backgroundColor: 'white',
+            border: '2px solid #5F4B8B',
+            boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', // Add pixel-style shadow
+            py: 0.5, // Slightly taller
+            px: 0.5, // More horizontal padding
+            '&:hover': {
+              backgroundColor: '#f0edf5',
+              transform: 'translateY(-2px) scale(1.05)', // Enhanced hover effect
+              boxShadow: '3px 3px 0px rgba(95, 75, 139, 0.3)', // Deeper shadow on hover
+            },
+            transition: 'all 0.2s ease',
+            cursor: 'pointer' // Indicate clickable
+          }}
+          onClick={() => {
+            setSentence(prev => prev ? 
+              `${prev} ${typeof wordItem === 'string' ? wordItem : wordItem.word}` : 
+              (typeof wordItem === 'string' ? wordItem : wordItem.word)
+            );
+          }}
+        />
+      </Tooltip>
+    ))}
+    {(!gameState.wordBank || gameState.wordBank.length === 0) && (
+      <Typography sx={{ 
+        ...pixelText, 
+        color: '#5F4B8B', 
+        width: '100%', 
+        textAlign: 'center', 
+        py: 2,
+        opacity: 0.7
+      }}>
+        NO WORDS AVAILABLE IN WORD BANK.
+      </Typography>
+    )}
+  </Box>
+</Paper>
 
       {/* Power Cards Button - Added next to Word Bank
       <Box sx={{
@@ -1329,79 +1429,7 @@ const cycleDisplayString = isSinglePlayer
   ))}
 </Box> */}
 
-      {/* Word Bank Popup */}
-      <Fade in={isWordBankOpen}>
-  <Paper sx={{ 
-    position: 'absolute',
-    bottom: 120,
-    right: 20,
-    width: 300,
-    maxHeight: '60vh',
-    overflowY: 'auto',
-    p: 2,
-    borderRadius: '8px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-    zIndex: 1000,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    backdropFilter: 'blur(8px)',
-    border: '2px solid #5F4B8B',
-    // Add transition for smoother fade
-    transition: 'opacity 0.3s ease',
-    opacity: isWordBankOpen ? 1 : 0,
-    visibility: isWordBankOpen ? 'visible' : 'hidden'
-  }}>
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-      <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>WORD BANK</Typography>
-      <IconButton onClick={() => setIsWordBankOpen(false)}>
-        <Close />
-      </IconButton>
-    </Box>
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-      {gameState.wordBank && gameState.wordBank.map((wordItem, index) => (
-
-        <Tooltip
-        
-          key={index}
-          title={
-            <Box sx={{ ...pixelText, p: 1 }}>
-              <Typography sx={{ fontWeight: 'bold', mb: 1 }}>
-                {wordItem.description || "NO DESCRIPTION AVAILABLE"}
-              </Typography>
-              {wordItem.exampleUsage && (
-                <Typography sx={{ fontStyle: 'italic' }}>
-                  EXAMPLE: "{wordItem.exampleUsage}"
-                </Typography>
-              )}
-            </Box>
-          }
-          arrow
-        >
-          <Chip 
-            label={wordItem.word}
-            sx={{
-              ...pixelText,
-              backgroundColor: 'white',
-              border: '2px solid #5F4B8B',
-              '&:hover': {
-                backgroundColor: '#f0edf5',
-                transform: 'translateY(-2px)'
-              },
-              transition: 'all 0.2s ease'
-            }}
-            onClick={() => {
-              setSentence(prev => prev ? `${prev} ${wordItem.word}` : wordItem.word);
-            }}
-          />
-        </Tooltip>
-      ))}
-      {(!gameState.wordBank || gameState.wordBank.length === 0) && (
-        <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
-          NO WORDS AVAILABLE IN WORD BANK.
-        </Typography>
-      )}
-    </Box>
-  </Paper>
-</Fade>
+  
           </Box>
 
         {/* Right Side - Chat */}
