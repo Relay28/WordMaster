@@ -1,0 +1,9 @@
+-- Migration: create ai_cache table
+CREATE TABLE IF NOT EXISTS ai_cache (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  prompt_hash VARCHAR(128) NOT NULL UNIQUE,
+  prompt_text LONGTEXT NOT NULL,
+  response LONGTEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

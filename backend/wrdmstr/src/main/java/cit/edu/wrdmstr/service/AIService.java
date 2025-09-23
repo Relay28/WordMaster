@@ -449,6 +449,7 @@ public class AIService {
                     feedbackPrompt.append("2. Confidence building in English communication\n");
                     feedbackPrompt.append("3. Participation and effort in English practice\n");
                     feedbackPrompt.append("4. Celebrating strengths and gentle guidance for improvement\n\n");
+                    feedbackPrompt.append("5. Discourage Slang and inappropriate english\n\n");
                     
                     feedbackPrompt.append("IMPORTANT INSTRUCTIONS:\n");
                     feedbackPrompt.append("- Address ").append(studentName).append(" warmly and personally\n");
