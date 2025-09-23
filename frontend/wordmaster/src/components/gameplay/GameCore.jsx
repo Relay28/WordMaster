@@ -169,6 +169,50 @@ const GameCore = () => {
             client.subscribe(`/topic/game/${sessionId}/players`, handlePlayerUpdate);
             client.subscribe(`/topic/game/${sessionId}/updates`, handleGameUpdates);
             client.subscribe(`/topic/game/${sessionId}/chat`, handleChatMessage); 
+
+            // Subscribe to AI streaming topic for this session
+            try {
+              // Subscribe to AI stream topic. We will NOT append partial chunks to the
+              // main message list to avoid showing intermediate streaming text.
+              // Instead we set an aiLoading flag while waiting and only append the
+              // final message when payload.type === 'final'. This keeps the UI clean.
+              client.subscribe(`/topic/ai/${sessionId}`, (message) => {
+                try {
+                  const payload = JSON.parse(message.body);
+                  // payload.type = 'partial' | 'final' | 'error', payload.text
+                  if (payload.type === 'partial') {
+                    // Mark that AI is producing output; show a single 'Analyzing...' indicator on AI side
+                    setGameState(prev => ({ ...prev, __aiLoading: true }));
+                    return;
+                  }
+
+                  // For errors, clear loading and optionally show an error message
+                  if (payload.type === 'error') {
+                    setGameState(prev => ({ ...prev, __aiLoading: false }));
+                    // Optionally append a short error message from AI
+                    setGameState(prev => {
+                      const messages = prev.messages ? [...prev.messages] : [];
+                      messages.push({ id: `ai-error-${Date.now()}`, sender: 'AI', content: 'Analysis failed', timestamp: new Date().toISOString() });
+                      return { ...prev, messages };
+                    });
+                    return;
+                  }
+
+                  // payload.type === 'final'
+                  setGameState(prev => {
+                    const messages = prev.messages ? [...prev.messages] : [];
+                    // Remove any existing optimistic AI placeholder (isOptimistic or content 'Analyzing...')
+                    const filtered = messages.filter(m => !(m.isOptimistic && m.sender === 'AI') && !(String(m.content).trim() === 'Analyzing...'));
+                    filtered.push({ id: `ai-${Date.now()}`, sender: 'AI', content: payload.text, timestamp: new Date().toISOString() });
+                    return { ...prev, messages: filtered, __aiLoading: false };
+                  });
+                } catch (e) {
+                  console.error('Error parsing AI stream message', e);
+                }
+              });
+            } catch (e) {
+              console.warn('AI topic subscription failed', e);
+            }
             
             // Subscribe to user-specific queue
             if (user && user.id) {
@@ -234,6 +278,46 @@ const GameCore = () => {
     };
   }, [sessionId, getToken, user]);
 
+  // Helper to send text to AI service and create optimistic UI placeholder
+  const sendAiForAnalysis = async (text) => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+
+      // Create optimistic AI message (marked as placeholder so UI can hide it)
+      const placeholder = {
+        id: `ai-optimistic-${Date.now()}`,
+        sender: 'AI',
+        senderName: 'AI',
+        content: 'Analyzing...',
+        isOptimistic: true,
+        isPlaceholder: true,
+        timestamp: new Date().toISOString()
+      };
+      setGameState(prev => ({ ...prev, messages: [...(prev.messages || []), placeholder] }));
+
+      // Fire and forget; the AsyncAIService will stream updates to /topic/ai/{sessionId}
+      await fetch(`${API_URL}/api/ai/submit?sessionId=${sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ text, task: 'grammar_check' })
+      });
+    } catch (err) {
+      console.error('Failed to send AI analysis', err);
+    }
+  };
+
+  // Add an optimistic message into the canonical gameState.messages array
+  const addOptimisticMessage = (message) => {
+    setGameState(prev => {
+      const messages = prev.messages ? [...prev.messages] : [];
+      if (!messages.some(m => m.id === message.id)) {
+        messages.push(message);
+      }
+      return { ...prev, messages };
+    });
+  };
+
   // Add this useEffect after the existing ones to detect game completion
 useEffect(() => {
   // Check if game should be marked as ended based on server state
@@ -259,67 +343,61 @@ useEffect(() => {
 const handleChatMessage = (message) => {
   try {
     const chatData = JSON.parse(message.body);
+    // Defensive: some servers may send streaming/preview AI fragments on the chat topic.
+    // If this looks like an AI preview/partial/temporary fragment, ignore it here so
+    // only final AI responses appear in the main chat list.
+    const isStreamFlag = chatData.type === 'partial' || chatData.partial || chatData.preview || chatData.isAiStream || chatData.temporary;
+    const senderLooksLikeAi = (chatData.sender === 'AI' || chatData.senderName === 'AI' || chatData.fromAi === true);
+    const content = (chatData.content || '').toString().trim();
+    // Heuristic: short fragments under 30 chars or placeholder text are likely previews
+    const shortFragment = content.length > 0 && content.length < 30;
+    const placeholderTexts = ['analyzing...', 'processing...', 'analysis in progress'];
+    if (isStreamFlag || (senderLooksLikeAi && (shortFragment || placeholderTexts.includes(content.toLowerCase())))) {
+      // set a lightweight ai-loading flag for UI elsewhere, but do not append this fragment
+      setGameState(prev => ({ ...prev, __aiLoading: true }));
+      return;
+    }
     console.log('Chat message received:', chatData);
     
     setGameState(prev => {
-      const messages = prev.messages || [];
-      
-      // Only replace optimistic messages when we have COMPLETED processing
-      const existingIndex = messages.findIndex(msg => 
-        msg.isOptimistic && 
-        msg.senderId === chatData.senderId && 
-        msg.content === chatData.content &&
-        // Fix: Only replace when grammar processing is truly complete
-        chatData.grammarStatus && 
-        chatData.grammarStatus !== 'PROCESSING' &&
-        chatData.grammarFeedback && 
-        chatData.grammarFeedback !== 'Processing...' &&
-        chatData.grammarFeedback !== 'Processing your message...'
-      );
-      
-      if (existingIndex !== -1) {
-        // Replace optimistic message with real processed message
-        const updatedMessages = [...messages];
-        updatedMessages[existingIndex] = { 
-          ...chatData, 
-          isOptimistic: false 
-        };
-        
-        return {
-          ...prev,
-          messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-        };
-      } else {
-        // Handle updates to existing real messages (for progressive updates)
-        const existingRealIndex = messages.findIndex(msg => 
-          !msg.isOptimistic && 
-          msg.id === chatData.id
-        );
-        
-        if (existingRealIndex !== -1) {
-          // Update existing real message with new processing status
-          const updatedMessages = [...messages];
-          updatedMessages[existingRealIndex] = chatData;
-          return {
-            ...prev,
-            messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          };
+      const messages = prev.messages ? [...prev.messages] : [];
+
+      const normalize = s => s ? String(s).trim().toLowerCase().replace(/\s+/g, ' ') : '';
+
+      // 1) If server echoed clientMessageId, replace that optimistic message directly
+      if (chatData.clientMessageId) {
+        const idx = messages.findIndex(m => m.id === chatData.clientMessageId);
+        if (idx !== -1) {
+          const updated = [...messages];
+          updated[idx] = { ...chatData, isOptimistic: false };
+          return { ...prev, messages: updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
         }
-        
-        // Add new message if it doesn't exist
-        const isDuplicate = messages.some(msg => 
-          msg.id === chatData.id
-        );
-        
-        if (!isDuplicate) {
-          return {
-            ...prev,
-            messages: [...messages, chatData].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-          };
-        }
-        
-        return prev;
       }
+
+      // 2) Fallback: match by sender and normalized content when optimistic
+      const chatNorm = normalize(chatData.content);
+      const existingIndex = messages.findIndex(msg => msg.isOptimistic && String(msg.senderId) === String(chatData.senderId) && normalize(msg.content) === chatNorm);
+      if (existingIndex !== -1) {
+        const updatedMessages = [...messages];
+        updatedMessages[existingIndex] = { ...chatData, isOptimistic: false };
+        return { ...prev, messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
+      }
+
+      // 3) Update existing real messages by id
+      const existingRealIndex = messages.findIndex(msg => !msg.isOptimistic && msg.id === chatData.id);
+      if (existingRealIndex !== -1) {
+        const updatedMessages = [...messages];
+        updatedMessages[existingRealIndex] = chatData;
+        return { ...prev, messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
+      }
+
+      // 4) Add if not duplicate id
+      const isDuplicate = messages.some(msg => msg.id === chatData.id);
+      if (!isDuplicate) {
+        return { ...prev, messages: [...messages, chatData].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
+      }
+
+      return prev;
     });
   } catch (error) {
     console.error('Error handling chat message:', error);
@@ -859,6 +937,8 @@ useEffect(() => {
           gameState={gameState}
           stompClient={stompClient}
           sendMessage={sendMessage}
+            sendAiForAnalysis={sendAiForAnalysis}
+            addOptimisticMessage={addOptimisticMessage}
           onGameStateUpdate={handleGameStateUpdate}
           gameEnded={gameEnded}
           onProceedToResults={handleProceedToComprehension}

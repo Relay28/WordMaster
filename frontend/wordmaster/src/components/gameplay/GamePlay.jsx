@@ -49,6 +49,8 @@ const GamePlay = ({
   gameState, 
   stompClient, 
   sendMessage, 
+  sendAiForAnalysis,
+  addOptimisticMessage,
   onGameStateUpdate, 
   gameEnded, 
   onProceedToResults,
@@ -111,6 +113,42 @@ const GamePlay = ({
     fontSize: ismobile ? '12px' : '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
+  };
+
+  // Helper: get normalized wordbank list from gameState
+  const getWordBank = () => {
+    if (!gameState || !gameState.wordBank) return [];
+    return gameState.wordBank.map(w => (typeof w === 'string' ? w.trim().toLowerCase() : (w.word || '').toLowerCase()));
+  };
+
+  // Render message text with highlighted wordbank terms
+  const renderHighlighted = (text) => {
+    if (!text) return text;
+    const words = getWordBank();
+    if (!words || words.length === 0) return text;
+
+    // Build regex to match whole words (case-insensitive)
+    const escaped = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
+    if (escaped.length === 0) return text;
+    const re = new RegExp('\\b(' + escaped.join('|') + ')\\b', 'ig');
+
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ text: text.substring(lastIndex, match.index), highlight: false });
+      }
+      parts.push({ text: match[0], highlight: true });
+      lastIndex = re.lastIndex;
+    }
+    if (lastIndex < text.length) parts.push({ text: text.substring(lastIndex), highlight: false });
+
+    return parts.map((p, i) => p.highlight ? (
+      <span key={i} style={{ fontWeight: '700', textDecoration: 'underline', color: '#FF5722' }}>{p.text}</span>
+    ) : (
+      <span key={i}>{p.text}</span>
+    ));
   };
 //   useEffect(() => {
 //   if (gameState.messages) {
@@ -408,8 +446,21 @@ useEffect(() => {
       roleAppropriate: null
     };
     
-    // Add optimistic message immediately
-    setLocalMessages(prev => [...prev, optimisticMessage]);
+    // Add optimistic message immediately to canonical state
+    if (typeof addOptimisticMessage === 'function') {
+      addOptimisticMessage({
+        id: optimisticMessage.id,
+        senderId: optimisticMessage.senderId,
+        senderName: optimisticMessage.senderName,
+        content: optimisticMessage.content,
+        timestamp: optimisticMessage.timestamp,
+        grammarStatus: optimisticMessage.grammarStatus,
+        grammarFeedback: optimisticMessage.grammarFeedback,
+        isOptimistic: true
+      });
+    } else {
+      setLocalMessages(prev => [...prev, optimisticMessage]);
+    }
     
     try {
       const token = await getToken();
@@ -424,8 +475,20 @@ useEffect(() => {
 
       // Send to backend
       const headers = { 'Authorization': `Bearer ${token}` };
-      await sendMessage(`/app/game/${gameState.sessionId}/word`, 
-                       { word: currentSentence }, headers);
+  await sendMessage(`/app/game/${gameState.sessionId}/word`, 
+           { word: currentSentence, clientMessageId: optimisticMessage.id });
+
+      // Trigger AI grammar analysis (background). If parent passed a helper, use it; otherwise call endpoint directly
+      if (typeof sendAiForAnalysis === 'function') {
+        try { sendAiForAnalysis(currentSentence); } catch (e) { console.error('sendAiForAnalysis error', e); }
+      } else {
+        try {
+          fetch(`${API_URL}/api/ai/submit?sessionId=${sessionId}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ text: currentSentence, task: 'grammar_check' })
+          }).catch(e => console.error('AI submit failed', e));
+        } catch (e) { console.error('AI submit error', e); }
+      }
 
       // For single player, optimistically advance turn
       if (isSinglePlayer) {
@@ -1431,8 +1494,26 @@ const cycleDisplayString = isSinglePlayer
               position: 'relative',
               zIndex: 1
             }}>
-     
-{localMessages.map((msg, index) => (
+
+  {/* Render messages, but filter out internal AI streaming chunks (isAiStream/partial)
+      Also filter out the noisy AI suggestion message the user asked to hide. */}
+  {localMessages.filter(m => {
+    if (!m) return false;
+    const content = (m.content || '').toString();
+    // Hide any AI streaming/preview/temporary markers or placeholders
+    if (m.isAiStream || m.partial || m.preview || m.temporary || m.isPlaceholder) return false;
+    // Hide messages that are clearly just a short analyzing/processing placeholder
+    const trimmed = content.trim().toLowerCase();
+    if (trimmed === 'analyzing...' || trimmed === 'processing...' || trimmed === 'analysis in progress') return false;
+    // Hide overly short fragments likely coming from AI partials (heuristic)
+    if ((m.sender === 'AI' || m.senderName === 'AI' || m.fromAi) && trimmed.length < 20) return false;
+    // If this is an optimistic user message (created locally) keep it until server replaces it
+    if (m.isOptimistic && (m.senderId === user?.id || m.sender === user?.id)) return true;
+    // Hide the specific noisy AI suggestion messages the user reported
+    if (content.includes("Keep practicing your sentence structure") || content.includes("you'll improve even more")) return false;
+    // Otherwise show final messages only
+    return true;
+  }).map((msg, index) => (
   <Box
     key={msg.id || index}
     sx={{
@@ -1451,18 +1532,10 @@ const cycleDisplayString = isSinglePlayer
       color: msg.senderId === user?.id ? 'white' : 'black',
       position: 'relative'
     }}>
-      {/* Add processing indicator */}
-      {msg.grammarStatus === 'PROCESSING' && (
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-          <CircularProgress size={12} sx={{ mr: 1, color: 'inherit' }} />
-          <Typography sx={{ ...pixelText, fontSize: '6px' }}>
-            Processing...
-          </Typography>
-        </Box>
-      )}
+  {/* Per-message processing indicator removed — global analyzing indicator is shown below submit button */}
       
       <Typography sx={{fontSize: ismobile ? '14px' : '18px' }}>
-        <strong>{msg.senderName}:</strong> {msg.content}
+        <strong>{msg.senderName}:</strong> {renderHighlighted(msg.content)}
       </Typography>
       
       {/* Show role if available */}
@@ -1624,6 +1697,8 @@ const cycleDisplayString = isSinglePlayer
     </Box>
   </Box>
 ))}
+
+  {/* NOTE: Per request, do NOT show the AI "Analyzing..." bubble inside the chat area. */}
               <div ref={chatEndRef} />
             </Box>
 
@@ -1749,8 +1824,8 @@ const cycleDisplayString = isSinglePlayer
                   </Button>
                 </Box>
                 
-                {/* Processing indicator */}
-                {messageProcessing && (
+                {/* Analyzing indicator shown below the submit button (not inside chat) */}
+                {(messageProcessing || (gameState && gameState.__aiLoading)) && (
                   <Box sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1758,17 +1833,17 @@ const cycleDisplayString = isSinglePlayer
                     mt: 1,
                     py: 0.5,
                     px: 2,
-                    bgcolor: 'rgba(95, 75, 139, 0.1)',
-                    borderRadius: '20px',
-                    border: '1px solid rgba(95, 75, 139, 0.2)'
+                    bgcolor: 'rgba(95, 75, 139, 0.06)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(95, 75, 139, 0.12)'
                   }}>
-                    <CircularProgress size={16} sx={{ mr: 1, color: '#5F4B8B' }} />
+                    <CircularProgress size={14} sx={{ mr: 1, color: '#5F4B8B' }} />
                     <Typography sx={{
                       ...pixelText,
                       color: '#5F4B8B',
-                      fontSize: '8px'
+                      fontSize: '10px'
                     }}>
-                      Processing your message...
+                      Analyzing... Please wait
                     </Typography>
                   </Box>
                 )}
