@@ -65,18 +65,14 @@ const GameCore = () => {
         try {
           setLoadingComprehension(true);
           const token = await getToken();
-          
-          // Add retries to ensure questions are available
           let attempts = 0;
-          let maxAttempts = 5;
+          const maxAttempts = 5;
           let questions = null;
-          
           while (attempts < maxAttempts && !questions) {
             const response = await fetch(
               `${API_URL}/api/teacher-feedback/comprehension/${gameState.sessionId}/student/${user.id}/questions`,
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
-            
             if (response.ok) {
               const data = await response.json();
               if (data && data.length > 0) {
@@ -84,24 +80,22 @@ const GameCore = () => {
                 console.log(`Got ${data.length} questions on attempt ${attempts + 1}`);
               }
             }
-            
             if (!questions) {
               attempts++;
               if (attempts < maxAttempts) {
                 console.log(`No questions yet, retrying in 1 second... (attempt ${attempts}/${maxAttempts})`);
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(res => setTimeout(res, 1000));
               }
             }
           }
-          
           if (questions) {
             setComprehensionQuestions(questions);
           } else {
-            console.warn("No questions available after all attempts");
+            console.warn('No questions available after all attempts');
             setShowResults(true);
           }
         } catch (e) {
-          console.error("Error fetching comprehension questions:", e);
+          console.error('Error fetching comprehension questions:', e);
           setComprehensionQuestions([]);
         } finally {
           setLoadingComprehension(false);
@@ -278,23 +272,54 @@ const GameCore = () => {
     };
   }, [sessionId, getToken, user]);
 
-  // Helper to send text to AI service and create optimistic UI placeholder
+  // Unified helper to append/merge a message avoiding duplicates (by id or optimistic content)
+  const safeAppendMessage = useCallback((incoming) => {
+    setGameState(prev => {
+      const list = prev.messages ? [...prev.messages] : [];
+      const norm = s => (s || '').toString().trim().toLowerCase().replace(/\s+/g,' ');
+      // If same id already present -> optionally upgrade optimistic
+      const sameIdIdx = list.findIndex(m => m.id && incoming.id && m.id === incoming.id);
+      if (sameIdIdx !== -1) {
+        // Merge to keep newest fields; drop isOptimistic flag
+        const updated = { ...list[sameIdIdx], ...incoming, isOptimistic: false };
+        list[sameIdIdx] = updated;
+        return { ...prev, messages: list };
+      }
+      // If incoming has clientMessageId referencing an optimistic
+      if (incoming.clientMessageId) {
+        const optimisticIdx = list.findIndex(m => m.id === incoming.clientMessageId);
+        if (optimisticIdx !== -1) {
+          list[optimisticIdx] = { ...incoming, id: incoming.clientMessageId, isOptimistic: false };
+          return { ...prev, messages: list };
+        }
+      }
+      // Fallback: match optimistic by sender + normalized content
+      const incContent = norm(incoming.content);
+      const optimisticIdx2 = list.findIndex(m => m.isOptimistic && String(m.senderId) === String(incoming.senderId) && norm(m.content) === incContent);
+      if (optimisticIdx2 !== -1) {
+        list[optimisticIdx2] = { ...list[optimisticIdx2], ...incoming, isOptimistic: false };
+        return { ...prev, messages: list };
+      }
+      // Avoid adding duplicate AI finals with identical normalized content adjacent
+      if ((incoming.sender === 'AI' || incoming.senderName === 'AI') && incContent.length) {
+        const lastAi = [...list].reverse().find(m => (m.sender === 'AI' || m.senderName === 'AI') && !m.isOptimistic);
+        if (lastAi && norm(lastAi.content) === incContent) {
+          return prev; // skip duplicate
+        }
+      }
+      list.push(incoming);
+      return { ...prev, messages: list };
+    });
+  }, []);
+
+  // Helper to send text to AI service and create optimistic UI placeholder (single placeholder only)
   const sendAiForAnalysis = async (text) => {
     try {
       const token = await getToken();
       if (!token) return;
-
-      // Create optimistic AI message (marked as placeholder so UI can hide it)
-      const placeholder = {
-        id: `ai-optimistic-${Date.now()}`,
-        sender: 'AI',
-        senderName: 'AI',
-        content: 'Analyzing...',
-        isOptimistic: true,
-        isPlaceholder: true,
-        timestamp: new Date().toISOString()
-      };
-      setGameState(prev => ({ ...prev, messages: [...(prev.messages || []), placeholder] }));
+      // Instead of pushing a visible placeholder message (which caused duplicates),
+      // just set a flag; UI shows a single global "Analyzing" indicator.
+      setGameState(prev => ({ ...prev, __aiLoading: true }));
 
       // Fire and forget; the AsyncAIService will stream updates to /topic/ai/{sessionId}
       await fetch(`${API_URL}/api/ai/submit?sessionId=${sessionId}`, {
@@ -317,92 +342,6 @@ const GameCore = () => {
       return { ...prev, messages };
     });
   };
-
-  // Add this useEffect after the existing ones to detect game completion
-useEffect(() => {
-  // Check if game should be marked as ended based on server state
-  const shouldGameEnd = (
-    gameState.status === 'COMPLETED' || 
-    gameState.status === 'ENDED' ||
-    (gameState.currentTurn > gameState.totalTurns && gameState.totalTurns > 0)
-  );
-  
-  if (shouldGameEnd && !gameEnded) {
-    console.log('[GameCore] Detecting game completion from server state:', {
-      status: gameState.status,
-      currentTurn: gameState.currentTurn,
-      totalTurns: gameState.totalTurns,
-      gameEnded
-    });
-    setGameEnded(true);
-  }
-}, [gameState.status, gameState.currentTurn, gameState.totalTurns, gameEnded]);
-// In GameCore.js
-// Replace the existing handleChatMessage function
-
-const handleChatMessage = (message) => {
-  try {
-    const chatData = JSON.parse(message.body);
-    // Defensive: some servers may send streaming/preview AI fragments on the chat topic.
-    // If this looks like an AI preview/partial/temporary fragment, ignore it here so
-    // only final AI responses appear in the main chat list.
-    const isStreamFlag = chatData.type === 'partial' || chatData.partial || chatData.preview || chatData.isAiStream || chatData.temporary;
-    const senderLooksLikeAi = (chatData.sender === 'AI' || chatData.senderName === 'AI' || chatData.fromAi === true);
-    const content = (chatData.content || '').toString().trim();
-    // Heuristic: short fragments under 30 chars or placeholder text are likely previews
-    const shortFragment = content.length > 0 && content.length < 30;
-    const placeholderTexts = ['analyzing...', 'processing...', 'analysis in progress'];
-    if (isStreamFlag || (senderLooksLikeAi && (shortFragment || placeholderTexts.includes(content.toLowerCase())))) {
-      // set a lightweight ai-loading flag for UI elsewhere, but do not append this fragment
-      setGameState(prev => ({ ...prev, __aiLoading: true }));
-      return;
-    }
-    console.log('Chat message received:', chatData);
-    
-    setGameState(prev => {
-      const messages = prev.messages ? [...prev.messages] : [];
-
-      const normalize = s => s ? String(s).trim().toLowerCase().replace(/\s+/g, ' ') : '';
-
-      // 1) If server echoed clientMessageId, replace that optimistic message directly
-      if (chatData.clientMessageId) {
-        const idx = messages.findIndex(m => m.id === chatData.clientMessageId);
-        if (idx !== -1) {
-          const updated = [...messages];
-          updated[idx] = { ...chatData, isOptimistic: false };
-          return { ...prev, messages: updated.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
-        }
-      }
-
-      // 2) Fallback: match by sender and normalized content when optimistic
-      const chatNorm = normalize(chatData.content);
-      const existingIndex = messages.findIndex(msg => msg.isOptimistic && String(msg.senderId) === String(chatData.senderId) && normalize(msg.content) === chatNorm);
-      if (existingIndex !== -1) {
-        const updatedMessages = [...messages];
-        updatedMessages[existingIndex] = { ...chatData, isOptimistic: false };
-        return { ...prev, messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
-      }
-
-      // 3) Update existing real messages by id
-      const existingRealIndex = messages.findIndex(msg => !msg.isOptimistic && msg.id === chatData.id);
-      if (existingRealIndex !== -1) {
-        const updatedMessages = [...messages];
-        updatedMessages[existingRealIndex] = chatData;
-        return { ...prev, messages: updatedMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
-      }
-
-      // 4) Add if not duplicate id
-      const isDuplicate = messages.some(msg => msg.id === chatData.id);
-      if (!isDuplicate) {
-        return { ...prev, messages: [...messages, chatData].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) };
-      }
-
-      return prev;
-    });
-  } catch (error) {
-    console.error('Error handling chat message:', error);
-  }
-};
 // Add this after the fetchGameState function
 
 const fetchSessionMessages = useCallback(async () => {
@@ -490,8 +429,28 @@ const fetchGameState = useCallback(async () => {
   } catch (err) {
     setError('Error loading game state');
     console.error('Game state fetch error:', err);
+    // Ensure the loading spinner is cleared even on error
+    setLoading(false);
   }
 }, [sessionId, getToken]);
+
+  // Fallback initial fetch in case websocket connect is delayed
+  useEffect(() => {
+    if (loading) {
+      fetchGameState();
+      // Safety timeout: clear loading after 8s if still true
+      const timeout = setTimeout(() => {
+        setLoading(prev => {
+          if (prev) {
+            console.warn('[GameCore] Forcing loading=false after timeout');
+            return false;
+          }
+          return prev;
+        });
+      }, 8000);
+      return () => clearTimeout(timeout);
+    }
+  }, [loading, fetchGameState]);
 
   // Add this after the first useEffect
 
@@ -640,69 +599,54 @@ useEffect(() => {
     }
   };
   
-  const handlePersonalResponses = (message) => {
+  const handleChatMessage = (message) => {
     try {
-      const response = JSON.parse(message.body);
-      console.log('Personal response received:', response);
-      
-      // Handle role prompts
-      if (response.rolePrompt) {
-        // This will be handled by the GamePlay component through its own subscription
-        console.log('Role prompt received:', response.rolePrompt);
+      const chatData = JSON.parse(message.body);
+      const isStreamFlag = chatData.type === 'partial' || chatData.partial || chatData.preview || chatData.isAiStream || chatData.temporary;
+      const senderLooksLikeAi = (chatData.sender === 'AI' || chatData.senderName === 'AI' || chatData.fromAi === true);
+      const content = (chatData.content || '').toString().trim();
+      const shortFragment = content.length > 0 && content.length < 30;
+      const placeholderTexts = ['analyzing...', 'processing...', 'analysis in progress'];
+      if (isStreamFlag || (senderLooksLikeAi && (shortFragment || placeholderTexts.includes(content.toLowerCase())))) {
+        setGameState(prev => ({ ...prev, __aiLoading: true }));
+        return;
       }
+      // Merge/append safely
+      safeAppendMessage({ ...chatData, isOptimistic: false });
     } catch (error) {
-      console.error('Error handling personal response:', error);
+      console.error('Error handling chat message:', error);
     }
   };
-  
-  // Add this to GameCore.jsx
-  const handleGameStateUpdate = (updatedState) => {
-    // Update your game state here
-    setGameState(updatedState); // Assuming you have a state setter like this
-  };
-  
-  // Function to send a message through WebSocket
+
+  // Provide handler to allow child component to push a full updated game state
+  const handleGameStateUpdate = useCallback((updatedState) => {
+    if (!updatedState || typeof updatedState !== 'object') return;
+    setGameState(prev => ({ ...prev, ...updatedState }));
+  }, []);
+
+  // Function to send a message through WebSocket (restored after refactor)
   const sendMessage = useCallback(async (destination, body) => {
     if (!stompClient || !stompClient.connected) {
       setError('WebSocket connection not established');
       return false;
     }
-    
     try {
       const token = await getToken();
       if (!token) {
         setError('Authentication token not available');
         return false;
       }
-      
       stompClient.publish({
-        destination: destination,
+        destination,
         body: JSON.stringify(body),
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       return true;
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (err) {
+      console.error('Error sending message:', err);
       return false;
     }
   }, [stompClient, getToken]);
-  
-  // Fetch player cards when game state changes
-  // const fetchPlayerCards = useCallback(async () => {
-  //   if (!gameState.sessionId || !user?.id) return;
-    
-  //   try {
-  //     setLoadingCards(true);
-  //     const token = await getToken();
-  //     const response = await fetch(
-  //       `${API_URL}/api/cards/player/${gameState.sessionId}/user/${user.id}`,
-  //       { headers: { 'Authorization': `Bearer ${token}` } }
-  //     );
-      
-  //     if (response.ok) {
-  //       const cards = await response.json();
   //       setPlayerCards(cards);
   //       console.log('[Cards Debug] Fetched cards:', cards);
   //     } else {

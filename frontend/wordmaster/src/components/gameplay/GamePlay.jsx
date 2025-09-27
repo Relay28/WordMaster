@@ -1525,7 +1525,20 @@ const cycleDisplayString = isSinglePlayer
 
   {/* Render messages, but filter out internal AI streaming chunks (isAiStream/partial)
       Also filter out the noisy AI suggestion message the user asked to hide. */}
-  {localMessages.filter(m => {
+  {localMessages
+    // First, reduce to a list without duplicate (senderId+normalizedContent+timestamp second) combos
+    .filter((m, idx, arr) => {
+      if (!m) return false;
+      const norm = (s) => (s||'').toString().trim().toLowerCase().replace(/\s+/g,' ');
+      const sig = `${m.senderId||m.sender}|${norm(m.content)}|${new Date(m.timestamp).getSeconds()}`; // coarse signature
+      const firstIdx = arr.findIndex(x => {
+        if (!x) return false; 
+        const sig2 = `${x.senderId||x.sender}|${norm(x.content)}|${new Date(x.timestamp).getSeconds()}`;
+        return sig2 === sig;
+      });
+      return firstIdx === idx; // keep only first occurrence
+    })
+    .filter(m => {
     if (!m) return false;
     const content = (m.content || '').toString();
     // Hide any AI streaming/preview/temporary markers or placeholders

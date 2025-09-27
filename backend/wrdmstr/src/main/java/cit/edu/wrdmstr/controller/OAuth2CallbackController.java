@@ -1,6 +1,7 @@
 package cit.edu.wrdmstr.controller;
 
 import cit.edu.wrdmstr.dto.AuthResponse;
+import cit.edu.wrdmstr.dto.AuthResponseSimplified;
 import cit.edu.wrdmstr.service.MicrosoftAuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -35,8 +36,13 @@ public class OAuth2CallbackController {
             //Process the auth code
             AuthResponse authResponse = microsoftAuthService.handleOAuth2Code(code);
             
-            //Convert auth response to JSON
-            String authJson = objectMapper.writeValueAsString(authResponse);
+            // Create simplified response without profile picture to reduce header size
+            // The profile picture can be large and causes "HeadersTooLargeException"
+            // when passed through URL parameters. Frontend can fetch it separately via /api/profile
+            AuthResponseSimplified simplifiedResponse = AuthResponseSimplified.fromAuthResponse(authResponse);
+            
+            //Convert simplified auth response to JSON
+            String authJson = objectMapper.writeValueAsString(simplifiedResponse);
             String encodedAuth = Base64.getEncoder().encodeToString(authJson.getBytes());
             
             String frontendUrl = "http://localhost:5173"; 
@@ -51,7 +57,7 @@ public class OAuth2CallbackController {
                 }
             }
             
-            logger.info("Redirecting to frontend: {}", frontendUrl + "/oauth-success?data=" + encodedAuth);
+//            logger.info("Redirecting to frontend: {}", frontendUrl + "/oauth-success?data=" + encodedAuth);
             
             return new RedirectView(frontendUrl + "/oauth-success?data=" + encodedAuth);
             
