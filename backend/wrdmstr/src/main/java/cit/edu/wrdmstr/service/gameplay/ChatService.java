@@ -7,6 +7,7 @@ import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.ProgressiveFeedbackService;
+import cit.edu.wrdmstr.service.gameplay.ProfanityFilterService;
 import cit.edu.wrdmstr.service.ProgressTrackingService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
@@ -49,6 +50,8 @@ public class ChatService {
     @Autowired private WordDetectionService wordDetectionService;
     @Autowired 
     private ProgressiveFeedbackService progressiveFeedbackService;
+    @Autowired
+    private ProfanityFilterService profanityFilterService;
 
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
@@ -72,7 +75,15 @@ public class ChatService {
         String roleName = player.getRole() != null ? player.getRole().getName() : null;
         String contextDesc = session.getContent() != null ? session.getContent().getDescription() : "";
 
-        // Grammar check
+        // Profanity filtering BEFORE any analysis so masked content is stored/broadcast
+        ProfanityFilterService.Result profanityResult = profanityFilterService.filter(content);
+        if (profanityResult.hasProfanity()) {
+            logger.info("[Profanity] Detected in session {} user {}: {}", sessionId, userId, profanityResult.getMatches());
+            scoreService.applyProfanityPenalty(player, profanityResult.getMatches().stream().findFirst().orElse(null));
+        }
+        content = profanityResult.getFilteredText();
+
+        // Grammar check (runs on filtered text; acceptable tradeoff per requirements)
         GrammarCheckerService.GrammarCheckResult grammarResult = 
                 grammarCheckerService.checkGrammar(content, roleName, contextDesc);
         
@@ -85,7 +96,7 @@ public class ChatService {
         message.setSession(session);
         message.setSender(player.getUser());
         message.setPlayerSession(player);
-        message.setContent(content);
+    message.setContent(content); // already filtered if profanity present
         message.setGrammarStatus(grammarResult.getStatus());
         message.setGrammarFeedback(grammarResult.getFeedback());
         message.setVocabularyScore(vocabResult.getVocabularyScore());
@@ -369,6 +380,13 @@ public class ChatService {
         message.setSession(session);
         message.setSender(player.getUser());
         message.setPlayerSession(player);
+        // Profanity filtering for single-player path BEFORE saving
+        ProfanityFilterService.Result profanityResult = profanityFilterService.filter(content);
+        if (profanityResult.hasProfanity()) {
+            logger.info("[Profanity] (Single-player) session {} user {}: {}", sessionId, userId, profanityResult.getMatches());
+            scoreService.applyProfanityPenalty(player, profanityResult.getMatches().stream().findFirst().orElse(null));
+        }
+        content = profanityResult.getFilteredText();
         message.setContent(content);
         message.setTimestamp(new Date());
         message.setGrammarStatus(MessageStatus.PENDING); // Keep as PENDING initially

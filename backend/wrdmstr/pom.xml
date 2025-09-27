@@ -56,7 +56,6 @@
 			<version>6.1</version> <!-- Use the appropriate version -->
 		</dependency>
 
-
 		<dependency>
 			<groupId>net.sf.extjwnl</groupId>
 			<artifactId>extjwnl</artifactId>
@@ -89,6 +88,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<!-- Add WebFlux for non-blocking WebClient support -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
 
 
