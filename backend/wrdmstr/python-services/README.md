@@ -25,7 +25,54 @@ Student Message → GECToR Grammar (fast) → AI Role Check → Feedback
 
 ## Setup Instructions
 
-### 1. Start GECToR Python Service
+### Prerequisites
+
+Ensure you have Python 3.8+ installed on your system.
+
+### 1. Install Python Dependencies
+
+#### Complete Installation (Recommended):
+```powershell
+# Install all required packages
+py -m pip install flask transformers torch requests langdetect datasets accelerate tokenizers safetensors huggingface-hub nltk spacy
+```
+
+#### Step-by-Step Installation:
+
+**Basic Dependencies:**
+```powershell
+py -m pip install flask transformers torch requests langdetect
+```
+
+**GECToR-Specific Dependencies:**
+```powershell
+py -m pip install datasets accelerate tokenizers safetensors huggingface-hub
+```
+
+**Optional Performance Dependencies:**
+```powershell
+# For better text processing
+py -m pip install nltk spacy
+
+# For GPU acceleration (if you have NVIDIA GPU)
+py -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+**Post-Installation Setup (Optional but Recommended):**
+```powershell
+# Download spaCy English model
+py -m spacy download en_core_web_sm
+
+# Download NLTK data
+py -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+```
+
+**Verify Installation:**
+```powershell
+py -c "import torch, transformers, datasets; print('All packages installed successfully!')"
+```
+
+### 2. Start GECToR Python Service
 
 #### Windows:
 ```bash
@@ -40,26 +87,43 @@ chmod +x start.sh
 ./start.sh
 ```
 
-### 2. Manual Setup (if scripts fail):
+### 3. Manual Setup (if scripts fail):
 ```bash
-# Create virtual environment
+# Create virtual environment (optional)
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # OR
 venv\Scripts\activate.bat  # Windows
 
-# Install dependencies
+# Install dependencies from requirements.txt
 pip install -r requirements.txt
 
 # Start service
 python gector_service.py
 ```
 
-### 3. Verify Services
+### 4. Quick Start Batch File (Windows)
+
+Create `start_gector.bat` in your project root:
+```batch
+@echo off
+cd /d "D:\Online Class\College\3RD YEAR\2nd sem\Captsone\d\WordMaster\backend\wrdmstr\python-services"
+py gector_service.py
+pause
+```
+
+Then double-click to start the service easily.
+
+### 5. Verify Services
 
 The GECToR service should start on port 5001. Verify it's running:
 ```bash
 curl http://localhost:5001/health
+```
+
+Or using PowerShell:
+```powershell
+Invoke-WebRequest -Uri "http://localhost:5001/health" -Method GET
 ```
 
 Expected response:
@@ -70,6 +134,8 @@ Expected response:
   "device": "cpu"
 }
 ```
+
+**Note**: On first run, GECToR will download transformer models (~500MB-1GB). This may take several minutes but only happens once. Models are cached locally for future use.
 
 ## Performance Improvements
 
