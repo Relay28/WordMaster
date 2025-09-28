@@ -1029,6 +1029,14 @@ public class GameSessionManagerService {
                 if (currentPlayerEntity.getRole() != null) {
                     currentPlayerMap.put("role", currentPlayerEntity.getRole().getName());
                 }
+                // Include profile picture in the lightweight currentPlayer map so the
+                // frontend turn indicator can always display the avatar without doing
+                // an extra lookup in players[]. This is a small string (URL / base64)
+                // and does not materially impact payload size compared to existing
+                // per-turn data.
+                if (currentPlayerEntity.getUser() != null) {
+                    currentPlayerMap.put("profilePicture", currentPlayerEntity.getUser().getProfilePicture());
+                }
                 dto.setCurrentPlayer(currentPlayerMap);
             }
         } else {
