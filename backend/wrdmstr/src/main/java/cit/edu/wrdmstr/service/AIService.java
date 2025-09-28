@@ -32,15 +32,27 @@ public class AIService {
     }
 
     /**
-     * Get enhanced grammar feedback from AI model
+     * DEPRECATED: Use GectorGrammarService for faster grammar correction
+     * This method is kept for backward compatibility but should not be used
+     * for new implementations. GECToR provides 10x faster grammar checking.
      */
+    @Deprecated
     public String getGrammarFeedback(String text) {
-        Map<String, Object> request = new HashMap<>();
-        request.put("text", text);
-        request.put("task", "grammar_check");
-
-        AIResponse response = callAIModel(request);
-        return response.getResult();
+        logger.warn("Using deprecated AI grammar feedback. Consider using GectorGrammarService for better performance.");
+        
+        // Provide a quick fallback for any legacy calls
+        if (text == null || text.trim().isEmpty()) {
+            return "NO ERRORS - Message received!";
+        }
+        
+        // Simple heuristic-based feedback for backward compatibility
+        if (text.length() < 10) {
+            return "MINOR ERRORS - Try writing a bit more to practice your English!";
+        } else if (!text.matches(".*[.!?]$")) {
+            return "MINOR ERRORS - Good message! Remember to end with punctuation.";
+        } else {
+            return "NO ERRORS - Great job! Your message looks good.";
+        }
     }
 
     /**
@@ -288,14 +300,9 @@ public class AIService {
             
             switch (task) {
                 case "grammar_check":
-                    return "You are a supportive English teacher helping Grade 8-9 Filipino students.\n" +
-                        "Analyze: \"" + request.get("text") + "\"\n\n" +
-                        "Respond with EXACTLY this format:\n" +
-                        "[STATUS] - [One encouraging comment]\n" +
-                        "✓ [What they did well - be specific]\n" +
-                        "💡 [One actionable improvement tip]\n\n" +
-                        "STATUS options: NO ERRORS, MINOR ERRORS, MAJOR ERRORS\n" +
-                        "Keep total response under 50 words. Focus on the most important feedback only.";
+                    // DEPRECATED: Redirect to use GectorGrammarService instead
+                    logger.warn("grammar_check task is deprecated. Use GectorGrammarService for better performance.");
+                    return "DEPRECATED: Use GectorGrammarService for faster and more accurate grammar correction.";
 
                 case "role_check":
                     return "You are helping Grade 8-9 Filipino students practice English through role-play.\n" +

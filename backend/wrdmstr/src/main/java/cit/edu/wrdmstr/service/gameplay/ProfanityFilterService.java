@@ -27,7 +27,7 @@ public class ProfanityFilterService {
     "bastard","damn","crap","dick","d1ck","d!ck","d*ck","piss","pisss","pissy","slut","slutty",
     "whore","wh0re","whoreee","hoe","h0e","h03","hoeee","hoezzz","motherfucker","motherfukka",
     "cunt","twat","jerk","skank","dumbass","dumass","dummass","dumas","stupidass","idiot","idi0t","idjit",
-    "retard","ret4rd","rehtard","r3tard","retardd","moron","mor0n","cretin",
+    "retard","ret4rd","rehtard","r3tard","retardd","moron","mor0n","cretin","dafuq","tf","ts","stfu","sybau",
 
     // Sexual/explicit
     "pussy","pussyy","cock","cum","suckmydick","suckme","suckmy","suckmyd1ck",

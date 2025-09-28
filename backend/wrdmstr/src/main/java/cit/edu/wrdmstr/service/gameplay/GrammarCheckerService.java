@@ -1,52 +1,48 @@
 package cit.edu.wrdmstr.service.gameplay;
 
 import cit.edu.wrdmstr.entity.ChatMessageEntity;
-import org.languagetool.JLanguageTool;
-import org.languagetool.language.AmericanEnglish;
-import org.languagetool.rules.RuleMatch;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.entity.ChatMessageEntity.MessageStatus;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Enhanced Grammar Checker Service using GECToR for fast grammar correction
+ * and AI only for role appropriateness checking to reduce latency
+ */
 @Service
 public class GrammarCheckerService {
     private static final Logger logger = LoggerFactory.getLogger(GrammarCheckerService.class);
     private final AIService aiService;
+    private final GectorGrammarService gectorGrammarService;
 
-    @Autowired
-    public GrammarCheckerService(AIService aiService) {
+    public GrammarCheckerService(AIService aiService, GectorGrammarService gectorGrammarService) {
         this.aiService = aiService;
+        this.gectorGrammarService = gectorGrammarService;
     }
 
+    /**
+     * Simple grammar check using GECToR only
+     */
     public GrammarCheckResult checkGrammar(String text) {
-        // Get AI-powered feedback
-        String aiFeedback = aiService.getGrammarFeedback(text);
-
-        // Parse feedback to determine status
-        MessageStatus status = determineStatusFromFeedback(aiFeedback);
-
-        // Add role-specific context to feedback
-        String enhancedFeedback = aiFeedback;
-
-        return new GrammarCheckResult(status, enhancedFeedback);
-    }    // Modify the checkGrammar method to include role checking
+        GectorGrammarService.GrammarCorrectionResult gectorResult = gectorGrammarService.checkGrammar(text);
+        return new GrammarCheckResult(gectorResult.getStatus(), gectorResult.getFeedback());
+    }
+    
+    /**
+     * Enhanced grammar check with role appropriateness
+     * Uses GECToR for grammar (fast) and AI only for role checking
+     */
     public GrammarCheckResult checkGrammar(String text, String role, String contextDescription) {
         try {
-            // Get AI-powered grammar feedback
-            String aiFeedback = aiService.getGrammarFeedback(text);
-
-            // Parse feedback to determine status
-            MessageStatus status = determineStatusFromFeedback(aiFeedback);
-
-            // Check role appropriateness if role provided
-            boolean isRoleAppropriate = false;
+            // Use GECToR for grammar correction (much faster than AI)
+            GectorGrammarService.GrammarCorrectionResult gectorResult = gectorGrammarService.checkGrammar(text);
+            
+            // Use AI ONLY for role appropriateness checking
+            boolean isRoleAppropriate = true;
             String roleFeedback = "";
 
             if (role != null && !role.isEmpty() && contextDescription != null) {
@@ -56,94 +52,55 @@ public class GrammarCheckerService {
                 request.put("role", role);
                 request.put("context", contextDescription);
 
-                String roleCheckResponse = aiService.callAIModel(request).getResult();
-                
-                // Debug log the response to see what we're getting
-                logger.info("Role check response: {}", roleCheckResponse);
-                
-                // More robust checks for appropriateness
-                isRoleAppropriate = false; // Default to false, then set to true if any condition matches
-                
-                if (roleCheckResponse != null) {
-                    String trimmedResponse = roleCheckResponse.trim();
-                    String upperResponse = trimmedResponse.toUpperCase();
+                try {
+                    String roleCheckResponse = aiService.callAIModel(request).getResult();
                     
-                    // Debug the processed strings
-                    logger.info("Trimmed response: '{}'", trimmedResponse);
-                    logger.info("Uppercase response: '{}'", upperResponse);
-                    
-                    // Check multiple conditions for determining appropriateness
-                    if (upperResponse.startsWith("APPROPRIATE") || 
-                        trimmedResponse.startsWith("Appropriate") ||
-                        upperResponse.contains("APPROPRIATE") && !upperResponse.contains("NOT APPROPRIATE") && !upperResponse.contains("INAPPROPRIATE")) {
-                        isRoleAppropriate = true;
-                        logger.info("Role marked as appropriate");
-                    } else {
-                        logger.info("Role marked as inappropriate");
+                    if (roleCheckResponse != null) {
+                        String trimmedResponse = roleCheckResponse.trim();
+                        String upperResponse = trimmedResponse.toUpperCase();
+                        
+                        // Check for role appropriateness
+                        if (upperResponse.startsWith("APPROPRIATE") || 
+                            trimmedResponse.startsWith("Appropriate") ||
+                            (upperResponse.contains("APPROPRIATE") && 
+                             !upperResponse.contains("NOT APPROPRIATE") && 
+                             !upperResponse.contains("INAPPROPRIATE"))) {
+                            isRoleAppropriate = true;
+                            logger.debug("Role marked as appropriate");
+                        } else {
+                            isRoleAppropriate = false;
+                            logger.debug("Role marked as inappropriate");
+                        }
+                        
+                        roleFeedback = roleCheckResponse;
                     }
-                    
-                    roleFeedback = roleCheckResponse;
-                } else {
-                    // If no role or context, assume appropriate
-                    isRoleAppropriate = true;
-                    roleFeedback = "";
+                } catch (Exception roleCheckException) {
+                    logger.warn("Role check failed, assuming appropriate: {}", roleCheckException.getMessage());
+                    isRoleAppropriate = true; // Default to appropriate if role check fails
                 }
-            } else {
-                // If no role or context, assume appropriate
-                isRoleAppropriate = true;
-                roleFeedback = "";
             }
 
-            // Combine feedback
-            String enhancedFeedback = aiFeedback;
-            if (!roleFeedback.isEmpty()) {
-                enhancedFeedback += "\n\nRole feedback: " + roleFeedback;
+            // Combine grammar feedback with role feedback if needed
+            String enhancedFeedback = gectorResult.getFeedback();
+            if (!roleFeedback.isEmpty() && !isRoleAppropriate) {
+                enhancedFeedback += "\n\n" + roleFeedback;
             }
 
-            return new GrammarCheckResult(status, enhancedFeedback, isRoleAppropriate);
+            // Log performance improvement
+            logger.debug("Grammar check completed in {}ms using GECToR", gectorResult.getProcessingTimeMs());
+
+            return new GrammarCheckResult(gectorResult.getStatus(), enhancedFeedback, isRoleAppropriate);
+            
         } catch (Exception e) {
-            // Better error handling
-            logger.error("Error checking grammar: " + e.getMessage(), e);
+            logger.error("Error in grammar check: " + e.getMessage(), e);
             return new GrammarCheckResult(MessageStatus.MINOR_ERRORS, 
-                "Grammar check encountered an error. Please try again.", false);
-        }
-    }    
-    
-    private MessageStatus determineStatusFromFeedback(String feedback) {
-        if (feedback == null) {
-            return MessageStatus.MINOR_ERRORS;
-        }
-        
-        String lowerFeedback = feedback.toLowerCase();
-        
-        // More lenient checking for PERFECT status
-        if (feedback.startsWith("NO ERRORS") || lowerFeedback.startsWith("no errors") ||
-            lowerFeedback.contains("excellent") || lowerFeedback.contains("great job") ||
-            lowerFeedback.contains("well done") || lowerFeedback.contains("clear and understandable")) {
-            return MessageStatus.PERFECT;
-        } else if (feedback.startsWith("MINOR ERRORS") || lowerFeedback.startsWith("minor errors") ||
-                lowerFeedback.contains("small issues") || lowerFeedback.contains("minor typos") ||
-                lowerFeedback.contains("mostly correct")) {
-            return MessageStatus.MINOR_ERRORS;
-        } else if (feedback.startsWith("MAJOR ERRORS") || lowerFeedback.startsWith("major errors")) {
-            return MessageStatus.MAJOR_ERRORS;
-        } else if (feedback.startsWith("PENDING") || lowerFeedback.startsWith("pending")) {
-            return MessageStatus.PENDING;
-        }
-        
-        // More generous fallback logic
-        if (lowerFeedback.contains("good") || lowerFeedback.contains("correct") || 
-            lowerFeedback.contains("clear") || lowerFeedback.contains("understandable")) {
-            return MessageStatus.PERFECT;
-        } else if (lowerFeedback.contains("minor") || lowerFeedback.contains("small") || 
-                lowerFeedback.contains("mostly")) {
-            return MessageStatus.MINOR_ERRORS;
-        } else {
-            return MessageStatus.MAJOR_ERRORS;
+                "Analysis temporarily unavailable. Keep practicing!", false);
         }
     }
 
-    // Update the GrammarCheckResult class to include role appropriateness
+    /**
+     * Result class for grammar checking
+     */
     public static class GrammarCheckResult {
         private final ChatMessageEntity.MessageStatus status;
         private final String feedback;
@@ -155,9 +112,9 @@ public class GrammarCheckerService {
             this.isRoleAppropriate = isRoleAppropriate;
         }
 
-        // Add constructor for backward compatibility
+        // Constructor for backward compatibility
         public GrammarCheckResult(ChatMessageEntity.MessageStatus status, String feedback) {
-            this(status, feedback, false);
+            this(status, feedback, true); // Default to appropriate for backward compatibility
         }
 
         public ChatMessageEntity.MessageStatus getStatus() {

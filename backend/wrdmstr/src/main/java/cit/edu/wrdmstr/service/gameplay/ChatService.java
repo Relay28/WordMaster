@@ -52,6 +52,8 @@ public class ChatService {
     private ProgressiveFeedbackService progressiveFeedbackService;
     @Autowired
     private ProfanityFilterService profanityFilterService;
+    @Autowired
+    private OptimizedTextProcessor optimizedTextProcessor; // Add for performance improvements
 
 
     public ChatMessageEntity sendMessage(Long sessionId, Long userId, String content) {
