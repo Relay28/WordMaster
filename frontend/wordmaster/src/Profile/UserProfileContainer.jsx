@@ -35,6 +35,8 @@ import mermaid from '../assets/ch-mermaid.png';
 import priest from '../assets/ch-priest.png';
 import teacher from '../assets/ch-teacher.png';
 import wizard from '../assets/ch-wizard.png';
+import archer from '../assets/ch-archer.png';
+import samurai from '../assets/ch-samurai.png';
 
 const UserProfileContainer = () => {
   const { user, authChecked, logout, getToken, setUser } = useUserAuth();
@@ -82,12 +84,12 @@ const UserProfileContainer = () => {
     setFormData,
     setEditMode,
     setDeactivateDialogOpen,
-    setError, // Make sure to destructure these
-    setSuccess, // Make sure to destructure these
+    setError, 
+    setSuccess, 
     handleChange,
     handleSubmit,
     handleDeactivate,
-    uploadProfilePicture // Make sure this is being properly destructured
+    uploadProfilePicture 
   } = useUserProfile(user, authChecked, logout, getToken);
 
   const pixelText = {
@@ -137,15 +139,15 @@ return (
       flex: 1,
       display: 'flex',
       width: '100%',
-      height: '100%', // Adjust height to fit the book layout
-      overflow: 'hidden', // Prevent content from overflowing outside the book
+      height: '100%', 
+      overflow: 'hidden', 
       borderRadius: '15px',
       background: `url(${BookforProfile})`,
       backgroundSize: '100%',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
-      boxSizing: 'border-box', // optional but good practice
-      position: 'relative', // if needed for inner absolute positioning
+      boxSizing: 'border-box', 
+      position: 'relative', 
     }}
   >
   <Box
@@ -153,14 +155,14 @@ return (
       flex: 1,
       display: 'flex',
       width: '70%',
-      height: '70%', // Adjust height to fit the book layout
-      overflow: 'hidden', // Prevent content from overflowing outside the book
+      height: '70%', 
+      overflow: 'hidden', 
       borderRadius: '15px',
       backgroundSize: 'contain',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
-      boxSizing: 'border-box', // optional but good practice
-      position: 'relative', // if needed for inner absolute positioning
+      boxSizing: 'border-box', 
+      position: 'relative', 
       mt: '5%',
     }}
   >
@@ -213,6 +215,7 @@ return (
           pixelHeading={pixelHeading}
           pixelText={pixelText}
           handleCancel={handleCancel}
+          setDeactivateDialogOpen={setDeactivateDialogOpen}
         />
         <Box
           sx={{
@@ -286,7 +289,7 @@ return (
             Choose Character
           </Typography>
           <Grid container spacing={2} justifyContent="center" sx={{ mt: 5, ml: 5, }}>
-            {[farmer, king, knight, mermaid, priest, teacher, wizard].map((src, index) => (
+            {[farmer, king, knight, mermaid, priest, teacher, wizard, archer, samurai].map((src, index) => (
               <Grid item xs={4} sm={4} md={4} key={index} display="flex" justifyContent="center"> 
                 <img
                   src={src}
@@ -346,6 +349,8 @@ const ProfilePicture = ({
     priest,
     teacher,
     wizard,
+    archer,
+    samurai,
   ];
 
   const initials = `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
@@ -421,7 +426,7 @@ const ProfilePicture = ({
   );
 };
 
-const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading, pixelHeading, pixelText, handleCancel}) => (
+const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, setEditMode, loading, pixelHeading, pixelText, handleCancel, setDeactivateDialogOpen}) => (
   <Paper 
     sx={{ 
       width: '60%',
@@ -572,6 +577,27 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         loading={loading}
         handleCancel={handleCancel}
       />
+      <Box display="flex" justifyContent="center" mt={3}>
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={() => setDeactivateDialogOpen(true)}
+          sx={{
+            borderColor: '#d32f2f',
+            color: '#d32f2f',
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: { xs: '8px', sm: '10px' },
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            '&:hover': {
+              backgroundColor: '#ffebee',
+              borderColor: '#c62828'
+            }
+          }}
+        >
+          Deactivate Account
+        </Button>
+      </Box>
     </Box>
   </Paper>
 );
@@ -696,7 +722,7 @@ const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error, 
     </DialogTitle>
     
     <DialogContent sx={{ py: 3, px: 3 }}>
-      <Typography variant="body1" mb={2}>
+      <Typography variant="body1" mb={2}><br></br>
         Are you sure you want to deactivate your account? This action cannot be undone.
       </Typography>
       {error && (
