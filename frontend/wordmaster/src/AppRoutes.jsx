@@ -115,51 +115,69 @@ function HomePageRouter() {
   }
 }
 
+// Add a route listener component
+const RouteListener = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Only store previous paths if not navigating to profile or login
+    if (!location.pathname.includes('/profile') && !location.pathname.includes('/login')) {
+      // Store the current path as previous path
+      sessionStorage.setItem('previousPath', location.pathname);
+      console.log(`Stored previous path: ${location.pathname}`);
+    }
+  }, [location]);
+  
+  return <Outlet />;
+};
+
 const AppRoutes = () => {
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        
-        {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
-        <Route path="/verify" element={<OTPVerification />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/setup" element={<SetupPage />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route element={<RouteListener />}>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          
+          {/* Public Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/oauth-success" element={<OAuthSuccessHandler />} />
+          <Route path="/verify" element={<OTPVerification />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/setup" element={<SetupPage />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
 
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/homepage" element={<HomePageRouter />} />
-          <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
-          <Route path="/game" element={<GamePage />} />
-          <Route path="/content/ai-generate" element={<AIContentGenerator />} />
-          <Route path="/student-report/:sessionId/:studentId" element={<StudentReportPage />} />
-          <Route path="/student-feedback/:sessionId/:studentId" element={<StudentFeedbackPage />} />
-          <Route path="/game/create" element={<CreateGameSession />} />
-          <Route path="/game/:sessionId" element={<GameCore />} />
-          <Route path="/waiting-room/:contentId" element={<WaitingRoomPage />} />
-          <Route path="/results/:sessionId" element={<SessionProgressView />} />
-          <Route path="/session/:contentId" element={<TeacherContentSessions />} />
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="/homepage" element={<HomePageRouter />} />
+            <Route path="/classroom/:classroomId" element={<ClassroomDetailsPage />} />
+            <Route path="/game" element={<GamePage />} />
+            <Route path="/content/ai-generate" element={<AIContentGenerator />} />
+            <Route path="/student-report/:sessionId/:studentId" element={<StudentReportPage />} />
+            <Route path="/student-feedback/:sessionId/:studentId" element={<StudentFeedbackPage />} />
+            <Route path="/game/create" element={<CreateGameSession />} />
+            <Route path="/game/:sessionId" element={<GameCore />} />
+            <Route path="/waiting-room/:contentId" element={<WaitingRoomPage />} />
+            <Route path="/results/:sessionId" element={<SessionProgressView />} />
+            <Route path="/session/:contentId" element={<TeacherContentSessions />} />
 
-          {/* Teacher Routes */}
-          <Route element={<ProtectedTeacherRoute />}>
-            <Route path="/content/upload" element={<ContentUpload />} />
-            <Route path="/content/edit/:id" element={<EditContent />} />
-            <Route path="/content/:id" element={<ContentDetails />} />
+            {/* Teacher Routes */}
+            <Route element={<ProtectedTeacherRoute />}>
+              <Route path="/content/upload" element={<ContentUpload />} />
+              <Route path="/content/edit/:id" element={<EditContent />} />
+              <Route path="/content/:id" element={<ContentDetails />} />
+            </Route>
+
+            {/* Admin Routes */}
+            <Route element={<ProtectedAdminRoute />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+            </Route>
           </Route>
 
-          {/* Admin Routes */}
-          <Route element={<ProtectedAdminRoute />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Route>
+          {/* Catch-all route */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Route>
-
-        {/* Catch-all route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Suspense>
   );

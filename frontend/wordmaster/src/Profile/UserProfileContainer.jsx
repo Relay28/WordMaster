@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useRef, useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Box,
   Button,
@@ -7,6 +7,7 @@ import {
   Divider,
   IconButton,
   TextField,
+  Tooltip,
   Typography,
   Grid,
   Avatar,
@@ -17,9 +18,10 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
-  Alert
+  Alert,
+  useMediaQuery
 } from "@mui/material";
-import { ArrowBack, CameraAlt, Lock, Email, Close } from "@mui/icons-material";
+import { ArrowBack, CameraAlt, Lock, Email, Close, ChevronLeft as ChevronLeftIcon } from "@mui/icons-material";
 import { useUserAuth } from '../components/context/UserAuthContext';
 import { useUserProfile } from './UserProfileFunctions'; // Updated import to match the hook location
 import '@fontsource/press-start-2p'
@@ -38,11 +40,88 @@ import wizard from '../assets/ch-wizard.png';
 import archer from '../assets/ch-archer.png';
 import samurai from '../assets/ch-samurai.png';
 
+// Loading spinner component (matches the one in AppRoutes)
+const LoadingSpinner = () => (
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      width: '100vw',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      background: `
+        linear-gradient(to bottom, 
+          rgba(249, 249, 249, 0.95) 0%, 
+          rgba(249, 249, 249, 0.95) 40%, 
+          rgba(249, 249, 249, 0.8) 100%),
+        url(${picbg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
+    }}
+  >
+    <CircularProgress
+      size={60}
+      thickness={4}
+      sx={{
+        color: '#5F4B8B',
+        mb: 2,
+        filter: 'drop-shadow(0 4px 8px rgba(95, 75, 139, 0.3))',
+      }}
+    />
+    <Typography
+      sx={{
+        fontFamily: '"Press Start 2P", cursive',
+        fontSize: '16px',
+        color: '#5F4B8B',
+        textShadow: '2px 2px 4px rgba(95, 75, 139, 0.2)',
+        letterSpacing: '2px',
+      }}
+    >
+      LOADING...
+    </Typography>
+  </Box>
+);
+
 const UserProfileContainer = () => {
   const { user, authChecked, logout, getToken, setUser } = useUserAuth();
-
   const navigate = useNavigate();
+  const location = useLocation();
+  const [previousPath, setPreviousPath] = useState('/homepage');
+  const [isNavigating, setIsNavigating] = useState(false);
+  const ismobile = useMediaQuery('(max-width:600px)');
+  
+  // Log current location for debugging
+  console.log("Current location:", location.pathname);
 
+  useEffect(() => {
+    // Get the previous path from sessionStorage or default to homepage
+    const prevPath = sessionStorage.getItem('previousPath') || '/homepage';
+    
+    // Make sure we don't navigate to login page if that was the previous path
+    const safePath = prevPath === '/login' ? '/homepage' : prevPath;
+    setPreviousPath(safePath);
+    
+    // Don't remove from sessionStorage so that other components can access it if needed
+  }, []);
+
+  const handleBackNavigation = () => {
+    // Log the navigation for debugging
+    console.log(`Navigating back to: ${previousPath}`);
+    setIsNavigating(true);
+    
+    // Short timeout to show the loading spinner
+    setTimeout(() => {
+      navigate(previousPath);
+    }, 300);
+  };
+  
   const handleImageSelect = async (imgPath) => {
     try {
       const response = await fetch(imgPath);
@@ -106,66 +185,113 @@ const UserProfileContainer = () => {
     letterSpacing: '1px'
   };
 
+  // Show loading spinner during authentication check, loading, or if no user
   if (!authChecked || !user) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" >
-        <CircularProgress />
-      </Box>
-    );
+    return <LoadingSpinner />;
+  }
+  
+  // Show loading spinner during navigation
+  if (isNavigating) {
+    return <LoadingSpinner />;
+  }
+  
+  // Show loading spinner when profile data is loading
+  if (loading) {
+    return <LoadingSpinner />;
   }
 
 return (
   <Box sx={{ 
     display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    width: '100%',
-    margin: 0,
-    padding: 0,
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    overflow: 'hidden',
-    background: `url(${BGforProfile})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundRepeat: 'no-repeat',
-    backgroundAttachment: 'fixed',
-    imageRendering: 'pixelated',
+      flexDirection: 'column',
+      height: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      overflow: 'hidden',
+      background: `
+        linear-gradient(to bottom, 
+          rgba(249, 249, 249, 10) 0%, 
+          rgba(249, 249, 249, 10) 40%, 
+          rgba(249, 249, 249, 0.1) 100%),
+        url(${picbg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      backgroundAttachment: 'fixed',
+      imageRendering: 'pixelated',
   }}>
+    {/* Back button with dynamic navigation */}
+    <Box sx={{ 
+      py: ismobile ? 1 : 1.5,
+      px: { xs: 1.5, md: 3 },
+      display: 'flex',
+      alignItems: 'center',
+      position: 'relative',
+      zIndex: 2
+    }}>
+      <Tooltip title={`Return to ${previousPath.replace('/', '').charAt(0).toUpperCase() + previousPath.replace('/', '').slice(1)}`}>
+        <IconButton 
+          onClick={handleBackNavigation}
+          sx={{
+            color: '#5F4B8B',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            border: '2px solid #5F4B8B',
+            borderRadius: '4px',
+            width: ismobile ? '24px' : '32px',
+            height: ismobile ? '24px' : '32px',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              boxShadow: '0px 0px 8px rgba(95, 75, 139, 0.6)',
+              transform: 'translateY(-1px)'
+            },
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <ChevronLeftIcon fontSize={ismobile ? "small" : "medium"} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+
     {/* Main Content */}
-  <Box
-    sx={{
-      flex: 1,
-      display: 'flex',
-      width: '100%',
-      height: '100%', 
-      overflow: 'hidden', 
-      borderRadius: '15px',
-      background: `url(${BookforProfile})`,
-      backgroundSize: '100%',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      boxSizing: 'border-box', 
-      position: 'relative', 
-    }}
-  >
-  <Box
-    sx={{
-      flex: 1,
-      display: 'flex',
-      width: '70%',
-      height: '70%', 
-      overflow: 'hidden', 
-      borderRadius: '15px',
-      backgroundSize: 'contain',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      boxSizing: 'border-box', 
-      position: 'relative', 
-      mt: '5%',
-    }}
-  >
+    <Box
+      sx={{
+        flex: 20,
+        display: 'flex',
+        width: '90%',
+        height: '70%', 
+        overflow: 'hidden', 
+        borderRadius: '15px',
+        background: `url(${BookforProfile})`,
+        backgroundSize: '100%',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        boxSizing: 'border-box', 
+        position: 'center', 
+        height: `calc(100vh - 60px)`,
+        marginLeft: '5%',
+      }}
+    >
+    <Box
+      sx={{
+        flex: 1,
+        display: 'flex',
+        width: '70%',
+        height: '70%', 
+        overflow: 'hidden', 
+        borderRadius: '15px',
+        backgroundSize: 'contain',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        boxSizing: 'border-box', 
+        position: 'relative', 
+        mt: '5%',
+      }}
+    >
+      
       {/* Left Column */}
       <Box
         sx={{
@@ -180,6 +306,9 @@ return (
           mt: '2%',
         }}
       >
+        {/* Add back button with ChevronLeftIcon */}
+       
+
         {/* Reserve space for alert */}
         {/*
         <Box sx={{ height: 32, mb: 3, width: '95%' }}>
@@ -217,35 +346,6 @@ return (
           handleCancel={handleCancel}
           setDeactivateDialogOpen={setDeactivateDialogOpen}
         />
-        <Box
-          sx={{
-            position: 'fixed',
-            bottom: '18%',
-            left: '15%',
-            cursor: 'pointer',
-            transition: 'transform 0.2s',
-            '&:hover': {
-              transform: 'scale(1.1)',
-            },
-            '&:active': {
-              transform: 'scale(0.95)',
-            },
-            width: 'fit-content',
-            height: 'fit-content',
-          }}
-          onClick={() => navigate('/homepage')}
-        >
-          <img 
-            src={backbtn} 
-            alt="Back to Home"
-            style={{
-              width: '80px',
-              height: 'auto',
-              imageRendering: 'pixelated',
-              display: 'block',
-            }}
-          />
-        </Box>
       </Box>
 
       {/* Right Column */}
@@ -274,10 +374,10 @@ return (
         <Box
           sx={{
             borderRadius: 4,
-            p: 3,
+            p: 2,
             width: '100%',
             maxWidth: 420,
-            mb: 4,
+      
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -285,7 +385,7 @@ return (
             mr: 15,
           }}
         >
-          <Typography sx={{...pixelHeading, color:"Black", ml: 8}}>
+          <Typography sx={{...pixelHeading, color:"Black", ml: '8%', mb : 2}}>
             Choose Character
           </Typography>
           <Grid container spacing={2} justifyContent="center" sx={{ mt: 5, ml: 5, }}>
@@ -296,7 +396,7 @@ return (
                   alt={`Option ${index + 1}`}
                   style={{
                     width: '100%',
-                    maxWidth: 100,
+                    maxWidth: 110,
                     height: 'auto',
                     aspectRatio: '1/1',
                     objectFit: 'cover',
@@ -356,21 +456,32 @@ const ProfilePicture = ({
   const initials = `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`;
 
   return (
-    <Box position="relative" mb={1} textAlign="center">
-      <Avatar
-        src={profilePicture || undefined}
-        sx={{
-          width: '120px',
-          height: '120px',
-          fontSize: 40,
-          border: '2px solid #5F4B8B',
-          color: "#5F4B8B",
-          borderRadius: '10%',
-          ml: 20,
-        }}
-      >
-        {!profilePicture && initials}
-      </Avatar>
+    <Box 
+  position="relative" 
+  mb={1} 
+  sx={{ 
+    display: "flex", 
+    justifyContent: "center",  // centers Avatar horizontally
+    alignItems: "center",      // centers Avatar vertically
+    width: "100%"              // ensures full width container
+  }}
+>
+  <Avatar
+    src={profilePicture || undefined}
+    sx={{
+      width: 120,
+      height: 120,
+      fontSize: 40,
+      border: '2px solid #5F4B8B',
+      color: "#5F4B8B",
+      borderRadius: '10%',
+      ml: '27%',
+    }}
+  >
+    {!profilePicture && initials}
+  </Avatar>
+
+
       {/*
        {editMode && (
         <IconButton
@@ -432,7 +543,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
       width: '60%',
       boxShadow: "none",
       ml: '29%', 
-      p: 3, 
+      p: 4, 
       borderRadius: '12px',
       maxHeight: '30%',
       backgroundColor: 'transparent',
@@ -450,13 +561,16 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
       }
     }}
   >
-    <Typography variant="h5" fontWeight="bold" gutterBottom sx={pixelHeading}>
-      Personal Information
-    </Typography>
-    <Divider sx={{ my: 1 }} />
+   <Box sx={{ textAlign: "center" }}>
+  <Typography variant="h5" fontWeight="bold" gutterBottom sx={pixelHeading}>
+    Personal Information
+  </Typography>
+</Box>
+ <Divider sx={{ my: 2, mx: "auto", width: "100%", mb: 3.5 }} />
+
 
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-      <Box display="flex" gap={2} mb={2}>
+      <Box display="flex" gap={2} mb={3.5}>
         <TextField
           fullWidth
           label="First Name"
@@ -496,7 +610,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         variant="filled"
         InputLabelProps={{ sx: pixelText }}
         InputProps={{
-          sx: pixelText,
+          sx: pixelText, mb:3,
           startAdornment: (
             <InputAdornment position="start">
               <Email color="action" />
@@ -529,6 +643,7 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
           }
         }}
         helperText="Email address cannot be changed"
+       
       />
 
       {editMode && (
@@ -576,130 +691,125 @@ const PersonalInformation = ({ formData, editMode, handleChange, handleSubmit, s
         setEditMode={setEditMode}
         loading={loading}
         handleCancel={handleCancel}
+        setDeactivateDialogOpen={setDeactivateDialogOpen}
       />
-      <Box display="flex" justifyContent="center" mt={3}>
-        <Button
-          variant="outlined"
-          color="error"
-          onClick={() => setDeactivateDialogOpen(true)}
-          sx={{
-            borderColor: '#d32f2f',
-            color: '#d32f2f',
-            fontFamily: '"Press Start 2P", cursive',
-            fontSize: { xs: '8px', sm: '10px' },
-            letterSpacing: '0.5px',
-            textTransform: 'uppercase',
-            '&:hover': {
-              backgroundColor: '#ffebee',
-              borderColor: '#c62828'
-            }
-          }}
-        >
-          Deactivate Account
-        </Button>
-      </Box>
     </Box>
   </Paper>
 );
 
-// No changes needed for FormActions component
-const FormActions = ({ editMode, setEditMode, loading, handleCancel}) => (
-  <Box display="flex" justifyContent="flex-end" mt={2} gap={2}>
-    {editMode ? (
-      <>
-        <Button
-          variant="outlined"
-          onClick={handleCancel}
-          sx={{
-            backgroundColor: '#fff',
-            color: '#5F4B8B',
-            borderColor: '#5F4B8B',
-            borderRadius: '4px',
-            px: 3,
-            py: 1,
-            fontFamily: '"Press Start 2P", cursive',
-            fontSize: { xs: '8px', sm: '10px' },
-            letterSpacing: '0.5px',
-            textTransform: 'uppercase',
-            
-            transition: 'all 0.1s ease',
-            '&:hover': {
-              backgroundColor: '#f0edf5',
-              borderColor: '#4a3a6d',
-              transform: 'translateY(-2px)'
-            },
-            '&:active': {
-              transform: 'translateY(1px)',
-              
-              borderStyle: 'inset'
-            },
-          }}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          variant="contained"
-          disabled={loading}
-          sx={{
-            backgroundColor: '#5F4B8B',
-            color: '#fff',
-            borderRadius: '4px',
-            px: 3,
-            py: 1,
-            fontFamily: '"Press Start 2P", cursive',
-            fontSize: { xs: '8px', sm: '10px' },
-            letterSpacing: '0.5px',
-            textTransform: 'uppercase',
-            
-            transition: 'all 0.1s ease',
-            '&:hover': {
-              backgroundColor: '#4a3a6d',
-              transform: 'translateY(-2px)'
-            },
-            '&:active': {
-              transform: 'translateY(1px)',
-              
-              borderStyle: 'inset'
-            },
-          }}
-        >
-          {loading ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
-        </Button>
-      </>
-    ) : (
-      <Button
-        variant="contained"
-        onClick={() => setEditMode(true)}
-        sx={{
-          backgroundColor: '#5F4B8B',
-          color: '#fff',
-          borderRadius: '4px',
-          px: 3,
-          py: 1,
-          fontFamily: '"Press Start 2P", cursive',
-          fontSize: { xs: '8px', sm: '10px' },
-          letterSpacing: '0.5px',
-          textTransform: 'uppercase',
-          
-          transition: 'all 0.1s ease',
-          '&:hover': {
-            backgroundColor: '#4a3a6d',
-            transform: 'translateY(-2px)'
-          },
-          '&:active': {
-            transform: 'translateY(1px)',
-            
-            borderStyle: 'inset'
-          },
-        }}
-      >
-        Edit Profile
-      </Button>
-    )}
-  </Box>
-);
+// Updated FormActions component with even smaller buttons
+const FormActions = ({ editMode, setEditMode, loading, handleCancel, setDeactivateDialogOpen }) => {
+  const buttonBaseStyles = {
+    borderRadius: '4px',
+    px: 2, // Further reduced horizontal padding
+    py: 0.6, // Further reduced vertical padding
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: { xs: '6px', sm: '8px' }, // Smaller font size
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase',
+    transition: 'all 0.2s ease',
+    minWidth: '120px', // Reduced width from 140px to 120px
+    height: '28px', // Reduced height from 32px to 28px
+  };
+  
+  return (
+    <Box display="flex" justifyContent="space-between" mt={7} gap={2} >
+      {/* Left side - Deactivate Account (only shown when not in edit mode) */}
+      <Box>
+        {!editMode && (
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => setDeactivateDialogOpen(true)}
+            sx={{
+              ...buttonBaseStyles,
+              borderColor: '#d32f2f',
+              color: '#d32f2f',
+              '&:hover': {
+                backgroundColor: '#ffebee',
+                borderColor: '#c62828'
+              }
+            }}
+          >
+            Deactivate Account
+          </Button>
+        )}
+      </Box>
+      
+      {/* Right side - Edit/Save buttons */}
+      <Box display="flex" justifyContent="center" alignContent="center" alignItems="center" gap={3}> {/* Keep increased gap */}
+        {editMode ? (
+          <>
+            <Box sx={{ flex: 1, display: 'flex', justifyContent: '' }}>
+              <Button
+                variant="outlined"
+                onClick={handleCancel}
+                sx={{
+                  ...buttonBaseStyles,
+                  backgroundColor: '#fff',
+                  color: '#5F4B8B',
+                  borderColor: '#5F4B8B',
+                  '&:hover': {
+                    backgroundColor: '#f0edf5',
+                    borderColor: '#4a3a6d',
+                    transform: 'translateY(-1px)'
+                  },
+                  '&:active': {
+                    transform: 'translateY(1px)',
+                    borderStyle: 'inset'
+                  },
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+            </Box>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              sx={{
+                ...buttonBaseStyles,
+                backgroundColor: '#5F4B8B',
+                color: '#fff',
+                '&:hover': {
+                  backgroundColor: '#4a3a6d',
+                  transform: 'translateY(-1px)'
+                },
+                '&:active': {
+                  transform: 'translateY(1px)',
+                  borderStyle: 'inset'
+                },
+              }}
+            >
+              {loading ? <CircularProgress size={16} color="inherit" /> : 'Save Changes'}
+            </Button>
+          </>
+        ) : (
+          <Button
+            variant="contained"
+            onClick={() => setEditMode(true)}
+            sx={{
+              ...buttonBaseStyles,
+              backgroundColor: '#5F4B8B',
+              color: '#fff',
+              '&:hover': {
+                backgroundColor: '#4a3a6d',
+                transform: 'translateY(-1px)'
+              },
+              '&:active': {
+                transform: 'translateY(1px)',
+                borderStyle: 'inset'
+              },
+            }}
+          >
+            Edit Profile
+          </Button>
+        )}
+      </Box>
+    </Box>
+  );
+};
 
 // Update DeactivateDialog to accept setError prop
 const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error, setError }) => (
@@ -732,7 +842,7 @@ const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error, 
       )}
     </DialogContent>
     
-    <DialogActions sx={{ px: 3, py: 2 }}>
+    <DialogActions sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'space-between' }}>
       <Button
         variant="outlined"
         onClick={onClose}
