@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 # PowerShell script to build Spring Boot JAR properly
 
-$projectPath = "C:\Users\T UP GAMING\OneDrive\Documents\GitHub\WordMaster\backend\wrdmstr"
+$projectPath = "C:\Users\TUPGAM~1\OneDrive\Documents\GitHub\WordMaster\backend\wrdmstr"
 $shortPath = (Get-Item $projectPath).PSPath -replace 'Microsoft.PowerShell.Core\\FileSystem::', ''
 
 Write-Host "Building Spring Boot application..."
@@ -13,12 +13,10 @@ $env:JAVA_HOME = "C:\Program Files\Java\jdk-21"
 # Change to project directory
 Set-Location $projectPath
 
-# Try using Maven wrapper with proper escaping
+    # Try using Maven wrapper with proper escaping
 try {
     Write-Host "Attempting to build JAR..."
-    & cmd.exe /c "mvnw.cmd clean package -DskipTests -q"
-    
-    if ($LASTEXITCODE -eq 0) {
+    & ".\mvnw.cmd" clean package -DskipTests -q    if ($LASTEXITCODE -eq 0) {
         Write-Host "Build successful!"
         
         # Check if JAR was created
@@ -28,7 +26,7 @@ try {
             Write-Host "JAR created: $jarSize bytes"
             
             # Copy to deployment folder
-            $deployPath = "C:\Users\T UP GAMING\OneDrive\Documents\GitHub\WordMaster\backend\deployment\build\wordmaster.jar"
+            $deployPath = "C:\Users\TUPGAM~1\OneDrive\Documents\GitHub\WordMaster\backend\deployment\build\wordmaster.jar"
             Copy-Item $jarPath $deployPath -Force
             Write-Host "JAR copied to deployment folder"
         }

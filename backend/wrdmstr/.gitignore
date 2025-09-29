@@ -34,3 +34,29 @@ build/
 
 ### Application Properties ###
 src/main/resources/application.properties
+src/main/resources/application-prod.properties
+
+### Security Files ###
+*.pem
+*.key
+*.p12
+*.jks
+wordmasterec2key.pem
+
+### Environment Files ###
+.env
+.env.local
+.env.prod
+.env.production
+env.sh
+
+### Deployment Files ###
+deployment/build/wordmaster.jar
+
+### IDE Files ###
+.vscode/
+.DS_Store
+
+### Temporary Build Files ###
+C:/temp/
+/temp/
