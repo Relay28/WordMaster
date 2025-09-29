@@ -14,7 +14,7 @@ import java.util.Map;
 public class AIServiceLatencyTests {
 
     private static class NoOpPerf extends PerformanceMetricsService {
-        public NoOpPerf(AIService ai) { super(ai); }
+        public NoOpPerf(AIService ai) { super(); }
         @Override public void recordRoleCheck(long ms) { /* no-op for test */ }
     }
 

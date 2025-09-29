@@ -96,14 +96,14 @@ public class AuthController {
 
     @GetMapping("/microsoft/auth-url")
     public ResponseEntity<String> getAuthUrl() {
-        String frontendUrl = "http://localhost:5173"; 
+        String frontendUrl = "https://wordmaster-nu.vercel.app"; // Update this
         String state = Base64.getEncoder().encodeToString(frontendUrl.getBytes());
         
         String authUrl = String.format(
             "https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&scope=openid%%20profile%%20email%%20User.Read&response_mode=query&state=%s&prompt=select_account",
             tenantId,
             clientId,
-            "http://localhost:8080/login/oauth2/code/azure",
+            "http://3.26.165.228:8080/login/oauth2/code/azure", // Your EC2 backend URL
             state
         );
         return ResponseEntity.ok(authUrl);

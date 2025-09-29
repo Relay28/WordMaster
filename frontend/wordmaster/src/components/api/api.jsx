@@ -2,7 +2,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080',
+  //baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080', if magka error sa front end change to this
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080', // new one assuming deployment is done 
 });
 
 // Request interceptor
