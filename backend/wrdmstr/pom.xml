@@ -184,6 +184,18 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.15</version>
 		</dependency>
+		<!-- Apache HttpClient 5 for connection pooling -->
+		<dependency>
+			<groupId>org.apache.httpcomponents.client5</groupId>
+			<artifactId>httpclient5</artifactId>
+			<version>5.4.1</version>
+		</dependency>
+		<!-- Explicit httpcore5 (sometimes not pulled transitively in certain repos/build caches) -->
+		<dependency>
+			<groupId>org.apache.httpcomponents.core5</groupId>
+			<artifactId>httpcore5</artifactId>
+			
+		</dependency>
     </dependencies>
 
 	<build>

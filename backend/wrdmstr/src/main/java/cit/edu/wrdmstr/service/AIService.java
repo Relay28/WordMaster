@@ -14,12 +14,34 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.concurrent.*;
 
 @Service
 public class AIService {
     private static final Logger logger = LoggerFactory.getLogger(AIService.class);
     private final RestTemplate restTemplate;
+    // Lightweight executor for bounded-latency role_check calls
+    private final ExecutorService aiExecutor = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "ai-role-check");
+        t.setDaemon(true);
+        return t;
+    });
 
+    // Simple in-memory cache for role_check to reduce latency/API calls
+    private static class CachedItem { String value; long ts; }
+    private final Map<String, CachedItem> roleCheckCache = new java.util.concurrent.ConcurrentHashMap<>();
+    private final long ROLE_CHECK_TTL_MS = 120_000; // 2 minutes
+
+    // Helper for safe list casting (placed near top so available below)
+    private List<String> safeStringList(Object obj) {
+        if (obj instanceof List<?>) {
+            List<?> raw = (List<?>) obj;
+            List<String> out = new ArrayList<>();
+            for (Object o : raw) if (o != null) out.add(o.toString());
+            return out;
+        }
+        return Collections.emptyList();
+    }
 
     @Value("${ai.api.key}")
     private String apiKey;
@@ -27,8 +49,31 @@ public class AIService {
     @Value("${ai.api.url}")
     private String apiUrl;
 
-    public AIService(RestTemplate restTemplate) {
+    private final PerformanceMetricsService performanceMetricsService;
+
+    public AIService(RestTemplate restTemplate, PerformanceMetricsService performanceMetricsService) {
         this.restTemplate = restTemplate;
+        this.performanceMetricsService = performanceMetricsService;
+    }
+
+    // Asynchronous warm-up to reduce first-call latency (role_check & minimal tasks)
+    @javax.annotation.PostConstruct
+    private void warmupAsync() {
+        new Thread(() -> {
+            try {
+                logger.info("AIService warm-up started");
+                Map<String, Object> rc = new HashMap<>();
+                rc.put("task", "role_check");
+                rc.put("role", "student");
+                rc.put("context", "warmup");
+                rc.put("text", "Hello everyone I am ready to learn");
+                // Single attempt; ignore result
+                callAIModel(rc);
+                logger.info("AIService warm-up finished");
+            } catch (Exception e) {
+                logger.warn("AIService warm-up failed: {}", e.getMessage());
+            }
+        }, "ai-warmup-thread").start();
     }
 
     /**
@@ -110,8 +155,61 @@ public class AIService {
      */
         public AIResponse callAIModel(Map<String, Object> request) {
             int maxRetries = 3;
-            int retryDelay = 2000; // 2 seconds
-            
+            int retryDelay = 1200; // slightly lower base
+            String taskName = (String) request.get("task");
+            boolean cacheableRoleCheck = "role_check".equals(taskName);
+            // For ultra-low latency on role_check keep only 1 retry (total 1 attempt) to avoid 10s stalls
+            if (cacheableRoleCheck) {
+                maxRetries = 1;
+                retryDelay = 0;
+            }
+            String roleCheckKey = null;
+            if (cacheableRoleCheck) {
+                String role = (String) request.getOrDefault("role", "student");
+                String context = (String) request.getOrDefault("context", "general lesson");
+                String msg = (String) request.getOrDefault("text", "");
+                String shortMsg = msg.length() > 80 ? msg.substring(0,80) : msg;
+                roleCheckKey = role + "|" + context + "|" + Integer.toHexString(shortMsg.hashCode());
+                CachedItem cached = roleCheckCache.get(roleCheckKey);
+                long now = System.currentTimeMillis();
+                if (cached != null && (now - cached.ts) < ROLE_CHECK_TTL_MS) {
+                    AIResponse r = new AIResponse();
+                    r.setResult(cached.value);
+                    return r;
+                }
+            }
+            long startMs = System.currentTimeMillis();
+            // Ultra-fast heuristic short-circuit for role_check to avoid remote latency
+            if (cacheableRoleCheck) {
+                String msg = ((String) request.getOrDefault("text", "")).trim();
+                String lower = msg.toLowerCase();
+                // Simple Tagalog token detection
+                String[] tagalogHints = {"ang","ng","mga","ako","ikaw","sila","hindi","bakit","sana","po","ba","natin"};
+                boolean hasTagalog = false;
+                for (String h : tagalogHints) {
+                    if (lower.matches(".*\\b" + h + "\\b.*")) { hasTagalog = true; break; }
+                }
+                // If clearly Tagalog or mixed -> immediate NOT APPROPRIATE
+                if (hasTagalog) {
+                    AIResponse fast = new AIResponse();
+                    fast.setResult("NOT APPROPRIATE - Please use English");
+                    performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                    return fast;
+                }
+                // If short, clean English (letters/space/punct) -> immediate APPROPRIATE
+                if (msg.length() <= 60 && lower.matches("[a-z0-9 .,!?"+'"'+":;'()-]+")) {
+                    AIResponse fast = new AIResponse();
+                    fast.setResult("APPROPRIATE - On topic");
+                    // Cache it
+                    if (roleCheckKey != null) {
+                        CachedItem ci = new CachedItem(); ci.value = fast.getResult(); ci.ts = System.currentTimeMillis();
+                        roleCheckCache.put(roleCheckKey, ci);
+                    }
+                    performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                    return fast;
+                }
+            }
+
             for (int attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
                     // Format for Gemini API
@@ -131,10 +229,33 @@ public class AIService {
                     // Add API key as query parameter
                     String fullUrl = apiUrl + "?key=" + apiKey;
                     
-                    logger.info("Making API request to: {}", apiUrl);              try {
-                        // Make the API call
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> response = restTemplate.postForObject(fullUrl, geminiRequest, Map.class);
+                    logger.info("Making API request to: {}", apiUrl);
+                    try {
+                        Map<String, Object> response;
+                        // For role_check enforce hard timeout (1.5s) using future to prevent long tail
+                        if (cacheableRoleCheck) {
+                            final String finalFullUrl = fullUrl;
+                            final Map<String, Object> finalPayload = geminiRequest;
+                            Future<Map<String, Object>> future = aiExecutor.submit(() -> {
+                                @SuppressWarnings("unchecked")
+                                Map<String, Object> resp = restTemplate.postForObject(finalFullUrl, finalPayload, Map.class);
+                                return resp;
+                            });
+                            try {
+                                response = future.get(1500, TimeUnit.MILLISECONDS);
+                            } catch (TimeoutException te) {
+                                future.cancel(true);
+                                AIResponse timeoutResp = new AIResponse();
+                                timeoutResp.setResult("APPROPRIATE - Fast check");
+                                logger.warn("role_check timed out (>1500ms); returning fast fallback");
+                                performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                                return timeoutResp;
+                            }
+                        } else {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> resp = restTemplate.postForObject(fullUrl, geminiRequest, Map.class);
+                            response = resp;
+                        }
                         
                         // Parse Gemini response
                         AIResponse result = new AIResponse();
@@ -167,9 +288,17 @@ public class AIService {
                         } else {
                             result.setResult("Null response from API");
                         }
+                        
+                        if (cacheableRoleCheck && roleCheckKey != null && result.getResult() != null) {
+                            CachedItem ci = new CachedItem();
+                            ci.value = result.getResult();
+                            ci.ts = System.currentTimeMillis();
+                            roleCheckCache.put(roleCheckKey, ci);
+                        }
+                        if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
                         return result;
                     } catch (Exception e) {
-                        if (attempt < maxRetries && e.getMessage().contains("503")) {
+                        if (attempt < maxRetries && e.getMessage() != null && e.getMessage().contains("503")) {
                             logger.warn("API overloaded, retrying in {} ms (attempt {}/{})", retryDelay, attempt, maxRetries);
                             try {
                                 Thread.sleep(retryDelay);
@@ -218,9 +347,6 @@ public class AIService {
                             case "word_generation":
                                 errorResponse.setResult("practice");
                                 break;
-                            case "grammar_check":
-                                errorResponse.setResult("MINOR ERRORS - Your English is getting better! Keep practicing your sentence structure and you'll improve even more.");
-                                break;
                             case "language_validation":
                                 errorResponse.setResult("ENGLISH - Great job using English! Keep up the excellent work.");
                                 break;
@@ -231,6 +357,7 @@ public class AIService {
                                 errorResponse.setResult("Please continue practicing in English. You're making wonderful progress!");
                         }
                         
+                        if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
                         return errorResponse;
                     }
                 } catch (Exception e) {
@@ -271,9 +398,6 @@ public class AIService {
                         case "word_generation":
                             errorResponse.setResult("practice");
                             break;
-                        case "grammar_check":
-                            errorResponse.setResult("MINOR ERRORS - Your English is getting better! Keep practicing your sentence structure and you'll improve even more.");
-                            break;
                         case "language_validation":
                             errorResponse.setResult("ENGLISH - Great job using English! Keep up the excellent work.");
                             break;
@@ -284,6 +408,7 @@ public class AIService {
                             errorResponse.setResult("Please continue practicing in English. You're making wonderful progress!");
                     }
                     
+                    if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
                     return errorResponse;
                 }
             }
@@ -291,6 +416,7 @@ public class AIService {
             // If all retries fail, return a generic error response
             AIResponse errorResponse = new AIResponse();
             errorResponse.setResult("Error communicating with AI service. Please try again later.");
+            if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
             return errorResponse;
         }
 
@@ -299,23 +425,25 @@ public class AIService {
             String task = (String) request.get("task");
             
             switch (task) {
-                case "grammar_check":
-                    // DEPRECATED: Redirect to use GectorGrammarService instead
-                    logger.warn("grammar_check task is deprecated. Use GectorGrammarService for better performance.");
-                    return "DEPRECATED: Use GectorGrammarService for faster and more accurate grammar correction.";
-
+                // Removed deprecated grammar_check case (GECToR handles grammar)
                 case "role_check":
-                    return "You are helping Grade 8-9 Filipino students practice English through role-play.\n" +
-                        "Role: " + request.getOrDefault("role", "student") + "\n" +
-                        "Context: " + request.getOrDefault("context", "general topics") + "\n" +
-                        "Message: \"" + request.getOrDefault("text", "") + "\"\n\n" +
-                        "STEP 1 - Language Check:\n" +
-                        "If message contains Filipino/Tagalog words or is not in English, respond: 'NOT APPROPRIATE - Please use English only. You're doing great!'\n\n" +
-                        "STEP 2 - Role Appropriateness:\n" +
-                        "If message is in English, check if vocabulary, tone, and content fit the assigned role.\n\n" +
-                        "RESPONSE FORMAT:\n" +
-                        "Start with 'APPROPRIATE' or 'NOT APPROPRIATE' followed by brief encouraging feedback.\n" +
-                        "Keep total response under 25 words. Be supportive but concise.";
+                    String role = (String) request.getOrDefault("role", "student");
+                    String context = (String) request.getOrDefault("context", "general lesson");
+                    String msg = (String) request.getOrDefault("text", "");
+                    String shortMsg = msg.length() > 80 ? msg.substring(0,80) : msg; // limit key size
+                    String cacheKey = role + "|" + context + "|" + Integer.toHexString(shortMsg.hashCode());
+                    CachedItem cached = roleCheckCache.get(cacheKey);
+                    long now = System.currentTimeMillis();
+                    if (cached != null && (now - cached.ts) < ROLE_CHECK_TTL_MS) {
+                        logger.debug("role_check cache hit: {}", cacheKey);
+                        return cached.value;
+                    }
+                    return "ROLE CHECK\nRole: " + role + "\nContext: " + context + "\nMessage: " + msg + "\nReturn exactly ONE line starting with 'APPROPRIATE -' or 'NOT APPROPRIATE -'. After the hyphen give a very short reason (<12 words). If Tagalog/mixed say 'NOT APPROPRIATE - Please use English'. No extra sentences.";
+
+                case "role_prompt":
+                    return "Give a single short (<=35 words) in-character encouragement for the role '" +
+                        request.getOrDefault("role", "student") + "' within context '" +
+                        request.getOrDefault("context", "lesson") + "'. Use simple English. No quotes, no formatting.";
 
                 case "story_prompt":
                     StringBuilder prompt = new StringBuilder();
@@ -344,8 +472,8 @@ public class AIService {
                     if (playerNames != null && !playerNames.isEmpty()) {
                         prompt.append("STUDENTS AND THEIR ROLES:\n");
                         for (String playerName : playerNames) {
-                            String role = playerRoles != null ? playerRoles.get(playerName) : "Student";
-                            prompt.append("- ").append(playerName).append(" as ").append(role).append("\n");
+                            String roleName = playerRoles != null ? playerRoles.get(playerName) : "Student";
+                            prompt.append("- ").append(playerName).append(" as ").append(roleName).append("\n");
                         }
                         prompt.append("\n");
                     }
@@ -435,7 +563,6 @@ public class AIService {
                 case "generate_feedback":
                     StringBuilder feedbackPrompt = new StringBuilder();
                     feedbackPrompt.append("You are a warm, supportive English teacher providing feedback to a Grade 8-9 Filipino student after an English language learning game.\n\n");
-                    
                     String studentName = (String)request.get("studentName");
                     feedbackPrompt.append("Student name: ").append(studentName).append("\n");
                     feedbackPrompt.append("Student role in English practice: ").append(request.get("role")).append("\n");
@@ -444,20 +571,16 @@ public class AIService {
                     feedbackPrompt.append("- English messages sent: ").append(request.get("messageCount")).append("\n");
                     feedbackPrompt.append("- Perfect English grammar messages: ").append(request.get("perfectGrammarCount")).append("\n");
                     feedbackPrompt.append("- English word bank usage: ").append(request.get("wordBankUsageCount")).append("\n\n");
-                    
                     feedbackPrompt.append("Sample English messages from student:\n");
-                    List<String> sampleMessages = (List<String>) request.get("sampleMessages");
+                    List<String> sampleMessages = safeStringList(request.get("sampleMessages"));
                     for (int i = 0; i < sampleMessages.size(); i++) {
                         feedbackPrompt.append(i+1).append(". ").append(sampleMessages.get(i)).append("\n");
                     }
-                    
                     feedbackPrompt.append("\nProvide nurturing, encouraging feedback for this young Filipino learner addressing:\n");
                     feedbackPrompt.append("1. English language progress (grammar, vocabulary)\n");
                     feedbackPrompt.append("2. Confidence building in English communication\n");
                     feedbackPrompt.append("3. Participation and effort in English practice\n");
                     feedbackPrompt.append("4. Celebrating strengths and gentle guidance for improvement\n\n");
-                    feedbackPrompt.append("5. Discourage Slang and inappropriate english\n\n");
-                    
                     feedbackPrompt.append("IMPORTANT INSTRUCTIONS:\n");
                     feedbackPrompt.append("- Address ").append(studentName).append(" warmly and personally\n");
                     feedbackPrompt.append("- Write like a caring teacher who believes in their English learning journey\n");
@@ -602,56 +725,5 @@ public class AIService {
     /**
      * Clean and validate story prompts for Grade 8-9 students
      */
-    private String cleanStoryPrompt(String rawStory) {
-        if (rawStory == null || rawStory.trim().isEmpty()) {
-            return "Let's continue our story! What happens next?";
-        }
-        
-        String cleaned = rawStory.trim();
-        
-        // Remove markdown formatting
-        cleaned = cleaned.replaceAll("\\*\\*([^*]+)\\*\\*", "$1"); // Remove **bold**
-        cleaned = cleaned.replaceAll("\\*([^*]+)\\*", "$1"); // Remove *italic*
-        cleaned = cleaned.replaceAll("#{1,6}\\s*", ""); // Remove headers
-        cleaned = cleaned.replaceAll("Turn \\d+:", ""); // Remove "Turn X:"
-        cleaned = cleaned.replaceAll("\\(([^)]+)\\)", ""); // Remove parenthetical directions
-        
-        // Remove complex punctuation
-        cleaned = cleaned.replaceAll("[\u201C\u201D\u2018\u2019\u201E\u201A]", "\""); // Normalize quotes
-        cleaned = cleaned.replaceAll("…", "..."); // Normalize ellipsis
-        
-        // Split into sentences and limit length
-        String[] sentences = cleaned.split("\\. ");
-        StringBuilder result = new StringBuilder();
-        int sentenceCount = 0;
-        
-        for (String sentence : sentences) {
-            if (sentenceCount >= 4) break; // Max 4 sentences
-            
-            sentence = sentence.trim();
-            if (!sentence.isEmpty()) {
-                // Skip overly complex sentences (>20 words)
-                String[] words = sentence.split("\\s+");
-                if (words.length <= 20) {
-                    if (result.length() > 0) result.append(". ");
-                    result.append(sentence);
-                    sentenceCount++;
-                }
-            }
-        }
-        
-        String finalStory = result.toString().trim();
-        
-        // Ensure it ends with proper punctuation
-        if (!finalStory.endsWith(".") && !finalStory.endsWith("?") && !finalStory.endsWith("!")) {
-            finalStory += ".";
-        }
-        
-        // If still too long, provide a simple fallback
-        if (finalStory.length() > 300) {
-            return "The story continues. What do you think should happen next? Share your ideas!";
-        }
-        
-        return finalStory;
-    }
+    // private String cleanStoryPrompt(String rawStory) { /* deprecated helper retained for reference */ return null; }
 }

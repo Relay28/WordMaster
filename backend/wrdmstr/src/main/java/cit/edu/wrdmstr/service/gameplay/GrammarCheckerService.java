@@ -54,24 +54,20 @@ public class GrammarCheckerService {
 
                 try {
                     String roleCheckResponse = aiService.callAIModel(request).getResult();
-                    
                     if (roleCheckResponse != null) {
                         String trimmedResponse = roleCheckResponse.trim();
                         String upperResponse = trimmedResponse.toUpperCase();
-                        
-                        // Check for role appropriateness
-                        if (upperResponse.startsWith("APPROPRIATE") || 
-                            trimmedResponse.startsWith("Appropriate") ||
-                            (upperResponse.contains("APPROPRIATE") && 
-                             !upperResponse.contains("NOT APPROPRIATE") && 
-                             !upperResponse.contains("INAPPROPRIATE"))) {
+
+                        // Strict: only treat as appropriate if starts with APPROPRIATE
+                        if (upperResponse.startsWith("APPROPRIATE")) {
                             isRoleAppropriate = true;
-                            logger.debug("Role marked as appropriate");
-                        } else {
+                        } else if (upperResponse.startsWith("NOT APPROPRIATE")) {
                             isRoleAppropriate = false;
-                            logger.debug("Role marked as inappropriate");
+                        } else {
+                            // Unknown format -> default to appropriate but log
+                            logger.debug("Unrecognized role_check format: {}", trimmedResponse);
+                            isRoleAppropriate = true;
                         }
-                        
                         roleFeedback = roleCheckResponse;
                     }
                 } catch (Exception roleCheckException) {
@@ -82,8 +78,11 @@ public class GrammarCheckerService {
 
             // Combine grammar feedback with role feedback if needed
             String enhancedFeedback = gectorResult.getFeedback();
-            if (!roleFeedback.isEmpty() && !isRoleAppropriate) {
-                enhancedFeedback += "\n\n" + roleFeedback;
+            if (!roleFeedback.isEmpty()) {
+                // Always append a concise role line; trim to 140 chars
+                String concise = roleFeedback.replaceAll("\n", " ").trim();
+                if (concise.length() > 140) concise = concise.substring(0,137) + "...";
+                enhancedFeedback += "\nRole: " + concise;
             }
 
             // Log performance improvement

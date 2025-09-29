@@ -5,6 +5,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.core5.util.TimeValue;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -21,9 +26,24 @@ public class AppConfig implements WebMvcConfigurer {
     }
     @Bean
     public RestTemplate restTemplate() {
-        ClientHttpRequestFactory factory = new BufferingClientHttpRequestFactory(
-            new SimpleClientHttpRequestFactory());
-            
+        // Use Apache HttpClient with pooling to reduce handshake latency
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        cm.setMaxTotal(120);
+        cm.setDefaultMaxPerRoute(30);
+        cm.closeIdle(TimeValue.ofSeconds(30));
+
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionManager(cm)
+                .evictExpiredConnections()
+                .build();
+
+        HttpComponentsClientHttpRequestFactory httpFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+        httpFactory.setConnectTimeout(1500);
+        httpFactory.setConnectionRequestTimeout(1000);
+        httpFactory.setReadTimeout(2500);
+
+        ClientHttpRequestFactory factory = new BufferingClientHttpRequestFactory(httpFactory);
+
         RestTemplate restTemplate = new RestTemplate(factory);
         
         // logging 
