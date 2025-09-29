@@ -58,21 +58,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-
-                        .requestMatchers("/api/auth/**", "/login/oauth2/code/azure").permitAll()
-                        .requestMatchers("/api/auth/**","/api/admin/**").permitAll()
-                        .requestMatchers("/api/grammar/check").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/api/sessions/**").authenticated()
-                        .requestMatchers("/api/export/**").permitAll()
-                        .anyRequest().authenticated());
+    http
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(session -> session
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/actuator/**").permitAll()
+            .requestMatchers("/api/auth/**", "/login/oauth2/code/azure").permitAll()
+            .requestMatchers("/api/grammar/check").permitAll()
+            .requestMatchers("/api/admin/**").hasRole("ADMIN")
+            .requestMatchers("/ws/**").permitAll()
+            .requestMatchers("/api/sessions/**").authenticated()
+            .requestMatchers("/api/export/**").permitAll()
+            .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
