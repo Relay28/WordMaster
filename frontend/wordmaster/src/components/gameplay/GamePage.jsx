@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Box, Typography, Container, CircularProgress, Button, 
   Paper, Alert, FormControl, InputLabel, Select, MenuItem,
-  useMediaQuery, useTheme, IconButton
+  useMediaQuery, useTheme, IconButton,
+  Divider
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { Class, School, PersonOutline } from "@mui/icons-material";
@@ -24,12 +25,11 @@ const GamePage = ({
   const theme = useTheme();
   const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // New state for classroom/content selection
+  // State for classroom/content selection
   const [classrooms, setClassrooms] = useState([]);
   const [selectedClassroom, setSelectedClassroom] = useState('');
   const [contents, setContents] = useState([]);
   const [selectedContent, setSelectedContent] = useState('');
-  const [step, setStep] = useState(1); // 1: select classroom, 2: select content
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -84,7 +84,12 @@ const GamePage = ({
 
   // Fetch published content when classroom is selected
   useEffect(() => {
-    if (!selectedClassroom) return;
+    if (!selectedClassroom) {
+      // Clear content selection when classroom changes
+      setContents([]);
+      setSelectedContent('');
+      return;
+    }
 
     const fetchPublishedContent = async () => {
       try {
@@ -103,7 +108,6 @@ const GamePage = ({
         
         const data = await response.json();
         setContents(data);
-        setStep(2); // Move to content selection step
       } catch (err) {
         console.error('Error fetching published content:', err);
         setError(err.message || 'Failed to load published content');
@@ -181,22 +185,25 @@ const GamePage = ({
     }}>
       {/* Back Button */}
       <IconButton 
-        onClick={() => step === 1 ? navigate('/homepage') : setStep(1)}
+        onClick={() => navigate('/homepage')}
         sx={{
           position: 'absolute',
           top: 8,
           left: 8,
           color: '#5F4B8B',
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
           border: '2px solid #5F4B8B',
           borderRadius: '4px',
           width: '32px',
           height: '32px',
+          boxShadow: '0 2px 4px rgba(95, 75, 139, 0.15)',
           '&:hover': {
-            backgroundColor: 'rgba(95, 75, 139, 0.1)',
-            transform: 'translateY(-1px)'
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 8px rgba(95, 75, 139, 0.2)',
+            color: '#6c63ff'
           },
-          transition: 'all 0.2s ease'
+          transition: 'all 0.2s ease-in-out'
         }}
       >
         <ChevronLeftIcon fontSize="small" />
@@ -206,10 +213,10 @@ const GamePage = ({
         <Paper elevation={3} sx={{ 
           p: ismobile ? 2 : 4, 
           borderRadius: '12px',
-          background: 'rgba(255,255,255,0.8)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.75) 100%)',
           backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.3)',
-          boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
+          border: '1px solid rgba(255,255,255,0.4)',
+          boxShadow: '0 10px 32px rgba(31, 38, 135, 0.15), 0 4px 8px rgba(95, 75, 139, 0.1)',
           position: 'relative',
           overflow: 'hidden',
           '&::before': {
@@ -220,7 +227,8 @@ const GamePage = ({
             right: 0,
             height: '6px',
             background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
-            opacity: 0.8
+            opacity: 0.85,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
           }
         }}>
           <Typography variant="h5" sx={{ 
@@ -228,10 +236,19 @@ const GamePage = ({
             fontWeight: 'bold', 
             mb: 3,
             color: '#2d3748',
-            fontSize: ismobile ? '14px' : '16px'
+            fontSize: ismobile ? '14px' : '16px',
+            textShadow: '1px 1px 0px rgba(95, 75, 139, 0.2)',
+            letterSpacing: '1.5px'
           }}>
-            {step === 1 ? 'SELECT CLASSROOM' : 'SELECT CONTENT'}
+            GAME SESSION
           </Typography>
+          <Divider sx={{ 
+            mb: 3, 
+            background: 'linear-gradient(90deg, rgba(95, 75, 139, 0.2) 0%, rgba(108, 99, 255, 0.4) 50%, rgba(95, 75, 139, 0.2) 100%)', 
+            height: '2px',
+            borderRadius: '1px',
+            opacity: 0.8
+          }} />
           
           {error && (
             <Alert severity="error" sx={{ 
@@ -242,95 +259,151 @@ const GamePage = ({
             </Alert>
           )}
           
-          {step === 1 ? (
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel sx={pixelText}>Select Classroom</InputLabel>
-              <Select
-                value={selectedClassroom}
-                onChange={handleClassroomChange}
-                label="Select Classroom"
-                sx={{
-                  '& .MuiSelect-select': {
-                    ...pixelText,
-                    py: ismobile ? 1 : 1.5
-                  }
-                }}
-              >
-                {classrooms.length > 0 ? (
-                  classrooms.map((classroom) => (
-                    <MenuItem key={classroom.id} value={classroom.id} sx={pixelText}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <School sx={{ 
-                          color: '#5F4B8B', 
-                          mr: 1,
-                          fontSize: ismobile ? '16px' : '20px'
-                        }} />
-                        {classroom.name}
-                      </Box>
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem disabled sx={pixelText}>
-                    {loading ? 'Loading classrooms...' : 'No classrooms available'}
+          {/* Classroom Selection */}
+          <Typography sx={{
+            ...pixelText,
+            fontWeight: 'bold',
+            mb: 2,
+            color: '#4a3a6d',
+            textShadow: '0.5px 0.5px 0px rgba(95, 75, 139, 0.2)',
+            letterSpacing: '1px'
+          }}>
+            SELECT CLASSROOM
+          </Typography>
+          <FormControl fullWidth sx={{ mb: 5 }}>
+            <Select
+              value={selectedClassroom}
+              onChange={handleClassroomChange}
+              displayEmpty
+              renderValue={(selected) => {
+                if (!selected) {
+                  return <span style={{...pixelText, opacity: 0.5}}>Select a classroom</span>;
+                }
+                return selected ? classrooms.find(c => c.id === selected)?.name : '';
+              }}
+              sx={{
+                '& .MuiSelect-select': {
+                  ...pixelText,
+                  py: ismobile ? 1.5 : 2
+                },
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                border: '2px solid rgba(95, 75, 139, 0.2)',
+                borderRadius: '8px',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  borderColor: 'rgba(95, 75, 139, 0.4)',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.07)'
+                },
+                '&.Mui-focused': {
+                  borderColor: '#5F4B8B',
+                  boxShadow: '0 0 0 2px rgba(95, 75, 139, 0.2)'
+                }
+              }}
+            >
+              {classrooms.length > 0 ? (
+                classrooms.map((classroom) => (
+                  <MenuItem key={classroom.id} value={classroom.id} sx={pixelText}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <School sx={{ 
+                        color: '#5F4B8B', 
+                        mr: 1,
+                        fontSize: ismobile ? '16px' : '20px'
+                      }} />
+                      {classroom.name}
+                    </Box>
                   </MenuItem>
-                )}
-              </Select>
-            </FormControl>
-          ) : (
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel sx={pixelText}>Select Content</InputLabel>
-              <Select
-                value={selectedContent}
-                onChange={handleContentChange}
-                label="Select Content"
-                sx={{
-                  '& .MuiSelect-select': {
-                    ...pixelText,
-                    py: ismobile ? 1 : 1.5
-                  }
-                }}
-              >
-                {contents.length > 0 ? (
-                  contents.map((content) => (
-                    <MenuItem key={content.id} value={content.id} sx={pixelText}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Class sx={{ 
-                          color: '#5F4B8B', 
-                          mr: 1,
-                          fontSize: ismobile ? '16px' : '20px'
-                        }} />
-                        {content.title}
-                      </Box>
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem disabled sx={pixelText}>
-                    {loading ? 'Loading content...' : 'No content available'}
+                ))
+              ) : (
+                <MenuItem disabled sx={pixelText}>
+                  {loading ? 'Loading classrooms...' : 'No classrooms available'}
+                </MenuItem>
+              )}
+            </Select>
+          </FormControl>
+
+          {/* Content Selection - Only enabled if classroom is selected */}
+          <Typography sx={{
+            ...pixelText,
+            fontWeight: 'bold',
+            mb: 2,
+            color: '#4a3a6d',
+            opacity: selectedClassroom ? 1 : 0.6,
+            textShadow: '0.5px 0.5px 0px rgba(95, 75, 139, 0.2)',
+            letterSpacing: '1px'
+          }}>
+            SELECT CONTENT
+          </Typography>
+          <FormControl fullWidth sx={{ mb: 3 }} disabled={!selectedClassroom || loading}>
+            <Select
+              value={selectedContent}
+              onChange={handleContentChange}
+              displayEmpty
+              renderValue={(selected) => {
+                if (!selected) {
+                  return <span style={{...pixelText, opacity: 0.5}}>Select a content</span>;
+                }
+                return selected ? contents.find(c => c.id === selected)?.title : '';
+              }}
+              sx={{
+                '& .MuiSelect-select': {
+                  ...pixelText,
+                  py: ismobile ? 1.5 : 2
+                },
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                border: '2px solid rgba(95, 75, 139, 0.2)',
+                borderRadius: '8px',
+                transition: 'all 0.2s ease-in-out',
+                '&:hover': {
+                  borderColor: 'rgba(95, 75, 139, 0.4)',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.07)'
+                },
+                '&.Mui-focused': {
+                  borderColor: '#5F4B8B',
+                  boxShadow: '0 0 0 2px rgba(95, 75, 139, 0.2)'
+                }
+              }}
+            >
+              {contents.length > 0 ? (
+                contents.map((content) => (
+                  <MenuItem key={content.id} value={content.id} sx={pixelText}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Class sx={{ 
+                        color: '#5F4B8B', 
+                        mr: 1,
+                        fontSize: ismobile ? '16px' : '20px'
+                      }} />
+                      {content.title}
+                    </Box>
                   </MenuItem>
-                )}
-              </Select>
-            </FormControl>
-          )}
+                ))
+              ) : (
+                <MenuItem disabled sx={pixelText}>
+                  {loading && selectedClassroom ? 'Loading content...' : 'No content available'}
+                </MenuItem>
+              )}
+            </Select>
+          </FormControl>
           
           <Box display="flex" justifyContent="space-between" flexDirection={ismobile ? 'column' : 'row'} gap={2}>
             <Button 
               variant="contained"
-              onClick={() => step === 1 ? navigate('/homepage') : setStep(1)}
+              onClick={() => navigate('/homepage')}
               sx={{
                 ...pixelButton,
                 backgroundColor: '#5F4B8B',
                 '&:hover': { 
                   backgroundColor: '#4a3a6d',
-                  transform: 'translateY(-2px)'
+                  transform: 'translateY(-2px)',
+                  boxShadow: '4px 6px 0px rgba(0,0,0,0.35), 0 0 10px rgba(95, 75, 139, 0.2)'
                 },
-                borderRadius: '4px',
+                borderRadius: '6px',
                 px: 3,
                 py: ismobile ? 1 : 1.5,
                 minWidth: ismobile ? '100%' : 'auto',
                 borderStyle: 'outset',
-                boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                boxShadow: '4px 4px 0px rgba(0,0,0,0.3), 0 0 5px rgba(95, 75, 139, 0.1)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
-                transition: 'all 0.1s ease',
+                transition: 'all 0.15s ease-in-out',
                 '&:active': {
                   transform: 'translateY(1px)',
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -339,29 +412,29 @@ const GamePage = ({
                 order: ismobile ? 2 : 1
               }}
             >
-              {step === 1 ? 'CANCEL' : 'BACK'}
+              CANCEL
             </Button>
             
-            {step === 2 && (
-              <Button 
-                variant="contained" 
-                onClick={handleJoinGame} 
-                disabled={loading || !selectedContent}
-                sx={{
+            <Button 
+              variant="contained" 
+              onClick={handleJoinGame} 
+              disabled={loading || !selectedContent}
+              sx={{
                   ...pixelButton,
                   backgroundColor: '#6c63ff',
                   '&:hover': { 
                     backgroundColor: '#5a52e0',
-                    transform: 'translateY(-2px)'
+                    transform: 'translateY(-2px)',
+                    boxShadow: '4px 6px 0px rgba(0,0,0,0.35), 0 0 10px rgba(95, 75, 139, 0.2)'
                   },
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   px: 3,
                   py: ismobile ? 1 : 1.5,
                   minWidth: ismobile ? '100%' : 'auto',
                   borderStyle: 'outset',
-                  boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.3), 0 0 5px rgba(95, 75, 139, 0.1)',
                   textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
-                  transition: 'all 0.1s ease',
+                  transition: 'all 0.15s ease-in-out',
                   '&:active': {
                     transform: 'translateY(1px)',
                     boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -388,7 +461,7 @@ const GamePage = ({
                   'JOIN GAME SESSION'
                 )}
               </Button>
-            )}
+            
           </Box>
         </Paper>
       </Container>

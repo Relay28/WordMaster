@@ -87,9 +87,6 @@ export const joinClassroom = async (token, enrollmentCode) => {
   
 };
 
-// src/services/classroomService.js
-// ... (existing imports and functions)
-
 export const getClassroomDetails = async (token, classroomId) => {
   try {
     const response = await axios.get(`${API_URL}/api/classrooms/${classroomId}`, {

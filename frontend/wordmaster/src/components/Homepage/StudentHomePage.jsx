@@ -22,6 +22,7 @@ import {
   MenuItem,
   ListItemIcon,
   Snackbar,
+  Fade,
   Pagination,
   useMediaQuery,
   useTheme
@@ -48,6 +49,7 @@ const StudentHomePage = () => {
     setJoinClassOpen,
     setClassCode,
     setJoinSuccess,
+    setError,
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
@@ -236,15 +238,6 @@ const StudentHomePage = () => {
         </Box>
         <Divider sx={{ my: 3 }} />
 
-        {/* Error message */}
-        {error && (
-          <Box mb={3}>
-            <Alert severity="error" onClose={() => setError(null)} sx={pixelText}>
-              {error}
-            </Alert>
-          </Box>
-        )}
-
         {/* Class Cards */}
         {loadingClassrooms ? (
           <Box display="flex" justifyContent="center" py={4}>
@@ -338,12 +331,53 @@ const StudentHomePage = () => {
         ismobile={ismobile}
       />
 
-      {/* Success Snackbar */}
+      {/* Error Snackbar - Auto-dismisses after 2.5 seconds with fade animation */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={2500}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ mb: 7 }} // Add margin to separate from success snackbar
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 600 }} // Control fade duration (ms)
+      >
+        {error && (
+          <Alert
+            severity="error"
+            icon={false} // No icon
+            sx={{ 
+              width: '100%',
+              backgroundColor: 
+                error.toLowerCase().includes('already joined') ? '#ff9800' :
+                error.toLowerCase().includes('already enrolled') ? '#ff9800' :
+                error.toLowerCase().includes('invalid code') ? '#f44336' :
+                '#f44336',                               
+              color: 'white',
+              border: '1px solid rgba(0,0,0,0.05)',
+              borderLeft: 
+                error.toLowerCase().includes('already joined') ? '4px solid #e65100' : 
+                error.toLowerCase().includes('already enrolled') ? '4px solid #e65100' : 
+                error.toLowerCase().includes('invalid code') ? '4px solid #d32f2f' : 
+      
+                error.includes('Please try again later') ? '4px solid #455a64' :
+                '4px solid #b71c1c',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              ...pixelText
+            }}
+          >
+            {error}
+          </Alert>
+        )}
+      </Snackbar>
+
+      {/* Success Snackbar with fade animation */}
       <Snackbar
         open={joinSuccess}
         autoHideDuration={2000}
         onClose={() => setJoinSuccess(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 600 }} // Match error snackbar fade duration
       >
         <Alert
           onClose={() => setJoinSuccess(false)}

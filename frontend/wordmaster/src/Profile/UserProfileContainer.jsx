@@ -15,6 +15,7 @@ import {
   InputAdornment,
   Dialog,
   DialogTitle,
+  DialogContentText,
   DialogContent,
   DialogActions,
   CircularProgress,
@@ -152,6 +153,14 @@ const UserProfileContainer = () => {
     setEditMode(false);
   };
   
+
+  const pixelButton = {
+    fontFamily: '"Press Start 2P", cursive',
+    fontSize: ismobile ? '8px' : '10px',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase'
+  };
+
   const {
     editMode,
     isDeactivating,
@@ -423,6 +432,8 @@ return (
       isDeactivating={isDeactivating}
       error={error}
       setError={setError} // Pass setError to the dialog
+      pixelHeading={pixelHeading}
+      pixelText={pixelText} // Pass pixelText to fix the error
     />
   </Box>
   </Box>
@@ -811,64 +822,67 @@ const FormActions = ({ editMode, setEditMode, loading, handleCancel, setDeactiva
   );
 };
 
-// Update DeactivateDialog to accept setError prop
-const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error, setError }) => (
+// DeactivateDialog component with setError and pixelHeading props
+const DeactivateDialog = ({ open, onClose, onDeactivate, isDeactivating, error, setError, pixelHeading, pixelText, pixelButton }) => (
   <Dialog 
     open={open}
     onClose={onClose}
-    PaperProps={{ sx: { borderRadius: '12px' } }}
+    PaperProps={{
+      sx: {
+        borderRadius: '12px',
+        backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.75) 100%)',
+        backdropFilter: 'blur(8px)',
+        boxShadow: '0 10px 32px rgba(31, 38, 135, 0.15), 0 4px 8px rgba(95, 75, 139, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+      }
+    }}
   >
-    <DialogTitle sx={{ 
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: '#f5f3fa',
-      borderBottom: '1px solid #e0e0e0'
-    }}>
-      <Typography fontWeight="bold">Confirm Account Deactivation</Typography>
-      <IconButton onClick={onClose}>
-        <Close />
-      </IconButton>
+    <DialogTitle sx={{ ...pixelHeading, color: '#5F4B8B' }}>
+      Confirm Account Deactivation
     </DialogTitle>
+
     
-    <DialogContent sx={{ py: 3, px: 3 }}>
-      <Typography variant="body1" mb={2}><br></br>
+    <DialogContent>
+      <DialogContentText sx={{ ...pixelText, color: '#666' }}>
         Are you sure you want to deactivate your account? This action cannot be undone.
-      </Typography>
+      </DialogContentText>
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert severity="error" sx={{ mt: 2, mb: 1, '& .MuiAlert-message': pixelText }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
     </DialogContent>
     
-    <DialogActions sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'space-between' }}>
+    <DialogActions sx={{ p: 2, gap: 1 }}>
       <Button
         variant="outlined"
         onClick={onClose}
         sx={{
-          borderColor: '#5F4B8B',
+          ...pixelButton,
           color: '#5F4B8B',
+          borderColor: '#5F4B8B',
           '&:hover': { 
-            backgroundColor: '#f0edf5',
-            borderColor: '#4a3a6d'
+            borderColor: '#4a3a6d',
+            backgroundColor: 'rgba(95, 75, 139, 0.1)'
           }
         }}
       >
-        Cancel
+        CANCEL
       </Button>
       <Button
         variant="contained"
         onClick={onDeactivate}
         disabled={isDeactivating}
-        color="error"
         sx={{
+          ...pixelButton,
           backgroundColor: '#d32f2f',
-          '&:hover': { backgroundColor: '#b71c1c' },
-          textTransform: 'none',
+          color: 'white',
+          '&:hover': { 
+            backgroundColor: '#b71c1c'
+          }
         }}
       >
-        {isDeactivating ? <CircularProgress size={24} color="inherit" /> : 'Deactivate Account'}
+        {isDeactivating ? <CircularProgress size={24} color="inherit" /> : 'DEACTIVATE'}
       </Button>
     </DialogActions>
   </Dialog>

@@ -105,8 +105,23 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       setJoinSuccess(true); // Add this after successful join
       setJoinClassOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to join classroom. Please check the code and try again.');
-    } finally {
+  const resp = err?.response?.data;
+  let serverMessage = 'Invalid class code. Please try again.';
+
+  if (resp?.message) {
+    serverMessage = resp.message;
+  } else if (resp?.error) {
+    // remove status codes like "404 NOT_FOUND " or "409 CONFLICT "
+    serverMessage = resp.error.replace(/^\d{3}\s+\w+\s*/i, '').trim();
+
+    // also remove surrounding quotes if backend wraps the message in them
+    serverMessage = serverMessage.replace(/^"|"$/g, '');
+  }
+
+  setError(serverMessage);
+}
+
+    finally {
       setLoadingClassrooms(false);
     }
   };
@@ -126,7 +141,7 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       setCreateClassOpen(false);
       setClassName("");
       setError(null);
-      setCreateSuccess(true); // Add this after successful creation
+      setCreateSuccess(true);
     setCreateClassOpen(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create classroom. Please try again.');
