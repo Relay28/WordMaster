@@ -1,11 +1,11 @@
 {
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "http://3.26.165.228:8080/api/$1" },
+    { "source": "/actuator/(.*)", "destination": "http://3.26.165.228:8080/actuator/$1" }
+  ],
   "routes": [
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/.*",
-      "dest": "/index.html"
-    }
+    { "handle": "filesystem" },
+    { "src": "/.*", "dest": "/index.html" }
   ]
 }
