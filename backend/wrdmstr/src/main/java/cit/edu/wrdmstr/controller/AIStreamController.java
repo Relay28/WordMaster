@@ -4,10 +4,13 @@ import cit.edu.wrdmstr.dto.AiStreamMessage;
 import cit.edu.wrdmstr.service.AsyncAIService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import javax.annotation.PostConstruct;
+import java.util.concurrent.Executor;
 
 import java.io.IOException;
 import java.util.Map;
@@ -20,10 +23,20 @@ public class AIStreamController {
 
     private final AsyncAIService asyncAIService;
     private final SimpMessagingTemplate simp;
+    private final Executor taskExecutor;
 
-    public AIStreamController(AsyncAIService asyncAIService, SimpMessagingTemplate simp) {
+    public AIStreamController(AsyncAIService asyncAIService, 
+                            SimpMessagingTemplate simp,
+                            @Qualifier("aiTaskExecutor") Executor taskExecutor) {
         this.asyncAIService = asyncAIService;
         this.simp = simp;
+        this.taskExecutor = taskExecutor;
+    }
+    
+    @PostConstruct
+    public void init() {
+        // Pre-warm the executor
+        taskExecutor.execute(() -> logger.debug("Pre-warming executor thread pool"));
     }
 
     // Simple POST endpoint to trigger async AI work and rely on WebSocket streaming

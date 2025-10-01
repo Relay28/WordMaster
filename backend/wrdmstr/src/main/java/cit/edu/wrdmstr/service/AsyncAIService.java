@@ -1,41 +1,36 @@
 package cit.edu.wrdmstr.service;
 
 import cit.edu.wrdmstr.dto.AiStreamMessage;
-import cit.edu.wrdmstr.model.AiCacheEntry;
-import cit.edu.wrdmstr.repository.AiCacheRepository;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.languagetool.JLanguageTool;
 import org.languagetool.language.AmericanEnglish;
 import org.languagetool.rules.RuleMatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 @Service
 public class AsyncAIService {
     private static final Logger logger = LoggerFactory.getLogger(AsyncAIService.class);
 
     private final AIService aiService;
-    private final AiCacheRepository cacheRepository;
     private final SimpMessagingTemplate simp;
 
     private final JLanguageTool langTool;
 
     @Autowired
-    public AsyncAIService(AIService aiService, AiCacheRepository cacheRepository, SimpMessagingTemplate simp) {
+    public AsyncAIService(AIService aiService,SimpMessagingTemplate simp) {
         this.aiService = aiService;
-        this.cacheRepository = cacheRepository;
         this.simp = simp;
         this.langTool = new JLanguageTool(new AmericanEnglish());
     }
@@ -44,37 +39,15 @@ public class AsyncAIService {
         if (prompt == null) return "";
         return prompt.trim().toLowerCase().replaceAll("\\s+", " ");
     }
-
-    private String hashPrompt(String normalized) {
-        return DigestUtils.sha256Hex(normalized);
+    
+    @Cacheable(value = "aiResponses", key = "#prompt", unless = "#result.isEmpty()")
+    public Optional<String> lookupResponse(String prompt) {
+        return Optional.empty(); // Initial empty result, Spring Cache will handle caching
     }
-
-    public Optional<String> lookupCache(String prompt) {
-        String h = hashPrompt(normalizePrompt(prompt));
-        Optional<AiCacheEntry> found = cacheRepository.findByPromptHash(h);
-        if (found.isPresent()) {
-            AiCacheEntry e = found.get();
-            if (e.getExpiresAt() == null || e.getExpiresAt().isAfter(LocalDateTime.now())) {
-                return Optional.ofNullable(e.getResponse());
-            }
-        }
-        return Optional.empty();
-    }
-
-    public void storeCache(String prompt, String response) {
-        String normalized = normalizePrompt(prompt);
-        String hash = hashPrompt(normalized);
-        AiCacheEntry entry = new AiCacheEntry();
-        entry.setPromptHash(hash);
-        entry.setPromptText(prompt);
-        entry.setResponse(response);
-        entry.setCreatedAt(LocalDateTime.now());
-        entry.setExpiresAt(LocalDateTime.now().plusDays(30));
-        try {
-            cacheRepository.save(entry);
-        } catch (Exception e) {
-            logger.warn("Failed to store AI cache: {}", e.getMessage());
-        }
+    
+    @CachePut(value = "aiResponses", key = "#prompt")
+    public String cacheResponse(String prompt, String response) {
+        return response; // Spring Cache will handle storing the response
     }
 
     // Quick local grammar check using LanguageTool. Returns nullable quick feedback.
@@ -96,54 +69,65 @@ public class AsyncAIService {
 
     @Async("aiTaskExecutor")
     public CompletableFuture<String> callAIModelAsync(Map<String, Object> request, String sessionId) {
-        // If cache hit, return quickly
         String prompt = request.getOrDefault("text", "").toString();
-        Optional<String> cached = lookupCache(prompt);
+        
+        // Check cache first
+        Optional<String> cached = lookupResponse(prompt);
         if (cached.isPresent()) {
-            // Optionally broadcast cached quick result
             if (sessionId != null) {
-                simp.convertAndSend("/topic/ai/" + sessionId, new AiStreamMessage("final", cached.get()));
+                simp.convertAndSend("/topic/ai/" + sessionId, 
+                    new AiStreamMessage("final", cached.get()));
             }
             return CompletableFuture.completedFuture(cached.get());
         }
 
-        // Run LanguageTool quick check and publish immediately if helpful
+        // Quick grammar check with LanguageTool
         String lt = runLanguageToolQuick(prompt);
-        if (lt != null && lt.startsWith("NO_ERRORS")) {
+        if (lt != null) {
             if (sessionId != null) {
-                simp.convertAndSend("/topic/ai/" + sessionId, new AiStreamMessage("partial", lt));
+                simp.convertAndSend("/topic/ai/" + sessionId, 
+                    new AiStreamMessage("partial", lt));
             }
-            // still call Gemini in background for richer feedback
-        } else if (lt != null) {
-            if (sessionId != null) {
-                simp.convertAndSend("/topic/ai/" + sessionId, new AiStreamMessage("partial", lt));
+            if (!lt.startsWith("NO_ERRORS")) {
+                // Continue to AI service for detailed feedback
+                logger.debug("Grammar check found issues, proceeding to AI analysis");
             }
         }
 
-        // Call the blocking AIService.callAIModel but inside async thread
+        // Get AI response
         String result = aiService.callAIModel(request).getResult();
 
-        // Broadcast result in WebSocket if session provided
+        // Stream results if session exists
         if (sessionId != null) {
-            try {
-                // Stream by sentences for perceived progress
-                String[] parts = result.split("(?<=[.?!])\\s+");
-                for (int i = 0; i < parts.length; i++) {
-                    String part = parts[i].trim();
-                    if (!part.isEmpty()) {
-                        simp.convertAndSend("/topic/ai/" + sessionId, new AiStreamMessage(i == parts.length - 1 ? "final" : "partial", part));
-                        // small delay to allow the client to render incremental pieces
-                        try { Thread.sleep(80); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-                    }
-                }
-            } catch (Exception e) {
-                logger.warn("Failed to stream via WebSocket: {}", e.getMessage());
-            }
+            streamResponse(result, sessionId);
         }
 
-        // Persist in cache
-        try { storeCache(prompt, result); } catch (Exception e) { logger.debug("Cache store failed: {}", e.getMessage()); }
+        // Cache the result
+        cacheResponse(prompt, result);
 
         return CompletableFuture.completedFuture(result);
+    }
+
+    private void streamResponse(String result, String sessionId) {
+        try {
+            // Stream by sentences for progressive updates
+            String[] parts = result.split("(?<=[.?!])\\s+");
+            for (int i = 0; i < parts.length; i++) {
+                String part = parts[i].trim();
+                if (!part.isEmpty()) {
+                    simp.convertAndSend("/topic/ai/" + sessionId, 
+                        new AiStreamMessage(i == parts.length - 1 ? "final" : "partial", part));
+                    // Small delay for client rendering
+                    try { 
+                        Thread.sleep(80); 
+                    } catch (InterruptedException e) { 
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to stream via WebSocket: {}", e.getMessage());
+        }
     }
 }
