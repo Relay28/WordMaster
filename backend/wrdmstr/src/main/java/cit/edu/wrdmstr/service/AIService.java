@@ -3,6 +3,7 @@ package cit.edu.wrdmstr.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,6 +51,11 @@ public class AIService {
     private String apiUrl;
 
     private final PerformanceMetricsService performanceMetricsService;
+    // Lazily created longer-timeout RestTemplate for heavy generation tasks
+    private volatile RestTemplate longTimeoutRestTemplate;
+
+    @Value("${ai.http.read-timeout.long:8000}")
+    private int longReadTimeoutMs;
 
     public AIService(RestTemplate restTemplate, PerformanceMetricsService performanceMetricsService) {
         this.restTemplate = restTemplate;
@@ -252,8 +258,19 @@ public class AIService {
                                 return timeoutResp;
                             }
                         } else {
+                            boolean longTask = !cacheableRoleCheck && (
+                                "content_generation".equals(taskName) ||
+                                "generate_feedback".equals(taskName) ||
+                                "comprehension_questions".equals(taskName) ||
+                                "vocabulary_check".equals(taskName) ||
+                                "role_generation".equals(taskName)
+                            );
+                            RestTemplate client = longTask ? getLongTimeoutRestTemplate() : restTemplate;
+                            if (longTask) {
+                                logger.debug("Using long-timeout RestTemplate (readTimeout={}ms) for task {}", longReadTimeoutMs, taskName);
+                            }
                             @SuppressWarnings("unchecked")
-                            Map<String, Object> resp = restTemplate.postForObject(fullUrl, geminiRequest, Map.class);
+                            Map<String, Object> resp = client.postForObject(fullUrl, geminiRequest, Map.class);
                             response = resp;
                         }
                         
@@ -726,4 +743,21 @@ public class AIService {
      * Clean and validate story prompts for Grade 8-9 students
      */
     // private String cleanStoryPrompt(String rawStory) { /* deprecated helper retained for reference */ return null; }
+    
+    // Build (once) a RestTemplate variant with a longer read timeout for slower AI tasks
+    private RestTemplate getLongTimeoutRestTemplate() {
+        if (longTimeoutRestTemplate == null) {
+            synchronized (this) {
+                if (longTimeoutRestTemplate == null) {
+                    SimpleClientHttpRequestFactory f = new SimpleClientHttpRequestFactory();
+                    // Keep connect small so we fail fast on network issues, but allow longer server processing
+                    f.setConnectTimeout(2000);
+                    f.setReadTimeout(longReadTimeoutMs);
+                    RestTemplate rt = new RestTemplate(f);
+                    longTimeoutRestTemplate = rt;
+                }
+            }
+        }
+        return longTimeoutRestTemplate;
+    }
 }
