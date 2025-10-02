@@ -22,6 +22,7 @@ import {
   MenuItem,
   ListItemIcon,
   Snackbar,
+  Fade,
   Pagination,
   useMediaQuery,
   useTheme
@@ -48,6 +49,7 @@ const StudentHomePage = () => {
     setJoinClassOpen,
     setClassCode,
     setJoinSuccess,
+    setError,
     handleMenuOpen,
     handleMenuClose,
     handleProfileClick,
@@ -60,25 +62,24 @@ const StudentHomePage = () => {
   } = useHomePage(authChecked, user, getToken, login, logout);
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -132,7 +133,6 @@ const StudentHomePage = () => {
         avatarInitials={avatarInitials}
         user={user}
         anchorEl={anchorEl}
-        isMobile={isMobile}
         pixelText={pixelText}
         pixelHeading={pixelHeading}
         handleMenuOpen={handleMenuOpen}
@@ -166,7 +166,7 @@ const StudentHomePage = () => {
           <Typography sx={{ ...pixelHeading, color: 'text.primary' }}>
             YOUR CLASSES
           </Typography>
-          <Box display="flex" gap={2} width={isMobile ? '100%' : 'auto'} sx={{ '& button': { position: 'relative' } }}>
+          <Box display="flex" gap={2} width="auto" sx={{ '& button': { position: 'relative' } }}>
   {/* JOIN GAME Button */}
   <Button
     variant="contained"
@@ -181,7 +181,7 @@ const StudentHomePage = () => {
       borderRadius: '4',
       px: 3,
       py: 1,
-      minWidth: isMobile ? 'auto' : '120px',
+      minWidth: '120px',
      
       borderStyle: 'outset',
       boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
@@ -202,7 +202,7 @@ const StudentHomePage = () => {
   <Button
     variant="contained"
     startIcon={<Add sx={{ 
-      fontSize: isMobile ? '12px' : '14px',
+      fontSize: '14px',
       filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
     }} />}
     onClick={() => setJoinClassOpen(true)}
@@ -216,7 +216,7 @@ const StudentHomePage = () => {
       borderRadius: '4',
       px: 3,
       py: 1,
-      minWidth: isMobile ? 'auto' : '140px',
+      minWidth: '140px',
     
       borderStyle: 'outset',
       boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
@@ -235,15 +235,6 @@ const StudentHomePage = () => {
 </Box>
         </Box>
         <Divider sx={{ my: 3 }} />
-
-        {/* Error message */}
-        {error && (
-          <Box mb={3}>
-            <Alert severity="error" onClose={() => setError(null)} sx={pixelText}>
-              {error}
-            </Alert>
-          </Box>
-        )}
 
         {/* Class Cards */}
         {loadingClassrooms ? (
@@ -269,7 +260,7 @@ const StudentHomePage = () => {
             </Typography>
             <Button
               variant="contained"
-              startIcon={<Add sx={{ fontSize: isMobile ? '12px' : '14px' }} />}
+              startIcon={<Add sx={{ fontSize: '14px' }} />}
               onClick={() => setJoinClassOpen(true)}
               sx={{
                 ...pixelButton,
@@ -293,7 +284,6 @@ const StudentHomePage = () => {
                   onClick={() => navigate(`/classroom/${classroom.id}`)}
                   pixelText={pixelText}
                   pixelHeading={pixelHeading}
-                  isMobile={isMobile}
                 />
               ))}
             </Box>
@@ -335,15 +325,55 @@ const StudentHomePage = () => {
         onSubmit={handleJoinClass}
         pixelText={pixelText}
         pixelHeading={pixelHeading}
-        isMobile={isMobile}
       />
 
-      {/* Success Snackbar */}
+      {/* Error Snackbar - Auto-dismisses after 2.5 seconds with fade animation */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={2500}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ mb: 7 }} // Add margin to separate from success snackbar
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 600 }} // Control fade duration (ms)
+      >
+        {error && (
+          <Alert
+            severity="error"
+            icon={false} // No icon
+            sx={{ 
+              width: '100%',
+              backgroundColor: 
+                error.toLowerCase().includes('already joined') ? '#ff9800' :
+                error.toLowerCase().includes('already enrolled') ? '#ff9800' :
+                error.toLowerCase().includes('invalid code') ? '#f44336' :
+                '#f44336',                               
+              color: 'white',
+              border: '1px solid rgba(0,0,0,0.05)',
+              borderLeft: 
+                error.toLowerCase().includes('already joined') ? '4px solid #e65100' : 
+                error.toLowerCase().includes('already enrolled') ? '4px solid #e65100' : 
+                error.toLowerCase().includes('invalid code') ? '4px solid #d32f2f' : 
+      
+                error.includes('Please try again later') ? '4px solid #455a64' :
+                '4px solid #b71c1c',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              ...pixelText
+            }}
+          >
+            {error}
+          </Alert>
+        )}
+      </Snackbar>
+
+      {/* Success Snackbar with fade animation */}
       <Snackbar
         open={joinSuccess}
         autoHideDuration={2000}
         onClose={() => setJoinSuccess(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: 600 }} // Match error snackbar fade duration
       >
         <Alert
           onClose={() => setJoinSuccess(false)}
@@ -365,7 +395,7 @@ const StudentHomePage = () => {
   );
 };
 
-const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }) => (
+const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading }) => (
   <Card 
     sx={{ 
       borderRadius: '10px',
@@ -394,7 +424,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
     }}
     onClick={onClick}
   >
-    <CardContent sx={{ p: isMobile ? 1 : 2, pt: isMobile ? 1 : 2}}>
+    <CardContent sx={{ p: 2, pt: 2}}>
       <Box display="flex" alignItems="center" mb={1}>
         <Box sx={{
           p: 0.5,
@@ -405,13 +435,13 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
         }}>
           <Class sx={{ 
             color: '#5F4B8B', 
-            fontSize: isMobile ? '20px' : '22px'
+            fontSize: '22px'
           }} />
       </Box>
         <Typography sx={{ 
           ...pixelHeading, 
           color: '#2d3748',
-          fontSize: isMobile ? '14px' : '16px',
+          fontSize: '16px',
           fontWeight: 700,
           lineHeight: 2,
           letterSpacing: '-0.5px'
@@ -472,9 +502,9 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
           borderRadius: '8px',
           boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
           textTransform: 'none',
-          fontSize: isMobile ? '8px' : '10px',
+          fontSize: '10px',
           fontWeight: 150,
-          height: isMobile ? '20px' : '30px',
+          height: '30px',
           '&:hover': { 
             background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
             boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',
@@ -509,14 +539,14 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading, isMobile }
   </Card>
 );
 
-const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit, pixelText, pixelHeading, isMobile }) => (
+const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit, pixelText, pixelHeading }) => (
   <Dialog 
     open={open} 
     onClose={onClose}
     PaperProps={{ 
       sx: { 
         borderRadius: '12px',
-        width: isMobile ? '90vw' : '440px',
+        width: '440px',
         maxWidth: 'none',
         boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.12)'
       } 
@@ -607,9 +637,9 @@ const JoinClassDialog = ({ open, classCode, loading, onClose, onChange, onSubmit
           borderRadius: '8px',
           boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
           textTransform: 'none',
-          fontSize: isMobile ? '10px' : '12px',
+          fontSize: '12px',
           fontWeight: 500,
-          height: isMobile ? '36px' : '48px',
+          height: '48px',
           '&:hover': { 
             background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
             boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',

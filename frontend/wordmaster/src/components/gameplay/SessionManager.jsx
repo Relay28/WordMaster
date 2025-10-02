@@ -13,6 +13,8 @@ import {
 import picbg from '../../assets/picbg.png'
 import { Person, EmojiEvents, ArrowBack, QuestionAnswer, Class, AccessTime, People } from '@mui/icons-material';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const TeacherContentSessions = () => {
       const navigate = useNavigate();
   const { getToken } = useUserAuth();
@@ -21,7 +23,6 @@ const TeacherContentSessions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
      const [selectedSession, setSelectedSession] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
 
@@ -38,21 +39,21 @@ const TeacherContentSessions = () => {
   // Session Details Dialog Component
    const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '10px' : '12px',
+    fontSize: '12px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
   
    const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '14px' : '16px',
+    fontSize: '16px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
@@ -61,7 +62,7 @@ const TeacherContentSessions = () => {
     try {
       const token = await getToken();
       await axios.post(
-        `http://localhost:8080/api/sessions/${sessionId}/end`,
+        `${API_URL}/api/sessions/${sessionId}/end`,
         {},
         {
           headers: {
@@ -82,7 +83,7 @@ const TeacherContentSessions = () => {
         setLoading(true);
         const token = await getToken();
         const response = await axios.get(
-          `http://localhost:8080/api/sessions/teacher/sessions/content/${contentId}/active`,
+          `${API_URL}/api/sessions/teacher/sessions/content/${contentId}/active`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -546,7 +547,7 @@ return (
                 url(${picbg})`, // Keep your existing background
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    p: isMobile ? 2 : 4, // Responsive padding
+    p: 4, // Padding
     overflow: 'auto',
     display: 'flex', // Add flex container
     flexDirection: 'column'
@@ -579,7 +580,7 @@ return (
             boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
             borderStyle: 'inset'
           },
-          fontSize: isMobile ? '10px' : '12px'
+          fontSize: '12px'
         }}
       >
         BACK TO HOMEPAGE
@@ -594,20 +595,20 @@ return (
       <Typography sx={{ 
         ...pixelHeading, 
         textAlign: 'center', 
-        mb: isMobile ? 2 : 4, // Responsive margin
-        fontSize: isMobile ? '12px' : '16px' // Better mobile font size
+        mb: 4, // Margin
+        fontSize: '16px' // Font size
       }}>
         ACTIVE GAME SESSIONS
       </Typography>
 
-      <Grid container spacing={isMobile ? 2 : 4}> {/* Responsive grid spacing */}
+      <Grid container spacing={4}> {/* Grid spacing */}
         {sessions.length > 0 ? (
           sessions.map((session) => (
             <Grid item xs={12} sm={6} lg={4} xl={3} key={session.sessionId} // Added xl breakpoint
               sx={{ display: 'flex' }} // Make grid items flex containers
             >
               <Paper sx={{
-                p: isMobile ? 2 : 3, // Responsive padding
+                p: 3, // Padding
                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(8px)',
                 borderRadius: '12px)',
@@ -627,14 +628,14 @@ return (
                 <Box sx={{ mb: 2 }}>
                   <Typography sx={{ 
                     ...pixelText, 
-                    fontSize: isMobile ? '8px' : '10px',
+                    fontSize: '10px',
                     mb: 1 
                   }}>
                     Session Code: {session.sessionCode}
                   </Typography>
                   <Typography sx={{ 
                     ...pixelText, 
-                    fontSize: isMobile ? '8px' : '10px'
+                    fontSize: '10px'
                   }}>
                     Players: {session.players.length}
                   </Typography>
@@ -645,7 +646,7 @@ return (
                   display: 'flex', 
                   gap: 1,
                   mt: 2,
-                  flexDirection: isMobile ? 'column' : 'row' // Stack buttons on mobile
+                  flexDirection: 'row' // Button layout
                 }}>
 
 <Button
@@ -653,8 +654,8 @@ return (
   onClick={() => handleViewDetails(session)}
   sx={{
     flex: 1,
-    py: isMobile ? 0.5 : 1,
-    fontSize: isMobile ? '8px' : '10px',
+    py: 1,
+    fontSize: '10px',
     backgroundColor: '#5F4B8B',
     color: 'white',
     fontFamily: '"Press Start 2P", cursive',
@@ -672,8 +673,8 @@ return (
   onClick={() => endSession(session.sessionId)}
   sx={{
     flex: 1,
-    py: isMobile ? 0.5 : 1,
-    fontSize: isMobile ? '8px' : '10px',
+    py: 1,
+    fontSize: '10px',
     backgroundColor: '#FF6B6B',
     color: 'white',
     fontFamily: '"Press Start 2P", cursive',
@@ -692,7 +693,7 @@ return (
           ))
         ) : (
           <Grid item xs={12} sx={{ textAlign: 'center', mt: 4 }}>
-            <Typography sx={{ ...pixelText, fontSize: isMobile ? '10px' : '12px' }}>
+            <Typography sx={{ ...pixelText, fontSize: '12px' }}>
               No active sessions found
             </Typography>
           </Grid>

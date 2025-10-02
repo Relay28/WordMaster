@@ -276,35 +276,19 @@ public class ProgressiveFeedbackService {
     private String buildComprehensiveFeedback(MessageStatus grammarStatus, boolean isRoleAppropriate,
                                             int vocabularyScore, PerformanceAnalysis analysis, 
                                             String userRole, String currentMessage) {
-        StringBuilder feedback = new StringBuilder();
-        
-        // Primary grammar feedback
+        // Choose ONE primary feedback message instead of stacking multiple
         String primaryFeedback = getPrimaryFeedback(grammarStatus, analysis);
-        feedback.append(primaryFeedback);
         
-        // Add role feedback if appropriate
-        if (isRoleAppropriate && grammarStatus != MessageStatus.MAJOR_ERRORS) {
-            feedback.append(" ").append(getRandomMessage("ROLE_APPROPRIATE"));
+        // Add ONE additional element based on priority
+        if (analysis.currentPerfectStreak >= 3) {
+            return primaryFeedback + " " + getRandomMessage("PERFECT_STREAK");
+        } else if (vocabularyScore >= 7) {
+            return primaryFeedback + " " + getRandomMessage("VOCABULARY_ACHIEVEMENT");
+        } else if (isRoleAppropriate && grammarStatus != MessageStatus.MAJOR_ERRORS) {
+            return primaryFeedback + " " + getRandomMessage("ROLE_APPROPRIATE");
         }
         
-        // Add vocabulary feedback for good scores
-        if (vocabularyScore >= 7) {
-            feedback.append(" ").append(getRandomMessage("VOCABULARY_ACHIEVEMENT"));
-        }
-        
-        // Add specific achievements
-        String achievementFeedback = getAchievementFeedback(analysis);
-        if (!achievementFeedback.isEmpty()) {
-            feedback.append(" ").append(achievementFeedback);
-        }
-        
-        // Add encouraging tips for improvement
-        String improvementTip = getImprovementTip(grammarStatus, analysis, userRole);
-        if (!improvementTip.isEmpty()) {
-            feedback.append(" ").append(improvementTip);
-        }
-        
-        return feedback.toString().trim();
+        return primaryFeedback;
     }
     
     /**

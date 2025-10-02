@@ -36,4 +36,8 @@ public interface ChatMessageEntityRepository extends JpaRepository<ChatMessageEn
 
     List<ChatMessageEntity> findBySessionIdAndSenderIdAndTimestampAfterOrderByTimestampDesc(
     Long sessionId, Long senderId, Date timestamp);
+    
+
+    @Query("SELECT COUNT(c) FROM ChatMessageEntity c WHERE c.sender.id = :senderId AND c.session.id = :sessionId")
+    long countBySenderIdAndSessionId(@Param("senderId") Long senderId, @Param("sessionId") Long sessionId);
 }

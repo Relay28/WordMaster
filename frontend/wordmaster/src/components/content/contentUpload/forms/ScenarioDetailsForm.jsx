@@ -30,7 +30,7 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
       </Box>
       
       <Grid container spacing={3} >
-        <Grid item xs={12} width={350}> 
+        <Grid item xs={12} width={500}> 
           <TextField
             fullWidth
             label="Scenario Title"
@@ -70,32 +70,6 @@ const ScenarioDetailsForm = ({ formData, handleInputChange, errors }) => {
               },
             }}
           />
-        </Grid>
-        
-        <Grid item xs={12} width={200}>
-          <FormControl fullWidth>
-            <InputLabel>Background Theme Color</InputLabel>
-            <Select
-              name="backgroundTheme"
-              value={formData.backgroundTheme || 'blue'}
-              onChange={handleInputChange}
-              label="Background Theme Color"
-              error={!!errors.backgroundTheme}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '8px',
-                },
-              }}
-            >
-              <MenuItem value="blue">Blue</MenuItem>
-              <MenuItem value="green">Green</MenuItem>
-              <MenuItem value="purple">Purple</MenuItem>
-              <MenuItem value="red">Red</MenuItem>
-              <MenuItem value="yellow">Yellow</MenuItem>
-              <MenuItem value="orange">Orange</MenuItem>
-              <MenuItem value="teal">Teal</MenuItem>
-            </Select>
-          </FormControl>
         </Grid>
       </Grid>
     </Box>

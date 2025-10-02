@@ -101,8 +101,6 @@ const ClassroomDetailsPage = () => {
   const [contentError, setContentError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add this line
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const [page, setPage] = useState(1);
   const [itemsPerPage] = useState(2); 
@@ -135,25 +133,25 @@ const ClassroomDetailsPage = () => {
 
   const indexOfLastItem = page * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = contentList.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = (contentList || []).slice(indexOfFirstItem, indexOfLastItem);
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : isTablet ? '9px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : isTablet ? '13px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : isTablet ? '9px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -230,38 +228,71 @@ const ClassroomDetailsPage = () => {
   };
   
   // Fetch classroom content
-  useEffect(() => {
-    const fetchClassroomContent = async () => {
-      if (!classroom) return;
-      
-      console.log("Fetching content for classroom ID:", classroom.id);
-      setLoadingContent(true);
-      
-      try {
-        const token = await getToken();
-        let data;
-        
-        if (user?.role === 'USER_STUDENT') {
-          // Fetch only published content for students
-          data = await contentService.getPublishedContentByClassroom(classroom.id, token);
-        } else {
-          // Fetch all content for teachers
-          data = await contentService.getContentByClassroom(classroom.id, token);
-        }
-        
-        console.log("Classroom content data:", data);
-        setContentList(data);
-        setContentError(null);
-      } catch (err) {
-        console.error("Error loading classroom content:", err);
-        setContentError("Failed to load content for this classroom.");
-      } finally {
-        setLoadingContent(false);
+  const fetchClassroomContent = async () => {
+    if (!classroom?.id) {
+      console.log("No classroom ID available");
+      return;
+    }
+    
+    console.log("Fetching content for classroom ID:", classroom.id);
+    setLoadingContent(true);
+    setContentError(null);
+    
+    try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error('No authentication token available');
       }
-    };
+      
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      // Choose the correct endpoint based on user role
+      const endpoint = user?.role === 'USER_STUDENT' 
+        ? `/api/content/classroom/${classroom.id}/published`
+        : `/api/content/classroom/${classroom.id}`;
+      
+      console.log("Making request to:", `${API_URL}${endpoint}`);
+      
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log("Response status:", response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error Response:", errorText);
+        throw new Error(`Failed to fetch content: ${response.status} - ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Fetched content data:", data);
+      
+      // Ensure data is always an array
+      const contentArray = Array.isArray(data) ? data : [];
+      setContentList(contentArray);
+      setContentError(null);
+      
+    } catch (err) {
+      console.error("Error in fetchClassroomContent:", err);
+      setContentError(err.message || "Failed to load content for this classroom.");
+      setContentList([]); // Ensure contentList is always an array
+    } finally {
+      setLoadingContent(false);
+    }
+  };
 
-    fetchClassroomContent();
-  }, [classroom, getToken, refreshTrigger, user?.role]); // Added user?.role to dependencies
+  // Make sure this useEffect calls the function properly
+  useEffect(() => {
+    if (classroom?.id && authChecked && user) {
+      fetchClassroomContent();
+    }
+  }, [classroom?.id, authChecked, user, refreshTrigger]);
+
   const handleCreateContent = () => {
     if (!classroom) return;
     console.log("Navigating to create content with classroom:", classroom.id); // Debug logging
@@ -714,7 +745,6 @@ return (
         avatarInitials={avatarInitials}
         user={user}
         anchorEl={anchorEl}
-        isMobile={isMobile}
         pixelText={pixelText}
         pixelHeading={pixelHeading}
         handleMenuOpen={handleMenuOpen}
@@ -803,7 +833,7 @@ return (
               </Box>
             ) : (
               <Box>
-                <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px', mb: 1 }}>
+                <Typography sx={{ ...pixelHeading, fontSize: '20px', mb: 1 }}>
                   {classroom.name}
                 </Typography>
                 {classroom.description && (
@@ -918,7 +948,7 @@ return (
               '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
               '& .MuiTab-root': { 
                 ...pixelHeading, 
-                fontSize: isMobile ? '7px' : isTablet ? '11px' : '12px',
+                fontSize: '12px',
                 flexGrow: 1,
                 minWidth: 'unset',
                 px: 1,
@@ -1338,7 +1368,7 @@ return (
                   label={`${classroom.studentCount + 1} TOTAL`} 
                   color="primary"
                   size="small"
-                  sx={{pixelText, fontSize: isMobile ? '10px' : '12px',}}
+                  sx={{pixelText, fontSize: '12px',}}
                 />
               </Box>
               <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
@@ -1462,7 +1492,7 @@ return (
                 justifyContent="flex-start"
                 alignItems="center" 
                 mb={2}
-                gap={isMobile ? 1 : 1}
+                gap={1}
               >
                 {isClassroomTeacher && (
                   <>
@@ -1473,10 +1503,9 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#5F4B8B',
-                        minWidth: isMobile ? 0 : undefined,
-                        px: isMobile ? 1 : isTablet ? 1.5 : 2,
-                        fontSize: isMobile ? '7px' : isTablet ? '9px' : '10px',
-                        height: isMobile ? '28px' : isTablet ? '30px' : '32px',
+                        px: 1,
+                        fontSize: '10px',
+                        height: '32px',
                         '&:hover': { 
                           backgroundColor: '#4a3a6d',
                           transform: 'translateY(-2px)'
@@ -1501,11 +1530,10 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#6c63ff',
-                        minWidth: isMobile ? 0 : undefined,
-                        px: isMobile ? 1 : isTablet ? 1.5 : 2,
-                        fontSize: isMobile ? '7px' : isTablet ? '9px' : '10px',
-                        height: isMobile ? '28px' : isTablet ? '30px' : '32px',
-                        '&:hover': { 
+                        px: 1.5,
+                        fontSize: '9px',
+                        height: '30px',
+                        '&:hover': {
                           backgroundColor: '#5a52e0',
                           transform: 'translateY(-2px)'
                         },
@@ -1551,7 +1579,9 @@ return (
                     NO CONTENT AVAILABLE
                   </Typography>
                   <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
-                    CREATE YOUR FIRST CONTENT
+                    {user?.role === 'USER_TEACHER'
+                      ? 'CREATE YOUR FIRST CONTENT'
+                      : "Your teacher hasn't created/published a content yet."}
                   </Typography>
                   {isClassroomTeacher && (
                     <Button
@@ -1630,9 +1660,9 @@ return (
                 onChange={handlePageChange}
                 variant="outlined"
                 shape="rounded"
-                size={isMobile ? "small" : "medium"}
-                siblingCount={isMobile ? 0 : 1}
-                boundaryCount={isMobile ? 1 : 2}
+                size="medium"
+                siblingCount={1}
+                boundaryCount={2}
               />
             </Box>
           </Stack>

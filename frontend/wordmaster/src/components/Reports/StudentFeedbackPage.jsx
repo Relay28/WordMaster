@@ -12,12 +12,12 @@ import ComprehensionResultsView from './ComprehensionResultsView';
 import GrammarVocabResultsView from './GrammarVocabResultsView';
 
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const StudentFeedbackPage = () => {
   const { sessionId, studentId } = useParams();
   const { user, getToken } = useUserAuth();
   const navigate = useNavigate();
-  const isMobile = window.innerWidth < 768;
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,21 +30,21 @@ const StudentFeedbackPage = () => {
   // Pixel styling (same as other pages)
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -54,8 +54,6 @@ const StudentFeedbackPage = () => {
       try {
         setLoading(true);
         const token = await getToken();
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        
         // Use the same endpoint as the teacher view, but ensure the backend validates the user can only see their own feedback
         const response = await fetch(
           `${API_URL}/api/teacher-feedback/analytics/${sessionId}/student/${studentId}`, 
@@ -86,9 +84,7 @@ const StudentFeedbackPage = () => {
   useEffect(() => {
     const fetchComprehensionData = async () => {
       try {
-        const token = await getToken();
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-        
+        const token = await getToken();      
         const response = await fetch(
           `${API_URL}/api/comprehension/session/${sessionId}/student/${studentId}`, 
           {
@@ -213,7 +209,7 @@ const StudentFeedbackPage = () => {
             >
               Back
             </Button>
-            <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px' }}>
+            <Typography sx={{ ...pixelHeading, fontSize: '20px' }}>
               Teacher Feedback
             </Typography>
           </Box>
@@ -227,7 +223,7 @@ const StudentFeedbackPage = () => {
             border: '4px solid #5F4B8B',
             borderRadius: '6px'
           }}>
-            <Typography sx={{ ...pixelHeading, fontSize: isMobile ? '16px' : '20px', mb: 2 }}>
+            <Typography sx={{ ...pixelHeading, fontSize: '20px', mb: 2 }}>
               {feedbackDetails.contentTitle || 'Game Session'}
             </Typography>
             

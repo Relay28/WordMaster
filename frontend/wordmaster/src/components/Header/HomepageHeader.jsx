@@ -21,7 +21,6 @@ const HomepageHeader = ({
   avatarInitials,
   user,
   anchorEl,
-  isMobile,
   pixelText,
   pixelHeading,
   handleMenuOpen,
@@ -39,7 +38,7 @@ const HomepageHeader = ({
     <Box sx={{ 
       backgroundColor: 'white',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      py: isMobile ? 1.5 : 2,
+      py: 2,
       px: { xs: 1.5, md: 6 },
       overflow: 'hidden',
     }}>
@@ -47,7 +46,7 @@ const HomepageHeader = ({
         <Box 
           display="flex" 
           alignItems="center" 
-          gap={isMobile ? 1.5 : 4}
+          gap={4}
           component={Button} // Make the whole container a clickable button
           onClick={handleLogoClick}
           sx={{
@@ -62,7 +61,7 @@ const HomepageHeader = ({
             src={logo}
             alt="WordMaster Logo"
             style={{
-              height: isMobile ? '24px' : '40px',
+              height: '40px',
               width: 'auto',
               objectFit: 'contain'
             }}
@@ -70,7 +69,7 @@ const HomepageHeader = ({
           <Typography sx={{ 
             ...pixelHeading,
             color: '#5F4B8B',
-            fontSize: isMobile ? '12px' : '16px',
+            fontSize: '16px',
             '&:hover': {
               color: '#6c63ff' // Add hover effect
             }
@@ -78,8 +77,8 @@ const HomepageHeader = ({
             WordMaster
           </Typography>
         </Box>
-        <Box display="flex" alignItems="center" gap={isMobile ? 1.5 : 2}>
-          {!isMobile && (
+        <Box display="flex" alignItems="center" gap={2}>
+         
             <Box textAlign="right">
               <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
                 {displayName}
@@ -88,12 +87,12 @@ const HomepageHeader = ({
                 {roleDisplay}
               </Typography>
             </Box>
-          )}
+          
           <IconButton onClick={handleMenuOpen} size="small" sx={{ p: 0 }}>
             <Avatar 
               sx={{ 
-                width: isMobile ? 28 : 40, 
-                height: isMobile ? 28 : 40, 
+                width: 40, 
+                height: 40, 
                 bgcolor: '#5F4B8B',
                 color: 'white'
               }}

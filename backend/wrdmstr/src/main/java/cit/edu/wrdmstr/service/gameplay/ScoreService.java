@@ -337,4 +337,52 @@ public class ScoreService {
             awardPoints(player, 5, "Good vocabulary diversity");
         }
     }
+
+    /**
+     * Apply profanity penalty: deduct 10 points (or set to 0 if fewer than 10 remain).
+     * Creates a negative score record so leaderboard recalculations remain accurate.
+     */
+    public void applyProfanityPenalty(PlayerSessionEntity player, String sample) {
+        if (player == null) return;
+        int current = player.getTotalScore();
+        int deduction = Math.min(10, current);
+        if (deduction == 0) {
+            // Still create a record for auditing even if already 0
+            createNegativeRecord(player, 0, sample);
+            return;
+        }
+        createNegativeRecord(player, -deduction, sample);
+        player.setTotalScore(current - deduction);
+        playerRepository.save(player);
+
+        Map<String, Object> scoreUpdate = new HashMap<>();
+        scoreUpdate.put("playerId", player.getUser().getId());
+        scoreUpdate.put("sessionId", player.getSession().getId());
+        scoreUpdate.put("points", -deduction);
+        scoreUpdate.put("reason", "Profanity penalty");
+        scoreUpdate.put("totalScore", player.getTotalScore());
+        messagingTemplate.convertAndSend("/topic/game/" + player.getSession().getId() + "/scores", scoreUpdate);
+    }
+
+    private void createNegativeRecord(PlayerSessionEntity player, int points, String sample) {
+        try {
+            ScoreRecordEntity record = new ScoreRecordEntity();
+            record.setSession(player.getSession());
+            record.setUser(player.getUser());
+            record.setPoints(points); // negative or zero
+            String reason = points == 0 ? "Profanity warning" : "Profanity penalty";
+            if (sample != null && !sample.isBlank()) {
+                reason += ": '" + truncate(sample) + "'";
+            }
+            record.setReason(reason);
+            record.setTimestamp(new Date());
+            scoreRepository.save(record);
+        } catch (Exception e) {
+            logger.error("Failed to create profanity penalty record", e);
+        }
+    }
+
+    private String truncate(String sample) {
+        return sample.length() > 20 ? sample.substring(0,17) + "..." : sample;
+    }
 }

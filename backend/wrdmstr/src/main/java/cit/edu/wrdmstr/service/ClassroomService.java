@@ -21,9 +21,12 @@ import cit.edu.wrdmstr.repository.VocabularyResultRepository;
 import cit.edu.wrdmstr.service.interfaces.IClassroomService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,22 +95,25 @@ public class ClassroomService implements IClassroomService {
         UserEntity student = getAuthenticatedUser(authentication);
 
         if (!"USER_STUDENT".equals(student.getRole())) {
-            throw new RuntimeException("Only students can enroll in classrooms");
+            throw new AccessDeniedException("Only students can enroll in classrooms");
         }
 
+        // Change this to use orElseThrow with a more specific exception
         ClassroomEntity classroom = classroomRepository.findByEnrollmentCode(enrollmentCode)
-                .orElseThrow(() -> new RuntimeException("Classroom not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Invalid Code. Classroom not found for the provided enrollment code."));
 
         // Check if already enrolled
         if (enrollmentRepository.existsByClassroomAndStudent(classroom, student)) {
-            throw new RuntimeException("Student already enrolled in this classroom");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "You have already enrolled in this classroom");
         }
 
         StudentEnrollmentEntity enrollment = new StudentEnrollmentEntity();
         enrollment.setClassroom(classroom);
         enrollment.setStudent(student);
 
-        List<StudentEnrollmentEntity> s =classroom.getEnrollments();
+        List<StudentEnrollmentEntity> s = classroom.getEnrollments();
         s.add(enrollment);
         Set<UserEntity> s2 = classroom.getStudents();
         s2.add(student);

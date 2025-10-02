@@ -39,7 +39,8 @@ import {
   ExpandMore
 } from '@mui/icons-material';
 import bgGamePlay from '../../assets/bg-gameplay.png';
-import CardDisplay from './CardDisplay';  // Import the CardDisplay component
+import bgpurple from '../../assets/bgpurple.gif';
+// import CardDisplay from './CardDisplay';  // Import the CardDisplay component
 
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -49,6 +50,7 @@ const GamePlay = ({
   gameState, 
   stompClient, 
   sendMessage, 
+  addOptimisticMessage,
   onGameStateUpdate, 
   gameEnded, 
   onProceedToResults,
@@ -65,29 +67,29 @@ const GamePlay = ({
   const { user, getToken } = useUserAuth();
   const [sentence, setSentence] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [storyPrompt, setStoryPrompt] = useState(gameState?.storyPrompt || ''); // For AI-generated story prompts
-  const [rolePrompt, setRolePrompt] = useState('');   // For AI-generated role-specific hints
-  const [pointsNotification, setPointsNotification] = useState(false);
+  const [storyPrompt, setStoryPrompt] = useState('');
+  const [showTurnComplete, setShowTurnComplete] = useState(false);
   const [pointsData, setPointsData] = useState({ points: 0, reason: '' });
-  const [showUsedWords, setShowUsedWords] = useState(false); // New state for toggling used words visibility
-  const [wordUsedNotification, setWordUsedNotification] = useState(false);
-  const [usedWordMessage, setUsedWordMessage] = useState('');
+  const [pointsNotification, setPointsNotification] = useState(false);
+  // Add processing state specifically for message processing
+  const [messageProcessing, setMessageProcessing] = useState(false);
+  const [rolePrompt, setRolePrompt] = useState('');
+  const [previousCycle, setPreviousCycle] = useState(gameState.currentCycle);
   const [cycleTransitionActive, setCycleTransitionActive] = useState(false);
   const [showCycleTransition, setShowCycleTransition] = useState(false);
-  const [previousCycle, setPreviousCycle] = useState(gameState?.currentCycle || null); // Already present
   const [leaderboard, setLeaderboard] = useState([]); // Already present
   const [cardResult, setCardResult] = useState(null);
   const [cardResultOpen, setCardResultOpen] = useState(false);
   const [showCards, setShowCards] = useState(false);
+  const [wordUsedNotification, setWordUsedNotification] = useState(false);
+  const [usedWordMessage, setUsedWordMessage] = useState('');
   const chatEndRef = useRef(null);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isProcessing, setIsProcessing] = useState(false); // For single-player processing
   const [localMessages, setLocalMessages] = useState([]);
   const [optimisticGameState, setOptimisticGameState] = useState(gameState); // Add this line
   const processingTimeoutRef = useRef(null); // Add this line
   const isSinglePlayer = gameState.players?.length === 1;
-  const [isWordBankOpen, setIsWordBankOpen] = useState(false);
   const [localTimeRemaining, setLocalTimeRemaining] = useState(gameState.timeRemaining);
   const [timerActive, setTimerActive] = useState(false);
   const timerIntervalRef = useRef(null);
@@ -99,16 +101,58 @@ const GamePlay = ({
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize:'10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
+  };
+
+  // Helper: get normalized wordbank list from gameState
+  const getWordBank = () => {
+    if (!gameState || !gameState.wordBank) return [];
+    return gameState.wordBank.map(w => (typeof w === 'string' ? w.trim().toLowerCase() : (w.word || '').toLowerCase()));
+  };
+
+  // Render message text with highlighted wordbank terms
+  const renderHighlighted = (text) => {
+    if (!text) return text;
+    const words = getWordBank();
+    if (!words || words.length === 0) return text;
+
+    // Build regex to match whole words (case-insensitive)
+    const escaped = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
+    if (escaped.length === 0) return text;
+    const re = new RegExp('\\b(' + escaped.join('|') + ')\\b', 'ig');
+
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = re.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ text: text.substring(lastIndex, match.index), highlight: false });
+      }
+      parts.push({ text: match[0], highlight: true });
+      lastIndex = re.lastIndex;
+    }
+    if (lastIndex < text.length) parts.push({ text: text.substring(lastIndex), highlight: false });
+
+    return parts.map((p, i) => p.highlight ? (
+      <span key={i} style={{ fontWeight: '700', color: '#f8def8ff', textShadow: `
+            -0.65px -0.65px 0 #000,  
+            0.65px -0.65px 0 #000,
+            -0.65px  0.65px 0 #000,
+            0.65px  0.65px 0 #000
+          `
+      }}>{p.text}</span>
+    ) : (
+      <span key={i}>{p.text}</span>
+    ));
   };
 //   useEffect(() => {
 //   if (gameState.messages) {
@@ -334,7 +378,7 @@ useEffect(() => {
     lastServerUpdateRef.current = Date.now();
     
     // Only start local countdown if it's my turn or single player
-    const shouldRunTimer = (isMyTurn || isSinglePlayer) && gameState.timeRemaining > 0;
+    const shouldRunTimer = !gameState.paused && (isMyTurn || isSinglePlayer) && gameState.timeRemaining > 0;
     setTimerActive(shouldRunTimer);
 
     if (shouldRunTimer) {
@@ -361,7 +405,7 @@ useEffect(() => {
         clearInterval(timerIntervalRef.current);
       }
     };
-  }, [gameState.timeRemaining, gameState.currentTurn, isMyTurn, isSinglePlayer]);
+  }, [gameState.timeRemaining, gameState.currentTurn, isMyTurn, isSinglePlayer, gameState.paused]);
 
   // Use local time for display, fallback to server time
   const displayTimeRemaining = timerActive ? localTimeRemaining : gameState.timeRemaining;
@@ -382,44 +426,69 @@ useEffect(() => {
   };
   
   const handleSubmit = async () => {
-    if (!sentence.trim() || submitting) return;
+    const trimmed = sentence.trim();
+    if (!trimmed || submitting || messageProcessing) return;
+    if (trimmed.length < 5) {
+      console.warn('Message too short (minimum 5 characters).');
+      return;
+    }
     
-    setSubmitting(true);
-    const currentSentence = sentence.trim();
+  setSubmitting(true);
+  setMessageProcessing(true); // Start processing state
+  onGameStateUpdate && onGameStateUpdate({ __aiLoading: true });
+  const currentSentence = trimmed;
     
-    // Immediately clear input and show optimistic message
+    // Immediately clear input
     setSentence('');
     
-    // Create optimistic message with pending status
+    // Create optimistic message with better ID
     const optimisticMessage = {
-      id: `temp-${Date.now()}`,
+      id: `optimistic-${user.id}-${Date.now()}`, // Better unique ID
       senderId: user.id,
       senderName: `${user.fname} ${user.lname}`,
       content: currentSentence,
       timestamp: new Date(),
-      grammarStatus: 'PROCESSING', // New status to show it's being processed
-      grammarFeedback: 'Processing...',
+      grammarStatus: 'PROCESSING',
+      grammarFeedback: 'Processing your message...',
       isOptimistic: true,
       containsWordBomb: false,
       wordUsed: '',
       roleAppropriate: null
     };
     
-    // Add optimistic message immediately
-    setLocalMessages(prev => [...prev, optimisticMessage]);
+    // Add optimistic message immediately to canonical state
+    if (typeof addOptimisticMessage === 'function') {
+      addOptimisticMessage({
+        id: optimisticMessage.id,
+        senderId: optimisticMessage.senderId,
+        senderName: optimisticMessage.senderName,
+        content: optimisticMessage.content,
+        timestamp: optimisticMessage.timestamp,
+        grammarStatus: optimisticMessage.grammarStatus,
+        grammarFeedback: optimisticMessage.grammarFeedback,
+        isOptimistic: true
+      });
+    } else {
+      setLocalMessages(prev => [...prev, optimisticMessage]);
+    }
     
     try {
       const token = await getToken();
       if (!token) {
+        // Remove optimistic message on auth error
+        setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         setSubmitting(false);
+        setMessageProcessing(false); // Reset processing state
         alert('Authentication error. Please log in again.');
         return;
       }
 
       // Send to backend
       const headers = { 'Authorization': `Bearer ${token}` };
-      await sendMessage(`/app/game/${gameState.sessionId}/word`, 
-                       { word: currentSentence }, headers);
+  await sendMessage(`/app/game/${gameState.sessionId}/word`, 
+           { word: currentSentence, clientMessageId: optimisticMessage.id });
+
+      // Deprecated AI streaming/submit removed: grammar handled entirely server-side within ChatService pipeline.
 
       // For single player, optimistically advance turn
       if (isSinglePlayer) {
@@ -435,100 +504,118 @@ useEffect(() => {
 
     } catch (error) {
       console.error('Error sending sentence:', error);
-      // Remove optimistic message on error
+      // Remove optimistic message on error and restore input
       setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
-      setSentence(currentSentence); // Restore input
+      setSentence(currentSentence);
+      setMessageProcessing(false); // Reset processing state on error
       alert('Failed to send sentence. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
+  
+  // Add effect to monitor message processing completion
+  useEffect(() => {
+    if (messageProcessing && localMessages.length > 0) {
+      // Check if the latest message from current user has completed processing
+      const userMessages = localMessages.filter(msg => msg.senderId === user?.id);
+      const latestUserMessage = userMessages[userMessages.length - 1];
+      
+      if (latestUserMessage && 
+          latestUserMessage.grammarStatus !== 'PROCESSING' && 
+          latestUserMessage.grammarFeedback !== 'Processing your message...' &&
+          !latestUserMessage.isOptimistic) {
+        console.log('Message processing completed, re-enabling input');
+        setMessageProcessing(false);
+      }
+    }
+  }, [localMessages, messageProcessing, user?.id]);
 
   // Enhanced handleUseCard function
-  const handleUseCard = async (cardId) => {
-    if (!sentence.trim()) {
-      setCardResult({
-        success: false,
-        message: 'Please write a sentence first before using a card!'
-      });
-      setCardResultOpen(true);
-      return;
-    }
+  // const handleUseCard = async (cardId) => {
+  //   if (!sentence.trim()) {
+  //     setCardResult({
+  //       success: false,
+  //       message: 'Please write a sentence first before using a card!'
+  //     });
+  //     setCardResultOpen(true);
+  //     return;
+  //   }
 
-    if (!isMyTurn) {
-      setCardResult({
-        success: false,
-        message: "You can only use cards during your turn."
-      });
-      setCardResultOpen(true);
-      return;
-    }
+  //   if (!isMyTurn) {
+  //     setCardResult({
+  //       success: false,
+  //       message: "You can only use cards during your turn."
+  //     });
+  //     setCardResultOpen(true);
+  //     return;
+  //   }
 
-    if (pendingCardUse) {
-      setCardResult({
-        success: false,
-        message: "A card is already being processed..."
-      });
-      setCardResultOpen(true);
-      return;
-    }
+  //   if (pendingCardUse) {
+  //     setCardResult({
+  //       success: false,
+  //       message: "A card is already being processed..."
+  //     });
+  //     setCardResultOpen(true);
+  //     return;
+  //   }
 
-    try {
-      // Use the provided onUseCard function from props if available
-      if (onUseCard) {
-        const result = await onUseCard(cardId, sentence);
-        setCardResult(result);
-        setCardResultOpen(true);
+  //   try {
+  //     // Use the provided onUseCard function from props if available
+  //     if (onUseCard) {
+  //       const result = await onUseCard(cardId, sentence);
+  //       setCardResult(result);
+  //       setCardResultOpen(true);
 
-        // If the card was used successfully, show points notification
-        if (result.success) {
-          setPointsData({
-            points: result.pointsAwarded || 0,
-            reason: `Card bonus: ${result.cardName || 'Power Card'}`
-          });
-          setPointsNotification(true);
-        }
-        return;
-      }
+  //       // If the card was used successfully, show points notification
+  //       if (result.success) {
+  //         setPointsData({
+  //           points: result.pointsAwarded || 0,
+  //           reason: `Card bonus: ${result.cardName || 'Power Card'}`
+  //         });
+  //         setPointsNotification(true);
+  //       }
+  //       return;
+  //     }
 
-      // Fallback implementation if parent didn't provide onUseCard
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message: sentence })
-      });
+  //     // Fallback implementation if parent didn't provide onUseCard
+  //     const token = await getToken();
+  //     const response = await fetch(`${API_URL}/api/cards/use/${cardId}`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`,
+  //         'Content-Type': 'application/json'
+  //       },
+  //       body: JSON.stringify({ message: sentence })
+  //     });
 
-      if (response.ok) {
-        const result = await response.json();
-        setCardResult(result);
-        setCardResultOpen(true);
+  //     if (response.ok) {
+  //       const result = await response.json();
+  //       setCardResult(result);
+  //       setCardResultOpen(true);
         
-        if (result.success) {
-          setPointsData({
-            points: result.pointsAwarded || 10,
-            reason: `Card bonus!`
-          });
-          setPointsNotification(true);
+  //       if (result.success) {
+  //         setPointsData({
+  //           points: result.pointsAwarded || 10,
+  //           reason: `Card bonus!`
+  //         });
+  //         setPointsNotification(true);
           
-          // Refresh cards to update the UI
-          if (onRefreshCards) {
-            onRefreshCards();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error using card:', error);
-      setCardResult({
-        success: false,
-        message: 'Error using card: ' + (error.message || 'Unknown error')
-      });
-      setCardResultOpen(true);
-    }
-  };
+  //         // Refresh cards to update the UI
+  //         if (onRefreshCards) {
+  //           onRefreshCards();
+  //         }
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error using card:', error);
+  //     setCardResult({
+  //       success: false,
+  //       message: 'Error using card: ' + (error.message || 'Unknown error')
+  //     });
+  //     setCardResultOpen(true);
+  //   }
+  // };
 
   // Non-blocking state refresh
   const fetchUpdatedGameState = useCallback(async () => {
@@ -740,7 +827,7 @@ const cycleDisplayString = isSinglePlayer
           minWidth: '40vh', // Added to ensure minimum width
           maxWidth: '130vh', 
            border: '4px solid #5F4B8B',
-          backgroundImage: `url(${bgGamePlay})`,
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url(${bgpurple})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -998,7 +1085,7 @@ const cycleDisplayString = isSinglePlayer
               alignItems: 'center',
               justifyContent: 'center',
               mb: 4,
-              mt: 6,
+              mt: 2,
               p: 3,
               borderRadius: '50%',
               width: 230,
@@ -1116,35 +1203,135 @@ const cycleDisplayString = isSinglePlayer
               }
             `}</style>
           </Paper>
-      {/* Word Bank Button */}
-      <Box
-        onClick={() => setIsWordBankOpen(!isWordBankOpen)}
-        sx={{
-          position: 'absolute',
-          bottom: 20,
-          right: 20,
-          width: 80,
-          height: 80,
-          cursor: 'pointer',
-          transition: 'all 0.3s ease',
-          animation: isWordBankOpen ? 'float 2s ease-in-out infinite' : 'none',
-          transform: isWordBankOpen ? 'rotate(-15deg)' : 'none',
-          zIndex: 2,
-          '&:hover': {
-            transform: isWordBankOpen ? 'rotate(-15deg) scale(1.1)' : 'scale(1.1)',
-          },
-          '@keyframes float': {
-            '0%, 100%': {
-              transform: 'rotate(-15deg) translateY(0)',
-            },
-            '50%': {
-              transform: 'rotate(-15deg) translateY(-10px)',
-            },
-          },
-        }}
+
+   {/* Word Bank Container - Always visible with matching aesthetics */}
+<Paper sx={{ 
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  width: '97%',
+  p: 3, // Increased padding to match left pane style
+  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(8px)',
+  borderTop: '4px solid #5F4B8B', // Thicker border to match left pane style
+  maxHeight: '15%',
+  overflowY: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+  zIndex: 5,
+  borderRadius: '0 0 16px 16px',
+  boxShadow: '0 -4px 8px rgba(0,0,0,0.1)', // Add subtle shadow for depth
+}}>
+  <Box sx={{ 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    mb: 2 // Increased margin
+  }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+      <Typography sx={{ 
+        ...pixelHeading, 
+        color: '#5F4B8B', 
+        fontSize: '14px', // Match the font size from other headings
+        textShadow: '1px 1px 0px rgba(255,255,255,0.8)' // Add subtle text shadow
+      }}>
+        WORD BANK
+      </Typography>
+      {gameState.wordBank && gameState.wordBank.length > 0 && (
+        <Typography sx={{ 
+          ...pixelText, 
+          fontSize: '8px', 
+          color: '#5F4B8B', 
+          opacity: 0.6,
+          mt: 0.5
+        }}>
+          CLICK A WORD TO ADD IT TO YOUR MESSAGE
+        </Typography>
+      )}
+    </Box>
+    <Chip 
+      label={`${getWordBank().length || 0} words`} 
+      size="small"
+      sx={{ 
+        bgcolor: 'rgba(95, 75, 139, 0.2)', // Slightly darker to match theme
+        borderRadius: '8px',
+        height: '22px', // Slightly larger
+        border: '2px solid #5F4B8B', // Add border to match theme
+        '& .MuiChip-label': {
+          px: 1.5,
+          fontSize: '0.7rem',
+          fontWeight: 'bold',
+          color: '#5F4B8B'
+        }
+      }}
+    />
+  </Box>
+  
+  {/* Word bank content area */}
+  <Box sx={{ 
+    display: 'flex', 
+    flexWrap: 'wrap', 
+    gap: 1.5, // Increased gap for better spacing
+    pb: 1 // Add padding at bottom
+  }}>
+    {gameState.wordBank && gameState.wordBank.map((wordItem, index) => (
+      <Tooltip
+        key={index}
+        title={
+          <Box sx={{ ...pixelText, p: 1 }}>
+            <Typography sx={{ fontWeight: 'bold', mb: 1 }}>
+              {wordItem.description || "NO DESCRIPTION AVAILABLE"}
+            </Typography>
+            {wordItem.exampleUsage && (
+              <Typography sx={{ fontStyle: 'italic' }}>
+                EXAMPLE: "{wordItem.exampleUsage}"
+              </Typography>
+            )}
+          </Box>
+        }
+        arrow
+        placement="top"
       >
-        {isWordBankOpen ? <BagOpen /> : <BagClosed />}
-      </Box>
+        <Chip 
+          label={typeof wordItem === 'string' ? wordItem : wordItem.word}
+          sx={{
+            ...pixelText,
+            backgroundColor: 'white',
+            border: '2px solid #5F4B8B',
+            boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', // Add pixel-style shadow
+            py: 0.5, // Slightly taller
+            px: 0.5, // More horizontal padding
+            '&:hover': {
+              backgroundColor: '#f0edf5',
+              transform: 'translateY(-2px) scale(1.05)', // Enhanced hover effect
+              boxShadow: '3px 3px 0px rgba(95, 75, 139, 0.3)', // Deeper shadow on hover
+            },
+            transition: 'all 0.2s ease',
+            cursor: 'pointer' // Indicate clickable
+          }}
+          onClick={() => {
+            setSentence(prev => prev ? 
+              `${prev} ${typeof wordItem === 'string' ? wordItem : wordItem.word}` : 
+              (typeof wordItem === 'string' ? wordItem : wordItem.word)
+            );
+          }}
+        />
+      </Tooltip>
+    ))}
+    {(!gameState.wordBank || gameState.wordBank.length === 0) && (
+      <Typography sx={{ 
+        ...pixelText, 
+        color: '#5F4B8B', 
+        width: '100%', 
+        textAlign: 'center', 
+        py: 2,
+        opacity: 0.7
+      }}>
+        NO WORDS AVAILABLE IN WORD BANK.
+      </Typography>
+    )}
+  </Box>
+</Paper>
 
       {/* Power Cards Button - Added next to Word Bank
       <Box sx={{
@@ -1191,7 +1378,7 @@ const cycleDisplayString = isSinglePlayer
       </Box> */}
 
       {/* Power-Up Cards Floating at Bottom */}
-<Box
+{/* <Box
   sx={{
     position: 'absolute',
     bottom: 45,
@@ -1230,91 +1417,19 @@ const cycleDisplayString = isSinglePlayer
         },
       }}
     >
-      <CardDisplay
+      {/* <CardDisplay
         card={playerCards[i]}
         isSelected={selectedCard?.id === playerCards[i]?.id}
         onUse={handleUseCard}
         disabled={!isMyTurn || pendingCardUse}
         isProcessing={pendingCardUse && selectedCard?.id === playerCards[i]?.id}
         pixelText={pixelText}
-      />
+      /> 
     </Box>
   ))}
-</Box>
+</Box> */}
 
-      {/* Word Bank Popup */}
-      <Fade in={isWordBankOpen}>
-  <Paper sx={{ 
-    position: 'absolute',
-    bottom: 120,
-    right: 20,
-    width: 300,
-    maxHeight: '60vh',
-    overflowY: 'auto',
-    p: 2,
-    borderRadius: '8px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-    zIndex: 1000,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    backdropFilter: 'blur(8px)',
-    border: '2px solid #5F4B8B',
-    // Add transition for smoother fade
-    transition: 'opacity 0.3s ease',
-    opacity: isWordBankOpen ? 1 : 0,
-    visibility: isWordBankOpen ? 'visible' : 'hidden'
-  }}>
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-      <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>WORD BANK</Typography>
-      <IconButton onClick={() => setIsWordBankOpen(false)}>
-        <Close />
-      </IconButton>
-    </Box>
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-      {gameState.wordBank && gameState.wordBank.map((wordItem, index) => (
-
-        <Tooltip
-        
-          key={index}
-          title={
-            <Box sx={{ ...pixelText, p: 1 }}>
-              <Typography sx={{ fontWeight: 'bold', mb: 1 }}>
-                {wordItem.description || "NO DESCRIPTION AVAILABLE"}
-              </Typography>
-              {wordItem.exampleUsage && (
-                <Typography sx={{ fontStyle: 'italic' }}>
-                  EXAMPLE: "{wordItem.exampleUsage}"
-                </Typography>
-              )}
-            </Box>
-          }
-          arrow
-        >
-          <Chip 
-            label={wordItem.word}
-            sx={{
-              ...pixelText,
-              backgroundColor: 'white',
-              border: '2px solid #5F4B8B',
-              '&:hover': {
-                backgroundColor: '#f0edf5',
-                transform: 'translateY(-2px)'
-              },
-              transition: 'all 0.2s ease'
-            }}
-            onClick={() => {
-              setSentence(prev => prev ? `${prev} ${wordItem.word}` : wordItem.word);
-            }}
-          />
-        </Tooltip>
-      ))}
-      {(!gameState.wordBank || gameState.wordBank.length === 0) && (
-        <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
-          NO WORDS AVAILABLE IN WORD BANK.
-        </Typography>
-      )}
-    </Box>
-  </Paper>
-</Fade>
+  
           </Box>
 
         {/* Right Side - Chat */}
@@ -1407,8 +1522,39 @@ const cycleDisplayString = isSinglePlayer
               position: 'relative',
               zIndex: 1
             }}>
-     
-{localMessages.map((msg, index) => (
+
+  {/* Render messages, but filter out internal AI streaming chunks (isAiStream/partial)
+      Also filter out the noisy AI suggestion message the user asked to hide. */}
+  {localMessages
+    // First, reduce to a list without duplicate (senderId+normalizedContent+timestamp second) combos
+    .filter((m, idx, arr) => {
+      if (!m) return false;
+      const norm = (s) => (s||'').toString().trim().toLowerCase().replace(/\s+/g,' ');
+      const sig = `${m.senderId||m.sender}|${norm(m.content)}|${new Date(m.timestamp).getSeconds()}`; // coarse signature
+      const firstIdx = arr.findIndex(x => {
+        if (!x) return false; 
+        const sig2 = `${x.senderId||x.sender}|${norm(x.content)}|${new Date(x.timestamp).getSeconds()}`;
+        return sig2 === sig;
+      });
+      return firstIdx === idx; // keep only first occurrence
+    })
+    .filter(m => {
+    if (!m) return false;
+    const content = (m.content || '').toString();
+    // Hide any AI streaming/preview/temporary markers or placeholders
+    if (m.isAiStream || m.partial || m.preview || m.temporary || m.isPlaceholder) return false;
+    // Hide messages that are clearly just a short analyzing/processing placeholder
+    const trimmed = content.trim().toLowerCase();
+    if (trimmed === 'analyzing...' || trimmed === 'processing...' || trimmed === 'analysis in progress') return false;
+    // Hide overly short fragments likely coming from AI partials (heuristic)
+    if ((m.sender === 'AI' || m.senderName === 'AI' || m.fromAi) && trimmed.length < 20) return false;
+    // If this is an optimistic user message (created locally) keep it until server replaces it
+    if (m.isOptimistic && (m.senderId === user?.id || m.sender === user?.id)) return true;
+    // Hide the specific noisy AI suggestion messages the user reported
+    if (content.includes("Keep practicing your sentence structure") || content.includes("you'll improve even more")) return false;
+    // Otherwise show final messages only
+    return true;
+  }).map((msg, index) => (
   <Box
     key={msg.id || index}
     sx={{
@@ -1427,18 +1573,10 @@ const cycleDisplayString = isSinglePlayer
       color: msg.senderId === user?.id ? 'white' : 'black',
       position: 'relative'
     }}>
-      {/* Add processing indicator */}
-      {msg.grammarStatus === 'PROCESSING' && (
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-          <CircularProgress size={12} sx={{ mr: 1, color: 'inherit' }} />
-          <Typography sx={{ ...pixelText, fontSize: '6px' }}>
-            Processing...
-          </Typography>
-        </Box>
-      )}
+  {/* Per-message processing indicator removed — global analyzing indicator is shown below submit button */}
       
-      <Typography sx={{fontSize: isMobile ? '14px' : '18px' }}>
-        <strong>{msg.senderName}:</strong> {msg.content}
+      <Typography sx={{fontSize: '18px' }}>
+        <strong>{msg.senderName}:</strong> {renderHighlighted(msg.content)}
       </Typography>
       
       {/* Show role if available */}
@@ -1600,6 +1738,8 @@ const cycleDisplayString = isSinglePlayer
     </Box>
   </Box>
 ))}
+
+  {/* NOTE: Per request, do NOT show the AI "Analyzing..." bubble inside the chat area. */}
               <div ref={chatEndRef} />
             </Box>
 
@@ -1676,12 +1816,18 @@ const cycleDisplayString = isSinglePlayer
                   <TextField
                     fullWidth
                     variant="outlined"
-                    placeholder={isMyTurn ? "Type your message..." : "Waiting for your turn..."}
+                    placeholder={
+                      messageProcessing 
+                        ? "Processing message..." 
+                        : isMyTurn 
+                          ? "Type your message..." 
+                          : "Waiting for your turn..."
+                    }
                     value={sentence}
                     onChange={handleSentenceChange}
-                    disabled={!isMyTurn || submitting}
+                    disabled={!isMyTurn || submitting || messageProcessing}
                     onKeyPress={(ev) => {
-                      if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn) {
+                      if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn && !messageProcessing) {
                         handleSubmit();
                         ev.preventDefault();
                       }
@@ -1689,14 +1835,17 @@ const cycleDisplayString = isSinglePlayer
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: '50px',
-                        bgcolor: 'white'
+                        bgcolor: messageProcessing ? '#f5f5f5' : 'white',
+                        '& input': {
+                          color: messageProcessing ? '#999' : 'inherit'
+                        }
                       }
                     }}
                   />
                   <Button
                     variant="contained"
                     onClick={handleSubmit}
-                    disabled={!isMyTurn || submitting || !sentence.trim()}
+                    disabled={!isMyTurn || submitting || !sentence.trim() || messageProcessing}
                     sx={{
                       bgcolor: '#5F4B8B',
                       borderRadius: '50px',
@@ -1708,9 +1857,37 @@ const cycleDisplayString = isSinglePlayer
                       '&.Mui-disabled': { bgcolor: '#c5c5c5' }
                     }}
                   >
-                    {submitting ? <CircularProgress size={20} color="inherit"/> : '➤'}
+                    {submitting || messageProcessing ? (
+                      <CircularProgress size={20} color="inherit"/>
+                    ) : (
+                      '➤'
+                    )}
                   </Button>
                 </Box>
+                
+                {/* Analyzing indicator shown below the submit button (not inside chat) */}
+                {(messageProcessing || (gameState && gameState.__aiLoading)) && (
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mt: 1,
+                    py: 0.5,
+                    px: 2,
+                    bgcolor: 'rgba(95, 75, 139, 0.06)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(95, 75, 139, 0.12)'
+                  }}>
+                    <CircularProgress size={14} sx={{ mr: 1, color: '#5F4B8B' }} />
+                    <Typography sx={{
+                      ...pixelText,
+                      color: '#5F4B8B',
+                      fontSize: '10px'
+                    }}>
+                      Analyzing... Please wait
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             )}
           </Paper>

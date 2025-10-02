@@ -1,11 +1,11 @@
 // src/services/classroomService.js
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const getUserClassrooms = async (token) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/classrooms`, {
+    const response = await axios.get(`${API_URL}/api/classrooms`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -27,7 +27,7 @@ export const getUserClassrooms = async (token) => {
  */
 export const removeStudentFromClassroom = async (token, classroomId, studentId) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/classrooms/${classroomId}/members/${studentId}`, {
+    const response = await fetch(`${API_URL}/api/classrooms/${classroomId}/members/${studentId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -50,7 +50,7 @@ export const removeStudentFromClassroom = async (token, classroomId, studentId) 
 export const createClassroom = async (token, classroomData) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/classrooms`,
+      `${API_URL}/api/classrooms`,
       classroomData,
       {
         headers: {
@@ -69,7 +69,7 @@ export const createClassroom = async (token, classroomData) => {
 export const joinClassroom = async (token, enrollmentCode) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/classrooms/enroll`,
+      `${API_URL}/api/classrooms/enroll`,
       null,
       {
         params: { enrollmentCode },
@@ -87,12 +87,9 @@ export const joinClassroom = async (token, enrollmentCode) => {
   
 };
 
-// src/services/classroomService.js
-// ... (existing imports and functions)
-
 export const getClassroomDetails = async (token, classroomId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/classrooms/${classroomId}`, {
+    const response = await axios.get(`${API_URL}/api/classrooms/${classroomId}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -106,7 +103,7 @@ export const getClassroomDetails = async (token, classroomId) => {
 
 export const getClassroomMembers = async (token, classroomId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/classrooms/${classroomId}/members`, {
+    const response = await axios.get(`${API_URL}/api/classrooms/${classroomId}/members`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -120,7 +117,7 @@ export const getClassroomMembers = async (token, classroomId) => {
 
 export const getClassroomMemberCount = async (token, classroomId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/classrooms/${classroomId}/member-count`, {
+    const response = await axios.get(`${API_URL}/api/classrooms/${classroomId}/member-count`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -134,7 +131,7 @@ export const getClassroomMemberCount = async (token, classroomId) => {
 
 export const updateClassroom = async (token, classroomId, updatedData) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/classrooms/${classroomId}`, updatedData, {
+    const response = await axios.put(`${API_URL}/api/classrooms/${classroomId}`, updatedData, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -149,7 +146,7 @@ export const updateClassroom = async (token, classroomId, updatedData) => {
 
 export const deleteClassroom = async (token, classroomId) => {
   try {
-    await axios.delete(`${API_BASE_URL}/classrooms/${classroomId}`, {
+    await axios.delete(`${API_URL}/api/classrooms/${classroomId}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }

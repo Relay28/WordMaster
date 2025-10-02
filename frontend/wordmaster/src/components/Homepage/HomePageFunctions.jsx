@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getUserClassrooms, joinClassroom, createClassroom } from '../utils/classroomService';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export const useHomePage = (authChecked, user, getToken, login, logout) => {
   const navigate = useNavigate();
   const [joinClassOpen, setJoinClassOpen] = useState(false);
@@ -39,7 +41,7 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       if (authChecked && getToken() && !user) {
         setLoadingProfile(true);
         try {
-          const response = await axios.get('http://localhost:8080/api/profile', {
+          const response = await axios.get(`${API_URL}/api/profile`, {
             headers: { Authorization: `Bearer ${getToken()}` }
           });
           if (response.data) {
@@ -103,8 +105,23 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       setJoinSuccess(true); // Add this after successful join
       setJoinClassOpen(false);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to join classroom. Please check the code and try again.');
-    } finally {
+  const resp = err?.response?.data;
+  let serverMessage = 'Invalid class code. Please try again.';
+
+  if (resp?.message) {
+    serverMessage = resp.message;
+  } else if (resp?.error) {
+    // remove status codes like "404 NOT_FOUND " or "409 CONFLICT "
+    serverMessage = resp.error.replace(/^\d{3}\s+\w+\s*/i, '').trim();
+
+    // also remove surrounding quotes if backend wraps the message in them
+    serverMessage = serverMessage.replace(/^"|"$/g, '');
+  }
+
+  setError(serverMessage);
+}
+
+    finally {
       setLoadingClassrooms(false);
     }
   };
@@ -124,7 +141,7 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
       setCreateClassOpen(false);
       setClassName("");
       setError(null);
-      setCreateSuccess(true); // Add this after successful creation
+      setCreateSuccess(true);
     setCreateClassOpen(false);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create classroom. Please try again.');

@@ -11,7 +11,6 @@ import ScenarioDetailsForm from './forms/ScenarioDetailsForm';
 import GroupSettingsForm from './forms/GroupSettingsForm';
 import GameSettingsForm from './forms/GameSettingsForm';
 import WordBankForm from './forms/WordBankForm';
-import BackgroundImageForm from './forms/BackgroundImageForm';
 import MainContent from './MainContent';
 const ContentUpload = () => {
   const navigate = useNavigate();

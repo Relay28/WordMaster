@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -177,12 +178,33 @@ public class ContentService {
         ContentEntity content = contentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Content not found with id: " + id));
 
-        if (!(content.getCreator().getId() ==(user.getId()))) {
+        if (!(content.getCreator().getId() == user.getId())) {
             throw new AccessDeniedException("You don't have permission to update this content");
         }
 
         // Store original group size before updating
         int originalGroupSize = content.getGameConfig().getStudentsPerGroup();
+        
+        // FIRST: Handle active game sessions to prevent transient object issues
+        List<GameSessionEntity> activeSessions = gameSessionRepository.findByContentId(content.getId());
+        for (GameSessionEntity session : activeSessions) {
+            // Clear current player reference to avoid foreign key constraints
+            if (session.getCurrentPlayer() != null) {
+                session.setCurrentPlayer(null);
+            }
+            
+            // Ensure all player sessions are properly saved/updated
+            List<PlayerSessionEntity> players = session.getPlayers();
+            for (PlayerSessionEntity player : players) {
+                if (player.getId() == null) {
+                    // Save any transient player sessions
+                    player = playerSessionRepository.save(player);
+                }
+            }
+            
+            // Save the session to persist changes
+            gameSessionRepository.save(session);
+        }
         
         // Update basic content fields
         content.setTitle(contentDTO.getTitle());
@@ -194,8 +216,14 @@ public class ContentService {
         ContentData contentData = content.getContentData();
         contentData.setBackgroundImage(contentDTO.getContentData().getBackgroundImage());
 
-        // Update word bank while preserving descriptions and examples
+        // Clear existing word bank and roles to prevent constraint issues
         contentData.getWordBank().clear();
+        contentData.getRoles().clear();
+        
+        // Save to persist the cleared relationships
+        contentRepository.save(content);
+
+        // Add updated word bank items
         if (contentDTO.getContentData().getWordBank() != null) {
             for (WordBankItemDTO wordDTO : contentDTO.getContentData().getWordBank()) {
                 contentData.addWord(
@@ -206,16 +234,7 @@ public class ContentService {
             }
         }
 
-        // Keep existing roles
-        List<String> existingRoleNames = new ArrayList<>();
-        if (contentData.getRoles() != null) {
-            existingRoleNames = contentData.getRoles().stream()
-                    .map(Role::getName)
-                    .collect(Collectors.toList());
-        }
-
-        // Update roles with provided roles
-        contentData.getRoles().clear();
+        // Add updated roles
         if (contentDTO.getContentData().getRoles() != null) {
             for (RoleDTO roleDTO : contentDTO.getContentData().getRoles()) {
                 contentData.addRole(roleDTO.getName());
@@ -230,22 +249,19 @@ public class ContentService {
         gameConfig.setTimePerTurn(gameConfigDTO.getTimePerTurn());
         gameConfig.setTurnCycles(gameConfigDTO.getTurnCycles());
         
-        // Check if group size increased and generate additional roles if needed
+        // Handle role generation for increased group size
         if (newGroupSize > originalGroupSize) {
             int currentRoleCount = contentData.getRoles().size();
-            int rolesNeeded = (int)Math.ceil(newGroupSize * 1.25); // Generate 25% more roles than students
+            int rolesNeeded = (int)Math.ceil(newGroupSize * 1.25);
             
             if (currentRoleCount < rolesNeeded) {
                 int additionalRolesNeeded = rolesNeeded - currentRoleCount;
                 logger.info("Group size changed from {} to {}. Generating {} additional roles", 
                     originalGroupSize, newGroupSize, additionalRolesNeeded);
                 
-                // Generate additional roles using AI
                 List<String> newRoles = generateAdditionalRoles(content.getDescription(), additionalRolesNeeded);
                 
-                // Add the new roles
                 for (String roleName : newRoles) {
-                    // Avoid duplicating roles that might already exist
                     if (!contentData.getRoles().stream().anyMatch(r -> r.getName().equalsIgnoreCase(roleName))) {
                         contentData.addRole(roleName);
                     }
@@ -253,25 +269,19 @@ public class ContentService {
             }
         }
 
-        // Always check and clear current player references to avoid foreign key constraint errors
-        List<GameSessionEntity> affectedSessions = gameSessionRepository.findByContentId(content.getId());
-        for (GameSessionEntity session : affectedSessions) {
-            // Clear the current_player reference
-            if (session.getCurrentPlayer() != null) {
-                session.setCurrentPlayer(null);
-                gameSessionRepository.save(session);
-            }
-            
-            // Clean up player cards for all players in this session
+        // Clean up player cards for affected sessions to prevent constraint issues
+        for (GameSessionEntity session : activeSessions) {
             List<Long> playerSessionIds = session.getPlayers().stream()
                     .map(PlayerSessionEntity::getId)
+                    .filter(Objects::nonNull) // Only include saved entities
                     .collect(Collectors.toList());
             
             if (!playerSessionIds.isEmpty()) {
                 playerCardRepository.deleteByPlayerSessionIds(playerSessionIds);
             }
         }
-        
+
+        // Final save
         ContentEntity updatedContent = contentRepository.save(content);
         return convertToDTO(updatedContent);
     }

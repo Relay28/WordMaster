@@ -1,0 +1,15 @@
+# GECToR Grammar Correction Service Requirements
+
+flask==2.3.3
+torch>=1.11.0
+transformers>=4.21.0
+numpy>=1.21.0
+requests
+# NOTE: removed 'difflib2' (no published distribution; Python stdlib 'difflib' is already used)
+
+# Optional: For GPU acceleration (if available)
+# torch-audio
+# torch-vision
+
+# For development/testing
+pytest>=7.0.0

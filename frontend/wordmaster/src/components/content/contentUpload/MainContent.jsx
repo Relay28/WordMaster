@@ -17,7 +17,6 @@ import ScenarioDetailsForm from './forms/ScenarioDetailsForm';
 import GroupSettingsForm from './forms/GroupSettingsForm';
 import GameSettingsForm from './forms/GameSettingsForm';
 import WordBankForm from './forms/WordBankForm';
-import BackgroundImageForm from './forms/BackgroundImageForm';
 import picbg from '../../../assets/picbg.png';
 import PageHeader from './PageHeader'; 
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -27,7 +26,6 @@ const steps = [
   'Group Settings',
   'Game Settings',
   'Word Bank',
-  'Background'
 ];
 
 const MainContent = ({
@@ -133,13 +131,6 @@ const MainContent = ({
             scenarioSettings={scenarioSettings}
             setScenarioSettings={setScenarioSettings}
             errors={stepErrors}
-          />
-        );
-      case 4:
-        return (
-          <BackgroundImageForm 
-            imagePreview={imagePreview}
-            setImagePreview={setImagePreview}
           />
         );
       default:
@@ -315,98 +306,124 @@ const MainContent = ({
             
             {getStepContent(activeStep)}
             
-            <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
-              <Button
-                disabled={activeStep === 0}
-                onClick={handleBack}
-                variant="outlined"
-                sx={{
-                  ...pixelButton,
-                  color: '#5F4B8B',
-                  borderColor: '#5F4B8B',
-                  borderRadius: '8px',
-                  px: 3,
-                  py: 1,
-                  borderStyle: 'outset',
-                  boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
-                  '&:hover': {
-                    backgroundColor: 'rgba(95, 75, 139, 0.08)',
-                    borderColor: '#5F4B8B',
-                    transform: 'translateY(-2px)'
-                  },
-                  '&:active': {
-                    transform: 'translateY(1px)',
-                    boxShadow: '2px 2px 0px rgba(0,0,0,0.1)',
-                    borderStyle: 'inset'
-                  },
-                  '&.Mui-disabled': {
-                    color: '#a0a0a0',
-                    borderColor: '#e0e0e0'
-                  }
-                }}
-              >
-                Back
-              </Button>
-              
-              {activeStep === steps.length - 1 ? (
-                <Button 
-                  variant="contained" 
-                  sx={{
-                    ...pixelButton,
-                    backgroundColor: '#5F4B8B',
-                    color: '#fff',
-                    borderRadius: '8px',
-                    px: 3,
-                    py: 1,
-                    borderStyle: 'outset',
-                    boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
-                    '&:hover': {
-                      backgroundColor: '#4a3a6f',
-                      transform: 'translateY(-2px)'
-                    },
-                    '&:active': {
-                      transform: 'translateY(1px)',
-                      boxShadow: '2px 2px 0px rgba(0,0,0,0.1)',
-                      borderStyle: 'inset'
-                    },
-                    '&.Mui-disabled': {
-                      backgroundColor: '#e0e0e0',
-                      color: '#a0a0a0'
-                    }
-                  }}
-                  disabled
-                >
-                  Next
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  onClick={handleNext}
-                  type="button"
-                  sx={{
-                    ...pixelButton,
-                    backgroundColor: '#5F4B8B',
-                    color: '#fff',
-                    borderRadius: '8px',
-                    px: 3,
-                    py: 1,
-                    borderStyle: 'outset',
-                    boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
-                    '&:hover': {
-                      backgroundColor: '#4a3a6f',
-                      transform: 'translateY(-2px)'
-                    },
-                    '&:active': {
-                      transform: 'translateY(1px)',
-                      boxShadow: '2px 2px 0px rgba(0,0,0,0.1)',
-                      borderStyle: 'inset'
-                    }
-                  }}
-                >
-                  Next
-                </Button>
-              )}
-            </Stack>
+<Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
+  {/* Back Button */}
+  <Button
+    disabled={activeStep === 0}
+    onClick={handleBack}
+    variant="outlined"
+    sx={{
+      ...pixelButton,
+      color: '#5F4B8B',
+      borderColor: '#5F4B8B',
+      borderRadius: '8px',
+      px: 3,
+      py: 1,
+      borderStyle: 'outset',
+      boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
+      '&:hover': {
+        backgroundColor: 'rgba(95, 75, 139, 0.08)',
+        borderColor: '#5F4B8B',
+        transform: 'translateY(-2px)'
+      },
+      '&:active': {
+        transform: 'translateY(1px)',
+        boxShadow: '2px 2px 0px rgba(0,0,0,0.1)',
+        borderStyle: 'inset'
+      },
+      '&.Mui-disabled': {
+        color: '#a0a0a0',
+        borderColor: '#e0e0e0'
+      }
+    }}
+  >
+    Back
+  </Button>
+
+  {/* Right-side button - Create only on Word Bank step (last step), Next on others */}
+  {activeStep === steps.length - 1 ? (
+    // Last step (Word Bank) → Create button
+    <Button
+      variant="contained"
+      onClick={handleSubmit}
+      sx={{
+        ...pixelButton,
+        background: 'linear-gradient(135deg, #6c63ff, #5F4B8B)',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
+        fontSize: '12px',
+        fontWeight: 150,
+        height: '36px',
+        px: 3,
+        '&:hover': {
+          background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',
+          boxShadow: '0 6px 8px rgba(95, 75, 139, 0.3)',
+          transform: 'translateY(-2px)'
+        },
+        '&:active': {
+          transform: 'translateY(0)',
+          boxShadow: '0 2px 4px rgba(95, 75, 139, 0.3)'
+        },
+        '&.Mui-disabled': {
+          background: '#e0e0e0',
+          color: '#a0a0a0'
+        },
+        transition: 'all 0.2s ease',
+        position: 'relative',
+        overflow: 'hidden',
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: '-50%',
+          left: '-50%',
+          width: '200%',
+          height: '200%',
+          background:
+            'linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent)',
+          transform: 'rotate(45deg)',
+          transition: 'all 0.5s ease'
+        },
+        '&:hover::after': {
+          left: '100%'
+        }
+      }}
+      disabled={loading}
+    >
+      Create
+    </Button>
+  ) : (
+    // All other steps → Next button
+    <Button
+      variant="contained"
+      onClick={handleNext}
+      type="button"
+      sx={{
+        ...pixelButton,
+        backgroundColor: '#5F4B8B',
+        color: '#fff',
+        borderRadius: '8px',
+        px: 3,
+        py: 1,
+        borderStyle: 'outset',
+        boxShadow: '4px 4px 0px rgba(0,0,0,0.1)',
+        '&:hover': {
+          backgroundColor: '#4a3a6f',
+          transform: 'translateY(-2px)'
+        },
+        '&:active': {
+          transform: 'translateY(1px)',
+          boxShadow: '2px 2px 0px rgba(0,0,0,0.1)',
+          borderStyle: 'inset'
+        }
+      }}
+    >
+      Next
+    </Button>
+  )}
+</Stack>
+
           </Paper>
         </form>
       </Container>

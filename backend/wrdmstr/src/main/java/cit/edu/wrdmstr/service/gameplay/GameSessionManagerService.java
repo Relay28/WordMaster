@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.event.EventListener;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -48,6 +50,7 @@ public class GameSessionManagerService {
     @Autowired private ComprehensionCheckService comprehensionCheckService;
     @Autowired
     private ProgressTrackingService progressTrackingService;
+    @Autowired private ApplicationEventPublisher eventPublisher;
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
 
     // Add caching for AI requests
@@ -136,6 +139,42 @@ public class GameSessionManagerService {
 
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", response);
     }
+
+    // --- Timer Pause / Resume Helpers ---
+    private void pauseTimer(Long sessionId) {
+        GameState gs = activeGames.get(sessionId);
+        if (gs == null || gs.getStatus() != GameState.Status.TURN_IN_PROGRESS || gs.paused) return;
+        long now = System.currentTimeMillis();
+        int elapsed = (int)((now - gs.getLastTurnTime())/1000);
+        int remaining = Math.max(0, gs.getTimePerTurn() - elapsed);
+        gs.paused = true;
+        gs.pausedRemainingTime = remaining;
+        Map<String,Object> payload = new HashMap<>();
+        payload.put("timeRemaining", remaining);
+        payload.put("paused", true);
+        payload.put("timestamp", now);
+        messagingTemplate.convertAndSend("/topic/game/"+sessionId+"/timer", payload);
+    }
+
+    private void resumeTimer(Long sessionId) {
+        GameState gs = activeGames.get(sessionId);
+        if (gs == null || !gs.paused) return;
+        long now = System.currentTimeMillis();
+        int remaining = gs.pausedRemainingTime;
+        // Adjust lastTurnTime so countdown continues correctly
+        gs.setLastTurnTime(now - (long)(gs.getTimePerTurn() - remaining) * 1000L);
+        gs.paused = false;
+        Map<String,Object> payload = new HashMap<>();
+        payload.put("timeRemaining", remaining);
+        payload.put("paused", false);
+        payload.put("timestamp", now);
+        messagingTemplate.convertAndSend("/topic/game/"+sessionId+"/timer", payload);
+    }
+
+    @EventListener
+    public void onPauseEvent(TimerPauseEvent evt){ pauseTimer(evt.sessionId()); }
+    @EventListener
+    public void onResumeEvent(TimerResumeEvent evt){ resumeTimer(evt.sessionId()); }
 
     @Async("backgroundProcessingExecutor")
     private void processSubmissionInBackground(Long sessionId, Long userId, WordSubmissionDTO submission) {
@@ -473,13 +512,13 @@ public class GameSessionManagerService {
             // Get previous story elements for continuity
             List<Map<String, Object>> previousElements = storyPromptService.getStoryPrompts(session.getId());
             
-            // NEW: Get current players and their roles
+            // Get current players and their roles
             List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
             Map<String, String> playerRoles = new HashMap<>();
             List<String> playerNames = new ArrayList<>();
             
             for (PlayerSessionEntity player : players) {
-                String playerName = player.getUser().getFname() + " " + player.getUser().getLname();
+                String playerName = player.getUser().getFname(); // Use only first name
                 String roleName = player.getRole() != null ? player.getRole().getName() : "Participant";
                 
                 playerRoles.put(playerName, roleName);
@@ -488,10 +527,11 @@ public class GameSessionManagerService {
             
             Map<String, Object> request = new HashMap<>();
             request.put("task", "story_prompt");
-            request.put("content", session.getContent().getDescription());
+            request.put("content", session.getContent().getTitle()); // Use title as main topic
+            request.put("contentDescription", session.getContent().getDescription()); // Add full description
             request.put("turn", turnNumber);
             
-            // NEW: Include player context
+            // Include player context
             request.put("playerNames", playerNames);
             request.put("playerRoles", playerRoles);
             request.put("currentPlayerCount", players.size());
@@ -506,14 +546,89 @@ public class GameSessionManagerService {
             
             String newPrompt = aiService.callAIModel(request).getResult();
             
-            // Save the new story prompt
-            storyPromptService.addStoryPrompt(session.getId(), turnNumber, newPrompt);
+            // Clean the prompt to ensure it meets requirements
+            String cleanedPrompt = cleanStoryPrompt(newPrompt);
             
-            return newPrompt;
+            // Save the cleaned story prompt
+            storyPromptService.addStoryPrompt(session.getId(), turnNumber, cleanedPrompt);
+            
+            return cleanedPrompt;
         } catch (Exception e) {
             logger.error("Error generating story element for session {}: {}", session.getId(), e.getMessage(), e);
-            return "Continue the conversation based on your role and the story context!";
+            
+            // Provide content-relevant fallback
+            String contentTitle = session.getContent() != null ? session.getContent().getTitle() : "the topic";
+            return "The group continues their discussion about " + contentTitle + ". What should they focus on next?";
         }
+    }
+
+
+    // Add this method to clean story prompts
+    private String cleanStoryPrompt(String rawStory) {
+        if (rawStory == null || rawStory.trim().isEmpty()) {
+            return "Let's continue our story! What happens next?";
+        }
+        
+        String cleaned = rawStory.trim();
+        
+        // Remove markdown formatting
+        cleaned = cleaned.replaceAll("\\*\\*([^*]+)\\*\\*", "$1"); // Remove **bold**
+        cleaned = cleaned.replaceAll("\\*([^*]+)\\*", "$1"); // Remove *italic*
+        cleaned = cleaned.replaceAll("#{1,6}\\s*", ""); // Remove headers
+        cleaned = cleaned.replaceAll("Turn \\d+:", ""); // Remove "Turn X:"
+        cleaned = cleaned.replaceAll("\\(([^)]+)\\)", ""); // Remove parenthetical directions
+        
+        // Remove gender pronouns and replace with neutral alternatives
+        cleaned = cleaned.replaceAll("\\bhe\\b", "they");
+        cleaned = cleaned.replaceAll("\\bHe\\b", "They");
+        cleaned = cleaned.replaceAll("\\bshe\\b", "they");
+        cleaned = cleaned.replaceAll("\\bShe\\b", "They");
+        cleaned = cleaned.replaceAll("\\bhim\\b", "them");
+        cleaned = cleaned.replaceAll("\\bHim\\b", "Them");
+        cleaned = cleaned.replaceAll("\\bher\\b", "them");
+        cleaned = cleaned.replaceAll("\\bHer\\b", "Them");
+        cleaned = cleaned.replaceAll("\\bhis\\b", "their");
+        cleaned = cleaned.replaceAll("\\bHis\\b", "Their");
+        cleaned = cleaned.replaceAll("\\bhers\\b", "theirs");
+        cleaned = cleaned.replaceAll("\\bHers\\b", "Theirs");
+        
+        // Remove complex punctuation
+        cleaned = cleaned.replaceAll("[\u201C\u201D\u2018\u2019\u201E\u201A]", "\""); // Normalize quotes
+        cleaned = cleaned.replaceAll("…", "..."); // Normalize ellipsis
+        
+        // Split into sentences and limit length
+        String[] sentences = cleaned.split("\\. ");
+        StringBuilder result = new StringBuilder();
+        int sentenceCount = 0;
+        
+        for (String sentence : sentences) {
+            if (sentenceCount >= 4) break; // Max 4 sentences
+            
+            sentence = sentence.trim();
+            if (!sentence.isEmpty()) {
+                // Skip overly complex sentences (>20 words)
+                String[] words = sentence.split("\\s+");
+                if (words.length <= 20) {
+                    if (result.length() > 0) result.append(". ");
+                    result.append(sentence);
+                    sentenceCount++;
+                }
+            }
+        }
+        
+        String finalStory = result.toString().trim();
+        
+        // Ensure it ends with proper punctuation
+        if (!finalStory.endsWith(".") && !finalStory.endsWith("?") && !finalStory.endsWith("!")) {
+            finalStory += ".";
+        }
+        
+        // If still too long, provide a simple fallback
+        if (finalStory.length() > 300) {
+            return "The story continues. What do you think should happen next? Share your ideas!";
+        }
+        
+        return finalStory;
     }
     
     private void assignWordBombs(List<PlayerSessionEntity> players, List<WordBankItem> wordBank) {
@@ -656,6 +771,8 @@ public class GameSessionManagerService {
         }
 
         try {
+            // Pause timer while synchronous processing occurs (multiplayer path)
+            eventPublisher.publishEvent(new TimerPauseEvent(sessionId));
             logger.debug("Sending word via chat service for session {}", sessionId);
             ChatMessageEntity message = chatService.sendMessage(sessionId, userId, submission.getWord());
             boolean wasExceptional = false;
@@ -676,8 +793,11 @@ public class GameSessionManagerService {
                 messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates",
                                                exceptionalNotice);
             }
+            // Resume timer after processing completes
+            eventPublisher.publishEvent(new TimerResumeEvent(sessionId));
         } catch (Exception e) {
             logger.error("Error sending word via chat service for session {}: {}", sessionId, e.getMessage(), e);
+            eventPublisher.publishEvent(new TimerResumeEvent(sessionId));
             return false;
         }
         trackTurnCompletion(currentPlayer, session);
@@ -935,7 +1055,14 @@ public class GameSessionManagerService {
         GameState activeGameState = activeGames.get(sessionId);
         if (activeGameState != null) {
             dto.setStatus(activeGameState.getStatus().toString());
-            dto.setTimeRemaining(activeGameState.getTimePerTurn() - (int)((System.currentTimeMillis() - activeGameState.getLastTurnTime()) / 1000));
+            int remaining;
+            if (activeGameState.paused) {
+                remaining = activeGameState.pausedRemainingTime;
+            } else {
+                remaining = activeGameState.getTimePerTurn() - (int)((System.currentTimeMillis() - activeGameState.getLastTurnTime()) / 1000);
+            }
+            dto.setTimeRemaining(remaining);
+            dto.setPaused(activeGameState.paused);
             dto.setUsedWords(activeGameState.getUsedWords());
             dto.setStoryPrompt(activeGameState.getStoryPrompt());
             if (activeGameState.getConfiguredTurnCycles() > 0) {
@@ -952,6 +1079,14 @@ public class GameSessionManagerService {
                 currentPlayerMap.put("name", currentPlayerEntity.getUser().getFname() + " " + currentPlayerEntity.getUser().getLname());
                 if (currentPlayerEntity.getRole() != null) {
                     currentPlayerMap.put("role", currentPlayerEntity.getRole().getName());
+                }
+                // Include profile picture in the lightweight currentPlayer map so the
+                // frontend turn indicator can always display the avatar without doing
+                // an extra lookup in players[]. This is a small string (URL / base64)
+                // and does not materially impact payload size compared to existing
+                // per-turn data.
+                if (currentPlayerEntity.getUser() != null) {
+                    currentPlayerMap.put("profilePicture", currentPlayerEntity.getUser().getProfilePicture());
                 }
                 dto.setCurrentPlayer(currentPlayerMap);
             }
@@ -998,6 +1133,15 @@ public class GameSessionManagerService {
         activeGames.forEach((sessionId, gameState) -> {
             try {
                 if (gameState.getStatus() == GameState.Status.TURN_IN_PROGRESS) {
+                    if (gameState.paused) {
+                        // Periodically rebroadcast paused remaining time to keep clients synced
+                        Map<String,Object> pausedUpdate = new HashMap<>();
+                        pausedUpdate.put("timeRemaining", gameState.pausedRemainingTime);
+                        pausedUpdate.put("timestamp", currentTime);
+                        pausedUpdate.put("paused", true);
+                        messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/timer", pausedUpdate);
+                        return; // Skip countdown while paused
+                    }
                     GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
                     if (session == null) {
                         logger.warn("Timer check: Session {} not found, removing from active games.", sessionId);
@@ -1015,6 +1159,7 @@ public class GameSessionManagerService {
                     Map<String, Object> timerUpdate = new HashMap<>();
                     timerUpdate.put("timeRemaining", Math.max(0, timeRemaining));
                     timerUpdate.put("timestamp", currentTime);
+                    timerUpdate.put("paused", false);
                     
                     // Send timer updates more frequently when time is running low
                     boolean shouldSendUpdate = timeRemaining <= 10 || // Always send when low
@@ -1091,6 +1236,8 @@ public class GameSessionManagerService {
         private String storyPrompt;
         private List<PowerupCard> cards = new ArrayList<>();
         private int configuredTurnCycles;
+        private boolean paused;
+        private int pausedRemainingTime;
 
         enum Status {
             WAITING_TO_START,
@@ -1130,5 +1277,9 @@ public class GameSessionManagerService {
         public void setStoryPrompt(String storyPrompt) { this.storyPrompt = storyPrompt; }
         public int getConfiguredTurnCycles() { return configuredTurnCycles; }
         public void setConfiguredTurnCycles(int configuredTurnCycles) { this.configuredTurnCycles = configuredTurnCycles; }
+        public boolean isPaused() { return paused; }
+        public void setPaused(boolean paused) { this.paused = paused; }
+        public int getPausedRemainingTime() { return pausedRemainingTime; }
+        public void setPausedRemainingTime(int pausedRemainingTime) { this.pausedRemainingTime = pausedRemainingTime; }
     }
 }

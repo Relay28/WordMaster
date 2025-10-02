@@ -8,7 +8,7 @@ import {
 import { useUserAuth } from '../context/UserAuthContext';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
-import API_URL from '../../services/apiConfig';
+import apiConfig from '../../services/apiConfig';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -23,7 +23,7 @@ const WaitingRoomPage = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Removed responsive design variable
   const location = useLocation();
   const classroomId = location.state?.classroomId;
 
@@ -37,21 +37,21 @@ const WaitingRoomPage = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '6px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '10px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '6px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -60,7 +60,7 @@ const WaitingRoomPage = () => {
     const fetchStudents = async () => {
       try {
         const token = await getToken();
-        const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/students`, {
+        const response = await fetch(`${apiConfig.API_URL}/api/waiting-room/content/${contentId}/students`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -81,7 +81,7 @@ const WaitingRoomPage = () => {
   const initializeWebSocket = async () => {
   try {
     const token = await getToken();
-    const socket = new SockJS(`${API_URL}/ws?token=${token}`);
+    const socket = new SockJS(`${apiConfig.API_URL}/ws?token=${token}`);
     const client = new Client({
       webSocketFactory: () => socket,
       connectHeaders: {
@@ -133,7 +133,7 @@ const WaitingRoomPage = () => {
     try {
       setLoading(true);
       const token = await getToken();
-      const response = await fetch(`${API_URL}/api/waiting-room/content/${contentId}/start`, {
+      const response = await fetch(`${apiConfig.API_URL}/api/waiting-room/content/${contentId}/start`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -173,21 +173,21 @@ const WaitingRoomPage = () => {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      p: isMobile ? 1 : 2,
+      p: 1,
       backdropFilter: 'blur(2px)'
     }}>
       <IconButton 
         onClick={handleBackClick}
         sx={{
           position: 'absolute',
-          top: isMobile ? 4 : 8,
-          left: isMobile ? 4 : 8,
+          top: 8,
+          left: 8,
           color: '#5F4B8B',
           backgroundColor: 'rgba(255, 255, 255, 0.7)',
           border: '2px solid #5F4B8B',
           borderRadius: '4px',
-          width: isMobile ? '24px' : '32px',
-          height: isMobile ? '24px' : '32px',
+          width: '32px',
+          height: '32px',
           '&:hover': {
             backgroundColor: 'rgba(95, 75, 139, 0.1)',
             transform: 'translateY(-1px)'
@@ -195,17 +195,17 @@ const WaitingRoomPage = () => {
           transition: 'all 0.2s ease'
         }}
       >
-        <ChevronLeftIcon fontSize={isMobile ? "small" : "medium"} />
+        <ChevronLeftIcon fontSize="medium" />
       </IconButton>
       <Box sx={{
         width: '100%',
-        maxWidth: isMobile ? '400px' : '600px',
+        maxWidth: '600px',
         backgroundColor: 'rgba(255, 255, 255, 0.8)',
         backdropFilter: 'blur(8px)',
-        borderRadius: isMobile ? '8px' : '12px',
-        border: isMobile ? '2px solid #5F4B8B' : '4px solid #5F4B8B',
+        borderRadius: '12px',
+        border: '4px solid #5F4B8B',
         boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
-        p: isMobile ? 1.5 : 4,
+        p: 4,
         position: 'relative',
         overflow: 'hidden',
         '&::before': {
@@ -214,7 +214,7 @@ const WaitingRoomPage = () => {
           top: 0,
           left: 0,
           right: 0,
-          height: isMobile ? '4px' : '6px',
+          height: '6px',
           background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
           opacity: 0.8
         }
@@ -222,9 +222,9 @@ const WaitingRoomPage = () => {
         <Typography variant="h4" sx={{ 
           ...pixelHeading,
           fontWeight: 'bold',
-          mb: isMobile ? 2 : 3,
+          mb: 3,
           color: '#2d3748',
-          fontSize: isMobile ? '10px' : '16px',
+          fontSize: '16px',
           textAlign: 'center',
           textShadow: '1px 1px 0 rgba(0,0,0,0.1)'
         }}>
@@ -236,8 +236,8 @@ const WaitingRoomPage = () => {
             backgroundColor: '#ffebee',
             border: '2px solid #ef5350',
             borderRadius: '4px',
-            p: isMobile ? 0.5 : 1,
-            mb: isMobile ? 1 : 2,
+            p: 1,
+            mb: 2,
             textAlign: 'center'
           }}>
             <Typography sx={{ ...pixelText, color: '#d32f2f' }}>
@@ -247,18 +247,18 @@ const WaitingRoomPage = () => {
         )}
 
         {loading ? (
-          <Box display="flex" justifyContent="center" py={isMobile ? 2 : 4}>
-            <CircularProgress size={isMobile ? 20 : 40} />
+          <Box display="flex" justifyContent="center" py={4}>
+            <CircularProgress size={40} />
           </Box>
         ) : (
           <>
             <List sx={{ 
               backgroundColor: 'rgba(245, 245, 247, 0.7)',
-              borderRadius: isMobile ? '6px' : '8px',
+              borderRadius: '8px',
               border: '2px solid rgba(95, 75, 139, 0.3)',
-              p: isMobile ? 0.5 : 1,
-              mb: isMobile ? 2 : 3,
-              maxHeight: isMobile ? '200px' : '300px',
+              p: 1,
+              mb: 3,
+              maxHeight: '300px',
               overflowY: 'auto'
             }}>
               {students.map(student => (
@@ -267,18 +267,18 @@ const WaitingRoomPage = () => {
                   sx={{
                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
                     borderRadius: '4px',
-                    mb: isMobile ? 0.5 : 1,
+                    mb: 1,
                     border: '2px solid rgba(95, 75, 139, 0.2)',
                     '&:last-child': { mb: 0 },
-                    py: isMobile ? 0.5 : 1
+                    py: 1
                   }}
                 >
                   <ListItemAvatar>
                     <Avatar 
                       sx={{ 
                         bgcolor: '#5F4B8B',
-                        width: isMobile ? 24 : 40,
-                        height: isMobile ? 24 : 40,
+                        width: 40,
+                        height: 40,
                         color: 'white'
                       }}
                       src={student.profilePicture || undefined}
@@ -299,7 +299,7 @@ const WaitingRoomPage = () => {
                 <Typography sx={{ 
                   ...pixelText,
                   textAlign: 'center',
-                  mb: isMobile ? 1 : 2,
+                  mb: 2,
                   color: '#5F4B8B'
                 }}>
                   {students.length} PLAYER{students.length !== 1 ? 'S' : ''} READY
@@ -319,14 +319,14 @@ const WaitingRoomPage = () => {
                           transform: 'translateY(-2px)'
                         },
                         borderRadius: '4px',
-                        px: isMobile ? 2 : 3,
-                        py: isMobile ? 0.5 : 1.5,
-                        minWidth: isMobile ? 'auto' : '200px',
+                        px: 3,
+                        py: 1.5,
+                        minWidth: '200px',
                         borderStyle: 'outset',
                         boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                         textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                         transition: 'all 0.1s ease',
-                        height: isMobile ? '28px' : 'auto',
+                        height: 'auto',
                         '&:active': {
                           transform: 'translateY(1px)',
                           boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -342,7 +342,7 @@ const WaitingRoomPage = () => {
                     >
                       {loading ? (
                         <CircularProgress 
-                          size={isMobile ? 16 : 24} 
+                          size={24} 
                           sx={{ 
                             color: 'inherit',
                             filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
@@ -357,18 +357,18 @@ const WaitingRoomPage = () => {
               </>
             ) : (
               <Box sx={{ 
-                mb: isMobile ? 2 : 3,
-                p: isMobile ? 1 : 2,
+                mb: 3,
+                p: 2,
                 backgroundColor: 'rgba(108, 99, 255, 0.1)',
-                borderRadius: isMobile ? '6px' : '8px',
+                borderRadius:'8px',
                 border: '2px solid #6c63ff',
                 textAlign: 'center'
               }}>
                 <Typography sx={{ 
                   ...pixelHeading,
                   color: '#6c63ff',
-                  mb: isMobile ? 0.5 : 1,
-                  fontSize: isMobile ? '8px' : '14px'
+                  mb: 1,
+                  fontSize: '14px'
                 }}>
                   GAME IN PROGRESS
                 </Typography>
@@ -376,7 +376,7 @@ const WaitingRoomPage = () => {
                   <Typography sx={{ 
                     ...pixelText,
                     color: '#5F4B8B',
-                    fontSize: isMobile ? '6px' : '10px'
+                    fontSize: '10px'
                   }}>
                     Students have been redirected to the game session
                   </Typography>
@@ -384,7 +384,7 @@ const WaitingRoomPage = () => {
                   <Typography sx={{ 
                     ...pixelText,
                     color: '#5F4B8B',
-                    fontSize: isMobile ? '6px' : '10px'
+                    fontSize: '10px'
                   }}>
                     Redirecting to game session...
                   </Typography>

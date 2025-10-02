@@ -45,7 +45,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:5173")
+                .setAllowedOrigins(
+                    "http://localhost:5173",           // Local development
+                    "http://localhost:3000",           // Alternative local port
+                    "https://wordmaster-nu.vercel.app" // Production deployment
+                )
                 .addInterceptors(new JwtHandshakeInterceptor(jwtService))
                 .setHandshakeHandler(new CustomHandshakeHandler())
                 .withSockJS();

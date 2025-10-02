@@ -20,7 +20,6 @@ const ClassroomDetailHeader = ({
   avatarInitials,
   user,
   anchorEl,
-  isMobile,
   pixelText,
   pixelHeading,
   handleMenuOpen,
@@ -34,7 +33,7 @@ const ClassroomDetailHeader = ({
     <Box sx={{ 
       backgroundColor: 'white',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      py: isMobile ? 1.5 : 2,
+      py: 2,
       px: { xs: 1.5, md: 6 },
       position: 'relative',
       overflow: 'hidden',
@@ -43,7 +42,7 @@ const ClassroomDetailHeader = ({
         <Box 
           display="flex" 
           alignItems="center" 
-          gap={isMobile ? 1.5 : 4}
+          gap={4}
         >
           <IconButton 
             onClick={() => navigate('/homepage')}
@@ -52,8 +51,8 @@ const ClassroomDetailHeader = ({
               backgroundColor: 'rgba(255, 255, 255, 0.7)',
               border: '2px solid #5F4B8B',
               borderRadius: '4px',
-              width: isMobile ? '24px' : '32px',
-              height: isMobile ? '24px' : '32px',
+              width: '32px',
+              height: '32px',
               '&:hover': {
                 backgroundColor: 'rgba(95, 75, 139, 0.1)',
                 transform: 'translateY(-1px)'
@@ -61,36 +60,35 @@ const ClassroomDetailHeader = ({
               transition: 'all 0.2s ease'
             }}
           >
-            <ChevronLeftIcon fontSize={isMobile ? "small" : "medium"} />
+            <ChevronLeftIcon fontSize="medium" />
           </IconButton>
           <Typography sx={{ 
             ...pixelHeading,
             color: '#5F4B8B',
-            fontSize: isMobile ? '9px' : '16px',
+            fontSize: '16px',
             '&:hover': {
               color: '#6c63ff'
             },
-            marginLeft: isMobile ? '4px' : '8px'
+            marginLeft: '8px'
           }}>
             Classroom Details
           </Typography>
         </Box>
-        <Box display="flex" alignItems="center" gap={isMobile ? 1.5 : 2}>
-          {!isMobile && (
-            <Box textAlign="right">
-              <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
-                {displayName}
-              </Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Box textAlign="right">
+            <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+              {displayName}
+            </Typography>
               <Typography sx={{ ...pixelText, color: ' #5F4B8B' }}>
                 {roleDisplay}
               </Typography>
             </Box>
-          )}
+     
           <IconButton onClick={handleMenuOpen} size="small" sx={{ p: 0 }}>
             <Avatar 
               sx={{ 
-                width: isMobile ? 28 : 40, 
-                height: isMobile ? 28 : 40, 
+                width: 40, 
+                height: 40, 
                 bgcolor: '#5F4B8B',
                 color: 'white'
               }}

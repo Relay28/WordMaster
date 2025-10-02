@@ -1,10 +1,15 @@
 package cit.edu.wrdmstr.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class WordSubmissionDTO {
     private String word;
 
     private Long sessionId;
     private Long playerId;
+    /** Optional client-side optimistic message id used to match optimistic UI messages */
+    private String clientMessageId;
 
     // Getters and setters
     public String getWord() {
@@ -31,5 +36,13 @@ public class WordSubmissionDTO {
 
     public void setPlayerId(Long playerId) {
         this.playerId = playerId;
+    }
+
+    public String getClientMessageId() {
+        return clientMessageId;
+    }
+
+    public void setClientMessageId(String clientMessageId) {
+        this.clientMessageId = clientMessageId;
     }
 }

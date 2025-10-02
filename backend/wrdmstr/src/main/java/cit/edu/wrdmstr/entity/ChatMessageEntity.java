@@ -38,7 +38,8 @@ public class ChatMessageEntity {
     @Column(nullable = false)
     private Date timestamp;
 
-    @Column(name = "word_used")
+    @Lob
+    @Column(name = "word_used", columnDefinition = "TEXT")
     private String wordUsed;
 
     @ManyToOne(fetch = FetchType.LAZY)

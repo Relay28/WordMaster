@@ -26,25 +26,24 @@ const AiContentGenerator = () => {
   
   const queryParams = new URLSearchParams(location.search);
   const classroomId = queryParams.get('classroomId');
-  const isMobile = window.innerWidth < 768;
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: isMobile ? '8px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -167,7 +166,7 @@ const AiContentGenerator = () => {
           <Typography sx={{ 
             ...pixelHeading,
             color: '#5F4B8B',
-            fontSize: isMobile ? '14px' : '16px',
+            fontSize: '16px',
             marginLeft: '20px',
             marginTop: '4px',
           }}>
@@ -211,7 +210,7 @@ const AiContentGenerator = () => {
             sx={{ 
               ...pixelHeading,
               color: '#5F4B8B',
-              fontSize: isMobile ? '14px' : '16px',
+              fontSize: '16px',
               mb: 3,
               textAlign: 'center'
             }}
@@ -254,9 +253,9 @@ const AiContentGenerator = () => {
                 borderRadius: '8px',
                 boxShadow: '0 4px 6px rgba(229, 57, 53, 0.2)',
                 textTransform: 'none',
-                fontSize: isMobile ? '8px' : '10px',
+                fontSize: '10px',
                 fontWeight: 150,
-                height: isMobile ? '32px' : '40px',
+                height: '40px',
                 flex: 1,
                 '&:hover': { 
                   background: 'linear-gradient(135deg, #e53935, #c62828)',
@@ -301,9 +300,9 @@ const AiContentGenerator = () => {
                 borderRadius: '8px',
                 boxShadow: '0 4px 6px rgba(95, 75, 139, 0.2)',
                 textTransform: 'none',
-                fontSize: isMobile ? '8px' : '10px',
+                fontSize: '10px',
                 fontWeight: 150,
-                height: isMobile ? '32px' : '40px',
+                height: '40px',
                 flex: 2,
                 '&:hover': { 
                   background: 'linear-gradient(135deg, #5a52e0, #4a3a6d)',

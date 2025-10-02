@@ -58,21 +58,20 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-
-                        .requestMatchers("/api/auth/**", "/login/oauth2/code/azure").permitAll()
-                        .requestMatchers("/api/auth/**","/api/admin/**").permitAll()
-                        .requestMatchers("/api/grammar/check").permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/api/sessions/**").authenticated()
-                        .requestMatchers("/api/export/**").permitAll()
-                        .anyRequest().authenticated());
+    http
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .csrf(csrf -> csrf.disable())
+        .sessionManagement(session -> session
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/actuator/**").permitAll()
+            .requestMatchers("/api/auth/**", "/login/oauth2/code/azure").permitAll()
+            .requestMatchers("/api/grammar/check").permitAll()
+            .requestMatchers("/api/admin/**").hasRole("ADMIN")
+            .requestMatchers("/ws/**").permitAll()
+            .requestMatchers("/api/sessions/**").authenticated()
+            .requestMatchers("/api/export/**").permitAll()
+            .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -84,14 +83,20 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Restrict to trusted frontend only
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        // Add your Vercel URL to allowed origins
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:5173",           // Local development
+            "http://localhost:3000",           // Alternative local port
+            "https://wordmaster-nu.vercel.app", // Your Vercel deployment
+            "http://3.26.165.228:8080"          // EC2 backend (if needed for direct access)
+
+        ));
 
         // Allow only necessary HTTP methods
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE","PATCH", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
 
         // Allow specific headers only - add cache-control header
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control", "Pragma", "Expires"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control", "Pragma", "Expires", "X-Requested-With"));
         
         // Expose headers that frontend might need to access
         configuration.setExposedHeaders(List.of("Cache-Control", "Content-Type", "Authorization"));
