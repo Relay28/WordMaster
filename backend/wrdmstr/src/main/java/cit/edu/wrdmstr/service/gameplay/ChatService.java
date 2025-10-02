@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -129,6 +130,11 @@ public class ChatService {
 
         // Handle scoring
         scoreService.handleGrammarScoring(player, grammarResult.getStatus());
+        // Additional numeric penalty deduction if applied
+        if (grammarResult.isNumericPenaltyApplied()) {
+            int penalty = 5; // base deduction; could externalize later
+            scoreService.awardPoints(player, -penalty, "Numbers not allowed in grammar message");
+        }
         // Award vocabulary points
         scoreService.handleVocabularyScoring(
             player, 
@@ -232,6 +238,7 @@ public class ChatService {
     }
 
 
+            @Autowired private ApplicationEventPublisher eventPublisher;
     private void broadcastChatMessage(ChatMessageEntity message) {
         Map<String, Object> chatMessage = new HashMap<>();
         chatMessage.put("id", message.getId());
@@ -501,6 +508,14 @@ public class ChatService {
         
         // Broadcast updated message
         broadcastChatMessage(message);
+        // Resume timer for single-player optimized flow (analysis complete)
+        try {
+            if (session.getPlayers() != null && session.getPlayers().size() == 1) {
+                eventPublisher.publishEvent(new TimerResumeEvent(session.getId()));
+            }
+        } catch (Exception ex) {
+            logger.error("Failed to publish TimerResumeEvent", ex);
+        }
         
         // Handle scoring asynchronously
         CompletableFuture.runAsync(() -> {

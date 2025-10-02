@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.context.event.EventListener;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -48,6 +50,7 @@ public class GameSessionManagerService {
     @Autowired private ComprehensionCheckService comprehensionCheckService;
     @Autowired
     private ProgressTrackingService progressTrackingService;
+    @Autowired private ApplicationEventPublisher eventPublisher;
     private final Map<Long, GameState> activeGames = new ConcurrentHashMap<>();
 
     // Add caching for AI requests
@@ -136,6 +139,42 @@ public class GameSessionManagerService {
 
         messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates", response);
     }
+
+    // --- Timer Pause / Resume Helpers ---
+    private void pauseTimer(Long sessionId) {
+        GameState gs = activeGames.get(sessionId);
+        if (gs == null || gs.getStatus() != GameState.Status.TURN_IN_PROGRESS || gs.paused) return;
+        long now = System.currentTimeMillis();
+        int elapsed = (int)((now - gs.getLastTurnTime())/1000);
+        int remaining = Math.max(0, gs.getTimePerTurn() - elapsed);
+        gs.paused = true;
+        gs.pausedRemainingTime = remaining;
+        Map<String,Object> payload = new HashMap<>();
+        payload.put("timeRemaining", remaining);
+        payload.put("paused", true);
+        payload.put("timestamp", now);
+        messagingTemplate.convertAndSend("/topic/game/"+sessionId+"/timer", payload);
+    }
+
+    private void resumeTimer(Long sessionId) {
+        GameState gs = activeGames.get(sessionId);
+        if (gs == null || !gs.paused) return;
+        long now = System.currentTimeMillis();
+        int remaining = gs.pausedRemainingTime;
+        // Adjust lastTurnTime so countdown continues correctly
+        gs.setLastTurnTime(now - (long)(gs.getTimePerTurn() - remaining) * 1000L);
+        gs.paused = false;
+        Map<String,Object> payload = new HashMap<>();
+        payload.put("timeRemaining", remaining);
+        payload.put("paused", false);
+        payload.put("timestamp", now);
+        messagingTemplate.convertAndSend("/topic/game/"+sessionId+"/timer", payload);
+    }
+
+    @EventListener
+    public void onPauseEvent(TimerPauseEvent evt){ pauseTimer(evt.sessionId()); }
+    @EventListener
+    public void onResumeEvent(TimerResumeEvent evt){ resumeTimer(evt.sessionId()); }
 
     @Async("backgroundProcessingExecutor")
     private void processSubmissionInBackground(Long sessionId, Long userId, WordSubmissionDTO submission) {
@@ -732,6 +771,8 @@ public class GameSessionManagerService {
         }
 
         try {
+            // Pause timer while synchronous processing occurs (multiplayer path)
+            eventPublisher.publishEvent(new TimerPauseEvent(sessionId));
             logger.debug("Sending word via chat service for session {}", sessionId);
             ChatMessageEntity message = chatService.sendMessage(sessionId, userId, submission.getWord());
             boolean wasExceptional = false;
@@ -752,8 +793,11 @@ public class GameSessionManagerService {
                 messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/updates",
                                                exceptionalNotice);
             }
+            // Resume timer after processing completes
+            eventPublisher.publishEvent(new TimerResumeEvent(sessionId));
         } catch (Exception e) {
             logger.error("Error sending word via chat service for session {}: {}", sessionId, e.getMessage(), e);
+            eventPublisher.publishEvent(new TimerResumeEvent(sessionId));
             return false;
         }
         trackTurnCompletion(currentPlayer, session);
@@ -1011,7 +1055,14 @@ public class GameSessionManagerService {
         GameState activeGameState = activeGames.get(sessionId);
         if (activeGameState != null) {
             dto.setStatus(activeGameState.getStatus().toString());
-            dto.setTimeRemaining(activeGameState.getTimePerTurn() - (int)((System.currentTimeMillis() - activeGameState.getLastTurnTime()) / 1000));
+            int remaining;
+            if (activeGameState.paused) {
+                remaining = activeGameState.pausedRemainingTime;
+            } else {
+                remaining = activeGameState.getTimePerTurn() - (int)((System.currentTimeMillis() - activeGameState.getLastTurnTime()) / 1000);
+            }
+            dto.setTimeRemaining(remaining);
+            dto.setPaused(activeGameState.paused);
             dto.setUsedWords(activeGameState.getUsedWords());
             dto.setStoryPrompt(activeGameState.getStoryPrompt());
             if (activeGameState.getConfiguredTurnCycles() > 0) {
@@ -1082,6 +1133,15 @@ public class GameSessionManagerService {
         activeGames.forEach((sessionId, gameState) -> {
             try {
                 if (gameState.getStatus() == GameState.Status.TURN_IN_PROGRESS) {
+                    if (gameState.paused) {
+                        // Periodically rebroadcast paused remaining time to keep clients synced
+                        Map<String,Object> pausedUpdate = new HashMap<>();
+                        pausedUpdate.put("timeRemaining", gameState.pausedRemainingTime);
+                        pausedUpdate.put("timestamp", currentTime);
+                        pausedUpdate.put("paused", true);
+                        messagingTemplate.convertAndSend("/topic/game/" + sessionId + "/timer", pausedUpdate);
+                        return; // Skip countdown while paused
+                    }
                     GameSessionEntity session = gameSessionRepository.findById(sessionId).orElse(null);
                     if (session == null) {
                         logger.warn("Timer check: Session {} not found, removing from active games.", sessionId);
@@ -1099,6 +1159,7 @@ public class GameSessionManagerService {
                     Map<String, Object> timerUpdate = new HashMap<>();
                     timerUpdate.put("timeRemaining", Math.max(0, timeRemaining));
                     timerUpdate.put("timestamp", currentTime);
+                    timerUpdate.put("paused", false);
                     
                     // Send timer updates more frequently when time is running low
                     boolean shouldSendUpdate = timeRemaining <= 10 || // Always send when low
@@ -1175,6 +1236,8 @@ public class GameSessionManagerService {
         private String storyPrompt;
         private List<PowerupCard> cards = new ArrayList<>();
         private int configuredTurnCycles;
+        private boolean paused;
+        private int pausedRemainingTime;
 
         enum Status {
             WAITING_TO_START,
@@ -1214,5 +1277,9 @@ public class GameSessionManagerService {
         public void setStoryPrompt(String storyPrompt) { this.storyPrompt = storyPrompt; }
         public int getConfiguredTurnCycles() { return configuredTurnCycles; }
         public void setConfiguredTurnCycles(int configuredTurnCycles) { this.configuredTurnCycles = configuredTurnCycles; }
+        public boolean isPaused() { return paused; }
+        public void setPaused(boolean paused) { this.paused = paused; }
+        public int getPausedRemainingTime() { return pausedRemainingTime; }
+        public void setPausedRemainingTime(int pausedRemainingTime) { this.pausedRemainingTime = pausedRemainingTime; }
     }
 }

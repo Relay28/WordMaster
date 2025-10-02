@@ -73,9 +73,10 @@ class GrammarCorrector:
             self.tokenizer = None
 
     @lru_cache(maxsize=1000)
-    def correct_text(self, text: str) -> Tuple[str, List[Dict]]:
+    def correct_text(self, text: str) -> Tuple[str, List[Dict], Dict]:
+        """Return corrected_text, list of error dicts, and an extra info dict (clarity, rewrite)."""
         if not text or not text.strip():
-            return "", []
+            return "", [], {"suggested_rewrite": "", "clarity_anomalies": 0}
         text = text.strip()
         if not self.model or not self.tokenizer:
             return self._heuristic_corrections(text)
@@ -94,9 +95,11 @@ class GrammarCorrector:
     # ------------------------------
     # Heuristic grammar checks
     # ------------------------------
-    def _heuristic_corrections(self, text: str) -> Tuple[str, List[Dict]]:
+    def _heuristic_corrections(self, text: str) -> Tuple[str, List[Dict], Dict]:
         corrections: List[Dict] = []
         corrected = text
+        # extra.clarity_score: higher is worse (0 = clear), anomalies count is component count
+        extra: Dict = {"suggested_rewrite": "", "clarity_anomalies": 0, "clarity_score": 0}
 
         # Track severities: minor or major
         def add(type_, detail, severity='MINOR'):
@@ -193,7 +196,105 @@ class GrammarCorrector:
         if re.search(r"\b(was|were|did|went|had)\b", corrected) and re.search(r"\b(is|are|do|go|has|have)\b", corrected):
             add("Tense Mix", "Mixed past and present forms", 'MINOR')
 
-        return corrected, corrections
+        # 12. Clarity / coherence scoring (fast, heuristic only)
+        tokens_lower = [t.lower() for t in tokens]
+        anomalies = 0
+        clarity_penalty = 0
+        total_tokens = len(tokens_lower)
+        alpha_tokens = [t for t in tokens_lower if re.match(r"[a-z]+", t)]
+        alpha_len = len(alpha_tokens)
+        unique_alpha = len(set(alpha_tokens)) if alpha_tokens else 0
+
+        pronouns = [t for t in alpha_tokens if t in PRONOUN_SUBJECTS]
+        pronoun_ratio = (len(pronouns) / max(1, alpha_len)) if alpha_len else 0
+        if pronoun_ratio > 0.5 and alpha_len >= 4:
+            anomalies += 1; clarity_penalty += 2
+            corrections.append({"type": "Clarity", "detail": "High pronoun ratio reduces clarity", "severity": "MINOR"})
+
+        # Repeated pronoun clusters (e.g., you you I you)
+        for i in range(total_tokens-1):
+            if tokens_lower[i] in PRONOUN_SUBJECTS and tokens_lower[i+1] in PRONOUN_SUBJECTS:
+                anomalies += 1; clarity_penalty += 1
+                break
+
+        # Low lexical diversity
+        if alpha_len >= 4 and unique_alpha / max(1, alpha_len) < 0.55:
+            anomalies += 1; clarity_penalty += 2
+            corrections.append({"type": "Clarity", "detail": "Low word variety", "severity": "MINOR"})
+
+        # Missing verb (no main verb detected) with >=4 tokens
+        if alpha_len >= 4 and not VERB_REGEX.search(" ".join(alpha_tokens)):
+            anomalies += 1; clarity_penalty += 2
+            corrections.append({"type": "Clarity", "detail": "No clear verb", "severity": "MAJOR"})
+
+        # Insult / incoherent mix (simple lexicon)
+        insult_terms = {"dumb", "stupid", "idiot", "noob"}
+        if any(t in insult_terms for t in alpha_tokens) and pronoun_ratio > 0.3:
+            anomalies += 1; clarity_penalty += 2
+            corrections.append({"type": "Tone", "detail": "Negative / insulting language", "severity": "MAJOR"})
+
+        # Alternating pronoun-other pattern e.g. you me you me you
+        if total_tokens >= 5:
+            pattern_flags = ''.join('P' if t in PRONOUN_SUBJECTS else 'O' for t in tokens_lower[:8])
+            if re.match(r'(PO){2,}P?', pattern_flags):
+                anomalies += 1; clarity_penalty += 2
+                corrections.append({"type": "Clarity", "detail": "Pronoun alternation pattern", "severity": "MINOR"})
+
+        # Short incoherent blast (<=10 tokens dominated by pronouns + insults)
+        if 3 <= alpha_len <= 10:
+            dominant = sum(1 for t in alpha_tokens if t in PRONOUN_SUBJECTS or t in insult_terms)
+            if dominant / max(1, alpha_len) >= 0.7:
+                anomalies += 1; clarity_penalty += 3
+                corrections.append({"type": "Clarity", "detail": "Likely incoherent / needs rewrite", "severity": "MAJOR"})
+
+        # Aggregate clarity score
+        clarity_score = clarity_penalty + anomalies
+        extra['clarity_anomalies'] = anomalies
+        extra['clarity_score'] = clarity_score
+
+        # Suggest rewrite if clarity issues present
+        if clarity_score >= 2:
+            # Build a neutral rewrite focusing on a single subject if pronouns present
+            main_subject = 'I' if 'i' in tokens_lower else ('We' if 'we' in tokens_lower else ('They' if 'they' in tokens_lower else ('You' if 'you' in tokens_lower else 'It')))
+            # Remove insult terms & duplicate pronouns
+            filtered: List[str] = []
+            used_pronoun = False
+            for t in tokens:
+                tl = t.lower()
+                if tl in insult_terms:
+                    continue
+                if tl in PRONOUN_SUBJECTS:
+                    if used_pronoun:
+                        continue
+                    used_pronoun = True
+                    filtered.append(main_subject)
+                else:
+                    filtered.append(t)
+            if not filtered:
+                rewrite = "Please clarify your idea in a complete sentence."
+            else:
+                rewrite = ' '.join(filtered)
+                # Ensure a verb exists, else add a neutral verb
+                if not VERB_REGEX.search(rewrite.lower()):
+                    rewrite += ' are'
+                rewrite = re.sub(r"\s+", " ", rewrite).strip()
+                if not re.search(r"[.!?]$", rewrite):
+                    rewrite += '.'
+            extra['suggested_rewrite'] = rewrite
+            # Add a single consolidated clarity issue if not already
+            if not any(c['type'] == 'Clarity' and 'Overall' in c['detail'] for c in corrections):
+                severity = 'MAJOR' if clarity_score >= 4 else 'MINOR'
+                corrections.append({"type": "Clarity", "detail": f"Overall coherence issues (score={clarity_score})", "severity": severity})
+        else:
+            if corrected and not extra['suggested_rewrite']:
+                extra['suggested_rewrite'] = corrected
+
+        return corrected, corrections, extra
+
+# Backward compatibility wrapper (if any external import expected 2-tuple)
+def legacy_correct(text: str):  # pragma: no cover
+    corrected, errors, _extra = corrector.correct_text(text)
+    return corrected, errors
 
 # Initialize corrector
 corrector = GrammarCorrector()
@@ -216,22 +317,34 @@ def correct_grammar():
         context = data.get('context', '')
         start_time = time.time()
 
-        corrected_text, errors = corrector.correct_text(text)
+        # Correct text using heuristics/model (returns corrected, errors list, extra dict)
+        corrected_text, errors, extra = corrector.correct_text(text)
 
-        # Weighted severity counts
+        # Weighted severity counts with clarity integration
         minor = sum(1 for e in errors if e.get('severity') == 'MINOR')
         major = sum(1 for e in errors if e.get('severity') == 'MAJOR')
+        clarity_anoms = extra.get('clarity_anomalies', 0)
+        clarity_score = extra.get('clarity_score', 0)
+        # Escalate major weight for significant clarity incoherence
+        if clarity_score >= 4:
+            major += 2
+        elif clarity_score >= 2:
+            major += 1
 
         if not text.strip():
             status = "NO_ERRORS"
         else:
-            score = major * 2 + minor  # simple weighting
-            if score == 0:
-                status = "NO_ERRORS"
-            elif score <= 3:
-                status = "MINOR_ERRORS"
-            else:
+            score = major * 2 + minor  # base weighting
+            # Force MAJOR if clarity_score passes hard threshold
+            if clarity_score >= 4:
                 status = "MAJOR_ERRORS"
+            else:
+                if score == 0:
+                    status = "NO_ERRORS"
+                elif score <= 3:
+                    status = "MINOR_ERRORS"
+                else:
+                    status = "MAJOR_ERRORS"
 
         # Build concise feedback with top categories
         unique_types = []
@@ -244,19 +357,25 @@ def correct_grammar():
         if status == "NO_ERRORS":
             feedback = "✓ Excellent! Grammar looks good."
         elif status == "MINOR_ERRORS":
-            feedback = "✓ Minor fixes: " + focus if focus else "✓ Minor improvements possible."
+            feedback = ("✓ Minor fixes: " + focus) if focus else "✓ Minor improvements possible."
         else:
-            feedback = "💡 Improve: " + focus if focus else "💡 Several grammar issues present."
+            if clarity_score >= 4:
+                feedback = "⚠️ Incoherent / unclear message. Please rewrite clearly. Issues: " + focus if focus else "⚠️ Incoherent / unclear message. Please rewrite."
+            else:
+                feedback = ("💡 Improve: " + focus) if focus else "💡 Several grammar issues present."
 
         processing_time = (time.time() - start_time) * 1000
         response = {
             "original_text": text,
             "corrected_text": corrected_text,
+            "suggested_rewrite": extra.get('suggested_rewrite', ''),
             "status": status,
             "feedback": feedback,
             "errors": errors,
             "processing_time_ms": round(processing_time, 2),
-            "has_corrections": text != corrected_text
+            "has_corrections": text != corrected_text,
+            "clarity_anomalies": clarity_anoms,
+            "clarity_score": clarity_score
         }
         return jsonify(response)
     except Exception as e:  # pragma: no cover
@@ -279,11 +398,13 @@ def batch_correct():
             return jsonify({"error": "No texts provided"}), 400
         results = []
         for t in texts:
-            corrected, errs = corrector.correct_text(t)
+            corrected, errs, extra = corrector.correct_text(t)
             results.append({
                 "original": t,
                 "corrected": corrected,
-                "error_count": len(errs)
+                "error_count": len(errs),
+                "suggested_rewrite": extra.get('suggested_rewrite', ''),
+                "clarity_anomalies": extra.get('clarity_anomalies', 0)
             })
         return jsonify({"results": results})
     except Exception as e:  # pragma: no cover

@@ -22,6 +22,7 @@ public class GameStateDTO {
     private List<WordBankItemDTO> wordBank;
     private int timePerTurn;
     private int turnCyclesConfig; // To store the configured number of cycles/rounds
+    private boolean paused; // indicates if timer is currently paused
 
     // Getters and Setters for all fields including turnCyclesConfig
     private List<PlayerCardDTO> playerCards;
@@ -69,4 +70,6 @@ public class GameStateDTO {
     public void setTimePerTurn(int timePerTurn) { this.timePerTurn = timePerTurn; }
     public int getTurnCyclesConfig() { return turnCyclesConfig; }
     public void setTurnCyclesConfig(int turnCyclesConfig) { this.turnCyclesConfig = turnCyclesConfig; }
+    public boolean isPaused() { return paused; }
+    public void setPaused(boolean paused) { this.paused = paused; }
 }

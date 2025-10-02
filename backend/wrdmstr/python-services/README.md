@@ -77,7 +77,25 @@ py -c "import torch, transformers, datasets; print('All packages installed succe
 #### Windows:
 ```bash
 cd backend/wrdmstr/python-services
-start.bat
+start.bat          # now DEFAULT loads transformer model (may download on first run)
+
+# Fast heuristic-only (skip model):
+start.bat fast
+
+# Force reinstall + model load (e.g. after dependency issues):
+start.bat reinstall
+
+# Force reinstall but skip model load:
+start.bat reinstall fast
+
+# If you see any batch parsing issue, still available fallback:
+start_simple.bat fast
+
+# Or use the PowerShell launcher (recommended on Windows):
+powershell -ExecutionPolicy Bypass -File .\start.ps1 -Model
+```
+
+> Note: The dependency 'difflib2' was removed (standard library 'difflib' is used). If you previously saw an install error for it, just reinstall now.
 ```
 
 #### Linux/Mac:

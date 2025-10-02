@@ -1,13 +1,16 @@
 package cit.edu.wrdmstr.config;
 
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import java.time.Duration;
 import java.util.concurrent.Executor;
 
 /**
@@ -19,17 +22,47 @@ import java.util.concurrent.Executor;
 public class PerformanceConfig {
 
     /**
-     * Cache manager for grammar corrections to improve response times
+     * Optimized cache manager for all application caches
      */
     @Bean
     public CacheManager cacheManager() {
-        ConcurrentMapCacheManager cacheManager = new ConcurrentMapCacheManager();
-        // Pre-create caches for better performance
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
+        
+        cacheManager.setCacheLoader(new CacheLoader<Object, Object>() {
+            @Override
+            public Object load(Object key) {
+                return null;
+            }
+        });
+        
+        cacheManager.setCaffeine(Caffeine.newBuilder()
+            .maximumSize(1000)
+            .expireAfterWrite(Duration.ofHours(1))
+            .recordStats());
+            
         cacheManager.setCacheNames(java.util.Arrays.asList(
+            "wordBombs",
+            "storyPrompts",
             "grammarCorrections",
+            "grammarChecks",
             "roleChecks",
-            "aiResponses"
+            "aiResponses",
+            "vocabularyCache",
+            "sessionCache"
         ));
+
+        // Pre-create all application caches
+        cacheManager.setCacheNames(java.util.Arrays.asList(
+            "wordBombs",
+            "storyPrompts",
+            "grammarCorrections",
+            "grammarChecks",
+            "roleChecks",
+            "aiResponses",
+            "vocabularyCache",
+            "sessionCache"
+        ));
+
         return cacheManager;
     }
 
