@@ -143,7 +143,13 @@ const GamePlay = ({
     if (lastIndex < text.length) parts.push({ text: text.substring(lastIndex), highlight: false });
 
     return parts.map((p, i) => p.highlight ? (
-      <span key={i} style={{ fontWeight: '700', textDecoration: 'underline', color: '#FF5722' }}>{p.text}</span>
+      <span key={i} style={{ fontWeight: '700', color: '#f8def8ff', textShadow: `
+            -0.65px -0.65px 0 #000,  
+            0.65px -0.65px 0 #000,
+            -0.65px  0.65px 0 #000,
+            0.65px  0.65px 0 #000
+          `
+      }}>{p.text}</span>
     ) : (
       <span key={i}>{p.text}</span>
     ));
