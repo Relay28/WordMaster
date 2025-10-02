@@ -101,8 +101,6 @@ const ClassroomDetailsPage = () => {
   const [contentError, setContentError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add this line
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const istablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const [page, setPage] = useState(1);
   const [itemsPerPage] = useState(2); 
@@ -139,21 +137,21 @@ const ClassroomDetailsPage = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : istablet ? '9px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '12px' : istablet ? '13px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : istablet ? '9px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -747,7 +745,6 @@ return (
         avatarInitials={avatarInitials}
         user={user}
         anchorEl={anchorEl}
-        ismobile={ismobile}
         pixelText={pixelText}
         pixelHeading={pixelHeading}
         handleMenuOpen={handleMenuOpen}
@@ -836,7 +833,7 @@ return (
               </Box>
             ) : (
               <Box>
-                <Typography sx={{ ...pixelHeading, fontSize: ismobile ? '16px' : '20px', mb: 1 }}>
+                <Typography sx={{ ...pixelHeading, fontSize: '20px', mb: 1 }}>
                   {classroom.name}
                 </Typography>
                 {classroom.description && (
@@ -951,7 +948,7 @@ return (
               '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
               '& .MuiTab-root': { 
                 ...pixelHeading, 
-                fontSize: ismobile ? '7px' : istablet ? '11px' : '12px',
+                fontSize: '12px',
                 flexGrow: 1,
                 minWidth: 'unset',
                 px: 1,
@@ -1371,7 +1368,7 @@ return (
                   label={`${classroom.studentCount + 1} TOTAL`} 
                   color="primary"
                   size="small"
-                  sx={{pixelText, fontSize: ismobile ? '10px' : '12px',}}
+                  sx={{pixelText, fontSize: '12px',}}
                 />
               </Box>
               <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
@@ -1495,7 +1492,7 @@ return (
                 justifyContent="flex-start"
                 alignItems="center" 
                 mb={2}
-                gap={ismobile ? 1 : 1}
+                gap={1}
               >
                 {isClassroomTeacher && (
                   <>
@@ -1506,10 +1503,9 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#5F4B8B',
-                        minWidth: ismobile ? 0 : undefined,
-                        px: ismobile ? 1 : istablet ? 1.5 : 2,
-                        fontSize: ismobile ? '7px' : istablet ? '9px' : '10px',
-                        height: ismobile ? '28px' : istablet ? '30px' : '32px',
+                        px: 1,
+                        fontSize: '10px',
+                        height: '32px',
                         '&:hover': { 
                           backgroundColor: '#4a3a6d',
                           transform: 'translateY(-2px)'
@@ -1534,11 +1530,10 @@ return (
                       sx={{
                         ...pixelButton,
                         backgroundColor: '#6c63ff',
-                        minWidth: ismobile ? 0 : undefined,
-                        px: ismobile ? 1 : istablet ? 1.5 : 2,
-                        fontSize: ismobile ? '7px' : istablet ? '9px' : '10px',
-                        height: ismobile ? '28px' : istablet ? '30px' : '32px',
-                        '&:hover': { 
+                        px: 1.5,
+                        fontSize: '9px',
+                        height: '30px',
+                        '&:hover': {
                           backgroundColor: '#5a52e0',
                           transform: 'translateY(-2px)'
                         },
@@ -1665,9 +1660,9 @@ return (
                 onChange={handlePageChange}
                 variant="outlined"
                 shape="rounded"
-                size={ismobile ? "small" : "medium"}
-                siblingCount={ismobile ? 0 : 1}
-                boundaryCount={ismobile ? 1 : 2}
+                size="medium"
+                siblingCount={1}
+                boundaryCount={2}
               />
             </Box>
           </Stack>

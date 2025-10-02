@@ -14,8 +14,6 @@ const CreateGameSession = () => {
   const { getToken } = useUserAuth();
   const navigate = useNavigate();
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const istablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   
   const [contents, setContents] = useState([]);
   const [selectedContent, setSelectedContent] = useState('');
@@ -26,21 +24,21 @@ const CreateGameSession = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '6px' : istablet ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '10px' : istablet ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '6px' : istablet ? '8px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -196,12 +194,12 @@ const CreateGameSession = () => {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      p: ismobile ? 1 : 2
+      p: 2
     }}>
-      <Container maxWidth={ismobile ? "sm" : "md"}>
+      <Container maxWidth="md">
         <Paper elevation={3} sx={{ 
-          p: ismobile ? 1.5 : 4, 
-          borderRadius: ismobile ? '8px' : '12px',
+          p: 4, 
+          borderRadius: '12px',
           background: 'rgba(255,255,255,0.9)',
           backdropFilter: 'blur(8px)',
           border: '1px solid rgba(255,255,255,0.3)',
@@ -214,7 +212,7 @@ const CreateGameSession = () => {
             top: 0,
             left: 0,
             right: 0,
-            height: ismobile ? '4px' : '6px',
+            height: '6px',
             background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
             opacity: 0.8
           }
@@ -222,23 +220,23 @@ const CreateGameSession = () => {
           <Typography variant="h5" sx={{ 
             ...pixelHeading,
             fontWeight: 'bold', 
-            mb: ismobile ? 2 : 3,
+            mb: 3,
             color: '#2d3748',
-            fontSize: ismobile ? '10px' : '16px'
+            fontSize: '16px'
           }}>
             CREATE NEW GAME SESSION
           </Typography>
           
           {error && (
             <Alert severity="error" sx={{ 
-              mb: ismobile ? 2 : 3,
+              mb: 3,
               '& .MuiAlert-message': pixelText
             }}>
               {error}
             </Alert>
           )}
           
-          <Box sx={{ mb: ismobile ? 1 : 3 }}>
+          <Box sx={{ mb: 3 }}>
             <FormControl fullWidth>
               <Select
                 value={selectedContent}
@@ -248,14 +246,14 @@ const CreateGameSession = () => {
                   transition: 'width 0.2s ease',
                   '& .MuiSelect-select': {
                     fontFamily: 'Arial, sans-serif',
-                    fontSize: ismobile ? '10px' : '14px',
-                    py: ismobile ? 0.75 : 1.5,
-                    minHeight: ismobile ? '20px' : 'auto',
+                    fontSize: '14px',
+                    py: 1.5,
+                    minHeight: 'auto',
                     width: '100%',
                     boxSizing: 'border-box'
                   },
                   '& .MuiOutlinedInput-notchedOutline': {
-                    borderRadius: ismobile ? '4px' : '8px'
+                    borderRadius: '8px'
                   }
                 }}
                 displayEmpty
@@ -264,9 +262,9 @@ const CreateGameSession = () => {
                     return (
                       <Typography sx={{
                         fontFamily: 'Arial, sans-serif',
-                        fontSize: ismobile ? '10px' : '14px',
+                        fontSize: '14px',
                         color: '#999',
-                        padding: ismobile ? '4px' : '8px',
+                        padding: '8px',
                       }}>
                         Select Content
                       </Typography>
@@ -291,9 +289,9 @@ const CreateGameSession = () => {
                       value={content.id} 
                       sx={{
                         fontFamily: 'Arial, sans-serif',
-                        fontSize: ismobile ? '12px' : '14px',
+                        fontSize: '14px',
                         minHeight: 'auto',
-                        py: ismobile ? 0.5 : 1
+                        py: 1
                       }}
                     >
                       <Box sx={{ 
@@ -304,7 +302,7 @@ const CreateGameSession = () => {
                       }}>
                         <Typography sx={{
                           fontFamily: 'Arial, sans-serif',
-                          fontSize: ismobile ? '12px' : '14px',
+                          fontSize: '14px',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
@@ -319,7 +317,7 @@ const CreateGameSession = () => {
                     disabled 
                     sx={{
                       fontFamily: 'Arial, sans-serif',
-                      fontSize: ismobile ? '12px' : '14px',
+                      fontSize: '14px',
                       minHeight: 'auto'
                     }}
                   >
@@ -330,7 +328,7 @@ const CreateGameSession = () => {
             </FormControl>
           </Box>
           
-          <Box display="flex" justifyContent="space-between" flexDirection="row" gap={ismobile ? 1 : 2}>
+          <Box display="flex" justifyContent="space-between" flexDirection="row" gap={2}>
             <Button 
               variant="contained"
               onClick={() => navigate('/homepage')}
@@ -342,14 +340,14 @@ const CreateGameSession = () => {
                   transform: 'translateY(-2px)'
                 },
                 borderRadius: '4px',
-                px: ismobile ? 1.5 : 3,
-                py: ismobile ? 0.5 : 1.5,
-                minWidth: ismobile ? 'auto' : 'auto',
+                px: 3,
+                py: 1.5,
+                minWidth: 'auto',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                 transition: 'all 0.1s ease',
-                height: ismobile ? '28px' : 'auto',
+                height: 'auto',
                 '&:active': {
                   transform: 'translateY(1px)',
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -372,14 +370,14 @@ const CreateGameSession = () => {
                   transform: 'translateY(-2px)'
                 },
                 borderRadius: '4px',
-                px: ismobile ? 1.5 : 3,
-                py: ismobile ? 0.5 : 1.5,
-                minWidth: ismobile ? 'auto' : 'auto',
+                px: 3,
+                py: 1.5,
+                minWidth: 'auto',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                 transition: 'all 0.1s ease',
-                height: ismobile ? '28px' : 'auto',
+                height: 'auto',
                 '&:active': {
                   transform: 'translateY(1px)',
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -395,7 +393,7 @@ const CreateGameSession = () => {
             >
               {creating ? (
                 <CircularProgress 
-                  size={ismobile ? 16 : 24} 
+                  size={24}
                   sx={{ 
                     color: 'inherit',
                     filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'

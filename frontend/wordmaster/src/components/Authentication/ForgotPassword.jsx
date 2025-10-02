@@ -37,26 +37,24 @@ const ForgotPassword = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const istablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '7px' : istablet ? '8px' : '9px',
+    fontSize: '7px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '10px' : istablet ? '12px' : '13px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '7px' : istablet ? '8px' : '9px',
+    fontSize: '7px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };

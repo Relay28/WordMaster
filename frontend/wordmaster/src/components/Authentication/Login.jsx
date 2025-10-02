@@ -18,7 +18,6 @@ import { useUserAuth } from '../context/UserAuthContext';
 import picbg from '../../assets/picbg.png';
 import '@fontsource/press-start-2p';
 import logo from '../../assets/LOGO.png';
-import '../../css/login.css'; // Import the CSS file
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -330,12 +329,10 @@ const Login = () => {
                 to="/forgot-password" 
                 style={{ 
                   textDecoration: 'none',
-                  fontSize: '12px',
+                  fontSize: '14px',
                   color: '#5F4B8B',
                   fontWeight: 500,
-                  '&:hover': {
-                    textDecoration: 'underline'
-                  }
+                  fontFamily: 'Calibri, sans-serif',
                 }}
               >
                 Forgot Password?
@@ -417,7 +414,7 @@ const Login = () => {
                 borderColor: '#5F4B8B',
                 borderRadius: '12px',
                 py: 1.5,
-                fontSize: '11px',
+                fontSize: '10px',
                 '&:hover': {
                   backgroundColor: 'rgba(38, 23, 71, 0.1)',
                   borderColor: '#4a3a6d',

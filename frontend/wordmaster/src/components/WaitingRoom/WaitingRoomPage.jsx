@@ -23,7 +23,7 @@ const WaitingRoomPage = () => {
   const [gameStarted, setGameStarted] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Removed responsive design variable
   const location = useLocation();
   const classroomId = location.state?.classroomId;
 
@@ -37,21 +37,21 @@ const WaitingRoomPage = () => {
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '6px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '10px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '6px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -173,21 +173,21 @@ const WaitingRoomPage = () => {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      p: ismobile ? 1 : 2,
+      p: 1,
       backdropFilter: 'blur(2px)'
     }}>
       <IconButton 
         onClick={handleBackClick}
         sx={{
           position: 'absolute',
-          top: ismobile ? 4 : 8,
-          left: ismobile ? 4 : 8,
+          top: 8,
+          left: 8,
           color: '#5F4B8B',
           backgroundColor: 'rgba(255, 255, 255, 0.7)',
           border: '2px solid #5F4B8B',
           borderRadius: '4px',
-          width: ismobile ? '24px' : '32px',
-          height: ismobile ? '24px' : '32px',
+          width: '32px',
+          height: '32px',
           '&:hover': {
             backgroundColor: 'rgba(95, 75, 139, 0.1)',
             transform: 'translateY(-1px)'
@@ -195,17 +195,17 @@ const WaitingRoomPage = () => {
           transition: 'all 0.2s ease'
         }}
       >
-        <ChevronLeftIcon fontSize={ismobile ? "small" : "medium"} />
+        <ChevronLeftIcon fontSize="medium" />
       </IconButton>
       <Box sx={{
         width: '100%',
-        maxWidth: ismobile ? '400px' : '600px',
+        maxWidth: '600px',
         backgroundColor: 'rgba(255, 255, 255, 0.8)',
         backdropFilter: 'blur(8px)',
-        borderRadius: ismobile ? '8px' : '12px',
-        border: ismobile ? '2px solid #5F4B8B' : '4px solid #5F4B8B',
+        borderRadius: '12px',
+        border: '4px solid #5F4B8B',
         boxShadow: '0 8px 32px rgba(31, 38, 135, 0.1)',
-        p: ismobile ? 1.5 : 4,
+        p: 4,
         position: 'relative',
         overflow: 'hidden',
         '&::before': {
@@ -214,7 +214,7 @@ const WaitingRoomPage = () => {
           top: 0,
           left: 0,
           right: 0,
-          height: ismobile ? '4px' : '6px',
+          height: '6px',
           background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
           opacity: 0.8
         }
@@ -222,9 +222,9 @@ const WaitingRoomPage = () => {
         <Typography variant="h4" sx={{ 
           ...pixelHeading,
           fontWeight: 'bold',
-          mb: ismobile ? 2 : 3,
+          mb: 3,
           color: '#2d3748',
-          fontSize: ismobile ? '10px' : '16px',
+          fontSize: '16px',
           textAlign: 'center',
           textShadow: '1px 1px 0 rgba(0,0,0,0.1)'
         }}>
@@ -236,8 +236,8 @@ const WaitingRoomPage = () => {
             backgroundColor: '#ffebee',
             border: '2px solid #ef5350',
             borderRadius: '4px',
-            p: ismobile ? 0.5 : 1,
-            mb: ismobile ? 1 : 2,
+            p: 1,
+            mb: 2,
             textAlign: 'center'
           }}>
             <Typography sx={{ ...pixelText, color: '#d32f2f' }}>
@@ -247,18 +247,18 @@ const WaitingRoomPage = () => {
         )}
 
         {loading ? (
-          <Box display="flex" justifyContent="center" py={ismobile ? 2 : 4}>
-            <CircularProgress size={ismobile ? 20 : 40} />
+          <Box display="flex" justifyContent="center" py={4}>
+            <CircularProgress size={40} />
           </Box>
         ) : (
           <>
             <List sx={{ 
               backgroundColor: 'rgba(245, 245, 247, 0.7)',
-              borderRadius: ismobile ? '6px' : '8px',
+              borderRadius: '8px',
               border: '2px solid rgba(95, 75, 139, 0.3)',
-              p: ismobile ? 0.5 : 1,
-              mb: ismobile ? 2 : 3,
-              maxHeight: ismobile ? '200px' : '300px',
+              p: 1,
+              mb: 3,
+              maxHeight: '300px',
               overflowY: 'auto'
             }}>
               {students.map(student => (
@@ -267,18 +267,18 @@ const WaitingRoomPage = () => {
                   sx={{
                     backgroundColor: 'rgba(255, 255, 255, 0.7)',
                     borderRadius: '4px',
-                    mb: ismobile ? 0.5 : 1,
+                    mb: 1,
                     border: '2px solid rgba(95, 75, 139, 0.2)',
                     '&:last-child': { mb: 0 },
-                    py: ismobile ? 0.5 : 1
+                    py: 1
                   }}
                 >
                   <ListItemAvatar>
                     <Avatar 
                       sx={{ 
                         bgcolor: '#5F4B8B',
-                        width: ismobile ? 24 : 40,
-                        height: ismobile ? 24 : 40,
+                        width: 40,
+                        height: 40,
                         color: 'white'
                       }}
                       src={student.profilePicture || undefined}
@@ -299,7 +299,7 @@ const WaitingRoomPage = () => {
                 <Typography sx={{ 
                   ...pixelText,
                   textAlign: 'center',
-                  mb: ismobile ? 1 : 2,
+                  mb: 2,
                   color: '#5F4B8B'
                 }}>
                   {students.length} PLAYER{students.length !== 1 ? 'S' : ''} READY
@@ -319,14 +319,14 @@ const WaitingRoomPage = () => {
                           transform: 'translateY(-2px)'
                         },
                         borderRadius: '4px',
-                        px: ismobile ? 2 : 3,
-                        py: ismobile ? 0.5 : 1.5,
-                        minWidth: ismobile ? 'auto' : '200px',
+                        px: 3,
+                        py: 1.5,
+                        minWidth: '200px',
                         borderStyle: 'outset',
                         boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                         textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
                         transition: 'all 0.1s ease',
-                        height: ismobile ? '28px' : 'auto',
+                        height: 'auto',
                         '&:active': {
                           transform: 'translateY(1px)',
                           boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
@@ -342,7 +342,7 @@ const WaitingRoomPage = () => {
                     >
                       {loading ? (
                         <CircularProgress 
-                          size={ismobile ? 16 : 24} 
+                          size={24} 
                           sx={{ 
                             color: 'inherit',
                             filter: 'drop-shadow(1px 1px 0 rgba(0,0,0,0.3))'
@@ -357,18 +357,18 @@ const WaitingRoomPage = () => {
               </>
             ) : (
               <Box sx={{ 
-                mb: ismobile ? 2 : 3,
-                p: ismobile ? 1 : 2,
+                mb: 3,
+                p: 2,
                 backgroundColor: 'rgba(108, 99, 255, 0.1)',
-                borderRadius: ismobile ? '6px' : '8px',
+                borderRadius:'8px',
                 border: '2px solid #6c63ff',
                 textAlign: 'center'
               }}>
                 <Typography sx={{ 
                   ...pixelHeading,
                   color: '#6c63ff',
-                  mb: ismobile ? 0.5 : 1,
-                  fontSize: ismobile ? '8px' : '14px'
+                  mb: 1,
+                  fontSize: '14px'
                 }}>
                   GAME IN PROGRESS
                 </Typography>
@@ -376,7 +376,7 @@ const WaitingRoomPage = () => {
                   <Typography sx={{ 
                     ...pixelText,
                     color: '#5F4B8B',
-                    fontSize: ismobile ? '6px' : '10px'
+                    fontSize: '10px'
                   }}>
                     Students have been redirected to the game session
                   </Typography>
@@ -384,7 +384,7 @@ const WaitingRoomPage = () => {
                   <Typography sx={{ 
                     ...pixelText,
                     color: '#5F4B8B',
-                    fontSize: ismobile ? '6px' : '10px'
+                    fontSize: '10px'
                   }}>
                     Redirecting to game session...
                   </Typography>

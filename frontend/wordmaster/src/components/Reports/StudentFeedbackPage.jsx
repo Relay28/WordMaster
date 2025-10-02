@@ -18,7 +18,6 @@ const StudentFeedbackPage = () => {
   const { sessionId, studentId } = useParams();
   const { user, getToken } = useUserAuth();
   const navigate = useNavigate();
-  const ismobile = window.innerWidth < 768;
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,21 +30,21 @@ const StudentFeedbackPage = () => {
   // Pixel styling (same as other pages)
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -210,7 +209,7 @@ const StudentFeedbackPage = () => {
             >
               Back
             </Button>
-            <Typography sx={{ ...pixelHeading, fontSize: ismobile ? '16px' : '20px' }}>
+            <Typography sx={{ ...pixelHeading, fontSize: '20px' }}>
               Teacher Feedback
             </Typography>
           </Box>
@@ -224,7 +223,7 @@ const StudentFeedbackPage = () => {
             border: '4px solid #5F4B8B',
             borderRadius: '6px'
           }}>
-            <Typography sx={{ ...pixelHeading, fontSize: ismobile ? '16px' : '20px', mb: 2 }}>
+            <Typography sx={{ ...pixelHeading, fontSize: '20px', mb: 2 }}>
               {feedbackDetails.contentTitle || 'Game Session'}
             </Typography>
             

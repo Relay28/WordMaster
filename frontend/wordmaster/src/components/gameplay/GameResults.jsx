@@ -14,7 +14,6 @@ const GameResults = ({ gameState, quizCompleted }) => {
   const navigate = useNavigate();
   const { user, getToken } = useUserAuth();
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [tabValue, setTabValue] = useState(0);
   const [comprehensionQuestions, setComprehensionQuestions] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -102,21 +101,21 @@ const GameResults = ({ gameState, quizCompleted }) => {
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
   
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '10px' : '12px',
+    fontSize: '12px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -145,7 +144,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
     }}>
       <Container maxWidth="lg">
         <Box display="flex" alignItems="center" mb={2}>
-          <Typography sx={{ ...pixelHeading, fontSize: ismobile ? '16px' : '20px' }}>
+          <Typography sx={{ ...pixelHeading, fontSize: '20px' }}>
             Game Results
           </Typography>
         </Box>
@@ -313,7 +312,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
                   <Typography sx={{
                     ...pixelHeading,
                     color: 'white',
-                    fontSize: ismobile ? '14px' : '16px'
+                    fontSize: '16px'
                   }}>
                     LEADERBOARD
                   </Typography>
@@ -331,17 +330,17 @@ const GameResults = ({ gameState, quizCompleted }) => {
                           borderBottom: '1px solid rgba(95, 75, 139, 0.2)',
                           backgroundColor: player.userId === user?.id ? 'rgba(95, 75, 139, 0.1)' : 'inherit',
                           '&:last-child': { borderBottom: 'none' },
-                          px: ismobile ? 1 : 2,
+                          px: 2,
                           py: 1.5
                         }}
                       >
                         <ListItemAvatar>
                           <Avatar
                             sx={{
-                              width: ismobile ? 28 : 32,
-                              height: ismobile ? 28 : 32,
+                              width: 32,
+                              height: 32,
                               bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B',
-                              fontSize: ismobile ? '0.8rem' : '0.9rem'
+                              fontSize: '0.9rem'
                             }}
                           >
                             {index + 1}
@@ -351,7 +350,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
                           primary={
                             <Typography sx={{
                               ...pixelText,
-                              fontSize: ismobile ? '9px' : '10px',
+                              fontSize: '10px',
                               fontWeight: player.userId === user?.id ? 'bold' : 'normal'
                             }}>
                               {player.name}
@@ -361,7 +360,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
                             <Typography sx={{
                               ...pixelText,
                               color: '#5F4B8B',
-                              fontSize: ismobile ? '8px' : '9px'
+                              fontSize: '9px'
                             }}>
                               {player.role || 'Player'}
                             </Typography>
@@ -371,7 +370,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
                         <Typography sx={{
                           ...pixelHeading,
                           fontWeight: 'bold',
-                          fontSize: ismobile ? '12px' : '14px'
+                          fontSize: '14px'
                         }}>
                           {player.score} pts
                         </Typography>
@@ -409,7 +408,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
                     boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
                     borderStyle: 'inset'
                   },
-                  fontSize: ismobile ? '10px' : '12px'
+                  fontSize: '12px'
                 }}
               >
                 {isTeacher ? 'BACK TO DASHBOARD' : 'BACK TO HOMEPAGE'}

@@ -23,7 +23,6 @@ const TeacherContentSessions = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
    const theme = useTheme();
-    const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
      const [selectedSession, setSelectedSession] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
 
@@ -40,21 +39,21 @@ const TeacherContentSessions = () => {
   // Session Details Dialog Component
    const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '10px' : '12px',
+    fontSize: '12px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
   
    const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '14px' : '16px',
+    fontSize: '16px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
@@ -548,7 +547,7 @@ return (
                 url(${picbg})`, // Keep your existing background
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    p: ismobile ? 2 : 4, // Responsive padding
+    p: 4, // Padding
     overflow: 'auto',
     display: 'flex', // Add flex container
     flexDirection: 'column'
@@ -581,7 +580,7 @@ return (
             boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
             borderStyle: 'inset'
           },
-          fontSize: ismobile ? '10px' : '12px'
+          fontSize: '12px'
         }}
       >
         BACK TO HOMEPAGE
@@ -596,20 +595,20 @@ return (
       <Typography sx={{ 
         ...pixelHeading, 
         textAlign: 'center', 
-        mb: ismobile ? 2 : 4, // Responsive margin
-        fontSize: ismobile ? '12px' : '16px' // Better mobile font size
+        mb: 4, // Margin
+        fontSize: '16px' // Font size
       }}>
         ACTIVE GAME SESSIONS
       </Typography>
 
-      <Grid container spacing={ismobile ? 2 : 4}> {/* Responsive grid spacing */}
+      <Grid container spacing={4}> {/* Grid spacing */}
         {sessions.length > 0 ? (
           sessions.map((session) => (
             <Grid item xs={12} sm={6} lg={4} xl={3} key={session.sessionId} // Added xl breakpoint
               sx={{ display: 'flex' }} // Make grid items flex containers
             >
               <Paper sx={{
-                p: ismobile ? 2 : 3, // Responsive padding
+                p: 3, // Padding
                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(8px)',
                 borderRadius: '12px)',
@@ -629,14 +628,14 @@ return (
                 <Box sx={{ mb: 2 }}>
                   <Typography sx={{ 
                     ...pixelText, 
-                    fontSize: ismobile ? '8px' : '10px',
+                    fontSize: '10px',
                     mb: 1 
                   }}>
                     Session Code: {session.sessionCode}
                   </Typography>
                   <Typography sx={{ 
                     ...pixelText, 
-                    fontSize: ismobile ? '8px' : '10px'
+                    fontSize: '10px'
                   }}>
                     Players: {session.players.length}
                   </Typography>
@@ -647,7 +646,7 @@ return (
                   display: 'flex', 
                   gap: 1,
                   mt: 2,
-                  flexDirection: ismobile ? 'column' : 'row' // Stack buttons on mobile
+                  flexDirection: 'row' // Button layout
                 }}>
 
 <Button
@@ -655,8 +654,8 @@ return (
   onClick={() => handleViewDetails(session)}
   sx={{
     flex: 1,
-    py: ismobile ? 0.5 : 1,
-    fontSize: ismobile ? '8px' : '10px',
+    py: 1,
+    fontSize: '10px',
     backgroundColor: '#5F4B8B',
     color: 'white',
     fontFamily: '"Press Start 2P", cursive',
@@ -674,8 +673,8 @@ return (
   onClick={() => endSession(session.sessionId)}
   sx={{
     flex: 1,
-    py: ismobile ? 0.5 : 1,
-    fontSize: ismobile ? '8px' : '10px',
+    py: 1,
+    fontSize: '10px',
     backgroundColor: '#FF6B6B',
     color: 'white',
     fontFamily: '"Press Start 2P", cursive',
@@ -694,7 +693,7 @@ return (
           ))
         ) : (
           <Grid item xs={12} sx={{ textAlign: 'center', mt: 4 }}>
-            <Typography sx={{ ...pixelText, fontSize: ismobile ? '10px' : '12px' }}>
+            <Typography sx={{ ...pixelText, fontSize: '12px' }}>
               No active sessions found
             </Typography>
           </Grid>

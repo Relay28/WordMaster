@@ -23,8 +23,6 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const Register = () => {
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const istablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -34,14 +32,14 @@ const Register = () => {
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '10px' : istablet ? '12px' : '13px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '7px' : istablet ? '8px' : '9px',
+    fontSize: '7px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -143,28 +141,26 @@ const [role, setRole] = useState('student'); // default to student
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      p: ismobile ? 1.5 : 0,
-      my: ismobile ? 0 : 4,
+      p: 1.5,
+      my: 4,
       width: '100%',
-      maxWidth: ismobile ? '100vw' : istablet ? '420px' : '500px',
-      backgroundColor: ismobile
-        ? 'rgba(255,255,255,0.85)'
-        : 'rgba(255, 255, 255, 0.92)',
-      borderRadius: ismobile ? '0px' : istablet ? '14px' : '16px',
-      boxShadow: ismobile ? 'none' : '0 8px 32px rgba(31, 38, 135, 0.15)',
-      border: ismobile ? 'none' : '1px solid rgba(255, 255, 255, 0.3)',
+      maxWidth: '500px',
+      backgroundColor: 'rgba(255, 255, 255, 0.92)',
+      borderRadius: '16px',
+      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+      border: '1px solid rgba(255, 255, 255, 0.3)',
       backdropFilter: 'blur(8px)',
-      minHeight: ismobile ? '100vh' : istablet ? '90vh' : '93vh',
-      justifyContent: ismobile ? 'flex-start' : 'center',
+      minHeight: '93vh',
+      justifyContent: 'center',
     }}>
 
           {/* Logo */}
-          <Box sx={{ mb: ismobile ? 1 : 2, mt: ismobile ? 2 : 0, width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <Box sx={{ mb: 2, mt: 0, width: '100%', display: 'flex', justifyContent: 'center' }}>
             <img
               src={logo}
               alt="WordMaster Logo"
               style={{
-                height: ismobile ? '48px' : istablet ? '70px' : '80px',
+                height: '80px',
                 width: 'auto',
                 objectFit: 'contain'
               }}
@@ -173,21 +169,21 @@ const [role, setRole] = useState('student'); // default to student
 
           <Typography sx={{ 
             ...pixelHeading,
-            fontSize: ismobile ? '13px' : istablet ? '16px' : '18px',
+            fontSize: '13px',
             color: '#5F4B8B',
             textAlign: 'center',
-            mb: ismobile ? 0.5 : 1,
-            letterSpacing: ismobile ? '0.5px' : '1px'
+            mb: 1,
+            letterSpacing: '1px'
           }}>
             WORDMASTER
           </Typography>
 
           {/* Heading */}
           <Typography sx={{ 
-            fontSize: ismobile ? '10px' : istablet ? '13px' : '16px',
+            fontSize: '13px',
             color: '#4a5568',
             textAlign: 'center',
-            mb: ismobile ? 2 : 4,
+            mb: 2,
             fontWeight: 500
           }}>
             Ready to start your adventure?
@@ -198,7 +194,7 @@ const [role, setRole] = useState('student'); // default to student
             display: 'flex', 
             justifyContent: 'center', 
             gap: 1, 
-            mb: ismobile ? 1 : 3,
+            mb: 3,
             width: '100%',
           }}>
             <Button
@@ -210,9 +206,9 @@ const [role, setRole] = useState('student'); // default to student
                 backgroundColor: role === 'student' ? '#5F4B8B' : 'transparent',
                 color: role === 'student' ? 'white' : '#5F4B8B',
                 borderColor: '#5F4B8B',
-                borderRadius: ismobile ? '6px' : istablet ? '10px' : '12px',
-                py: ismobile ? 1 : istablet ? 1.2 : 1.5,
-                fontSize: ismobile ? '9px' : istablet ? '10px' : '11px',
+                borderRadius: '12px',
+                py: 1.5,
+                fontSize: '11px',
                 '&:hover': {
                   backgroundColor: role === 'student' ? '#4a3a6d' : 'rgba(95, 75, 139, 0.1)',
                 }
@@ -229,9 +225,9 @@ const [role, setRole] = useState('student'); // default to student
                 backgroundColor: role === 'teacher' ? '#5F4B8B' : 'transparent',
                 color: role === 'teacher' ? 'white' : '#5F4B8B',
                 borderColor: '#5F4B8B',
-                borderRadius: ismobile ? '6px' : istablet ? '10px' : '12px',
-                py: ismobile ? 1 : istablet ? 1.2 : 1.5,
-                fontSize: ismobile ? '9px' : istablet ? '10px' : '11px',
+                borderRadius: '12px',
+                py: 1.5,
+                fontSize: '11px',
                 '&:hover': {
                   backgroundColor: role === 'teacher' ? '#4a3a6d' : 'rgba(95, 75, 139, 0.1)',
                 }
@@ -266,20 +262,20 @@ const [role, setRole] = useState('student'); // default to student
               required
               InputProps={{
                 style: {
-                  fontSize: ismobile ? '12px' : istablet ? '14px' : '15px'
+                 fontSize: '12px'
                 }
               }}
               InputLabelProps={{
                 style: {
-                  fontSize: ismobile ? '12px' : istablet ? '14px' : '15px'
+                  fontSize: '12px'
                 }
               }}
               sx={{
-                mb: ismobile ? 1 : 2,
+                mb: 2,
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: ismobile ? '6px' : '8px',
-                  background: ismobile ? 'rgba(255,255,255,0.95)' : undefined,
-                  height: ismobile ? '40px' : '50px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.95)',
+                  height: '50px',
                   '& fieldset': {
                     borderColor: '#5F4B8B',
                   },
@@ -308,20 +304,20 @@ const [role, setRole] = useState('student'); // default to student
               required
               InputProps={{
                 style: {
-                 fontSize: ismobile ? '12px' : istablet ? '14px' : '15px'
+                  fontSize: '12px'
                 }
               }}
               InputLabelProps={{
                 style: {
-                  fontSize: ismobile ? '12px' : istablet ? '14px' : '15px'
+                  fontSize: '12px'
                 }
               }}
               sx={{
-                mb: ismobile ? 1 : 2,
+                mb: 2,
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: ismobile ? '6px' : '8px',
-                  background: ismobile ? 'rgba(255,255,255,0.95)' : undefined,
-                  height: ismobile ? '40px' : '50px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.95)',
+                  height: '50px',
                   '& fieldset': {
                     borderColor: '#5F4B8B',
                   },
@@ -349,20 +345,20 @@ const [role, setRole] = useState('student'); // default to student
               required
               InputProps={{
                 style: {
-                  fontSize: ismobile ? '12px' : istablet ? '14px' : '15px'
+                 fontSize: '12px'
                 }
               }}
               InputLabelProps={{
                 style: {
-                  fontSize: ismobile ? '12px' : istablet ? '14px' : '15px'
+                  fontSize: '12px'
                 }
               }}
               sx={{
-                mb: ismobile ? 1 : 2,
+                mb: 2,
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: ismobile ? '6px' : '8px',
-                  background: ismobile ? 'rgba(255,255,255,0.95)' : undefined,
-                  height: ismobile ? '40px' : '50px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.95)',
+                  height: '50px',
                   '& fieldset': {
                     borderColor: '#5F4B8B',
                   },
@@ -400,21 +396,21 @@ const [role, setRole] = useState('student'); // default to student
                   </IconButton>
                 ),
                 style: {
-                  fontSize: ismobile ? '12px' : istablet ? '14px' : '15px'
+                 fontSize: '12px'
                 }
               }}
               InputLabelProps={{
                 style: {
-                  fontSize: ismobile ? '12px' : istablet ? '14px' : '15px'
+                  fontSize: '12px'
 
                 }
               }}
               sx={{
-                mb: ismobile ? 1 : 2,
+                mb: 2,
                 '& .MuiOutlinedInput-root': {
-                  borderRadius: ismobile ? '6px' : '8px',
-                  background: ismobile ? 'rgba(255,255,255,0.95)' : undefined,
-                  height: ismobile ? '40px' : '50px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.95)',
+                  height: '50px',
                   '& fieldset': {
                     borderColor: '#5F4B8B',
                   },
@@ -439,12 +435,12 @@ const [role, setRole] = useState('student'); // default to student
                 ...pixelButton,
                 backgroundColor: '#5F4B8B',
                 color: 'white',
-                borderRadius: ismobile ? '6px' : istablet ? '10px' : '12px',
-                py: ismobile ? 1 : istablet ? 1.2 : 1.5,
+                borderRadius: '12px',
+                py: 1.5,
                 mt: 2,
                 mb: 2,
-                fontSize: ismobile ? '9px' : istablet ? '10px' : '11px',
-                boxShadow: ismobile ? '0 2px 8px rgba(95, 75, 139, 0.10)' : undefined,
+                fontSize: '11px',
+                boxShadow: '0 2px 8px rgba(95, 75, 139, 0.10)',
                 '&:hover': {
                   backgroundColor: '#4a3a6d',
                   transform: 'translateY(-2px)',
@@ -464,7 +460,7 @@ const [role, setRole] = useState('student'); // default to student
               textAlign: 'center',
               ...pixelText,
               color: '#3e2c85',
-              fontSize: ismobile ? '8px' : '9px',
+              fontSize: '9px',
               '& a': {
                 color: '#251a51',
                 textDecoration: 'none',

@@ -96,8 +96,6 @@ const UserProfileContainer = () => {
   const location = useLocation();
   const [previousPath, setPreviousPath] = useState('/homepage');
   const [isNavigating, setIsNavigating] = useState(false);
-  const ismobile = useMediaQuery('(max-width:600px)');
-  
   // Log current location for debugging
   console.log("Current location:", location.pathname);
 
@@ -156,7 +154,7 @@ const UserProfileContainer = () => {
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -235,7 +233,7 @@ return (
   }}>
     {/* Back button with dynamic navigation */}
     <Box sx={{ 
-      py: ismobile ? 1 : 1.5,
+      py: 1.5,
       px: { xs: 1.5, md: 3 },
       display: 'flex',
       alignItems: 'center',
@@ -250,8 +248,8 @@ return (
             backgroundColor: 'rgba(255, 255, 255, 0.8)',
             border: '2px solid #5F4B8B',
             borderRadius: '4px',
-            width: ismobile ? '24px' : '32px',
-            height: ismobile ? '24px' : '32px',
+            width: '32px',
+            height: '32px',
             '&:hover': {
               backgroundColor: 'rgba(255, 255, 255, 0.9)',
               boxShadow: '0px 0px 8px rgba(95, 75, 139, 0.6)',
@@ -260,7 +258,7 @@ return (
             transition: 'all 0.2s ease'
           }}
         >
-          <ChevronLeftIcon fontSize={ismobile ? "small" : "medium"} />
+          <ChevronLeftIcon fontSize="medium" />
         </IconButton>
       </Tooltip>
     </Box>

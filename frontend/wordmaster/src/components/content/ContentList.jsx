@@ -19,12 +19,12 @@ import { useUserAuth } from '../context/UserAuthContext';
 import API_URL from '../../services/apiConfig';
 import { styled } from '@mui/material/styles';
 
-const ContentCard = styled(Card)(({ theme, ismobile, istablet }) => ({
+const ContentCard = styled(Card)(({ theme }) => ({
   width: '100%',
-  maxWidth: ismobile ? 340 : istablet ? 400 : 530,
-  minWidth: ismobile ? 0 : istablet ? 320 : 340,
-  height: ismobile ? 170 : istablet ? 200 : 225,
-  borderRadius: ismobile ? '12px' : istablet ? '14px' : '16px',
+  maxWidth: 530,
+  minWidth: 340,
+  height: 225,
+  borderRadius: '16px',
   background: 'rgba(255, 255, 255, 0.9)',
   backdropFilter: 'blur(10px)',
   border: '1px solid rgba(255, 255, 255, 0.5)',
@@ -46,24 +46,24 @@ const ContentCard = styled(Card)(({ theme, ismobile, istablet }) => ({
     top: 0,
     left: 0,
     right: 0,
-    height: ismobile ? '3px' : istablet ? '4px' : '4px',
+    height: '4px',
     background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
   }
 }));
 
-const ActionButtons = styled(Box)(({ ismobile, istablet }) => ({
+const ActionButtons = styled(Box)(() => ({
   position: 'absolute',
-  right: ismobile ? 8 : istablet ? 12 : 16,
-  bottom: ismobile ? 8 : istablet ? 12 : 16,
+  right: 16,
+  bottom: 16,
   display: 'flex',
-  gap: ismobile ? '4px' : istablet ? '6px' : '8px',
+  gap: '8px',
   opacity: 0,
   transform: 'translateY(10px)',
   transition: 'all 0.3s ease',
   background: 'rgba(255, 255, 255, 0.9)',
   backdropFilter: 'blur(5px)',
-  borderRadius: ismobile ? '16px' : istablet ? '18px' : '20px',
-  padding: ismobile ? '2px 4px' : istablet ? '3px 6px' : '4px 8px',
+  borderRadius: '20px',
+  padding: '4px 8px',
   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
 }));
 
@@ -71,8 +71,6 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
   const navigate = useNavigate();
   const { getToken } = useUserAuth();
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const istablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const handleContentClick = async (contentId) => {
     try {

@@ -5,7 +5,6 @@ import { ArrowBack, Save } from '@mui/icons-material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 const PageHeader = ({ title, loading, handleCancel, handleSubmit }) => {
-  const isMobile = window.innerWidth < 768;
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
     fontSize: '10px',
@@ -64,7 +63,7 @@ const PageHeader = ({ title, loading, handleCancel, handleSubmit }) => {
           <Typography sx={{ 
             ...pixelHeading,
             color: '#5F4B8B',
-            fontSize: isMobile ? '14px' : '16px',
+            fontSize: '16px',
             marginLeft: '20px',
             marginTop: '4px',
           }}>

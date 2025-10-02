@@ -72,25 +72,23 @@ const EditContent = () => {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
 
-  const ismobile = window.innerWidth < 768;
-
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -513,7 +511,7 @@ const EditContent = () => {
                 borderRadius: '8px',
                 px: 3,
                 py: 1,
-                minWidth: ismobile ? 'auto' : '140px',
+                minWidth: '140px',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',

@@ -85,7 +85,6 @@ const GamePlay = ({
   const [usedWordMessage, setUsedWordMessage] = useState('');
   const chatEndRef = useRef(null);
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isProcessing, setIsProcessing] = useState(false); // For single-player processing
   const [localMessages, setLocalMessages] = useState([]);
   const [optimisticGameState, setOptimisticGameState] = useState(gameState); // Add this line
@@ -102,14 +101,14 @@ const GamePlay = ({
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize:'10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
@@ -1227,7 +1226,7 @@ const cycleDisplayString = isSinglePlayer
       <Typography sx={{ 
         ...pixelHeading, 
         color: '#5F4B8B', 
-        fontSize: ismobile ? '12px' : '14px', // Match the font size from other headings
+        fontSize: '14px', // Match the font size from other headings
         textShadow: '1px 1px 0px rgba(255,255,255,0.8)' // Add subtle text shadow
       }}>
         WORD BANK
@@ -1570,7 +1569,7 @@ const cycleDisplayString = isSinglePlayer
     }}>
   {/* Per-message processing indicator removed — global analyzing indicator is shown below submit button */}
       
-      <Typography sx={{fontSize: ismobile ? '14px' : '18px' }}>
+      <Typography sx={{fontSize: '18px' }}>
         <strong>{msg.senderName}:</strong> {renderHighlighted(msg.content)}
       </Typography>
       

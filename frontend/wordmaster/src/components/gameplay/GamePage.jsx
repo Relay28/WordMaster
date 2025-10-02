@@ -23,7 +23,7 @@ const GamePage = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const theme = useTheme();
-  const ismobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // Removed responsive design variable
   
   // State for classroom/content selection
   const [classrooms, setClassrooms] = useState([]);
@@ -33,21 +33,21 @@ const GamePage = ({
 
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     lineHeight: '1.5',
     letterSpacing: '0.5px'
   };
 
   const pixelHeading = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '12px' : '14px',
+    fontSize: '14px',
     lineHeight: '1.5',
     letterSpacing: '1px'
   };
 
   const pixelButton = {
     fontFamily: '"Press Start 2P", cursive',
-    fontSize: ismobile ? '8px' : '10px',
+    fontSize: '10px',
     letterSpacing: '0.5px',
     textTransform: 'uppercase'
   };
@@ -211,7 +211,7 @@ const GamePage = ({
 
       <Container maxWidth="md">
         <Paper elevation={3} sx={{ 
-          p: ismobile ? 2 : 4, 
+          p: 4, 
           borderRadius: '12px',
           background: 'linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.75) 100%)',
           backdropFilter: 'blur(8px)',
@@ -236,7 +236,7 @@ const GamePage = ({
             fontWeight: 'bold', 
             mb: 3,
             color: '#2d3748',
-            fontSize: ismobile ? '14px' : '16px',
+            fontSize: '16px',
             textShadow: '1px 1px 0px rgba(95, 75, 139, 0.2)',
             letterSpacing: '1.5px'
           }}>
@@ -284,7 +284,7 @@ const GamePage = ({
               sx={{
                 '& .MuiSelect-select': {
                   ...pixelText,
-                  py: ismobile ? 1.5 : 2
+                  py: 2
                 },
                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                 border: '2px solid rgba(95, 75, 139, 0.2)',
@@ -307,7 +307,7 @@ const GamePage = ({
                       <School sx={{ 
                         color: '#5F4B8B', 
                         mr: 1,
-                        fontSize: ismobile ? '16px' : '20px'
+                        fontSize:'20px'
                       }} />
                       {classroom.name}
                     </Box>
@@ -347,7 +347,7 @@ const GamePage = ({
               sx={{
                 '& .MuiSelect-select': {
                   ...pixelText,
-                  py: ismobile ? 1.5 : 2
+                  py: 2
                 },
                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                 border: '2px solid rgba(95, 75, 139, 0.2)',
@@ -370,7 +370,7 @@ const GamePage = ({
                       <Class sx={{ 
                         color: '#5F4B8B', 
                         mr: 1,
-                        fontSize: ismobile ? '16px' : '20px'
+                        fontSize: '20px'
                       }} />
                       {content.title}
                     </Box>
@@ -384,7 +384,7 @@ const GamePage = ({
             </Select>
           </FormControl>
           
-          <Box display="flex" justifyContent="space-between" flexDirection={ismobile ? 'column' : 'row'} gap={2}>
+          <Box display="flex" justifyContent="space-between" flexDirection="row" gap={2}>
             <Button 
               variant="contained"
               onClick={() => navigate('/homepage')}
@@ -398,8 +398,8 @@ const GamePage = ({
                 },
                 borderRadius: '6px',
                 px: 3,
-                py: ismobile ? 1 : 1.5,
-                minWidth: ismobile ? '100%' : 'auto',
+                py: 1.5,
+                minWidth: 'auto',
                 borderStyle: 'outset',
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.3), 0 0 5px rgba(95, 75, 139, 0.1)',
                 textShadow: '1px 1px 0 rgba(0,0,0,0.5)',
@@ -409,7 +409,7 @@ const GamePage = ({
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
                   borderStyle: 'inset'
                 },
-                order: ismobile ? 2 : 1
+                order: 1
               }}
             >
               CANCEL
@@ -429,8 +429,8 @@ const GamePage = ({
                   },
                   borderRadius: '6px',
                   px: 3,
-                  py: ismobile ? 1 : 1.5,
-                  minWidth: ismobile ? '100%' : 'auto',
+                  py: 1.5,
+                  minWidth: 'auto',
                   borderStyle: 'outset',
                   boxShadow: '4px 4px 0px rgba(0,0,0,0.3), 0 0 5px rgba(95, 75, 139, 0.1)',
                   textShadow: '1px 1px 0 rgba(0,0,0,0.5)',

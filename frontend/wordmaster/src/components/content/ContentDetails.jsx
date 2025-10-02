@@ -36,26 +36,24 @@ import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
 import picbg from '../../assets/picbg.png';
 
-const ismobile = window.innerWidth < 768;
-
 
 const pixelText = {
   fontFamily: '"Press Start 2P", cursive',
-  fontSize: ismobile ? '8px' : '10px',
+  fontSize: '10px',
   lineHeight: '1.5',
   letterSpacing: '0.5px'
 };
 
 const pixelHeading = {
   fontFamily: '"Press Start 2P", cursive',
-  fontSize: ismobile ? '12px' : '14px',
+  fontSize: '14px',
   lineHeight: '1.5',
   letterSpacing: '1px'
 };
 
 const pixelButton = {
   fontFamily: '"Press Start 2P", cursive',
-  fontSize: ismobile ? '8px' : '10px',
+  fontSize: '10px',
   letterSpacing: '0.5px',
   textTransform: 'uppercase'
 };
