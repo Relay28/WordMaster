@@ -130,6 +130,11 @@ public class ChatService {
 
         // Handle scoring
         scoreService.handleGrammarScoring(player, grammarResult.getStatus());
+        // Additional numeric penalty deduction if applied
+        if (grammarResult.isNumericPenaltyApplied()) {
+            int penalty = 5; // base deduction; could externalize later
+            scoreService.awardPoints(player, -penalty, "Numbers not allowed in grammar message");
+        }
         // Award vocabulary points
         scoreService.handleVocabularyScoring(
             player, 

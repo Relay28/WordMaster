@@ -25,6 +25,10 @@ public class GrammarCheckerService {
     private int roleCheckMinLength;
     @Value("${features.role-check.skip-duplicate.enabled:true}")
     private boolean skipDuplicateRoleChecks;
+    @Value("${features.grammar.numbers.penalty.enabled:false}")
+    private boolean numbersPenaltyEnabled;
+    @Value("${features.grammar.numbers.penalty.points:10}")
+    private int numbersPenaltyPoints;
 
     // Cache last normalized text per (role|context) to skip duplicate role_check calls
     private final ConcurrentMap<String, String> lastRoleContextText = new ConcurrentHashMap<>();
@@ -101,8 +105,27 @@ public class GrammarCheckerService {
                 }
             }
 
+            // Numeric penalty (override) if enabled and text has significant numeric content
+            boolean numericTriggered = false;
+            if (numbersPenaltyEnabled && text != null) {
+                String raw = text.trim();
+                int digits = 0;
+                for (char c : raw.toCharArray()) if (Character.isDigit(c)) digits++;
+                double ratio = raw.isEmpty()?0: (double)digits / raw.length();
+                // Trigger if >=1 digit AND (digit ratio >=20%) OR contains math operators adjacent to digits
+                if (digits > 0 && (ratio >= 0.2 || raw.matches(".*[0-9]+[ ]*[-+*/=].*"))) {
+                    numericTriggered = true;
+                }
+            }
+
             // Combine grammar feedback with role feedback if needed
             String enhancedFeedback = gectorResult.getFeedback();
+            ChatMessageEntity.MessageStatus finalStatus = gectorResult.getStatus();
+            if (numericTriggered) {
+                finalStatus = ChatMessageEntity.MessageStatus.MAJOR_ERRORS; // force downgrade
+                String penaltyMsg = "Numbers/maths not allowed. Please write words in English.";
+                enhancedFeedback = penaltyMsg + (enhancedFeedback!=null?"\n"+enhancedFeedback:"");
+            }
             if (!roleFeedback.isEmpty()) {
                 // Always append a concise role line; trim to 140 chars
                 String concise = roleFeedback.replaceAll("\n", " ").trim();
@@ -113,12 +136,12 @@ public class GrammarCheckerService {
             // Log performance improvement
             logger.debug("Grammar check completed in {}ms using GECToR", gectorResult.getProcessingTimeMs());
 
-            return new GrammarCheckResult(gectorResult.getStatus(), enhancedFeedback, isRoleAppropriate);
+            return new GrammarCheckResult(finalStatus, enhancedFeedback, isRoleAppropriate, numericTriggered);
             
         } catch (Exception e) {
             logger.error("Error in grammar check: " + e.getMessage(), e);
             return new GrammarCheckResult(MessageStatus.MINOR_ERRORS, 
-                "Analysis temporarily unavailable. Keep practicing!", false);
+                "Analysis temporarily unavailable. Keep practicing!", false, false);
         }
     }
 
@@ -129,16 +152,18 @@ public class GrammarCheckerService {
         private final ChatMessageEntity.MessageStatus status;
         private final String feedback;
         private final boolean isRoleAppropriate;
+        private final boolean numericPenaltyApplied;
 
-        public GrammarCheckResult(ChatMessageEntity.MessageStatus status, String feedback, boolean isRoleAppropriate) {
+        public GrammarCheckResult(ChatMessageEntity.MessageStatus status, String feedback, boolean isRoleAppropriate, boolean numericPenaltyApplied) {
             this.status = status;
             this.feedback = feedback;
             this.isRoleAppropriate = isRoleAppropriate;
+            this.numericPenaltyApplied = numericPenaltyApplied;
         }
 
         // Constructor for backward compatibility
         public GrammarCheckResult(ChatMessageEntity.MessageStatus status, String feedback) {
-            this(status, feedback, true); // Default to appropriate for backward compatibility
+            this(status, feedback, true, false); // Default
         }
 
         public ChatMessageEntity.MessageStatus getStatus() {
@@ -152,5 +177,7 @@ public class GrammarCheckerService {
         public boolean isRoleAppropriate() {
             return isRoleAppropriate;
         }
+
+        public boolean isNumericPenaltyApplied() { return numericPenaltyApplied; }
     }
 }

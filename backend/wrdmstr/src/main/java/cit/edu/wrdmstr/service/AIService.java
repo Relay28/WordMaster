@@ -25,6 +25,8 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.concurrent.*;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @EnableCaching
 
@@ -147,15 +149,15 @@ public class AIService {
         request.put("task", "word_bank_detection");
         request.put("text", text);
         request.put("wordBank", wordBankWords);
-        
+
         AIResponse response = callAIModel(request);
         String result = response.getResult();
-        
+
         // Parse the response - expect comma-separated list of detected words
         if (result == null || result.trim().isEmpty() || result.equalsIgnoreCase("none")) {
             return Collections.emptyList();
         }
-        
+
         return Arrays.stream(result.split(","))
             .map(String::trim)
             .filter(word -> !word.isEmpty())
@@ -195,6 +197,7 @@ public class AIService {
             if (cacheableRoleCheck) {
                 String msg = ((String) request.getOrDefault("text", "")).trim();
                 String lower = msg.toLowerCase();
+                String role = ((String) request.getOrDefault("role", "")).toLowerCase().replaceAll("[^a-z ]", "").trim();
                 // Simple Tagalog token detection
                 String[] tagalogHints = {"ang","ng","mga","ako","ikaw","sila","hindi","bakit","sana","po","ba","natin"};
                 boolean hasTagalog = false;
@@ -207,6 +210,34 @@ public class AIService {
                     fast.setResult("NOT APPROPRIATE - Please use English");
                     performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
                     return fast;
+                }
+                // Role self-claim mismatch heuristic: e.g. user role = witness but text says 'as the reporter'
+                if (!role.isEmpty()) {
+                    // Patterns: 'as the <role>' or 'i am the <role>'
+                    Pattern claimPat = Pattern.compile("\\b(as the|i am the) ([a-z ]{2,30})");
+                    Matcher m = claimPat.matcher(lower);
+                    if (m.find()) {
+                        String claimed = m.group(2).trim();
+                        // Only flag if claimed role does NOT overlap with actual role token(s)
+                        if (!claimed.contains(role) && !role.contains(claimed)) {
+                            AIResponse fast = new AIResponse();
+                            fast.setResult("NOT APPROPRIATE - Wrong role");
+                            performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                            return fast;
+                        }
+                    }
+                }
+                // Reject numeric / math style content (digits with operators or >=30% digits)
+                if (lower.matches(".*[0-9].*")) {
+                    int digitCount = 0;
+                    for (char c : lower.toCharArray()) if (Character.isDigit(c)) digitCount++;
+                    double ratio = (double) digitCount / Math.max(1, lower.length());
+                    if (ratio >= 0.3 || lower.matches(".*[0-9]+[ ]*[-+*/=].*")) {
+                        AIResponse fast = new AIResponse();
+                        fast.setResult("NOT APPROPRIATE - Use words only");
+                        performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                        return fast;
+                    }
                 }
                 // If short, clean English (letters/space/punct) -> immediate APPROPRIATE
                 if (msg.length() <= 60 && lower.matches("[a-z0-9 .,!?"+'"'+":;'()-]+")) {
@@ -226,21 +257,21 @@ public class AIService {
                 try {
                     // Format for Gemini API
                     Map<String, Object> content = new HashMap<>();
-                    
+
                     String prompt = buildPromptFromRequest(request);
                     Map<String, Object> textPart = new HashMap<>();
                     textPart.put("text", prompt);
-                    
+
                     List<Map<String, Object>> parts = new ArrayList<>();
                     parts.add(textPart);
                     content.put("parts", parts);
-                    
+
                     Map<String, Object> geminiRequest = new HashMap<>();
                     geminiRequest.put("contents", Collections.singletonList(content));
-                    
+
                     // Add API key as query parameter
                     String fullUrl = apiUrl + "?key=" + apiKey;
-                    
+
                     logger.info("Making API request to: {}", apiUrl);
                     try {
                         Map<String, Object> response;
@@ -279,20 +310,20 @@ public class AIService {
                             Map<String, Object> resp = client.postForObject(fullUrl, geminiRequest, Map.class);
                             response = resp;
                         }
-                        
+
                         // Parse Gemini response
                         AIResponse result = new AIResponse();
                         if (response != null) {
                             // Debug logging
                             logger.debug("Received response: {}", response);
-                            
+
                             @SuppressWarnings("unchecked")
                             List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
                             if (candidates != null && !candidates.isEmpty()) {
                                 Map<String, Object> candidate = candidates.get(0);
                                 @SuppressWarnings("unchecked")
                                 Map<String, Object> candidateContent = (Map<String, Object>) candidate.get("content");
-                                
+
                                 if (candidateContent != null) {
                                     @SuppressWarnings("unchecked")
                                     List<Map<String, Object>> candidateParts = (List<Map<String, Object>>) candidateContent.get("parts");
@@ -311,7 +342,7 @@ public class AIService {
                         } else {
                             result.setResult("Null response from API");
                         }
-                        
+
                         if (cacheableRoleCheck && roleCheckKey != null && result.getResult() != null) {
                             CachedItem ci = new CachedItem();
                             ci.value = result.getResult();
@@ -453,15 +484,8 @@ public class AIService {
                     String role = (String) request.getOrDefault("role", "student");
                     String context = (String) request.getOrDefault("context", "general lesson");
                     String msg = (String) request.getOrDefault("text", "");
-                    String shortMsg = msg.length() > 80 ? msg.substring(0,80) : msg; // limit key size
-                    String cacheKey = role + "|" + context + "|" + Integer.toHexString(shortMsg.hashCode());
-                    CachedItem cached = roleCheckCache.get(cacheKey);
-                    long now = System.currentTimeMillis();
-                    if (cached != null && (now - cached.ts) < ROLE_CHECK_TTL_MS) {
-                        logger.debug("role_check cache hit: {}", cacheKey);
-                        return cached.value;
-                    }
-                    return "ROLE CHECK\nRole: " + role + "\nContext: " + context + "\nMessage: " + msg + "\nReturn exactly ONE line starting with 'APPROPRIATE -' or 'NOT APPROPRIATE -'. After the hyphen give a very short reason (<12 words). If Tagalog/mixed say 'NOT APPROPRIATE - Please use English'. No extra sentences.";
+                    // New strict single-line prompt
+                    return "ROLE CHECK\nRole: " + role + "\nContext: " + context + "\nMessage: " + msg + "\nReturn EXACTLY ONE line ONLY: \nAPPROPRIATE - <<=6 words>\nOR\nNOT APPROPRIATE - <<=6 words>\nRules:\n- If writer claims a different role (e.g. says 'as the reporter' but role is " + role + ") -> NOT APPROPRIATE - Wrong role\n- If Tagalog / Filipino words appear -> NOT APPROPRIATE - Please use English\n- If message uses many numbers or math (e.g. '1+1=2') -> NOT APPROPRIATE - Use words only\n- If off-topic for the context -> NOT APPROPRIATE - Off context\n- Else APPROPRIATE\nNo extra text.";
 
                 case "role_prompt":
                     return "Give a single short (<=35 words) in-character encouragement for the role '" +
