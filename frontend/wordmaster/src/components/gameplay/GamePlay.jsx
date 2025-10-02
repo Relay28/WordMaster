@@ -50,7 +50,6 @@ const GamePlay = ({
   gameState, 
   stompClient, 
   sendMessage, 
-  sendAiForAnalysis,
   addOptimisticMessage,
   onGameStateUpdate, 
   gameEnded, 
@@ -484,17 +483,7 @@ useEffect(() => {
   await sendMessage(`/app/game/${gameState.sessionId}/word`, 
            { word: currentSentence, clientMessageId: optimisticMessage.id });
 
-      // Trigger AI grammar analysis (background). If parent passed a helper, use it; otherwise call endpoint directly
-      if (typeof sendAiForAnalysis === 'function') {
-        try { sendAiForAnalysis(currentSentence); } catch (e) { console.error('sendAiForAnalysis error', e); }
-      } else {
-        try {
-          fetch(`${API_URL}/api/ai/submit?sessionId=${sessionId}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ text: currentSentence, task: 'grammar_check' })
-          }).catch(e => console.error('AI submit failed', e));
-        } catch (e) { console.error('AI submit error', e); }
-      }
+      // Deprecated AI streaming/submit removed: grammar handled entirely server-side within ChatService pipeline.
 
       // For single player, optimistically advance turn
       if (isSinglePlayer) {

@@ -164,49 +164,7 @@ const GameCore = () => {
             client.subscribe(`/topic/game/${sessionId}/updates`, handleGameUpdates);
             client.subscribe(`/topic/game/${sessionId}/chat`, handleChatMessage); 
 
-            // Subscribe to AI streaming topic for this session
-            try {
-              // Subscribe to AI stream topic. We will NOT append partial chunks to the
-              // main message list to avoid showing intermediate streaming text.
-              // Instead we set an aiLoading flag while waiting and only append the
-              // final message when payload.type === 'final'. This keeps the UI clean.
-              client.subscribe(`/topic/ai/${sessionId}`, (message) => {
-                try {
-                  const payload = JSON.parse(message.body);
-                  // payload.type = 'partial' | 'final' | 'error', payload.text
-                  if (payload.type === 'partial') {
-                    // Mark that AI is producing output; show a single 'Analyzing...' indicator on AI side
-                    setGameState(prev => ({ ...prev, __aiLoading: true }));
-                    return;
-                  }
-
-                  // For errors, clear loading and optionally show an error message
-                  if (payload.type === 'error') {
-                    setGameState(prev => ({ ...prev, __aiLoading: false }));
-                    // Optionally append a short error message from AI
-                    setGameState(prev => {
-                      const messages = prev.messages ? [...prev.messages] : [];
-                      messages.push({ id: `ai-error-${Date.now()}`, sender: 'AI', content: 'Analysis failed', timestamp: new Date().toISOString() });
-                      return { ...prev, messages };
-                    });
-                    return;
-                  }
-
-                  // payload.type === 'final'
-                  setGameState(prev => {
-                    const messages = prev.messages ? [...prev.messages] : [];
-                    // Remove any existing optimistic AI placeholder (isOptimistic or content 'Analyzing...')
-                    const filtered = messages.filter(m => !(m.isOptimistic && m.sender === 'AI') && !(String(m.content).trim() === 'Analyzing...'));
-                    filtered.push({ id: `ai-${Date.now()}`, sender: 'AI', content: payload.text, timestamp: new Date().toISOString() });
-                    return { ...prev, messages: filtered, __aiLoading: false };
-                  });
-                } catch (e) {
-                  console.error('Error parsing AI stream message', e);
-                }
-              });
-            } catch (e) {
-              console.warn('AI topic subscription failed', e);
-            }
+            // Deprecated AI streaming subscription removed (AsyncAIService eliminated).
             
             // Subscribe to user-specific queue
             if (user && user.id) {
@@ -312,25 +270,7 @@ const GameCore = () => {
     });
   }, []);
 
-  // Helper to send text to AI service and create optimistic UI placeholder (single placeholder only)
-  const sendAiForAnalysis = async (text) => {
-    try {
-      const token = await getToken();
-      if (!token) return;
-      // Instead of pushing a visible placeholder message (which caused duplicates),
-      // just set a flag; UI shows a single global "Analyzing" indicator.
-      setGameState(prev => ({ ...prev, __aiLoading: true }));
-
-      // Fire and forget; the AsyncAIService will stream updates to /topic/ai/{sessionId}
-      await fetch(`${API_URL}/api/ai/submit?sessionId=${sessionId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ text, task: 'grammar_check' })
-      });
-    } catch (err) {
-      console.error('Failed to send AI analysis', err);
-    }
-  };
+  // sendAiForAnalysis removed: no longer calling deprecated /api/ai endpoints.
 
   // Add an optimistic message into the canonical gameState.messages array
   const addOptimisticMessage = (message) => {
@@ -884,8 +824,7 @@ useEffect(() => {
           gameState={gameState}
           stompClient={stompClient}
           sendMessage={sendMessage}
-            sendAiForAnalysis={sendAiForAnalysis}
-            addOptimisticMessage={addOptimisticMessage}
+          addOptimisticMessage={addOptimisticMessage}
           onGameStateUpdate={handleGameStateUpdate}
           gameEnded={gameEnded}
           onProceedToResults={handleProceedToComprehension}
