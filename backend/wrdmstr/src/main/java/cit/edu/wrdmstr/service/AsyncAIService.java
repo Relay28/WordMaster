@@ -7,11 +7,11 @@ import org.languagetool.rules.RuleMatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,6 +27,8 @@ public class AsyncAIService {
     private final SimpMessagingTemplate simp;
 
     private final JLanguageTool langTool;
+    @Value("${features.quick-grammar.enabled:true}")
+    private boolean quickGrammarEnabled;
 
     @Autowired
     public AsyncAIService(AIService aiService,SimpMessagingTemplate simp) {
@@ -35,6 +37,7 @@ public class AsyncAIService {
         this.langTool = new JLanguageTool(new AmericanEnglish());
     }
 
+    // normalizePrompt retained for possible future cache key strategies
     private String normalizePrompt(String prompt) {
         if (prompt == null) return "";
         return prompt.trim().toLowerCase().replaceAll("\\s+", " ");
@@ -52,6 +55,9 @@ public class AsyncAIService {
 
     // Quick local grammar check using LanguageTool. Returns nullable quick feedback.
     public String runLanguageToolQuick(String text) {
+        if (!quickGrammarEnabled) {
+            return null; // Feature disabled
+        }
         try {
             List<RuleMatch> matches = langTool.check(text);
             if (matches == null || matches.isEmpty()) {
@@ -81,16 +87,17 @@ public class AsyncAIService {
             return CompletableFuture.completedFuture(cached.get());
         }
 
-        // Quick grammar check with LanguageTool
-        String lt = runLanguageToolQuick(prompt);
-        if (lt != null) {
-            if (sessionId != null) {
-                simp.convertAndSend("/topic/ai/" + sessionId, 
-                    new AiStreamMessage("partial", lt));
-            }
-            if (!lt.startsWith("NO_ERRORS")) {
-                // Continue to AI service for detailed feedback
-                logger.debug("Grammar check found issues, proceeding to AI analysis");
+        // Optional quick grammar check with LanguageTool (feature flagged)
+        if (quickGrammarEnabled) {
+            String lt = runLanguageToolQuick(prompt);
+            if (lt != null) {
+                if (sessionId != null) {
+                    simp.convertAndSend("/topic/ai/" + sessionId, 
+                        new AiStreamMessage("partial", lt));
+                }
+                if (!lt.startsWith("NO_ERRORS")) {
+                    logger.debug("Grammar check found issues, proceeding to AI analysis");
+                }
             }
         }
 

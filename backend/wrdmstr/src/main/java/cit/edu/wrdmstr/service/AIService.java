@@ -100,21 +100,16 @@ public class AIService {
      */
     @Deprecated
     public String getGrammarFeedback(String text) {
-        logger.warn("Using deprecated AI grammar feedback. Consider using GectorGrammarService for better performance.");
-        
-        // Provide a quick fallback for any legacy calls
-        if (text == null || text.trim().isEmpty()) {
-            return "NO ERRORS - Message received!";
+        boolean enabled = Boolean.parseBoolean(System.getProperty("features.deprecated-ai-grammar.enabled", "false"));
+        if (!enabled) {
+            logger.warn("Deprecated getGrammarFeedback() invoked but disabled. Returning static notice.");
+            return "(Deprecated grammar path disabled - using GECToR engine)";
         }
-        
-        // Simple heuristic-based feedback for backward compatibility
-        if (text.length() < 10) {
-            return "MINOR ERRORS - Try writing a bit more to practice your English!";
-        } else if (!text.matches(".*[.!?]$")) {
-            return "MINOR ERRORS - Good message! Remember to end with punctuation.";
-        } else {
-            return "NO ERRORS - Great job! Your message looks good.";
-        }
+        logger.warn("Using deprecated AI grammar feedback (enabled via feature flag). Consider disabling it.");
+        if (text == null || text.trim().isEmpty()) return "NO ERRORS - Message received!";
+        if (text.length() < 10) return "MINOR ERRORS - Try writing a bit more to practice your English!";
+        if (!text.matches(".*[.!?]$")) return "MINOR ERRORS - Good message! Remember to end with punctuation.";
+        return "NO ERRORS - Great job! Your message looks good.";
     }
 
     /**

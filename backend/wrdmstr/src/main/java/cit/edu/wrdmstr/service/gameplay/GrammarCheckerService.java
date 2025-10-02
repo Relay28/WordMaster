@@ -8,6 +8,9 @@ import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Enhanced Grammar Checker Service using GECToR for fast grammar correction
@@ -18,6 +21,13 @@ public class GrammarCheckerService {
     private static final Logger logger = LoggerFactory.getLogger(GrammarCheckerService.class);
     private final AIService aiService;
     private final GectorGrammarService gectorGrammarService;
+    @Value("${features.role-check.min-length:6}")
+    private int roleCheckMinLength;
+    @Value("${features.role-check.skip-duplicate.enabled:true}")
+    private boolean skipDuplicateRoleChecks;
+
+    // Cache last normalized text per (role|context) to skip duplicate role_check calls
+    private final ConcurrentMap<String, String> lastRoleContextText = new ConcurrentHashMap<>();
 
     public GrammarCheckerService(AIService aiService, GectorGrammarService gectorGrammarService) {
         this.aiService = aiService;
@@ -45,7 +55,13 @@ public class GrammarCheckerService {
             boolean isRoleAppropriate = true;
             String roleFeedback = "";
 
-            if (role != null && !role.isEmpty() && contextDescription != null) {
+            if (role != null && !role.isEmpty() && contextDescription != null && text != null) {
+                String normalized = text.trim().toLowerCase().replaceAll("\\s+", " ");
+                boolean lengthOk = normalized.length() >= roleCheckMinLength;
+                String key = role + '|' + contextDescription;
+                boolean isDuplicate = skipDuplicateRoleChecks && normalized.equals(lastRoleContextText.get(key));
+
+                if (lengthOk && !isDuplicate) {
                 Map<String, Object> request = new HashMap<>();
                 request.put("task", "role_check");
                 request.put("text", text);
@@ -70,9 +86,18 @@ public class GrammarCheckerService {
                         }
                         roleFeedback = roleCheckResponse;
                     }
+                    // Update last seen on success path
+                    lastRoleContextText.put(key, normalized);
                 } catch (Exception roleCheckException) {
                     logger.warn("Role check failed, assuming appropriate: {}", roleCheckException.getMessage());
                     isRoleAppropriate = true; // Default to appropriate if role check fails
+                }
+                } else {
+                    if (!lengthOk) {
+                        logger.debug("Skipping role_check (below min length {})", roleCheckMinLength);
+                    } else if (isDuplicate) {
+                        logger.debug("Skipping role_check (duplicate text for role/context)");
+                    }
                 }
             }
 

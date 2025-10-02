@@ -374,7 +374,7 @@ useEffect(() => {
     lastServerUpdateRef.current = Date.now();
     
     // Only start local countdown if it's my turn or single player
-    const shouldRunTimer = (isMyTurn || isSinglePlayer) && gameState.timeRemaining > 0;
+    const shouldRunTimer = !gameState.paused && (isMyTurn || isSinglePlayer) && gameState.timeRemaining > 0;
     setTimerActive(shouldRunTimer);
 
     if (shouldRunTimer) {
@@ -401,7 +401,7 @@ useEffect(() => {
         clearInterval(timerIntervalRef.current);
       }
     };
-  }, [gameState.timeRemaining, gameState.currentTurn, isMyTurn, isSinglePlayer]);
+  }, [gameState.timeRemaining, gameState.currentTurn, isMyTurn, isSinglePlayer, gameState.paused]);
 
   // Use local time for display, fallback to server time
   const displayTimeRemaining = timerActive ? localTimeRemaining : gameState.timeRemaining;
@@ -422,11 +422,17 @@ useEffect(() => {
   };
   
   const handleSubmit = async () => {
-    if (!sentence.trim() || submitting || messageProcessing) return;
+    const trimmed = sentence.trim();
+    if (!trimmed || submitting || messageProcessing) return;
+    if (trimmed.length < 5) {
+      console.warn('Message too short (minimum 5 characters).');
+      return;
+    }
     
-    setSubmitting(true);
-    setMessageProcessing(true); // Start processing state
-    const currentSentence = sentence.trim();
+  setSubmitting(true);
+  setMessageProcessing(true); // Start processing state
+  onGameStateUpdate && onGameStateUpdate({ __aiLoading: true });
+  const currentSentence = trimmed;
     
     // Immediately clear input
     setSentence('');

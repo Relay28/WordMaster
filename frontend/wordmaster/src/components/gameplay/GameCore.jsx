@@ -532,9 +532,12 @@ useEffect(() => {
       console.log('[Timer Debug] Timer update received:', timerData);
       
       setGameState(prev => {
+        const paused = typeof timerData.paused === 'boolean' ? timerData.paused : prev.paused;
         const newState = {
           ...prev,
           timeRemaining: timerData.timeRemaining,
+          paused,
+          __aiLoading: paused ? true : prev.__aiLoading && paused, // keep loading only while paused
           lastTimerUpdate: Date.now()
         };
         
