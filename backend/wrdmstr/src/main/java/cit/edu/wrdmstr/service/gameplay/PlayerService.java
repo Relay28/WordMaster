@@ -2,7 +2,7 @@ package cit.edu.wrdmstr.service.gameplay;
 
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
-import cit.edu.wrdmstr.service.CardService;
+//import cit.edu.wrdmstr.service.CardService;
 import jakarta.transaction.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ public class PlayerService {
     @Autowired private UserRepository userRepository;
     @Autowired private WordBankItemRepository wordBankItemRepository;
     @Autowired private RoleRepository roleRepository;
-    @Autowired private CardService cardService;
+   // @Autowired private CardService cardService;
 
     public PlayerSessionEntity assignNewWordBomb(Long playerId) {
         PlayerSessionEntity player = playerSessionRepository.findById(playerId)
@@ -102,12 +102,12 @@ public class PlayerService {
         }
         
         // Then draw cards for the player
-        try {
-            cardService.drawCardsForPlayer(player.getId());
-        } catch (Exception e) {
-            // Log the error but don't fail the join process
-            System.err.println("Failed to draw cards for player " + userId + ": " + e.getMessage());
-        }
+//        try {
+//            cardService.drawCardsForPlayer(player.getId());
+//        } catch (Exception e) {
+//            // Log the error but don't fail the join process
+//            System.err.println("Failed to draw cards for player " + userId + ": " + e.getMessage());
+//        }
         
         return player;
     }

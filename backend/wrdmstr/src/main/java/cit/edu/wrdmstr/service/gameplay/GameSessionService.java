@@ -4,7 +4,6 @@ import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.ComprehensionCheckService;
-import cit.edu.wrdmstr.service.CardService;
 import cit.edu.wrdmstr.service.StoryPromptService;
 import cit.edu.wrdmstr.dto.GameSessionDTO;
 import cit.edu.wrdmstr.dto.PlayerSessionDTO;
@@ -45,7 +44,6 @@ public class GameSessionService {
     @Autowired @Lazy
     private GameSessionManagerService gameSessionManagerService;
 
-    @Autowired private CardService cardService;
     @Autowired private StoryPromptService storyPromptService;
 
 
@@ -348,15 +346,15 @@ public class GameSessionService {
         PlayerSessionEntity savedPlayer = playerSessionRepository.save(playerSession);
         
         // Draw cards for the player after successful join
-        try {
-            // First ensure cards exist for the content
-            cardService.generateCardsForContent(session.getContent().getId());
-            // Then draw cards for the player
-            cardService.drawCardsForPlayer(savedPlayer.getId());
-        } catch (Exception e) {
-            logger.error("Failed to draw cards for player {} in session {}: {}", 
-                        userId, sessionId, e.getMessage());
-        }
+//        try {
+//            // First ensure cards exist for the content
+//            cardService.generateCardsForContent(session.getContent().getId());
+//            // Then draw cards for the player
+//            cardService.drawCardsForPlayer(savedPlayer.getId());
+//        } catch (Exception e) {
+//            logger.error("Failed to draw cards for player {} in session {}: {}",
+//                        userId, sessionId, e.getMessage());
+//        }
 
         return playerSessionRepository.save(playerSession);
     }
