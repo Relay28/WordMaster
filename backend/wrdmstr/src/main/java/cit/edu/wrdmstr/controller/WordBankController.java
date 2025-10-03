@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/wordbank")
-@CrossOrigin("https://wordmaster-nu.vercel.app")
 public class WordBankController {
 
     @Autowired

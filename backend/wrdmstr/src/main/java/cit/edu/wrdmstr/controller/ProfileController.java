@@ -22,7 +22,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/profile")
 @PreAuthorize("isAuthenticated()")
-@CrossOrigin(origins = "https://wordmaster-nu.vercel.app")
 public class ProfileController {
 
     private final ProfileService profileService;

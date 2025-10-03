@@ -16,7 +16,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/content")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class ContentController {
 
     private static final Logger logger = LoggerFactory.getLogger(ContentController.class);

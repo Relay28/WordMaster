@@ -20,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/sessions")
-@CrossOrigin("*")
 public class GameSessionController {
 
     @Autowired

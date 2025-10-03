@@ -64,7 +64,7 @@ public class SecurityConfig {
             .ignoringRequestMatchers(
                 "/api/auth/**",
                 "/login/oauth2/code/azure",
-                "/api/grammar/check",
+                "/api/**",
                 "/ws/**"
             )
         )

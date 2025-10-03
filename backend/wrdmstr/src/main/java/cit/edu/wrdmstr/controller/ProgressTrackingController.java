@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/progress")
 @PreAuthorize("isAuthenticated()")
-@CrossOrigin(origins = "https://wordmaster-nu.vercel.app")
 public class ProgressTrackingController {
     private static final Logger logger = LoggerFactory.getLogger(ProgressTrackingController.class);
 
