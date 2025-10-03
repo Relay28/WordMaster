@@ -13,7 +13,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cards")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "https://wordmaster-nu.vercel.app")
 public class CardController {
     @Autowired
     private CardService cardService;
