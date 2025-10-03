@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Avatar, Chip, Typography, Tooltip } from '@mui/material';
+import defaultProfile from '../../../assets/defaultprofile.png';
 
 const PlayerSpotlight = ({ currentPlayer, isMyTurn, pixelHeading }) => {
   return (
@@ -43,7 +44,7 @@ const PlayerSpotlight = ({ currentPlayer, isMyTurn, pixelHeading }) => {
         animation: isMyTurn ? 'pulse 2s infinite' : 'none'
       }}>
         <Avatar
-          src={currentPlayer?.profilePicture || undefined}
+          src={currentPlayer?.profilePicture || defaultProfile}
           sx={{
             width: 120,
             height: 120,

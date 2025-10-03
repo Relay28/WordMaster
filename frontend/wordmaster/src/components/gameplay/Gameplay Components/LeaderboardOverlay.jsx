@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, IconButton, Typography, List, ListItem, Avatar } from '@mui/material';
+import defaultProfile from '../../../assets/defaultprofile.png';
 
 const LeaderboardOverlay = ({ leaderboard = [], cycleDisplayString = '' }) => {
   return (
@@ -26,7 +27,12 @@ const LeaderboardOverlay = ({ leaderboard = [], cycleDisplayString = '' }) => {
               <ListItem key={player.id} sx={{ px: 2, py: 1, backgroundColor: 'transparent', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', '&:hover': { backgroundColor: 'rgba(79, 84, 92, 0.3)' } }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                   <Typography sx={{ minWidth: '24px', color: index < 3 ? ['#ffd700', '#c0c0c0', '#cd7f32'][index] : 'rgba(255,255,255,0.7)', fontWeight: 600, fontSize: '14px', textAlign: 'center', mr: 1.5 }}>#{index + 1}</Typography>
-                  <Avatar sx={{ width: 32, height: 32, mr: 1.5, backgroundColor: 'rgba(114, 137, 218, 0.7)' }}>{player.name?.charAt(0) || '?'}</Avatar>
+                  <Avatar 
+                    src={player.profilePicture || defaultProfile}
+                    sx={{ width: 32, height: 32, mr: 1.5, backgroundColor: 'rgba(114, 137, 218, 0.7)' }}
+                  >
+                    {player.name?.charAt(0) || '?'}
+                  </Avatar>
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                     <Typography sx={{ color: 'white', fontWeight: 500, fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{player.name || 'Player'}</Typography>
                     <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>{player.role || ' '}</Typography>

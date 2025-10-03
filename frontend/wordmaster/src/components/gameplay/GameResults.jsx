@@ -8,6 +8,7 @@ import { Person, EmojiEvents, ArrowBack, QuestionAnswer } from '@mui/icons-mater
 import { useUserAuth } from '../context/UserAuthContext';
 import ComprehensionQuiz from './ComprehensionQuiz';
 import picbg from '../../assets/picbg.png';
+import defaultProfile from '../../assets/defaultprofile.png';
 import '@fontsource/press-start-2p';
 
 const GameResults = ({ gameState, quizCompleted }) => {
@@ -336,6 +337,7 @@ const GameResults = ({ gameState, quizCompleted }) => {
                       >
                         <ListItemAvatar>
                           <Avatar
+                            src={player.profilePicture || defaultProfile}
                             sx={{
                               width: 32,
                               height: 32,

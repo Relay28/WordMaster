@@ -136,23 +136,23 @@ const [role, setRole] = useState('student'); // default to student
       },
     },
   }}>
-    <Container maxWidth="sm" sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      p: 1.5,
-      my: 4,
-      width: '100%',
-      maxWidth: '500px',
-      backgroundColor: 'rgba(255, 255, 255, 0.92)',
-      borderRadius: '16px',
-      boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
-      border: '1px solid rgba(255, 255, 255, 0.3)',
-      backdropFilter: 'blur(8px)',
-      minHeight: '93vh',
-      justifyContent: 'center',
-    }}>
+   <Container maxWidth="sm" sx={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    px: 4, // Horizontal padding
+    py: 4, // Vertical padding - more appropriate value
+    my: 2, // Reduced vertical margin
+    width: '100%',
+    maxWidth: '500px',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderRadius: '16px',
+    boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    backdropFilter: 'blur(8px)',
+    minHeight: 'auto', // Changed from 93vh to auto
+  }}>
 
           {/* Logo */}
           <Box sx={{ mb: 2, mt: 0, width: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -238,16 +238,44 @@ const [role, setRole] = useState('student'); // default to student
           </Box>
 
           {/* Error/Success messages */}
-          {error && (
-            <Alert severity="error" sx={{ mb: 3, ...pixelText }}>
-              {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert severity="success" sx={{ mb: 3, ...pixelText }}>
-              {success}
-            </Alert>
-          )}
+{error && (
+  <Alert 
+    severity="error" 
+    sx={{ 
+      mb: 3, 
+      '& .MuiAlert-message': {
+        fontSize: '11px',
+        fontFamily: '"Press Start 2P", cursive',
+        lineHeight: '1.4',
+        letterSpacing: '0.5px'
+      },
+      '& .MuiAlert-icon': {
+        fontSize: '18px'
+      }
+    }}
+  >
+    {error}
+  </Alert>
+)}
+{success && (
+  <Alert 
+    severity="success" 
+    sx={{ 
+      mb: 3,
+      '& .MuiAlert-message': {
+        fontSize: '11px',
+        fontFamily: '"Press Start 2P", cursive',
+        lineHeight: '1.4',
+        letterSpacing: '0.5px'
+      },
+      '& .MuiAlert-icon': {
+        fontSize: '18px'
+      }
+    }}
+  >
+    {success}
+  </Alert>
+)}
 
           <Box component="form" onSubmit={handleSubmit} sx={{width: '100%' }}>
             {/* First Name Input */}
@@ -284,9 +312,9 @@ const [role, setRole] = useState('student'); // default to student
                   },
                 },
                 '& .MuiInputLabel-outlined': {
-                  transform: 'translate(14px, 12px) scale(1)',
+                  transform: 'translate(15px, 13px) scale(1.2)',
                   '&.MuiInputLabel-shrink': {
-                    transform: 'translate(14px, -6px) scale(0.75)'
+                    transform: 'translate(15px, -6px) scale(0.80)'
                   }
                 }
               }}
@@ -326,9 +354,9 @@ const [role, setRole] = useState('student'); // default to student
                   },
                 },
                 '& .MuiInputLabel-outlined': {
-                transform: 'translate(14px, 12px) scale(1)',
+                transform: 'translate(15px, 13px) scale(1.2)',
                 '&.MuiInputLabel-shrink': {
-                  transform: 'translate(14px, -6px) scale(0.75)'
+                  transform: 'translate(15px, -6px) scale(0.80)'
                 }}
               }}
             />
@@ -367,9 +395,9 @@ const [role, setRole] = useState('student'); // default to student
                   },
                 },
                 '& .MuiInputLabel-outlined': {
-                transform: 'translate(14px, 12px) scale(1)',
+                transform: 'translate(15px, 13px) scale(1.2)',
                 '&.MuiInputLabel-shrink': {
-                  transform: 'translate(14px, -6px) scale(0.75)'
+                  transform: 'translate(15px, -6px) scale(0.80)'
                 }}
               }}
             />
@@ -419,9 +447,9 @@ const [role, setRole] = useState('student'); // default to student
                   },
                 },
                 '& .MuiInputLabel-outlined': {
-                transform: 'translate(14px, 12px) scale(1)',
+                transform: 'translate(15px, 13px) scale(1.2)',
                 '&.MuiInputLabel-shrink': {
-                  transform: 'translate(14px, -6px) scale(0.75)'
+                  transform: 'translate(15px, -6px) scale(0.80)'
                 }}
               }}
             />

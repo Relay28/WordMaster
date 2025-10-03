@@ -203,24 +203,25 @@ const OTPVerification = () => {
           },
         },
       }}>
-        <Container maxWidth="sm" sx={{
+       <Container maxWidth="sm" sx={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          p: 1.5,
-          my: 0,
-          width: '100%',
-          maxWidth: '100vw',
+          pl: { xs: 2, sm: 4, md: 6 },  // Responsive padding
+          pr: { xs: 2, sm: 4, md: 6 },
+          pt: 4,                        // Reduced top padding
+          pb: 4,                        // Reduced bottom padding
+          width: 'auto',                // Let width be determined by content
+          maxWidth: '420px',            // Maximum width control
           backgroundColor: 'rgba(255,255,255,0.85)',
           borderRadius: '16px',
           boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
           border: '1px solid rgba(255, 255, 255, 0.3)',
           backdropFilter: 'blur(8px)',
-          minHeight: '80vh',
-          justifyContent: 'center',
+          minHeight: 'auto',            // Remove fixed height
+          margin: 'auto'                // Center horizontally
         }}>
-
           {/* Logo */}
           <Box sx={{ mb: 2, mt: 0, width: '100%', display: 'flex', justifyContent: 'center' }}>
             <img
@@ -247,7 +248,7 @@ const OTPVerification = () => {
 
           {/* Heading */}
           <Typography sx={{ 
-            fontSize: '13px',
+            fontSize: '14px',
             color: '#4a5568',
             textAlign: 'center',
             mb: 2,
@@ -256,16 +257,46 @@ const OTPVerification = () => {
             Enter the 6-digit code sent to {email}
           </Typography>
 
-         {success && (
-            <Alert severity="success" sx={{ mb: 3, ...pixelText }}>
-              {success}
-            </Alert>
-          )}
-          {error && (
-            <Alert severity="error" sx={{ mb: 3, ...pixelText }}>
-              {error}
-            </Alert>
-          )}
+        {success && (
+          <Alert 
+            severity="success" 
+            sx={{ 
+              mb: 3,
+              width: '100%',
+              '& .MuiAlert-message': {
+                fontSize: '10px',
+                fontFamily: '"Press Start 2P", cursive',
+                lineHeight: '1.4',
+                letterSpacing: '0.5px'
+              },
+              '& .MuiAlert-icon': {
+                fontSize: '16px'
+              }
+            }}
+          >
+            {success}
+          </Alert>
+        )}
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mb: 3,
+              width: '100%',
+              '& .MuiAlert-message': {
+                fontSize: '10px',
+                fontFamily: '"Press Start 2P", cursive',
+                lineHeight: '1.4',
+                letterSpacing: '0.5px'
+              },
+              '& .MuiAlert-icon': {
+                fontSize: '16px'
+              }
+            }}
+          >
+            {error}
+          </Alert>
+        )}
 
           <Box component="form" onSubmit={handleVerify} sx={{ mt: 2, width: '100%' }}>
             {/* OTP Input Fields */}
@@ -273,6 +304,7 @@ const OTPVerification = () => {
               display: 'flex',
               justifyContent: 'space-between',
               mb: 4,
+              gap: 2
             }}>
               {otp.map((digit, index) => (
                 <TextField
@@ -345,8 +377,8 @@ const OTPVerification = () => {
               <Typography sx={{ 
                 ...pixelText,
                 color: '#5F4B8B',
-                mb: 1,
-                fontSize: '9px'
+                mb: 3,
+                fontSize: '11px'
               }}>
                 Didn't receive the code?
                 <Button
@@ -356,7 +388,7 @@ const OTPVerification = () => {
                 sx={{
                   ...pixelButton,
                   color: '#5F4B8B',
-                  fontSize: '9px',
+                  fontSize: '10px',
                   textDecoration: resendDisabled ? 'none' : 'underline',
                   textDecorationColor: '#5F4B8B', // Optional: set underline color
                   minWidth: 'unset',

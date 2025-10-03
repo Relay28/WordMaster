@@ -16,6 +16,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
+import defaultProfile from '../../assets/defaultprofile.png';
 
 const WaitingRoom = ({ gameState, isTeacher }) => {
     const { sessionId } = useParams();
@@ -135,7 +136,10 @@ const WaitingRoom = ({ gameState, isTeacher }) => {
             <List disablePadding>
             {gameState.players.map(player => (
               <ListItem key={player.id} divider>
-                <Avatar sx={{ mr: 2, bgcolor: '#5F4B8B' }}>
+                <Avatar 
+                  src={player.profilePicture || defaultProfile}
+                  sx={{ mr: 2, bgcolor: '#5F4B8B' }}
+                >
                   {player.name?.charAt(0) || 'P'}
                 </Avatar>
                 <ListItemText 

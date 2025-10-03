@@ -11,6 +11,7 @@ import {
   ListItemText, ListItemAvatar, Stack, 
 } from '@mui/material';
 import picbg from '../../assets/picbg.png'
+import defaultProfile from '../../assets/defaultprofile.png'
 import { Person, EmojiEvents, ArrowBack, QuestionAnswer, Class, AccessTime, People } from '@mui/icons-material';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -292,7 +293,7 @@ const SessionDetailsDialog = ({ session, open, onClose }) => {
                 }}>
                   <ListItemAvatar>
                     <Avatar 
-                      src={player.profilePicture}
+                      src={player.profilePicture || defaultProfile}
                       sx={{ 
                         width: 48, 
                         height: 48,
@@ -446,7 +447,7 @@ const PlayerListItem = ({ player, pixelText, fontSize = '10px' }) => (
   }}>
     <ListItemAvatar>
       <Avatar 
-        src={player.profilePicture}
+        src={player.profilePicture || defaultProfile}
         sx={{ 
           width: 40, // Larger avatar
           height: 40,

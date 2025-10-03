@@ -30,6 +30,7 @@ import picbg from '../assets/picbg.png';
 import BGforProfile from '../assets/BGforProfile.png';
 import backbtn from '../assets/backbtn.png';
 import BookforProfile from '../assets/BookforProfile.png';
+import defaultProfile from '../assets/defaultprofile.png';
 
 import farmer from '../assets/ch-farmer.png';
 import king from '../assets/ch-king.png';
@@ -476,18 +477,18 @@ const ProfilePicture = ({
   }}
 >
   <Avatar
-    src={profilePicture || undefined}
+    src={profilePicture || defaultProfile}
     sx={{
       width: 120,
       height: 120,
       fontSize: 40,
-      border: '2px solid #5F4B8B',
+      // border: '2px solid #5F4B8B',
       color: "#5F4B8B",
       borderRadius: '10%',
       ml: '27%',
     }}
   >
-    {!profilePicture && initials}
+    {!profilePicture && !defaultProfile && initials}
   </Avatar>
 
 

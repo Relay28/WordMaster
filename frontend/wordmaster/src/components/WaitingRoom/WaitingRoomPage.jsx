@@ -11,6 +11,7 @@ import { Client } from '@stomp/stompjs';
 import apiConfig from '../../services/apiConfig';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
+import defaultProfile from '../../assets/defaultprofile.png';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 
 const WaitingRoomPage = () => {
@@ -281,9 +282,9 @@ const WaitingRoomPage = () => {
                         height: 40,
                         color: 'white'
                       }}
-                      src={student.profilePicture || undefined}
+                      src={student.profilePicture || defaultProfile}
                     >
-                      {!student.profilePicture && student.fname?.charAt(0)}
+                      {!student.profilePicture && !defaultProfile && student.fname?.charAt(0)}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText 

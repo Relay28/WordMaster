@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, List, ListItem, ListItemAvatar, Avatar, ListItemText, Chip, IconButton, Tooltip, Typography } from '@mui/material';
 import { PersonRemove } from '@mui/icons-material';
+import defaultProfile from '../../../assets/defaultprofile.png';
 
 const MembersTab = ({ members = [], classroom, isClassroomTeacher, handleRemoveStudent, pixelText }) => {
   return (
@@ -13,10 +14,10 @@ const MembersTab = ({ members = [], classroom, isClassroomTeacher, handleRemoveS
         }}>
           <ListItemAvatar>
             <Avatar
-              src={classroom.teacher.profilePicture || undefined}
+              src={classroom.teacher.profilePicture || defaultProfile}
               sx={{ bgcolor: '#5F4B8B' }}
             >
-              {!classroom.teacher.profilePicture && (
+              {!classroom.teacher.profilePicture && !defaultProfile && (
                 <>
                   {classroom.teacher.fname?.charAt(0)}
                   {classroom.teacher.lname?.charAt(0)}
@@ -58,10 +59,10 @@ const MembersTab = ({ members = [], classroom, isClassroomTeacher, handleRemoveS
             >
               <ListItemAvatar>
                 <Avatar
-                  src={member.profilePicture || undefined}
+                  src={member.profilePicture || defaultProfile}
                   sx={{ bgcolor: '#6c63ff' }}
                 >
-                  {!member.profilePicture && (
+                  {!member.profilePicture && !defaultProfile && (
                     <>
                       {member.fname?.charAt(0)}
                       {member.lname?.charAt(0)}
