@@ -113,7 +113,7 @@ public class GrammarCheckerService {
                 for (char c : raw.toCharArray()) if (Character.isDigit(c)) digits++;
                 double ratio = raw.isEmpty()?0: (double)digits / raw.length();
                 // Trigger if >=1 digit AND (digit ratio >=20%) OR contains math operators adjacent to digits
-                if (digits > 0 && (ratio >= 0.2 || raw.matches(".*[0-9]+[ ]*[-+*/=].*"))) {
+                if (digits > 0 && (ratio >= 0.2 || containsDigitAdjacentToMathOperator(raw))) {
                     numericTriggered = true;
                 }
             }
@@ -143,6 +143,36 @@ public class GrammarCheckerService {
             return new GrammarCheckResult(MessageStatus.MINOR_ERRORS, 
                 "Analysis temporarily unavailable. Keep practicing!", false, false);
         }
+    }
+
+    /**
+     * Checks if the text contains digits adjacent to math operators (e.g., "2+2=4")
+     * Uses character-by-character analysis instead of regex for better performance
+     */
+    private boolean containsDigitAdjacentToMathOperator(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+        
+        char[] chars = text.toCharArray();
+        for (int i = 0; i < chars.length - 1; i++) {
+            // Check if current char is digit and next is operator
+            if (Character.isDigit(chars[i]) && isMathOperator(chars[i+1])) {
+                return true;
+            }
+            // Check if current char is operator and next is digit
+            if (isMathOperator(chars[i]) && i+1 < chars.length && Character.isDigit(chars[i+1])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Helper method to check if a character is a common math operator
+     */
+    private boolean isMathOperator(char c) {
+        return c == '+' || c == '-' || c == '*' || c == '/' || c == '=' || c == '%';
     }
 
     /**

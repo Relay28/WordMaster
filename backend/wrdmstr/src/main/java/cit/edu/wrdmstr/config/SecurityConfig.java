@@ -60,7 +60,14 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-        .csrf(csrf -> csrf.disable())
+        .csrf(csrf -> csrf
+            .ignoringRequestMatchers(
+                "/api/auth/**",
+                "/login/oauth2/code/azure",
+                "/api/grammar/check",
+                "/ws/**"
+            )
+        )
         .sessionManagement(session -> session
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
