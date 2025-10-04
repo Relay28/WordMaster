@@ -9,7 +9,26 @@ import { useUserAuth } from '../context/UserAuthContext';
 import ComprehensionQuiz from './ComprehensionQuiz';
 import picbg from '../../assets/picbg.png';
 import defaultProfile from '../../assets/defaultprofile.png';
+import { useProfilePicture } from '../utils/ProfilePictureManager';
 import '@fontsource/press-start-2p';
+
+// Player Avatar component
+const PlayerAvatar = ({ profilePicture, index }) => {
+  const profilePic = useProfilePicture(profilePicture);
+  return (
+    <Avatar
+      src={profilePic || defaultProfile}
+      sx={{
+        width: 32,
+        height: 32,
+        bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B',
+        fontSize: '0.9rem'
+      }}
+    >
+      {index + 1}
+    </Avatar>
+  );
+};
 
 const GameResults = ({ gameState, quizCompleted }) => {
   const navigate = useNavigate();
@@ -336,17 +355,10 @@ const GameResults = ({ gameState, quizCompleted }) => {
                         }}
                       >
                         <ListItemAvatar>
-                          <Avatar
-                            src={player.profilePicture || defaultProfile}
-                            sx={{
-                              width: 32,
-                              height: 32,
-                              bgcolor: index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#5F4B8B',
-                              fontSize: '0.9rem'
-                            }}
-                          >
-                            {index + 1}
-                          </Avatar>
+                          <PlayerAvatar 
+                            profilePicture={player.profilePicture} 
+                            index={index} 
+                          />
                         </ListItemAvatar>
                         <ListItemText
                           primary={

@@ -230,9 +230,23 @@ const Login = () => {
             Ready to start your adventure?
           </Typography>
 
-          {/* Error message */}
+          {/* Error message - matching Register styling */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3, ...pixelText }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 3, 
+                '& .MuiAlert-message': {
+                  fontSize: '11px',
+                  fontFamily: '"Press Start 2P", cursive',
+                  lineHeight: '1.4',
+                  letterSpacing: '0.5px'
+                },
+                '& .MuiAlert-icon': {
+                  fontSize: '18px'
+                }
+              }}
+            >
               {error}
             </Alert>
           )}

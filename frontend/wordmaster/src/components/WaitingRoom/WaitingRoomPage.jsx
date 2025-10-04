@@ -12,7 +12,52 @@ import apiConfig from '../../services/apiConfig';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import defaultProfile from '../../assets/defaultprofile.png';
+import { useProfilePicture } from '../utils/ProfilePictureManager';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+
+// Separate component for profile picture to properly use hooks
+const ProfilePicture = ({ profilePicture, firstName }) => {
+  const [imgError, setImgError] = useState(false);
+  const API_URL = apiConfig.API_URL;
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('WaitingRoomPage ProfilePicture:', { profilePicture, firstName });
+    // Check if the profilePicture is a relative URL missing the API base
+    if (profilePicture && !profilePicture.startsWith('http') && !profilePicture.startsWith('data:')) {
+      console.log('Profile picture appears to be a relative path, full URL would be:', 
+                `${API_URL}${profilePicture.startsWith('/') ? '' : '/'}${profilePicture}`);
+    }
+  }, [profilePicture, firstName]);
+  
+  // Construct proper URL for the profile picture
+  const getFullProfilePicUrl = () => {
+    if (!profilePicture) return defaultProfile;
+    
+    // If it's already a full URL or data URI, use as is
+    if (profilePicture.startsWith('http') || profilePicture.startsWith('data:')) {
+      return profilePicture;
+    }
+    
+    // Otherwise, assume it's a relative URL and prepend API_URL
+    return `${API_URL}${profilePicture.startsWith('/') ? '' : '/'}${profilePicture}`;
+  };
+  
+  return (
+    <Avatar 
+      sx={{ 
+        bgcolor: '#5F4B8B',
+        width: 40,
+        height: 40,
+        color: 'white'
+      }}
+      src={imgError ? defaultProfile : getFullProfilePicUrl()}
+      onError={() => setImgError(true)}
+    >
+      {(imgError || !profilePicture) && firstName?.charAt(0)}
+    </Avatar>
+  );
+};
 
 const WaitingRoomPage = () => {
   const { contentId } = useParams();
@@ -275,17 +320,10 @@ const WaitingRoomPage = () => {
                   }}
                 >
                   <ListItemAvatar>
-                    <Avatar 
-                      sx={{ 
-                        bgcolor: '#5F4B8B',
-                        width: 40,
-                        height: 40,
-                        color: 'white'
-                      }}
-                      src={student.profilePicture || defaultProfile}
-                    >
-                      {!student.profilePicture && !defaultProfile && student.fname?.charAt(0)}
-                    </Avatar>
+                    <ProfilePicture 
+                      profilePicture={student.profilePicture} 
+                      firstName={student.fname} 
+                    />
                   </ListItemAvatar>
                   <ListItemText 
                     primary={`${student.fname}`} 

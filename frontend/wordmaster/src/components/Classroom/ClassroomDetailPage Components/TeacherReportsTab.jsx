@@ -2,6 +2,21 @@ import React from 'react';
 import { Box, Typography, Paper, Grid, Divider, Button, IconButton, CircularProgress, Alert, Avatar, Chip } from '@mui/material';
 import { ChevronLeft, DeleteOutline, Download } from '@mui/icons-material';
 import defaultProfile from '../../../assets/defaultprofile.png';
+import { useProfilePicture } from '../../utils/ProfilePictureManager';
+
+// Separate component for profile picture to properly use hooks
+const ProfilePicture = ({ profilePicture, studentName }) => {
+  const profilePic = useProfilePicture(profilePicture);
+  
+  return (
+    <Avatar 
+      src={profilePic || defaultProfile}
+      sx={{ bgcolor: '#6c63ff', width: 30, height: 30, mr: 1, fontSize: '12px' }}
+    >
+      {!profilePic && !defaultProfile && studentName.split(' ').map(n => n[0]).join('')}
+    </Avatar>
+  );
+};
 
 const TeacherReportsTab = ({
   pixelText,
@@ -112,12 +127,10 @@ const TeacherReportsTab = ({
                     <Grid item xs={12} sm={6} md={4} key={student.userId}>
                       <Paper elevation={1} sx={{ p: 2, cursor: 'pointer', borderRadius: '8px', transition: 'all 0.2s ease', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)' } }} onClick={() => navigate(`/student-report/${selectedSession}/${student.userId}`)}>
                         <Box display="flex" alignItems="center" mb={1}>
-                          <Avatar 
-                            src={student.profilePicture || defaultProfile}
-                            sx={{ bgcolor: '#6c63ff', width: 30, height: 30, mr: 1, fontSize: '12px' }}
-                          >
-                            {student.name.split(' ').map(n => n[0]).join('')}
-                          </Avatar>
+                          <ProfilePicture 
+                            profilePicture={student.profilePicture} 
+                            studentName={student.name} 
+                          />
                           <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>{student.name}</Typography>
                         </Box>
                         <Box display="flex" justifyContent="space-between" mb={1}>

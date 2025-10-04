@@ -33,6 +33,9 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
   const uploadProfilePicture = async (file) => {
     try {
       setLoading(true);
+      setError(null);
+      setSuccess(null);
+      
       const token = await getToken();
       
       const formData = new FormData();
@@ -48,26 +51,43 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
           }
         }
       );
+      
       console.log('Upload response:', response.data);
-      setSuccess('Profile picture updated successfully');
-
+      
       // Update localStorage userData with new profile picture
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
       userData.profilePicture = response.data.profilePicture; // Use the new URL from backend
+      
+      // Update in localStorage
       localStorage.setItem('userData', JSON.stringify(userData));
 
+      // Update the user context - this is critical as it triggers re-renders in components that use the context
       setUser(userData);
 
+      // Force a refresh for any components that might be displaying the user's profile picture
+      // Use both direct dispatch and setTimeout for redundancy
+      window.dispatchEvent(new Event('storage'));
+      
+      // Additional delayed event for components that might not catch the first one
+      setTimeout(() => {
+        window.dispatchEvent(new Event('storage'));
+      }, 100);
+
+      setSuccess('Profile picture updated successfully');
       setLoading(false);
-      return response.data;
+      return response.data; // Make sure to return the response data
     } catch (err) {
       setLoading(false);
+      
+      let errorMessage = 'An error occurred while uploading. Please try again.';
+      
       if (err.response && err.response.data) {
-        setError(err.response.data.error || 'Failed to upload profile picture');
-      } else {
-        setError('An error occurred while uploading. Please try again.');
+        errorMessage = err.response.data.error || 'Failed to upload profile picture';
       }
+      
+      setError(errorMessage);
       console.error('Error uploading profile picture:', err);
+      return null; // Return null on error
     }
   };
 

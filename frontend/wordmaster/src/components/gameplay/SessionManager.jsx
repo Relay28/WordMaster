@@ -113,6 +113,44 @@ const TeacherContentSessions = () => {
 const SessionDetailsDialog = ({ session, open, onClose }) => {
   if (!session) return null;
 
+  // Enhanced debugging for session data
+  console.log("Session details:", {
+    id: session.sessionId,
+    code: session.sessionCode,
+    playerCount: session.players?.length || 0
+  });
+  
+  // Debug to see what we're getting
+  console.log("Session players:", session.players);
+  if (session.players && session.players.length > 0) {
+    const firstPlayer = session.players[0];
+    console.log("First player:", firstPlayer);
+    console.log("First player keys:", Object.keys(firstPlayer));
+    console.log("First player role:", firstPlayer.role);
+    console.log("First player gameRole:", firstPlayer.gameRole);
+    console.log("First player role:", session.players[0].role);
+  }  // Function to get player role display name
+  const getPlayerRoleDisplay = (player) => {
+    console.log("Getting role for player:", player);
+    console.log("Object keys:", Object.keys(player));
+    
+    // Prioritize game-specific role if available
+    if (player.gameRole) {
+      return player.gameRole;
+    }
+    
+    // Fall back to system role if available
+    if (player.role) {
+      return player.role;
+    }
+    
+    // Check for sessionRole (legacy support)
+    if (player.sessionRole) {
+      return player.sessionRole;
+    }
+    
+    return "Student"; // Default fallback
+  };
   return (
     <Dialog 
       open={open} 
@@ -284,52 +322,54 @@ const SessionDetailsDialog = ({ session, open, onClose }) => {
             }}>
               PLAYERS
             </Typography>
-            
-            <List dense sx={{ p: 0 }}>
-              {session.players.map((player) => (
-                <ListItem key={player.id} sx={{ 
-                  p: '12px 0',
-                  borderBottom: '2px solid #F0F0F0'
-                }}>
-                  <ListItemAvatar>
-                    <Avatar 
-                      src={player.profilePicture || defaultProfile}
-                      sx={{ 
-                        width: 48, 
-                        height: 48,
-                        fontSize: '20px',
-                        bgcolor: '#5F4B8B'
-                      }}
-                    >
-                      {player.name?.charAt(0).toUpperCase()}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography sx={{ 
-                        fontFamily: '"Press Start 2P", cursive',
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        lineHeight: '1.4'
-                      }}>
-                        {player.name}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography sx={{ 
-                        fontFamily: '"Press Start 2P", cursive',
-                        fontSize: '12px',
-                        color: '#5F4B8B',
-                        mt: 1
-                      }}>
-                        Role: {player.role || "None"}
-                      </Typography>
-                    }
-                    sx={{ ml: 3 }}
-                  />
-                </ListItem>
-              ))}
-            </List>
+
+<List dense sx={{ p: 0 }}>
+  {session.players.map((player) => (
+    <ListItem key={player.id} sx={{ 
+      p: '12px 0',
+      borderBottom: '2px solid #F0F0F0'
+    }}>
+      <ListItemAvatar>
+        <Avatar 
+          src={player.profilePicture || defaultProfile}
+          sx={{ 
+            width: 48, 
+            height: 48,
+            fontSize: '20px',
+            bgcolor: '#5F4B8B'
+          }}
+        >
+          {/* Use playerName property which is what the backend sends */}
+          {player.playerName?.charAt(0).toUpperCase() || player.name?.charAt(0).toUpperCase()}
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText
+        primary={
+          <Typography sx={{ 
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            lineHeight: '1.4'
+          }}>
+            {/* Use playerName property which is what the backend sends */}
+            {player.playerName || player.name || "Unknown Player"}
+          </Typography>
+        }
+        secondary={
+          <Typography sx={{ 
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: '12px',
+            color: '#5F4B8B',
+            mt: 1
+          }}>
+             Role: {getPlayerRoleDisplay(player)}
+          </Typography>
+        }
+        sx={{ ml: 3 }}
+      />
+    </ListItem>
+  ))}
+</List>
           </Box>
         </Box>
       </DialogContent>
@@ -438,49 +478,77 @@ const DetailItem = ({ icon, label, value, color, fontSize = '10px' }) => (
 );
 
 // Updated PlayerListItem with larger text
-const PlayerListItem = ({ player, pixelText, fontSize = '10px' }) => (
-  <ListItem sx={{ 
-    p: '12px 0', // More padding
-    '&:not(:last-child)': {
-      borderBottom: '2px solid rgba(95, 75, 139, 0.1)' // Thicker border
+const PlayerListItem = ({ player, pixelText, fontSize = '10px' }) => {
+  // Function to get player role display name - same as in SessionDetailsDialog
+  const getPlayerRoleDisplay = (player) => {
+    console.log("PlayerListItem - Getting role for player:", player);
+    console.log("PlayerListItem - Object keys:", Object.keys(player));
+    
+    // Prioritize game-specific role if available
+    if (player.gameRole) {
+      return player.gameRole;
     }
-  }}>
-    <ListItemAvatar>
-      <Avatar 
-        src={player.profilePicture || defaultProfile}
-        sx={{ 
-          width: 40, // Larger avatar
-          height: 40,
-          bgcolor: '#5F4B8B',
-          fontSize: '16px' // Larger initial
-        }}
-      >
-        {player.name?.charAt(0)}
-      </Avatar>
-    </ListItemAvatar>
-    <ListItemText
-      primary={
-        <Typography sx={{ 
-          ...pixelText, 
-          fontSize: fontSize,
-          fontWeight: 'bold' // More emphasis
-        }}>
-          {player.name}
-        </Typography>
-      }
-      secondary={
-        <Typography sx={{ 
-          ...pixelText, 
-          fontSize: fontSize,
-          color: '#5F4B8B'
-        }}>
-          Role: {player.role || "None"}
-        </Typography>
-      }
-      sx={{ ml: 2 }} // More spacing
-    />
-  </ListItem>
-);
+    
+    // Fall back to system role if available
+    if (player.role) {
+      return player.role;
+    }
+    
+    // Check for sessionRole (legacy support)
+    if (player.sessionRole) {
+      return player.sessionRole;
+    }
+    
+    return "Student"; // Default fallback
+  };
+  
+  return (
+    // In the part where player info is displayed in the dialog
+    <ListItem key={player.id} sx={{ 
+      p: '12px 0',
+      borderBottom: '2px solid #F0F0F0'
+    }}>
+      <ListItemAvatar>
+        <Avatar 
+          src={player.profilePicture || defaultProfile}
+          sx={{ 
+            width: 48, 
+            height: 48,
+            fontSize: '20px',
+            bgcolor: '#5F4B8B'
+          }}
+        >
+          {/* Use playerName instead of name if available */}
+          {(player.playerName || player.name)?.charAt(0).toUpperCase()}
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText
+        primary={
+          <Typography sx={{ 
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            lineHeight: '1.4'
+          }}>
+            {/* Use playerName instead of name if available */}
+            {player.playerName || player.name || "Unknown Player"}
+          </Typography>
+        }
+        secondary={
+          <Typography sx={{ 
+            fontFamily: '"Press Start 2P", cursive',
+            fontSize: '12px',
+            color: '#5F4B8B',
+            mt: 1
+          }}>
+            Role: {getPlayerRoleDisplay(player)}
+          </Typography>
+        }
+        sx={{ ml: 3 }}
+      />
+    </ListItem>
+  );
+};
 
 // Updated LeaderboardItem with larger text
 const LeaderboardItem = ({ entry, index, pixelText, fontSize = '10px' }) => (

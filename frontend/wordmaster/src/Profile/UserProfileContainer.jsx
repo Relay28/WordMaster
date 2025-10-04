@@ -127,18 +127,47 @@ const UserProfileContainer = () => {
       const response = await fetch(imgPath);
       const blob = await response.blob();
       const file = new File([blob], imgPath.split('/').pop(), { type: blob.type });
-      await uploadProfilePicture(file);
+      
+      // Show loading state while uploading
+      setSuccess(null);
+      setError(null);
+      
+      // Upload profile picture and get the response
+      const uploadResult = await uploadProfilePicture(file);
+      if (!uploadResult) {
+        setError("Failed to upload profile picture");
+        return;
+      }
+      
+      // Get the updated user data from localStorage
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-      setUser(userData); // This updates the context and triggers a re-render
+      
+      // Make sure the profile picture URL is properly updated
+      if (uploadResult.profilePicture) {
+        userData.profilePicture = uploadResult.profilePicture;
+        
+        // Update localStorage and user context
+        localStorage.setItem('userData', JSON.stringify(userData));
+        setUser(userData);
+        
+        // Update local form state
+        setFormData((prev) => ({
+          ...prev,
+          profilePicture: userData.profilePicture
+        }));
+        
+        // Force a refresh for other components by triggering a storage event
+        window.dispatchEvent(new Event('storage'));
+        
+        setSuccess("Profile picture updated successfully");
+      }
 
-      setFormData((prev) => ({
-        ...prev,
-        profilePicture: userData.profilePicture
-      }));
-
-      setDialogOpen(false);
+      if (setDialogOpen) {
+        setDialogOpen(false);
+      }
     } catch (error) {
       console.error('Error selecting image:', error);
+      setError("Error updating profile picture. Please try again.");
     }
   };
 
@@ -450,6 +479,12 @@ const ProfilePicture = ({
   handleImageSelect
 }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Pass setDialogOpen to handleImageSelect
+  const handleSelectImage = (src) => {
+    handleImageSelect(src);
+    setDialogOpen(false);
+  };
 
   const imageOptions = [
     farmer,
@@ -534,7 +569,7 @@ const ProfilePicture = ({
                     border: '2px solid transparent',
                     transition: 'border 0.2s ease-in-out',
                   }}
-                  onClick={() => handleImageSelect(src)}
+                  onClick={() => handleSelectImage(src)}
                   onMouseOver={(e) => e.currentTarget.style.border = '2px solid #5F4B8B'}
                   onMouseOut={(e) => e.currentTarget.style.border = '2px solid transparent'}
                 />

@@ -10,11 +10,11 @@ export function UserAuthProvider({ children }) {
   const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  // Function to refresh user data from localStorage
+  const refreshUserFromStorage = () => {
     const token = localStorage.getItem('userToken');
     const userData = localStorage.getItem('userData');
-
-   
+    
     if (token && userData) {
       try {
         const decoded = jwtDecode(token);
@@ -28,12 +28,39 @@ export function UserAuthProvider({ children }) {
         clearAuth();
       }
     }
+  };
+
+  useEffect(() => {
+    refreshUserFromStorage();
     setAuthChecked(true);
+    
+    // Listen for storage events to keep user data in sync
+    const handleStorageChange = (e) => {
+      if (e.key === 'userData' || e.key === null) {
+        refreshUserFromStorage();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const login = (userData, token) => {
     localStorage.setItem('userToken', token);
     localStorage.setItem('userData', JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  // Enhanced setUser function that also updates localStorage
+  const updateUser = (userData) => {
+    if (userData) {
+      localStorage.setItem('userData', JSON.stringify(userData));
+      // Trigger a storage event to notify other components
+      window.dispatchEvent(new Event('storage'));
+    }
     setUser(userData);
   };
 
@@ -58,13 +85,14 @@ export function UserAuthProvider({ children }) {
   return (
     <UserAuthContext.Provider value={{ 
       user,
-      setUser,
+      setUser: updateUser,
       authChecked,
       login,
       logout,
       getToken,
       isTeacher,
-      isStudent
+      isStudent,
+      refreshUserFromStorage
     }}>
       {children}
     </UserAuthContext.Provider>

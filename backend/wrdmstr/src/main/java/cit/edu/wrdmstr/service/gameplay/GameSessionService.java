@@ -185,7 +185,22 @@ public class GameSessionService {
         }
         
         if (entity.getRole() != null) {
-            dto.setRole(entity.getRole().getName());
+            dto.setGameRole(entity.getRole().getName()); // Use gameRole for the session-specific role
+            
+            // If user's system role isn't set yet, use the game role for the role field too
+            if (entity.getUser() != null && entity.getUser().getRole() == null) {
+                dto.setRole(entity.getRole().getName());
+            }
+        }
+        
+        // Set the user's system role if available
+        if (entity.getUser() != null && entity.getUser().getRole() != null) {
+            String role = entity.getUser().getRole();
+            if (role.startsWith("USER_")) {
+                role = role.substring(5); // Remove "USER_" prefix
+            }
+            role = role.substring(0, 1).toUpperCase() + role.substring(1).toLowerCase();
+            dto.setRole(role);
         }
         
         dto.setTotalScore(entity.getTotalScore());
@@ -195,30 +210,53 @@ public class GameSessionService {
     }
 
     public List<PlayerSessionDTO> getSessionPlayerDTOs(Long sessionId) {
-        List<PlayerSessionEntity> players = playerSessionRepository.findBySessionId(sessionId);
-        return players.stream().map(playerEntity -> {
+        GameSessionEntity session = getSessionById(sessionId);
+        List<PlayerSessionEntity> players = session.getPlayers();
+
+        return players.stream().map(player -> {
             PlayerSessionDTO dto = new PlayerSessionDTO();
-            dto.setId(playerEntity.getId());
-            
-            UserEntity user = playerEntity.getUser();
-            if (user != null) {
-                dto.setUserId(user.getId());
-                dto.setName(user.getFname() + " " + user.getLname()); // Or however player name is determined
-            } else {
-                dto.setName("Unknown Player"); // Fallback
+            dto.setId(player.getId());
+            dto.setUserId(player.getUser().getId());
+
+            // Use first and last name instead of username
+            String fname = player.getUser().getFname() != null ? player.getUser().getFname() : "";
+            String lname = player.getUser().getLname() != null ? player.getUser().getLname() : "";
+            String fullName = (fname + " " + lname).trim();
+
+            // If name is empty after trimming, use a fallback
+            if (fullName.isEmpty()) {
+                fullName = "Student"; // Fallback name
             }
-            
-            Role playerRole = playerEntity.getRole();
-            if (playerRole != null) {
-                dto.setRole(playerRole.getName()); // Ensure role NAME is set
+
+            dto.setPlayerName(fullName);
+
+            // Format role to be more user-friendly
+            String role = player.getUser().getRole();
+            if (role != null) {
+                // Convert USER_STUDENT to Student, USER_TEACHER to Teacher, etc.
+                if (role.startsWith("USER_")) {
+                    role = role.substring(5); // Remove "USER_" prefix
+                }
+                role = role.substring(0, 1).toUpperCase() + role.substring(1).toLowerCase();
             } else {
-                dto.setRole(null); // Or a default like "Participant" if preferred
+                role = "Student"; // Default role
             }
+            dto.setRole(role);
             
-            dto.setTotalScore(playerEntity.getTotalScore());
-            dto.setActive(playerEntity.isActive());
-            // Map other necessary fields from PlayerSessionEntity to PlayerSessionDTO
-            
+            // Set the game role if available (from the player's role in the session)
+            if (player.getRole() != null) {
+                dto.setGameRole(player.getRole().getName());
+            }
+
+            // Set profile picture
+            if (player.getUser().getProfilePicture() != null) {
+                dto.setProfilePicture(player.getUser().getProfilePicture());
+            }
+
+            // Set other fields as needed
+            dto.setTotalScore(player.getTotalScore());
+            dto.setActive(player.isActive());
+
             return dto;
         }).collect(Collectors.toList());
     }
