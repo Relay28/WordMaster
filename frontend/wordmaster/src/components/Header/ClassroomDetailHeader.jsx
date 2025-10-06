@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { ExitToApp, Person } from "@mui/icons-material";
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import defaultProfile from '../../assets/defaultprofile.png';
 
 const ClassroomDetailHeader = ({ 
   displayName,
@@ -76,13 +77,13 @@ const ClassroomDetailHeader = ({
         </Box>
         <Box display="flex" alignItems="center" gap={2}>
           <Box textAlign="right">
-            <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+            <Typography sx={{ ...pixelText, fontSize: '12px', color: 'text.secondary' }}>
               {displayName}
             </Typography>
-              <Typography sx={{ ...pixelText, color: ' #5F4B8B' }}>
-                {roleDisplay}
-              </Typography>
-            </Box>
+            <Typography sx={{ ...pixelText, fontSize: '12px', color: '#5F4B8B' }}>
+              {roleDisplay}
+            </Typography>
+          </Box>
      
           <IconButton onClick={handleMenuOpen} size="small" sx={{ p: 0 }}>
             <Avatar 
@@ -92,7 +93,7 @@ const ClassroomDetailHeader = ({
                 bgcolor: '#5F4B8B',
                 color: 'white'
               }}
-              src={user.profilePicture || undefined}
+              src={user.profilePicture || defaultProfile}
             >
               {avatarInitials}
             </Avatar>

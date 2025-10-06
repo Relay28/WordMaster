@@ -228,7 +228,11 @@ public class AIService {
                     }
                 }
                 // Reject numeric / math style content (digits with operators or >=30% digits)
-                if (lower.matches(".*[0-9].*")) {
+                // Using indexOf for more efficient digit detection instead of regex
+                if (lower.indexOf('0') >= 0 || lower.indexOf('1') >= 0 || lower.indexOf('2') >= 0 || 
+                    lower.indexOf('3') >= 0 || lower.indexOf('4') >= 0 || lower.indexOf('5') >= 0 ||
+                    lower.indexOf('6') >= 0 || lower.indexOf('7') >= 0 || lower.indexOf('8') >= 0 ||
+                    lower.indexOf('9') >= 0) {
                     int digitCount = 0;
                     for (char c : lower.toCharArray()) if (Character.isDigit(c)) digitCount++;
                     double ratio = (double) digitCount / Math.max(1, lower.length());

@@ -182,8 +182,9 @@ const Login = () => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            p: 0,
-            my: 4,
+            px: 4, // Horizontal padding
+            py: 4, // Vertical padding - reduced from previous value
+            my: 2, // Margin vertical - reduced
             width: '100%',
             maxWidth: '100%',
             backgroundColor: 'rgba(255, 255, 255, 0.92)',
@@ -191,8 +192,7 @@ const Login = () => {
             boxShadow: '0 8px 32px rgba(31, 38, 135, 0.15)',
             border: '1px solid rgba(255, 255, 255, 0.3)',
             backdropFilter: 'blur(8px)',
-            minHeight: '80%',
-            justifyContent: 'center',
+            minHeight: 'auto', // Changed from fixed percentage to auto
           }}
         >
           {/* Logo */}
@@ -230,9 +230,23 @@ const Login = () => {
             Ready to start your adventure?
           </Typography>
 
-          {/* Error message */}
+          {/* Error message - matching Register styling */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3, ...pixelText }}>
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 3, 
+                '& .MuiAlert-message': {
+                  fontSize: '11px',
+                  fontFamily: '"Press Start 2P", cursive',
+                  lineHeight: '1.4',
+                  letterSpacing: '0.5px'
+                },
+                '& .MuiAlert-icon': {
+                  fontSize: '18px'
+                }
+              }}
+            >
               {error}
             </Alert>
           )}
@@ -433,7 +447,7 @@ const Login = () => {
             <Typography
               className="register-text"
               sx={{
-                mt: 3,
+                mt: 4,
                 textAlign: 'center',
                 ...pixelText,
                 color: '#3e2c85',

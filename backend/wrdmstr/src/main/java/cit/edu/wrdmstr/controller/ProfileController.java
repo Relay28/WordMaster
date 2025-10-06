@@ -22,7 +22,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/profile")
 @PreAuthorize("isAuthenticated()")
-@CrossOrigin(origins = "http://localhost:5173")
 public class ProfileController {
 
     private final ProfileService profileService;

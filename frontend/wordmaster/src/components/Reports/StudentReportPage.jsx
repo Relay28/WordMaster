@@ -9,9 +9,31 @@ import { ArrowBack, School, Person, Assessment, EmojiEvents, QuestionAnswer, Spe
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
+import defaultProfile from '../../assets/defaultprofile.png';
 import ComprehensionResultsView from './ComprehensionResultsView';
 import GrammarVocabResultsView from './GrammarVocabResultsView'; // Import the new component
 import ChatMessagesView from './ChatMessagesView';
+import { useProfilePicture } from '../utils/ProfilePictureManager';
+
+// Separate component for profile picture to properly use hooks
+const ProfilePicture = ({ profilePicture, studentName }) => {
+  const profilePic = useProfilePicture(profilePicture);
+  
+  return (
+    <Avatar 
+      src={profilePic || defaultProfile}
+      sx={{ 
+        width: 80, 
+        height: 80, 
+        bgcolor: '#5F4B8B',
+        fontSize: '1.8rem',
+        mx: { xs: 'auto', md: 0 }
+      }}
+    >
+      {!profilePic && !defaultProfile && studentName.split(' ').map(n => n[0]).join('')}
+    </Avatar>
+  );
+};
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -353,15 +375,10 @@ const StudentReportPage = () => {
           }}>
             <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} md={2}>
-                <Avatar sx={{ 
-                  width: 80, 
-                  height: 80, 
-                  bgcolor: '#5F4B8B',
-                  fontSize: '1.8rem',
-                  mx: { xs: 'auto', md: 0 }
-                }}>
-                  {studentDetails.studentName.split(' ').map(n => n[0]).join('')}
-                </Avatar>
+                <ProfilePicture 
+                  profilePicture={studentDetails.profilePicture} 
+                  studentName={studentDetails.studentName} 
+                />
               </Grid>
               <Grid item xs={12} md={10}>
                 <Typography sx={{ ...pixelHeading, fontSize: '20px', mb: 1 }}>

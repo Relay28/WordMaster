@@ -1,50 +1,160 @@
+####################################################################################################
+# Application (Production) Properties Template                                                      #
+# Copy this file to application-prod.properties and replace placeholders with real values or       #
+# set them via environment variables / secrets manager before deploying.                           #
+####################################################################################################
+
 spring.application.name=wrdmstr
+# server.port is optional in many platforms; uncomment to force.
 server.port=8080
 
-# Production Database Configuration (Replace with your RDS endpoint)
-spring.datasource.url=jdbc:mysql://YOUR_RDS_ENDPOINT:3306/YOUR_DATABASE_NAME
-spring.datasource.username=YOUR_DB_USERNAME
-spring.datasource.password=YOUR_DB_PASSWORD
+####################################################################################################
+# Database Configuration (RDS / Managed MySQL)                                                      #
+####################################################################################################
+# Example: jdbc:mysql://your-endpoint.rds.amazonaws.com:3306/wordmaster_prod
+spring.datasource.url=${DB_URL:jdbc:mysql://YOUR_RDS_ENDPOINT:3306/YOUR_DATABASE_NAME}
+spring.datasource.username=${DB_USERNAME:YOUR_DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD:YOUR_DB_PASSWORD}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
 spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect
 spring.jpa.show-sql=false
+useSSL=false
 
-# SSL Configuration for RDS
+# Connection pool (Hikari) baseline sizing for prod (adjust as needed / env override)
 spring.datasource.hikari.connection-test-query=SELECT 1
-spring.datasource.hikari.maximum-pool-size=5
+spring.datasource.hikari.maximum-pool-size=${DB_MAX_POOL_SIZE:10}
+spring.datasource.hikari.minimum-idle=${DB_MIN_IDLE:5}
+spring.datasource.hikari.idle-timeout=300000
 spring.datasource.tomcat.max-active=5
 
-# JWT Configuration
-jwt.secret=YOUR_JWT_SECRET_HERE
-jwt.expiration=86400000
+####################################################################################################
+# Security / JWT                                                                                    #
+####################################################################################################
+jwt.secret=${JWT_SECRET:REPLACE_WITH_SECURE_RANDOM_BASE64}
+jwt.expiration=${JWT_EXPIRATION_MS:86400000}
 
-# Azure AD Configuration
-azure.tenant-id=YOUR_AZURE_TENANT_ID
-
-spring.security.oauth2.client.registration.azure.client-id=YOUR_AZURE_CLIENT_ID
-spring.security.oauth2.client.registration.azure.client-secret=YOUR_AZURE_CLIENT_SECRET
+####################################################################################################
+# Azure AD OAuth2                                                                                   #
+####################################################################################################
+azure.tenant-id=${AZURE_TENANT_ID:YOUR_AZURE_TENANT_ID}
+spring.security.oauth2.client.registration.azure.client-id=${AZURE_CLIENT_ID:YOUR_AZURE_CLIENT_ID}
+spring.security.oauth2.client.registration.azure.client-secret=${AZURE_CLIENT_SECRET:YOUR_AZURE_CLIENT_SECRET}
 spring.security.oauth2.client.registration.azure.client-authentication-method=client_secret_post
 spring.security.oauth2.client.registration.azure.authorization-grant-type=authorization_code
-spring.security.oauth2.client.registration.azure.redirect-uri=http://YOUR_DOMAIN:8080/login/oauth2/code/azure
+spring.security.oauth2.client.registration.azure.redirect-uri=${AZURE_REDIRECT_URI:http://YOUR_DOMAIN/login/oauth2/code/azure}
 spring.security.oauth2.client.registration.azure.scope=openid,profile,email,User.Read
 spring.security.oauth2.client.registration.azure.client-name=Azure
 
-# OAuth2 Provider
+# OAuth2 Provider Endpoints (typically do not change between envs except tenant)
 spring.security.oauth2.client.provider.azure.authorization-uri=https://login.microsoftonline.com/${azure.tenant-id}/oauth2/v2.0/authorize
 spring.security.oauth2.client.provider.azure.token-uri=https://login.microsoftonline.com/${azure.tenant-id}/oauth2/v2.0/token
 spring.security.oauth2.client.provider.azure.jwk-set-uri=https://login.microsoftonline.com/${azure.tenant-id}/discovery/v2.0/keys
 spring.security.oauth2.client.provider.azure.user-info-uri=https://graph.microsoft.com/oidc/userinfo
 spring.security.oauth2.client.provider.azure.user-name-attribute=name
 
-# File upload settings
+####################################################################################################
+# File Upload                                                                                       #
+####################################################################################################
 spring.servlet.multipart.enabled=true
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 
-# Grammar check service (Python GecTor service)
-grammar.check.api.url=http://localhost:5000/check
+####################################################################################################
+# Grammar & GECToR Services                                                                         #
+####################################################################################################
+# Public grammar check endpoint (if exposed) or internal service URL
+grammar.check.api.url=${GRAMMAR_CHECK_URL:http://localhost:5000/check}
 
-# AI Configuration
-# Add your AI service configurations here
+# Dedicated GECToR microservice (if used separately)
+gector.service.url=${GECTOR_SERVICE_URL:http://localhost:5001}
+gector.service.timeout=${GECTOR_SERVICE_TIMEOUT:3000}
+gector.cache.enabled=${GECTOR_CACHE_ENABLED:true}
+
+####################################################################################################
+# AI / LLM Configuration                                                                            #
+####################################################################################################
+ai.api.key=${AI_API_KEY:REPLACE_WITH_GEMINI_KEY}
+ai.api.url=${AI_API_URL:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent}
+
+####################################################################################################
+# Email / SMTP (OTP, Notifications)                                                                 #
+####################################################################################################
+spring.mail.host=${MAIL_HOST:smtp.gmail.com}
+spring.mail.port=${MAIL_PORT:587}
+spring.mail.username=${MAIL_USERNAME:YOUR_EMAIL_USERNAME}
+spring.mail.password=${MAIL_PASSWORD:YOUR_APP_PASSWORD}
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+
+####################################################################################################
+# Caching & Performance                                                                             #
+####################################################################################################
+spring.cache.type=caffeine
+spring.cache.cache-names=wordBombs,storyPrompts,grammarChecks,roleChecks,aiResponses,vocabularyCache,sessionCache
+spring.cache.caffeine.spec=maximumSize=1000,expireAfterWrite=1h,recordStats
+
+# Async & Thread Pools
+spring.task.execution.pool.core-size=${TASK_CORE_POOL_SIZE:8}
+spring.task.execution.pool.max-size=${TASK_MAX_POOL_SIZE:16}
+spring.task.execution.pool.queue-capacity=${TASK_QUEUE_CAPACITY:100}
+spring.task.execution.thread-name-prefix=ai-async-
+spring.task.execution.pool.keep-alive=120s
+spring.task.execution.pool.allow-core-thread-timeout=true
+spring.task.execution.shutdown.await-termination=true
+spring.task.execution.shutdown.await-termination-period=20s
+
+# HTTP / Static Resources
+spring.mvc.async.request-timeout=8000
+spring.web.resources.cache.period=86400
+spring.web.resources.chain.strategy.content.enabled=true
+spring.web.resources.chain.compressed=true
+spring.web.resources.chain.strategy.fixed.enabled=true
+spring.web.resources.chain.strategy.fixed.paths=/js/**,/css/**
+spring.web.resources.chain.strategy.fixed.version=v12
+
+# Compression / HTTP2
+server.compression.enabled=true
+server.compression.mime-types=application/json,application/xml,text/html,text/xml,text/plain,application/javascript,text/css
+server.compression.min-response-size=2048
+server.http2.enabled=true
+
+####################################################################################################
+# Observability / Metrics                                                                           #
+####################################################################################################
+management.metrics.enable.all=true
+management.endpoints.web.exposure.include=metrics,health,info,prometheus
+management.endpoint.metrics.access=read-only
+management.endpoints.web.base-path=/actuator
+
+management.metrics.distribution.percentiles-histogram.http.server.requests=true
+management.metrics.distribution.slo.http.server.requests=50ms,100ms,200ms,500ms
+management.metrics.enable.tomcat.connections=true
+management.metrics.enable.http.client.requests=true
+management.metrics.distribution.percentiles-histogram.http.client.requests=true
+management.metrics.distribution.slo.http.client.requests=50ms,100ms,200ms,500ms
+management.metrics.distribution.percentiles.http.server.requests=0.5,0.9,0.95,0.99
+management.metrics.distribution.percentiles.http.client.requests=0.5,0.9,0.95,0.99
+management.metrics.distribution.slo.http.client=100ms,200ms,300ms
+management.metrics.enable.hikari=true
+management.metrics.enable.tomcat.threads=true
+management.metrics.enable.process=true
+management.metrics.enable.jvm=true
+
+####################################################################################################
+# Feature Flags & Grammar Pipeline Controls                                                         #
+####################################################################################################
+features.quick-grammar.enabled=${FEATURE_QUICK_GRAMMAR:false}
+features.role-check.min-length=${FEATURE_ROLE_CHECK_MIN_LENGTH:8}
+features.role-check.skip-duplicate.enabled=${FEATURE_ROLE_CHECK_SKIP_DUP:true}
+features.deprecated-ai-grammar.enabled=${FEATURE_DEPRECATED_AI_GRAMMAR:false}
+features.grammar.numbers.penalty.enabled=${FEATURE_GRAMMAR_NUMBERS_PENALTY:true}
+features.grammar.numbers.penalty.points=${FEATURE_GRAMMAR_NUMBERS_PENALTY_POINTS:10}
+
+####################################################################################################
+# Additional Environment-Specific Overrides                                                         #
+####################################################################################################
+# Add any prod-only overrides below. Keep secrets externalized via env vars / parameter store.
+
+# END OF FILE

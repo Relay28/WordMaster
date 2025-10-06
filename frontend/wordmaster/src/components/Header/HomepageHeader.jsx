@@ -14,6 +14,7 @@ import {
 import { ExitToApp, Person } from "@mui/icons-material";
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/LOGO.png';
+import defaultProfile from '../../assets/defaultprofile.png';
 
 const HomepageHeader = ({ 
   displayName,
@@ -80,10 +81,10 @@ const HomepageHeader = ({
         <Box display="flex" alignItems="center" gap={2}>
          
             <Box textAlign="right">
-              <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
+              <Typography sx={{ ...pixelText, fontSize: '12px', color: 'text.secondary' }}>
                 {displayName}
               </Typography>
-              <Typography sx={{ ...pixelText, color: ' #5F4B8B' }}>
+              <Typography sx={{ ...pixelText, fontSize: '12px', color: '#5F4B8B' }}>
                 {roleDisplay}
               </Typography>
             </Box>
@@ -96,7 +97,7 @@ const HomepageHeader = ({
                 bgcolor: '#5F4B8B',
                 color: 'white'
               }}
-              src={user.profilePicture || undefined}
+              src={user.profilePicture || defaultProfile}
             >
               {avatarInitials}
             </Avatar>

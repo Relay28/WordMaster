@@ -16,7 +16,6 @@ import cit.edu.wrdmstr.repository.GrammarResultRepository;
 import cit.edu.wrdmstr.repository.VocabularyResultRepository;
 import cit.edu.wrdmstr.repository.ComprehensionResultRepository;
 import cit.edu.wrdmstr.repository.TeacherFeedbackRepository;
-import cit.edu.wrdmstr.repository.PlayerCardRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -57,8 +56,6 @@ public class ContentService {
     private ComprehensionResultRepository comprehensionResultRepository;
     @Autowired
     private TeacherFeedbackRepository teacherFeedbackRepository;
-    @Autowired
-    private PlayerCardRepository playerCardRepository;
     
     @Autowired
     public ContentService(ContentRepository contentRepository,
@@ -276,9 +273,7 @@ public class ContentService {
                     .filter(Objects::nonNull) // Only include saved entities
                     .collect(Collectors.toList());
             
-            if (!playerSessionIds.isEmpty()) {
-                playerCardRepository.deleteByPlayerSessionIds(playerSessionIds);
-            }
+
         }
 
         // Final save
@@ -318,9 +313,7 @@ public class ContentService {
                         .collect(Collectors.toList());
                 
                 // Delete player cards first
-                if (!playerSessionIds.isEmpty()) {
-                    playerCardRepository.deleteByPlayerSessionIds(playerSessionIds);
-                }
+
                 
                 // Clear and delete chat messages
                 chatMessageRepository.deleteBySessionId(sessionId);

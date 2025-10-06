@@ -5,6 +5,7 @@ public class PlayerSessionDTO {
     private Long userId;
     private String playerName;
     private String role;
+    private String gameRole; // Added gameRole field
     private int totalScore;
 
     private String profilePicture;
@@ -70,5 +71,13 @@ public class PlayerSessionDTO {
     
     public void setActive(boolean active) {
         this.active = active;
+    }
+    
+    public String getGameRole() {
+        return gameRole;
+    }
+    
+    public void setGameRole(String gameRole) {
+        this.gameRole = gameRole;
     }
 }

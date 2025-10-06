@@ -86,17 +86,16 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
   };
 
   return (
-    <Grid container spacing={ismobile ? 2 : istablet ? 2.5 : 3}>
+    <Grid container spacing={ 3}>
       {content.map(item => (
         console.log(item),
         <Grid item xs={12} sm={6} md={4} key={item.id}>
           <ContentCard 
-            ismobile={ismobile ? true : undefined}
-            istablet={istablet ? true : undefined}>
+           >
             <CardActionArea component="div" onClick={() => handleContentClick(item.id)}>
               <CardContent sx={{ 
-                p: ismobile ? 2 : istablet ? 2.5 : 3, 
-                pb: ismobile ? 6 : istablet ? 7 : 8, 
+                p:  3, 
+                pb: 8, 
                 position: 'relative', 
                 height: '100%',
                 display: 'flex',
@@ -107,13 +106,13 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                   display: 'flex', 
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
-                  mb: ismobile ? 1 : istablet ? 1.5 : 2,
-                  gap: ismobile ? 1 : istablet ? 1.5 : 2
+                  mb:  2,
+                  gap:  2
                 }}>
                   {/* Title */}
                   <Typography sx={{
                     fontFamily: '"Press Start 2P", cursive',
-                    fontSize: ismobile ? '10px' : istablet ? '12px' : '14px',
+                    fontSize:  '14px',
                     color: '#2D3748',
                     flex: 1,
                     display: '-webkit-box',
@@ -129,12 +128,12 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                     label={item.published ? "Published" : "Draft"}
                     sx={{
                       fontFamily: '"Press Start 2P", cursive',
-                      fontSize: ismobile ? '7px' : istablet ? '8px' : '8px',
+                      fontSize:'8px',
                       backgroundColor: item.published ? '#e6f7ed' : '#f2f2f2',
                       color: item.published ? '#0a8043' : '#666666',
                       flexShrink: 0,
-                      height: ismobile ? '18px' : istablet ? '19px' : '20px',
-                      minWidth: ismobile ? '60px' : istablet ? '65px' : '70px'
+                      height:  '20px',
+                      minWidth: '70px'
                     }}
                     size="small"
                   />
@@ -144,10 +143,10 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                 {item.description && (
                   <Typography sx={{
                     fontFamily: '"Press Start 2P", cursive',
-                    fontSize: ismobile ? '8px' : istablet ? '9px' : '10px',
+                    fontSize:  '10px',
                     color: '#4A5568',
-                    mb: ismobile ? 1 : istablet ? 1.5 : 2,
-                    height: ismobile ? '50px' : istablet ? '55px' : '60px',
+                    mb:  2,
+                    height: '60px',
                     overflow: 'hidden',
                     display: '-webkit-box',
                     WebkitLineClamp: 2,
@@ -166,14 +165,14 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                     {/* Classroom Tag */}
                     {item.classroomName && (
                       <Box display="flex" alignItems="center">
-                        <Class sx={{ color: '#5F4B8B', fontSize: ismobile ? 14 : istablet ? 15 : 16, mr: ismobile ? 0.5 : istablet ? 0.75 : 1 }} />
+                        <Class sx={{ color: '#5F4B8B', fontSize: 16, mr:  1 }} />
                         <Typography sx={{
                           fontFamily: '"Press Start 2P", cursive',
-                          fontSize: ismobile ? '7px' : istablet ? '8px' : '8px',
+                          fontSize:  '8px',
                           color: '#5F4B8B',
-                          maxWidth: ismobile ? '100px' : istablet ? '110px' : '120px',
+                          maxWidth: '120px',
                           overflow: 'hidden',
-                          textOverflow: 'ellipsis',
+                          textOverflw: 'ellipsis',
                           whiteSpace: 'nowrap'
                         }}>
                           {item.classroomName}
@@ -182,14 +181,14 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                     )}
 
                     {/* Creator Info */}
-                    <Box display="flex" alignItems="center" gap={ismobile ? 0.5 : istablet ? 0.75 : 1}>
+                    <Box display="flex" alignItems="center" gap={ 1}>
                       <Avatar 
                         src={item.creatorProfilePicture || undefined}
                         sx={{
-                          width: ismobile ? 20 : istablet ? 22 : 24,
-                          height: ismobile ? 20 : istablet ? 22 : 24,
+                          width:  24,
+                          height: 24,
                           bgcolor: '#5F4B8B',
-                          fontSize: ismobile ? '8px' : istablet ? '9px' : '10px',
+                          fontSize: '10px',
                           fontFamily: '"Press Start 2P", cursive',
                         }}>
                         {!item.creatorProfilePicture && item.creatorName?.charAt(0)}
@@ -197,14 +196,14 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                       <Box>
                         <Typography sx={{
                           fontFamily: '"Press Start 2P", cursive',
-                          fontSize: ismobile ? '7px' : istablet ? '8px' : '8px',
+                          fontSize:  '8px',
                           color: '#2D3748',
                         }}>
                           {item.creatorName}
                         </Typography>
                         <Typography sx={{
                           fontFamily: '"Press Start 2P", cursive',
-                          fontSize: ismobile ? '6px' : istablet ? '7px' : '7px',
+                          fontSize: '7px',
                           color: '#718096',
                         }}>
                           Updated: {new Date(item.updatedAt || item.createdAt).toLocaleDateString()}
@@ -214,15 +213,14 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                   </Box>
                 {/* Action Buttons */}
                 <ActionButtons className="action-buttons" 
-                ismobile={ismobile ? true : undefined}
-                istablet={istablet ? true : undefined}>
+               >
                   {!disableActions && (
                   <Tooltip title="View">
                     <IconButton size="small" onClick={(e) => {
                       e.stopPropagation();
                       onView(item.id);
                     }} sx={{ color: '#5F4B8B' }}>
-                      <Visibility sx={{ fontSize: ismobile ? 14 : istablet ? 16 : 18 }} />
+                      <Visibility sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>
                 )}
@@ -233,7 +231,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                           e.stopPropagation();
                           onEdit(item.id);
                         }} sx={{ color: '#5F4B8B' }}>
-                          <Edit sx={{ fontSize: ismobile ? 14 : istablet ? 16 : 18 }} />
+                          <Edit sx={{ fontSize:  18 }} />
                         </IconButton>
                       </Tooltip>
 
@@ -243,8 +241,8 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                           onPublishToggle(item.id, item.published);
                         }} sx={{ color: item.published ? '#4caf50' : '#9e9e9e' }}>
                           {item.published ? 
-                            <PublishedWithChanges sx={{ fontSize: ismobile ? 14 : istablet ? 16 : 18 }} /> : 
-                            <Unpublished sx={{ fontSize: ismobile ? 14 : istablet ? 16 : 18 }} />}
+                            <PublishedWithChanges sx={{ fontSize:  18 }} /> : 
+                            <Unpublished sx={{ fontSize:  18 }} />}
                         </IconButton>
                       </Tooltip>
 
@@ -253,7 +251,7 @@ const ContentList = ({ content, onEdit, onView, onDelete, onPublishToggle, disab
                           e.stopPropagation();
                           onDelete(item.id);
                         }} sx={{ color: '#d32f2f' }}>
-                          <Delete sx={{ fontSize: ismobile ? 14 : istablet ? 16 : 18 }} />
+                          <Delete sx={{ fontSize:  18 }} />
                         </IconButton>
                       </Tooltip>
                     </>

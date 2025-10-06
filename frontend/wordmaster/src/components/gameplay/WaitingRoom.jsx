@@ -1,4 +1,4 @@
-import React, { useEffect }  from 'react';
+import React, { useEffect, useState }  from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Box, 
@@ -16,6 +16,47 @@ import {
   CircularProgress
 } from '@mui/material';
 import { useUserAuth } from '../context/UserAuthContext';
+import { useProfilePicture } from '../utils/ProfilePictureManager';
+import defaultProfile from '../../assets/defaultprofile.png';
+
+// Player Avatar Component
+const PlayerAvatar = ({ profilePicture, name }) => {
+  const [imgError, setImgError] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+  
+  // Debug the passed profile picture
+  useEffect(() => {
+    console.log('WaitingRoom PlayerAvatar received:', { profilePicture, name });
+    // Check if the profilePicture is a relative URL missing the API base
+    if (profilePicture && !profilePicture.startsWith('http') && !profilePicture.startsWith('data:')) {
+      console.log('Profile picture appears to be a relative path, full URL would be:', 
+                `${API_URL}${profilePicture.startsWith('/') ? '' : '/'}${profilePicture}`);
+    }
+  }, [profilePicture, name]);
+  
+  // Construct proper URL for the profile picture
+  const getFullProfilePicUrl = () => {
+    if (!profilePicture) return defaultProfile;
+    
+    // If it's already a full URL or data URI, use as is
+    if (profilePicture.startsWith('http') || profilePicture.startsWith('data:')) {
+      return profilePicture;
+    }
+    
+    // Otherwise, assume it's a relative URL and prepend API_URL
+    return `${API_URL}${profilePicture.startsWith('/') ? '' : '/'}${profilePicture}`;
+  };
+  
+  return (
+    <Avatar 
+      src={imgError ? defaultProfile : getFullProfilePicUrl()}
+      onError={() => setImgError(true)}
+      sx={{ mr: 2, bgcolor: '#5F4B8B' }}
+    >
+      {(imgError || !profilePicture) && (name?.charAt(0) || 'P')}
+    </Avatar>
+  );
+};
 
 const WaitingRoom = ({ gameState, isTeacher }) => {
     const { sessionId } = useParams();
@@ -135,11 +176,12 @@ const WaitingRoom = ({ gameState, isTeacher }) => {
             <List disablePadding>
             {gameState.players.map(player => (
               <ListItem key={player.id} divider>
-                <Avatar sx={{ mr: 2, bgcolor: '#5F4B8B' }}>
-                  {player.name?.charAt(0) || 'P'}
-                </Avatar>
+                <PlayerAvatar 
+                  profilePicture={player.profilePicture} 
+                  name={player.playerName || player.name}
+                />
                 <ListItemText 
-                  primary={player.playerName} 
+                  primary={player.playerName || player.name} 
                   secondary={player.role || 'No role assigned'} 
                 />
               </ListItem>

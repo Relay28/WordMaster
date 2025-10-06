@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +41,6 @@ import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -95,15 +95,37 @@ public class AuthController {
     }
 
     @GetMapping("/microsoft/auth-url")
-    public ResponseEntity<String> getAuthUrl() {
-        String frontendUrl = "https://wordmaster-nu.vercel.app"; // Update this
+    public ResponseEntity<String> getAuthUrl(HttpServletRequest request) {
+        // Dynamically determine frontend URL based on the request
+        String referer = request.getHeader("Referer");
+        String frontendUrl;
+        
+        if (referer != null && referer.contains("localhost:5173")) {
+            frontendUrl = "http://localhost:5173";
+        } else if (referer != null && referer.contains("localhost:3000")) {
+            frontendUrl = "http://localhost:3000";
+        } else {
+            frontendUrl = "https://wordmaster-nu.vercel.app";
+        }
+        
         String state = Base64.getEncoder().encodeToString(frontendUrl.getBytes());
+        
+        // Dynamically determine redirect URI based on the request
+        String serverName = request.getServerName();
+        int serverPort = request.getServerPort();
+        String redirectUri;
+        
+        if ("localhost".equals(serverName) || "127.0.0.1".equals(serverName)) {
+            redirectUri = "http://localhost:8080/login/oauth2/code/azure";
+        } else {
+            redirectUri = "http://3.26.165.228:8080/login/oauth2/code/azure";
+        }
         
         String authUrl = String.format(
             "https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&scope=openid%%20profile%%20email%%20User.Read&response_mode=query&state=%s&prompt=select_account",
             tenantId,
             clientId,
-            "http://3.26.165.228:8080/login/oauth2/code/azure", // Your EC2 backend URL
+            redirectUri,
             state
         );
         return ResponseEntity.ok(authUrl);

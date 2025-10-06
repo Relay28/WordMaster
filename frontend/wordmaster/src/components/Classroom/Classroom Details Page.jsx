@@ -46,6 +46,11 @@ import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import ClassroomDetailHeader from '../Header/ClassroomDetailHeader';
 import { useHomePage } from '../Homepage/HomePageFunctions';
+import ClassroomInfoSection from './ClassroomDetailPage Components/ClassroomInfoSection';
+import ContentTab from './ClassroomDetailPage Components/ContentTab';
+import TeacherReportsTab from './ClassroomDetailPage Components/TeacherReportsTab';
+import StudentReportsTab from './ClassroomDetailPage Components/StudentReportsTab';
+import MembersTab from './ClassroomDetailPage Components/MembersTab';
 
 
 const ClassroomDetailsPage = () => {
@@ -777,147 +782,26 @@ return (
         {/* Error display */}
         {error && (
           <Box mb={3}>
-            <Alert severity="error" onClose={() => setError(null)} sx={pixelText}>
+            <Alert severity="error" sx={pixelText}>
               {error}
             </Alert>
           </Box>
         )}
 
         {/* Classroom Info Section */}
-        <Paper elevation={0} sx={{ 
-          p: 3, 
-          mb: 3,
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(8px)',
-          border: '4px solid #5F4B8B',
-          
-          borderRadius: '6px',
-          position: 'relative',
-            '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '6px',
-          background: 'linear-gradient(90deg, #6c63ff 0%, #5F4B8B 50%, #ff8e88 100%)',
-          opacity: 0.8
-      },
-        }}>
-          <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-            {editMode ? (
-              <Box sx={{ width: '100%' }}>
-                <TextField
-                  fullWidth
-                  name="name"
-                  label="Class Name"
-                  value={updatedData.name}
-                  onChange={handleDataChange}
-                  variant="outlined"
-                  sx={{ mb: 2 }}
-                  InputProps={{ style: pixelText }}
-                  InputLabelProps={{ style: pixelText }}
-                />
-                <TextField
-                  fullWidth
-                  name="description"
-                  label="Description"
-                  value={updatedData.description}
-                  onChange={handleDataChange}
-                  variant="outlined"
-                  multiline
-                  rows={3}
-                  InputProps={{ style: pixelText }}
-                  InputLabelProps={{ style: pixelText }}
-                />
-              </Box>
-            ) : (
-              <Box>
-                <Typography sx={{ ...pixelHeading, fontSize: '20px', mb: 1 }}>
-                  {classroom.name}
-                </Typography>
-                {classroom.description && (
-                  <Typography sx={{ ...pixelText, color: '#4a5568' }}>
-                    {classroom.description}
-                  </Typography>
-                )}
-              </Box>
-            )}
-            
-            {isClassroomTeacher && (
-              <Box>
-                {editMode ? (
-                  <>
-                    <IconButton 
-                      color="primary" 
-                      onClick={handleUpdateClassroom}
-                      disabled={loading}
-                      sx={{ '&:hover': { transform: 'scale(1.1)' }, transition: 'all 0.2s ease' }}
-                    >
-                      <Save />
-                    </IconButton>
-                    <IconButton 
-                      color="secondary" 
-                      onClick={() => setEditMode(false)}
-                      disabled={loading}
-                      sx={{ '&:hover': { transform: 'scale(1.1)' }, transition: 'all 0.2s ease' }}
-                    >
-                      <Cancel />
-                    </IconButton>
-                  </>
-                ) : (
-                  <>
-                    <IconButton 
-                      color="primary" 
-                      onClick={() => setEditMode(true)}
-                      sx={{ '&:hover': { transform: 'scale(1.1)' }, transition: 'all 0.2s ease' }}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton 
-                      color="error" 
-                      onClick={handleDeleteClassroom}
-                      disabled={loading}
-                      sx={{ '&:hover': { transform: 'scale(1.1)' }, transition: 'all 0.2s ease' }}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </>
-                )}
-              </Box>
-            )}
-          </Box>
-
-          <Divider sx={{ my: 2.5, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
-
-          <Grid container spacing={3} sx={{ mt: 1, mb: 0.3 }}>
-          <Grid item xs={12} sm={6} md={4}>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Class sx={{ color: '#5F4B8B', fontSize: '20px' }} />
-              <Typography sx={{ ...pixelText }}>
-                <strong>CODE:</strong> {classroom.enrollmentCode}
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Person sx={{ color: '#5F4B8B', fontSize: '20px' }} />
-              <Typography sx={{ ...pixelText }}>
-                <strong>TEACHER:</strong> {classroom.teacher.fname} {classroom.teacher.lname}
-              </Typography>
-            </Box>
-          </Grid>
-          <Grid item xs={12} sm={6} md={4}>
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Description sx={{ color: '#5F4B8B', fontSize: '20px' }} />
-              <Typography sx={{ ...pixelText }}>
-                <strong>STUDENTS:</strong> {classroom.studentCount}
-              </Typography>
-            </Box>
-          </Grid>
-        </Grid>
-        </Paper>
-      
+        <ClassroomInfoSection
+          classroom={classroom}
+          editMode={editMode}
+          updatedData={updatedData}
+          handleDataChange={handleDataChange}
+          handleUpdateClassroom={handleUpdateClassroom}
+          handleDeleteClassroom={handleDeleteClassroom}
+          setEditMode={setEditMode}
+          isClassroomTeacher={isClassroomTeacher}
+          loading={loading}
+          pixelText={pixelText}
+          pixelHeading={pixelHeading}
+        />
         {/* Tabs for Members and Content */}
         <Paper elevation={0} sx={{ 
           p: 3,
@@ -968,712 +852,81 @@ return (
             <Tab label="MEMBERS" />
           </Tabs>
 
-          {/* Student Reports Tab */}
+          {/* Reports Tab (Teacher / Student) */}
           {tabValue === 1 && user?.role === 'USER_TEACHER' && (
-            <Box>
-              {showContentList ? (
-                // Show published content list first
-                <>
-                  <Typography sx={{ ...pixelText, mb: 2 }}>SELECT CONTENT TO VIEW GAME SESSIONS:</Typography>
-                  {publishedContent.length === 0 ? (
-                    <Paper 
-                      elevation={0} 
-                      sx={{ 
-                        p: 4, 
-                        textAlign: 'center',
-                        backgroundColor: 'rgba(245, 245, 247, 0.7)',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(0,0,0,0.05)'
-                      }}
-                    >
-                      <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 1, fontSize: '12px' }}>
-                        NO PUBLISHED CONTENT AVAILABLE
-                      </Typography>
-                      <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
-                        PUBLISH CONTENT FIRST TO VIEW STUDENT REPORTS
-                      </Typography>
-                    </Paper>
-                  ) : (
-                    <Grid container spacing={2}>
-                      {publishedContent.map((content) => (
-                        <Grid item xs={12} sm={6} md={4} key={content.id}>
-                          <Paper
-                            elevation={1}
-                            sx={{
-                              p: 2,
-                              cursor: 'pointer',
-                              borderRadius: '8px',
-                              transition: 'all 0.2s ease',
-                              '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
-                              }
-                            }}
-                            onClick={() => handleContentSelect(content)}
-                          >
-                            <Typography sx={{ ...pixelHeading, fontSize: '12px', color: '#5F4B8B', mb: 1 }}>
-                              {content.title}
-                            </Typography>
-                            <Divider sx={{ my: 1 }} />
-                            <Box display="flex" justifyContent="space-between" mb={1}>
-                              <Typography sx={{ ...pixelText, fontSize: '8px' }}>Content Type:</Typography>
-                              <Typography sx={{ ...pixelText, fontSize: '8px', fontWeight: 'bold' }}>
-                                {content.contentType}
-                              </Typography>
-                            </Box>
-                            <Box display="flex" justifyContent="space-between" mb={1}>
-                              <Typography sx={{ ...pixelText, fontSize: '8px' }}>Published:</Typography>
-                              <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                                {new Date(content.createdAt).toLocaleDateString()}
-                              </Typography>
-                            </Box>
-                            <Button
-                              fullWidth
-                              variant="outlined"
-                                onClick={() => handleContentSelect(content)}
-                              size="small"
-                              sx={{
-                                ...pixelButton,
-                                fontSize: '7px',
-                                mt: 1,
-                                borderColor: '#5F4B8B',
-                                color: '#5F4B8B',
-                                '&:hover': { backgroundColor: 'rgba(95, 75, 139, 0.1)' }
-                              }}
-                            >
-                              VIEW SESSIONS
-                            </Button>
-                            <Button
-                              fullWidth
-                              variant="contained"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleExportReports(content);
-                              }}
-                              size="small"
-                              startIcon={<Download />}
-                              sx={{
-                                ...pixelButton,
-                                fontSize: '7px',
-                                mt: 1,
-                                backgroundColor: '#6c63ff',
-                                '&:hover': { backgroundColor: '#5a52e0' }
-                              }}
-                            >
-                              EXPORT REPORTS
-                            </Button>
-                          </Paper>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  )}
-                </>
-              ) : (
-                // Show sessions for selected content
-                <>
-                  <Box display="flex" alignItems="center" mb={2}>
-                    <IconButton
-  onClick={handleBackToContentList}
-  sx={{
-    ...pixelButton,
-    color: '#5F4B8B',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    border: '2px solid #5F4B8B',
-    borderRadius: '4px',
-    width: '32px',
-    height: '32px',
-    mr: 2,
-    '&:hover': { 
-      backgroundColor: 'rgba(95, 75, 139, 0.1)',
-      transform: 'translateY(-1px)'
-    },
-    transition: 'all 0.2s ease',
-  }}
->
-  <ChevronLeft sx={{ fontSize: '16px' }} />
-</IconButton>
-              
-                    <Typography sx={{ ...pixelText }}>
-                      {selectedContent?.title} - GAME SESSIONS
-                    </Typography>
-                  </Box>
-                  
-                  {loadingCompletedSessions ? (
-                    <Box display="flex" justifyContent="center" py={4}>
-                      <CircularProgress />
-                    </Box>
-                  ) : sessionsError ? (
-                    <Alert severity="error" sx={{ mb: 2, ...pixelText }} onClose={() => setSessionsError(null)}>
-                      {sessionsError}
-                    </Alert>
-                  ) : completedSessions.length === 0 ? (
-                    <Paper 
-                      elevation={0} 
-                      sx={{ 
-                        p: 4, 
-                        textAlign: 'center',
-                        backgroundColor: 'rgba(245, 245, 247, 0.7)',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(0,0,0,0.05)'
-                      }}
-                    >
-                      <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
-                        NO GAME SESSIONS AVAILABLE
-                      </Typography>
-                      <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
-                        STUDENTS HAVEN'T PLAYED THIS CONTENT YET
-                      </Typography>
-                    </Paper>
-                  ) : (
-                    <Grid container spacing={2}>
-                      {completedSessions.map((session) => (
-                        <Grid item xs={12} sm={6} md={4} key={session.id}>
-                          <Paper
-                            elevation={selectedSession === session.id ? 3 : 1}
-                            sx={{
-                              p: 2,
-                              cursor: 'pointer',
-                              border: selectedSession === session.id ? '2px solid #5F4B8B' : '1px solid rgba(0,0,0,0.12)',
-                              transition: 'all 0.2s ease',
-                              position: 'relative',
-                              '&:hover': {
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
-                              }
-                            }}
-                            onClick={() => fetchStudentReports(session.id)}
-                          >
-                            <Typography sx={{ ...pixelHeading, fontSize: '10px', color: '#5F4B8B' }}>
-                              Session #{session.id}
-                            </Typography>
-                            <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                              Date: {new Date(session.createdAt || session.startedAt).toLocaleDateString()}
-                            </Typography>
-                            <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                              Players: {session.playerCount || session.players?.length || 0}
-                            </Typography>
-                            <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                              Status: {session.status || 'Completed'}
-                            </Typography>
-                            
-                            {/* Delete Button */}
-                            <IconButton
-                              size="small"
-                              sx={{
-                                position: 'absolute',
-                                top: 4,
-                                right: 4,
-                                color: '#ff5252',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(255, 82, 82, 0.1)'
-                                }
-                              }}
-                              onClick={(e) => handleDeleteSession(session.id, e)}
-                            >
-                              <DeleteOutline fontSize="small" />
-                            </IconButton>
-                          </Paper>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  )}
-                  
-                  {/* Show student reports for selected session */}
-                  {selectedSession && (
-                    <>
-                      <Typography sx={{ ...pixelHeading, mt: 4, mb: 2 }}>STUDENT REPORTS:</Typography>
-                      {loadingReports ? (
-                        <Box display="flex" justifyContent="center" py={4}>
-                          <CircularProgress />
-                        </Box>
-                      ) : studentReports.length === 0 ? (
-                        <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
-                          NO STUDENT DATA AVAILABLE FOR THIS SESSION
-                        </Typography>
-                      ) : (
-                        <Grid container spacing={2}>
-                          {studentReports.map((student) => (
-                            <Grid item xs={12} sm={6} md={4} key={student.userId}>
-                              <Paper
-                                elevation={1}
-                                sx={{
-                                  p: 2,
-                                  cursor: 'pointer',
-                                  borderRadius: '8px',
-                                  transition: 'all 0.2s ease',
-                                  '&:hover': {
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
-                                  }
-                                }}
-                                onClick={() => navigate(`/student-report/${selectedSession}/${student.userId}`)}
-                              >
-                                <Box display="flex" alignItems="center" mb={1}>
-                                  <Avatar sx={{ bgcolor: '#6c63ff', width: 30, height: 30, mr: 1, fontSize: '12px' }}>
-                                    {student.name.split(' ').map(n => n[0]).join('')}
-                                  </Avatar>
-                                  <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>
-                                    {student.name}
-                                  </Typography>
-                                </Box>
-                                <Box display="flex" justifyContent="space-between" mb={1}>
-                                  <Typography sx={{ ...pixelText, fontSize: '8px' }}>Role:</Typography>
-                                  <Typography sx={{ ...pixelText, fontSize: '8px', color: '#5F4B8B' }}>
-                                    {student.role || 'N/A'}
-                                  </Typography>
-                                </Box>
-                                <Box display="flex" justifyContent="space-between" mb={1}>
-                                  <Typography sx={{ ...pixelText, fontSize: '8px' }}>Score:</Typography>
-                                  <Typography sx={{ ...pixelText, fontSize: '8px', fontWeight: 'bold' }}>
-                                    {student.totalScore}
-                                  </Typography>
-                                </Box>
-                                <Box display="flex" justifyContent="space-between">
-                                  <Typography sx={{ ...pixelText, fontSize: '8px' }}>Feedback:</Typography>
-                                  <Chip 
-                                    size="small" 
-                                    label={student.hasFeedback ? "PROVIDED" : "NEEDED"} 
-                                    color={student.hasFeedback ? "success" : "warning"}
-                                    sx={{ 
-                                      height: '16px', 
-                                      '& .MuiChip-label': { 
-                                        ...pixelText, 
-                                        fontSize: '6px', 
-                                        px: 1 
-                                      } 
-                                    }}
-                                  />
-                                </Box>
-                              </Paper>
-                            </Grid>
-                          ))}
-                        </Grid>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-            </Box>
+            <TeacherReportsTab
+              pixelText={pixelText}
+              pixelHeading={pixelHeading}
+              pixelButton={pixelButton}
+              publishedContent={publishedContent}
+              showContentList={showContentList}
+              selectedContent={selectedContent}
+              completedSessions={completedSessions}
+              loadingCompletedSessions={loadingCompletedSessions}
+              sessionsError={sessionsError}
+              selectedSession={selectedSession}
+              studentReports={studentReports}
+              loadingReports={loadingReports}
+              handleContentSelect={handleContentSelect}
+              handleBackToContentList={handleBackToContentList}
+              fetchStudentReports={fetchStudentReports}
+              handleDeleteSession={handleDeleteSession}
+              handleExportReports={handleExportReports}
+              navigate={navigate}
+            />
+          )}
+          {tabValue === 1 && user?.role !== 'USER_TEACHER' && (
+            <StudentReportsTab
+              pixelHeading={pixelHeading}
+              pixelText={pixelText}
+              pixelButton={pixelButton}
+              loadingStudentFeedback={loadingStudentFeedback}
+              studentFeedbacks={studentFeedbacks}
+              feedbackError={feedbackError}
+              navigate={navigate}
+              user={user}
+            />
           )}
 
-          {/* Grade Reports Tab for Students */}
-          {tabValue === 1 && user?.role !== 'USER_TEACHER' && (
-            <Box>
-              {/* Implement student's grade reports view here */}
-              <Typography sx={{ ...pixelHeading, mb: 2 }}>YOUR FEEDBACK REPORTS</Typography>
-              
-              {/* Add state and loading handling */}
-              {loadingStudentFeedback ? (
-                <Box display="flex" justifyContent="center" py={4}>
-                  <CircularProgress />
-                </Box>
-              ) : studentFeedbacks.length === 0 ? (
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 4, 
-                    textAlign: 'center',
-                    backgroundColor: 'rgba(245, 245, 247, 0.7)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(0,0,0,0.05)'
-                  }}
-                >
-                  <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
-                    NO FEEDBACK AVAILABLE YET
-                  </Typography>
-                  <Typography sx={{ ...pixelText, color: 'text.secondary' }}>
-                    YOUR TEACHER HASN'T PROVIDED ANY FEEDBACK YET
-                  </Typography>
-                </Paper>
-              ) : (
-                <Grid container spacing={2}>
-                  {studentFeedbacks.map((feedback) => (
-                    <Grid item xs={12} sm={6} md={4} key={feedback.id}>
-                      <Paper
-                        elevation={1}
-                        sx={{
-                          p: 2,
-                          borderRadius: '8px',
-                          transition: 'all 0.2s ease',
-                          '&:hover': {
-                            transform: 'translateY(-2px)',
-                            boxShadow: '0 4px 10px rgba(95, 75, 139, 0.15)'
-                          }
-                        }}
-                      >
-                        <Typography sx={{ ...pixelHeading, fontSize: '12px', color: '#5F4B8B', mb: 1 }}>
-                          {feedback.gameTitle || 'Game Session'}
-                        </Typography>
-                        
-                        <Divider sx={{ my: 1 }} />
-                        
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>Date:</Typography>
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                            {new Date(feedback.createdAt).toLocaleDateString()}
-                          </Typography>
-                        </Box>
-                        
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>Teacher:</Typography>
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                            {feedback.teacherName}
-                          </Typography>
-                        </Box>
-                        
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>Overall Grade:</Typography>
-                          <Chip 
-                            label={feedback.overallGrade} 
-                            color="primary"
-                            size="small"
-                            sx={{ 
-                              height: '20px',
-                              '& .MuiChip-label': { ...pixelText, fontSize: '8px', px: 1 }
-                            }}
-                          />
-                        </Box>
-                        
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          size="small"
-                          onClick={() => navigate(`/student-feedback/${feedback.sessionId}/${user.id}`)}
-                          sx={{
-                            ...pixelButton,
-                            fontSize: '7px',
-                            mt: 1,
-                            borderColor: '#5F4B8B',
-                            color: '#5F4B8B',
-                            '&:hover': { backgroundColor: 'rgba(95, 75, 139, 0.1)' }
-                          }}
-                        >
-                          VIEW DETAILS
-                        </Button>
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
-              )}
-            </Box>
-          )    
-       }
-
-                 {/* Members Tab */}
+          {/* Members Tab */}
           {tabValue === 2 && (
-            <Box>
-              {/* <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                
-                <Chip 
-                  label={`${classroom.studentCount + 1} TOTAL`} 
-                  color="primary"
-                  size="small"
-                  sx={{pixelText, fontSize: '12px',}}
-                />
-              </Box>
-              <Divider sx={{ mb: 2, borderColor: 'rgba(95, 75, 139, 0.3)' }} />
-               */}
-              {/* Teacher Card */}
-              <List>
-                <ListItem sx={{ 
-                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
-                  borderRadius: '4px',
-                  mb: 1
-                }}>
-                  <ListItemAvatar>
-                    <Avatar
-                      src={classroom.teacher.profilePicture || undefined}
-                      sx={{ bgcolor: '#5F4B8B' }}
-                    >
-                      {!classroom.teacher.profilePicture && (
-                        <>
-                          {classroom.teacher.fname?.charAt(0)}
-                          {classroom.teacher.lname?.charAt(0)}
-                        </>
-                      )}
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography sx={{ ...pixelText, fontWeight: 'bold' }}>
-                        {`${classroom.teacher.fname} ${classroom.teacher.lname}`}
-                      </Typography>
-                    }
-                    secondary={
-                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                        TEACHER
-                      </Typography>
-                    }
-                  />
-                  <Chip 
-                    label="OWNER" 
-                    color="primary" 
-                    size="small" 
-                    sx={{ 
-                      ...pixelText,
-                      fontSize: '8px',
-                      height: '20px'
-                    }} 
-                  />
-                </ListItem>
-
-                {/* Students List */}
-                {members.length > 0 ? (
-                  members.map((member) => (
-                    <ListItem 
-                      key={member.id}
-                      sx={{
-                        '&:hover': {
-                          backgroundColor: 'rgba(95, 75, 139, 0.05)'
-                        }
-                      }}
-                    >
-                      <ListItemAvatar>
-                        <Avatar
-                          src={member.profilePicture || undefined}
-                          sx={{ bgcolor: '#6c63ff' }}
-                        >
-                          {!member.profilePicture && (
-                            <>
-                              {member.fname?.charAt(0)}
-                              {member.lname?.charAt(0)}
-                            </>
-                          )}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={
-                          <Typography sx={{ ...pixelText }}>
-                            {`${member.fname} ${member.lname}`}
-                          </Typography>
-                        }
-                        secondary={
-                          <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                            STUDENT
-                          </Typography>
-                        }
-                      />
-                      {isClassroomTeacher && (
-                        <ListItemSecondaryAction>
-                          <Tooltip title="Remove student">
-                            <IconButton 
-                              edge="end" 
-                              onClick={() => handleRemoveStudent(member.id)}
-                              sx={{
-                                color: '#ff5252',
-                                '&:hover': {
-                                  transform: 'scale(1.1)',
-                                  backgroundColor: 'rgba(255, 82, 82, 0.1)'
-                                },
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <PersonRemove />
-                            </IconButton>
-                          </Tooltip>
-                        </ListItemSecondaryAction>
-                      )}
-                    </ListItem>
-                  ))
-                ) : (
-                  <Typography sx={{ ...pixelText, color: 'text.secondary', p: 2 }}>
-                    NO STUDENTS ENROLLED YET
-                  </Typography>
-                )}
-              </List>
-            </Box>
+            <MembersTab
+              members={members}
+              classroom={classroom}
+              isClassroomTeacher={isClassroomTeacher}
+              handleRemoveStudent={handleRemoveStudent}
+              pixelText={pixelText}
+            />
           )}
 
           {/* Content Tab */}
           {tabValue === 0 && (
-            <Box>
-              <Box 
-                display="flex" 
-                justifyContent="flex-start"
-                alignItems="center" 
-                mb={2}
-                gap={1}
-              >
-                {isClassroomTeacher && (
-                  <>
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={handleCreateContent}
-                      sx={{
-                        ...pixelButton,
-                        backgroundColor: '#5F4B8B',
-                        px: 1,
-                        fontSize: '10px',
-                        height: '32px',
-                        '&:hover': { 
-                          backgroundColor: '#4a3a6d',
-                          transform: 'translateY(-2px)'
-                        },
-                        boxShadow: '0 4px 0 #4a3a6d',
-                        '&:active': {
-                          transform: 'translateY(0)',
-                          boxShadow: '0 2px 0 #4a3a6d'
-                        },
-                        transition: 'all 0.2s ease',
-                        order: 0,
-                        flex: undefined,
-                        justifyContent: undefined
-                      }}
-                    >
-                      CREATE
-                    </Button>
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={handleGenerateAIContent}
-                      sx={{
-                        ...pixelButton,
-                        backgroundColor: '#6c63ff',
-                        px: 1.5,
-                        fontSize: '9px',
-                        height: '30px',
-                        '&:hover': {
-                          backgroundColor: '#5a52e0',
-                          transform: 'translateY(-2px)'
-                        },
-                        boxShadow: '0 4px 0 #5a52e0',
-                        '&:active': {
-                          transform: 'translateY(0)',
-                          boxShadow: '0 2px 0 #5a52e0'
-                        },
-                        transition: 'all 0.2s ease',
-                        order: 0,
-                        flex: undefined,
-                        justifyContent: undefined
-                      }}
-                    >
-                      AI GENERATE
-                    </Button>
-                  </>
-                )}
-              </Box>
-              
-              {contentError && (
-                <Alert severity="error" sx={{ mb: 2, ...pixelText }} onClose={() => setContentError(null)}>
-                  {contentError}
-                </Alert>
-              )}
-
-              {loadingContent ? (
-                <Box display="flex" justifyContent="center" py={4}>
-                  <CircularProgress />
-                </Box>
-              ) : contentList.length === 0 ? (
-                <Paper 
-                  elevation={0} 
-                  sx={{ 
-                    p: 4, 
-                    textAlign: 'center',
-                    backgroundColor: 'rgba(245, 245, 247, 0.7)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(0,0,0,0.05)'
-                  }}
-                >
-                  <Typography sx={{ ...pixelHeading, color: 'text.secondary', mb: 1 }}>
-                    NO CONTENT AVAILABLE
-                  </Typography>
-                  <Typography sx={{ ...pixelText, color: 'text.secondary', mb: 3 }}>
-                    {user?.role === 'USER_TEACHER'
-                      ? 'CREATE YOUR FIRST CONTENT'
-                      : "Your teacher hasn't created/published a content yet."}
-                  </Typography>
-                  {isClassroomTeacher && (
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={handleCreateContent}
-                      sx={{
-                        ...pixelButton,
-                        backgroundColor: '#5F4B8B',
-                        '&:hover': { 
-                          backgroundColor: '#4a3a6d',
-                          transform: 'translateY(-2px)'
-                        },
-                        boxShadow: '0 4px 0 #4a3a6d',
-                        '&:active': {
-                          transform: 'translateY(0)',
-                          boxShadow: '0 2px 0 #4a3a6d'
-                        },
-                        transition: 'all 0.2s ease',
-                        height: '32px'
-                      }}
-                    >
-                      CREATE CONTENT
-                    </Button>
-                  )}
-                </Paper>
-              ) : (
-                <Stack spacing={3}>
-            <ContentList 
-              content={currentItems}
-              onEdit={handleEditContent}
-              onView={handleViewContent}
-              onDelete={handleDeleteContent}
-              onPublishToggle={handlePublishToggle}
-              disableActions={!isClassroomTeacher}
-              pixelText={pixelText}
+            <ContentTab
+              isClassroomTeacher={isClassroomTeacher}
+              pixelButton={pixelButton}
               pixelHeading={pixelHeading}
+              pixelText={pixelText}
+              contentError={contentError}
+              clearContentError={() => setContentError(null)}
+              loadingContent={loadingContent}
+              contentList={contentList}
+              currentItems={currentItems}
+              handleCreateContent={handleCreateContent}
+              handleGenerateAIContent={handleGenerateAIContent}
+              handleEditContent={handleEditContent}
+              handleViewContent={handleViewContent}
+              handleDeleteContent={handleDeleteContent}
+              handlePublishToggle={handlePublishToggle}
+              page={page}
+              itemsPerPage={itemsPerPage}
+              handlePageChange={handlePageChange}
             />
-
-            {/* Pagination Controls */}
-            <Box 
-              display="flex" 
-              justifyContent="center" 
-              sx={{
-                mt: 4,
-                pb: 2,
-                '& .MuiPagination-ul': {
-                  ...pixelText,
-                  gap: 1
-                },
-                '& .MuiPaginationItem-root': {
-                  fontFamily: '"Press Start 2P", cursive',
-                  fontSize: '10px',
-                  color: '#5F4B8B',
-                  border: '2px solid #5F4B8B',
-                  borderRadius: '4px',
-                  margin: '0 4px',
-                  minWidth: '32px',
-                  height: '32px',
-                  '&:hover': {
-                    backgroundColor: 'rgba(95, 75, 139, 0.1)',
-                  },
-                  '&.Mui-selected': {
-                    backgroundColor: '#5F4B8B',
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: '#4a3a6d',
-                    }
-                  }
-                }
-              }}
-            >
-              <Pagination 
-                count={Math.ceil(contentList.length / itemsPerPage)}
-                page={page}
-                onChange={handlePageChange}
-                variant="outlined"
-                shape="rounded"
-                size="medium"
-                siblingCount={1}
-                boundaryCount={2}
-              />
-            </Box>
-          </Stack>
-        )}
-      </Box>
-    )}
-            
+          )}
         </Paper>
       </Container>
     </Box>
-    <Dialog
+
+<Dialog
   open={deleteSessionDialogOpen}
   onClose={() => setDeleteSessionDialogOpen(false)}
   PaperProps={{

@@ -4,7 +4,6 @@ import cit.edu.wrdmstr.dto.*;
 import cit.edu.wrdmstr.entity.*;
 import cit.edu.wrdmstr.repository.*;
 import cit.edu.wrdmstr.service.AIService;
-import cit.edu.wrdmstr.service.CardService;
 import cit.edu.wrdmstr.service.ComprehensionCheckService;
 import cit.edu.wrdmstr.service.ProgressTrackingService;
 import cit.edu.wrdmstr.service.StoryPromptService;
@@ -20,7 +19,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import cit.edu.wrdmstr.service.gameplay.GameResultService;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -40,7 +38,6 @@ public class GameSessionManagerService {
     private final GameSessionService gameSessionService;
     private final UserRepository userRepository;
     @Autowired private StoryPromptService storyPromptService;
-    @Autowired private CardService cardService;
     private final GrammarCheckerService grammarCheckerService;
     private final AIService aiService;
     @Autowired private ScoreService scoreService;
@@ -292,11 +289,7 @@ public class GameSessionManagerService {
         session.setStatus(GameSessionEntity.SessionStatus.ACTIVE);
         session.setStartedAt(new Date());
 
-        if (session.getContent() != null) {
-            cardService.generateCardsForContent(session.getContent().getId());
-        } else {
-            throw new RuntimeException("Cannot start game: no content assigned to session");
-        }
+
         // Use active players only
         List<PlayerSessionEntity> players = playerRepository.findActiveBySessionId(sessionId);
         if (players.isEmpty()) {
@@ -304,9 +297,7 @@ public class GameSessionManagerService {
         }
 
         // Generate cards for all players in the session
-        for (PlayerSessionEntity player : players) {
-            cardService.drawCardsForPlayer(player.getId());
-        }
+
 
         GameState gameState = new GameState();
         gameState.setSessionId(sessionId);
@@ -1032,19 +1023,7 @@ public class GameSessionManagerService {
             }
         }
         // Add player cards to game state
-        if (session.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
-            List<PlayerSessionEntity> players = playerRepository.findBySessionId(sessionId);
-            Map<Long, List<PlayerCardDTO>> playerCards = new HashMap<>();
 
-            for (PlayerSessionEntity player : players) {
-                List<PlayerCardDTO> cards = cardService.getPlayerCards(player.getId());
-                playerCards.put(player.getId(), cards);
-            }
-
-            dto.setPlayerCards(playerCards.values().stream()
-                    .flatMap(List::stream)
-                    .collect(Collectors.toList()));
-        }
         
         dto.setLeaderboard(scoreService.getSessionLeaderboard(sessionId));
         dto.setTimePerTurn(session.getTimePerTurn());
@@ -1234,7 +1213,6 @@ public class GameSessionManagerService {
         private Map<String, Object> contentInfo;
         private int currentCycle;
         private String storyPrompt;
-        private List<PowerupCard> cards = new ArrayList<>();
         private int configuredTurnCycles;
         private boolean paused;
         private int pausedRemainingTime;
