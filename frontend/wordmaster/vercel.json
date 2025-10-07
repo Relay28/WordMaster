@@ -12,7 +12,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://3.26.165.228:8080/api/$1" },
+    { "source": "/api/(.*)", "destination": "http://3.26.165.228:8080/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
