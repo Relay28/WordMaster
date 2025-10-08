@@ -7,12 +7,14 @@
         {
           "key": "Content-Security-Policy",
           "value": "default-src 'self'; connect-src 'self' http://3.26.165.228:8080 https://wordmaster.duckdns.org ws://3.26.165.228:8080 wss://wordmaster.duckdns.org; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src 'self' https://login.microsoftonline.com;"
+          
+
         }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "http://3.26.165.228:8080/api/$1" },
+    { "source": "/api/(.*)", "destination": "https://wordmaster.duckdns.org/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
