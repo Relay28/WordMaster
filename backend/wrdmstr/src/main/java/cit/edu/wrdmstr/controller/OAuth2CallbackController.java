@@ -45,12 +45,12 @@ public class OAuth2CallbackController {
             String authJson = objectMapper.writeValueAsString(simplifiedResponse);
             String encodedAuth = Base64.getEncoder().encodeToString(authJson.getBytes());
             
-            String frontendUrl = "http://localhost:5173"; 
+            String frontendUrl = "https://wordmaster-nu.vercel.app"; 
             if (state != null && !state.isEmpty()) {
                 try {
                     frontendUrl = new String(Base64.getDecoder().decode(state));
                     if (!frontendUrl.startsWith("http")) {
-                        frontendUrl = "http://localhost:5173";
+                        frontendUrl = "https://wordmaster-nu.vercel.app";
                     }
                 } catch (Exception e) {
                     logger.warn("Could not decode state parameter: {}", e.getMessage());
@@ -63,7 +63,7 @@ public class OAuth2CallbackController {
             
         } catch (Exception e) {
             logger.error("Error processing OAuth2 callback", e);
-            return new RedirectView("http://localhost:5173/login?error=authentication_failed");
+            return new RedirectView("https://wordmaster-nu.vercel.app/login?error=authentication_failed");
         }
     }
 }
