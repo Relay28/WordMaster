@@ -114,10 +114,10 @@ export function UserAuthProvider({ children }) {
     }
   };
 
-  // Enhanced setUser that also updates localStorage safely (never stores role/authorities from caller)
-  const updateUser = (nextUserData) => {
-    // Allow null to sign out via this method
-    if (!nextUserData) {
+  // Enhanced setUser that also updates localStorage safely and supports functional updaters
+  const updateUser = (next) => {
+    // Allow null/undefined to sign out via this method
+    if (next == null) {
       clearAuth();
       return;
     }
@@ -129,20 +129,32 @@ export function UserAuthProvider({ children }) {
       return;
     }
 
-    // Remove privileged fields before persisting
-    const { role: _ignoredRole, authorities: _ignoredAuth, ...rest } = nextUserData;
-    localStorage.setItem('userData', JSON.stringify(rest));
-
-    // Rebuild safe user from token claims
+    // Resolve functional updater if provided
+    let resolved;
     try {
-      const decoded = jwtDecode(token);
-      const safeUser = buildSafeUserFromStorage(rest, decoded);
-      setUser(safeUser);
-      // Trigger a storage event to notify other components
-      window.dispatchEvent(new Event('storage'));
+      resolved = typeof next === 'function' ? next(user) : next;
     } catch (e) {
-      console.error('Failed to decode token during updateUser', e);
+      console.error('Failed to resolve functional user updater', e);
+      return;
+    }
+
+    if (!resolved) {
       clearAuth();
+      return;
+    }
+
+    // Remove privileged fields before persisting
+    const { role: _ignoredRole, authorities: _ignoredAuth, ...persistable } = resolved || {};
+    try {
+      localStorage.setItem('userData', JSON.stringify(persistable));
+      // Rebuild safe user from token claims
+      const decoded = jwtDecode(token);
+      const safeUser = buildSafeUserFromStorage(persistable, decoded);
+      setUser(safeUser);
+      // Notify other tabs (real storage event only fires on other documents)
+      try { window.dispatchEvent(new Event('storage')); } catch {}
+    } catch (e) {
+      console.error('Failed to persist/update user', e);
     }
   };
 
