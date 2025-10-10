@@ -89,7 +89,7 @@ public class AuthController {
         Map<String, String> config = new HashMap<>();
         config.put("clientId", clientId);
         config.put("tenantId", tenantId);
-        config.put("redirectUri", "http://localhost:8080/login/oauth2/code/azure");
+        config.put("redirectUri", "https://wordmaster.duckdns.org/login/oauth2/code/azure");
         config.put("authEndpoint", "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/authorize");
         return ResponseEntity.ok(config);
     }
@@ -118,7 +118,7 @@ public class AuthController {
         if ("localhost".equals(serverName) || "127.0.0.1".equals(serverName)) {
             redirectUri = "http://localhost:8080/login/oauth2/code/azure";
         } else {
-            redirectUri = "http://3.26.165.228:8080/login/oauth2/code/azure";
+            redirectUri = "https://wordmaster.duckdns.org/login/oauth2/code/azure";
         }
         
         String authUrl = String.format(
@@ -147,7 +147,7 @@ public class AuthController {
             formParams.add("client_secret", clientSecret);
             formParams.add("scope", "https://graph.microsoft.com/.default");
             formParams.add("code", request.getCode());
-            formParams.add("redirect_uri", "http://localhost:8080/login/oauth2/code/azure");
+            formParams.add("redirect_uri", "https://wordmaster.duckdns.org/login/oauth2/code/azure");
             formParams.add("grant_type", "authorization_code");
             
             HttpEntity<MultiValueMap<String, String>> requestEntity = 
@@ -182,7 +182,7 @@ public class AuthController {
             AuthResponse authResponse = microsoftAuthService.handleOAuth2Code(code);
             
             // Determine where to redirect (from state parameter or default to frontend URL)
-            String redirectUrl = "http://localhost:5173/oauth-success";
+            String redirectUrl = "https://wordmaster-nu.vercel.app/oauth-success";
             
             // Convert the auth response to JSON and encode as base64
             String authJson = convertToJson(authResponse);
@@ -198,7 +198,7 @@ public class AuthController {
             
         } catch (Exception e) {
             logger.error("Error during OAuth callback handling", e);
-            response.sendRedirect("http://localhost:5173/login?error=Authentication%20failed");
+            response.sendRedirect("https://wordmaster-nu.vercel.app/login?error=Authentication%20failed");
         }
     }
 
