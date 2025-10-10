@@ -1,5 +1,6 @@
 import React from 'react';
 import { Paper, Box, Typography, Chip, Tooltip } from '@mui/material';
+import { sanitizePlainText } from '../../../utils/sanitize';
 
 const WordBank = ({ wordBank = [], onWordClick, pixelHeading, pixelText, getWordBankCount }) => {
   return (
@@ -18,20 +19,23 @@ const WordBank = ({ wordBank = [], onWordClick, pixelHeading, pixelText, getWord
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, pb: 1 }}>
         {wordBank.map((wordItem, index) => {
           const word = typeof wordItem === 'string' ? wordItem : wordItem.word;
+          const label = sanitizePlainText(word);
+          const desc = sanitizePlainText((wordItem.description || 'NO DESCRIPTION AVAILABLE'));
+          const example = wordItem.exampleUsage ? sanitizePlainText(wordItem.exampleUsage) : '';
           return (
             <Tooltip key={index} title={
               <Box sx={{ ...pixelText, p: 1 }}>
                 <Typography sx={{ fontWeight: 'bold', mb: 1 }}>
-                  {wordItem.description || 'NO DESCRIPTION AVAILABLE'}
+                  {desc}
                 </Typography>
-                {wordItem.exampleUsage && (
+                {example && (
                   <Typography sx={{ fontStyle: 'italic' }}>
-                    EXAMPLE: "{wordItem.exampleUsage}"
+                    EXAMPLE: "{example}"
                   </Typography>
                 )}
               </Box>
             } arrow placement="top">
-              <Chip label={word} onClick={() => onWordClick(word)} sx={{ ...pixelText, backgroundColor: 'white', border: '2px solid #5F4B8B', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', py: 0.5, px: 0.5, cursor: 'pointer', transition: 'all 0.2s ease', '&:hover': { backgroundColor: '#f0edf5', transform: 'translateY(-2px) scale(1.05)', boxShadow: '3px 3px 0px rgba(95, 75, 139, 0.3)' } }} />
+              <Chip label={label} onClick={() => onWordClick(word)} sx={{ ...pixelText, backgroundColor: 'white', border: '2px solid #5F4B8B', boxShadow: '2px 2px 0px rgba(0,0,0,0.1)', py: 0.5, px: 0.5, cursor: 'pointer', transition: 'all 0.2s ease', '&:hover': { backgroundColor: '#f0edf5', transform: 'translateY(-2px) scale(1.05)', boxShadow: '3px 3px 0px rgba(95, 75, 139, 0.3)' } }} />
             </Tooltip>
           );
         })}

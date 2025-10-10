@@ -35,7 +35,7 @@ import {
 import { useUserAuth } from '../context/UserAuthContext';
 import contentService from '../../services/contentService';
 import picbg from '../../assets/picbg.png';
-
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const pixelText = {
   fontFamily: '"Press Start 2P", cursive',
@@ -340,7 +340,7 @@ const confirmDelete = async () => {
             <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
               <Box>
                 <Typography sx={{ ...pixelHeading }} mb={1}>
-                  {content.title}
+                  {sanitizePlainText(content.title)}
                 </Typography>
                 <Box display="flex" alignItems="center" mb={1}>
                   <Chip 
@@ -358,7 +358,7 @@ const confirmDelete = async () => {
                     <Box display="flex" alignItems="center">
                       <Person fontSize="small" sx={{ color: '#5F4B8B', mr: 0.5 }} />
                       <Typography sx={{ ...pixelText }}>
-                        Created by: {content.creatorName}
+                        Created by: {sanitizePlainText(content.creatorName)}
                       </Typography>
                     </Box>
                   )}
@@ -387,7 +387,7 @@ const confirmDelete = async () => {
                   Description
                 </Typography>
                 <Typography sx={{ ...pixelText }}>
-                  {content.description}
+                  {sanitizePlainText(content.description)}
                 </Typography>
               </>
             )}
@@ -467,7 +467,7 @@ const confirmDelete = async () => {
                     {content.contentData.roles.map((role, index) => (
                       <Chip
                         key={index}
-                        label={role.name}
+                        label={sanitizePlainText(role.name)}
                         sx={{
                           ...pixelText,
                           backgroundColor: '#f0edf5',
@@ -525,10 +525,10 @@ const confirmDelete = async () => {
                       title={
                         <Box sx={{ p: 1 }}>
                           <Typography sx={{color: '#fff', mb: 1 }}>
-                            <strong>Description:</strong> {word.description || "No description available"}
+                            <strong>Description:</strong> {sanitizePlainText(word.description || 'No description available')}
                           </Typography>
                           <Typography sx={{color: '#fff', mt: 1, fontStyle: 'italic' }}>
-                            <strong>Example:</strong> "{word.exampleUsage || "No example available"}"
+                            <strong>Example:</strong> "{sanitizePlainText(word.exampleUsage || 'No example available')}"
                           </Typography>
                         </Box>
                       }
@@ -546,7 +546,7 @@ const confirmDelete = async () => {
                       }}
                     >
                       <Chip
-                        label={word.word}
+                        label={sanitizePlainText(word.word)}
                         sx={{
                           ...pixelText,
                           backgroundColor: '#f0edf5',

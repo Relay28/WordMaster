@@ -33,6 +33,7 @@ import { useHomePage } from './HomePageFunctions';
 import picbg from '../../assets/picbg.png'
 import '@fontsource/press-start-2p';
 import HomepageHeader from '../Header/HomepageHeader';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const StudentHomePage = () => {
   const { authChecked, user, getToken, login, logout } = useUserAuth();
@@ -446,7 +447,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading }) => (
           lineHeight: 2,
           letterSpacing: '-0.5px'
         }}>
-          {classroom.name || `CLASS ${classroom.id}`}
+          {sanitizePlainText(classroom.name) || `CLASS ${classroom.id}`}
         </Typography>
       </Box>
       
@@ -482,7 +483,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading }) => (
           fontWeight: 500,
           pl: '26px' // Align with icon
         }}>
-          {classroom.teacher.fname + " " + classroom.teacher.lname || 'UNKNOWN'}
+          {sanitizePlainText(classroom.teacher.fname + " " + classroom.teacher.lname) || 'UNKNOWN'}
         </Typography>
       </Box>
       

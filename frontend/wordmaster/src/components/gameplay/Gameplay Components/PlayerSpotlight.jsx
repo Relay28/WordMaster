@@ -1,8 +1,11 @@
 import React from 'react';
 import { Box, Avatar, Chip, Typography, Tooltip } from '@mui/material';
 import defaultProfile from '../../../assets/defaultprofile.png';
+import { sanitizePlainText } from '../../../utils/sanitize';
 
 const PlayerSpotlight = ({ currentPlayer, isMyTurn, pixelHeading }) => {
+  const safeName = sanitizePlainText(currentPlayer?.name || 'Unknown Player');
+  const safeRole = sanitizePlainText(currentPlayer?.role || '');
   return (
     <>
       <Box sx={{
@@ -23,7 +26,7 @@ const PlayerSpotlight = ({ currentPlayer, isMyTurn, pixelHeading }) => {
           textShadow: '2px 2px 0px rgba(0,0,0,0.3)',
           fontSize: '13px'
         }}>
-          {isMyTurn ? 'YOUR TURN' : `${currentPlayer?.name || 'Player'}'s TURN`}
+          {isMyTurn ? 'YOUR TURN' : `${safeName}'s TURN`}
         </Typography>
       </Box>
 
@@ -54,7 +57,7 @@ const PlayerSpotlight = ({ currentPlayer, isMyTurn, pixelHeading }) => {
             mb: 2
           }}
         >
-          {currentPlayer?.name?.charAt(0) || '?'}
+          {safeName.charAt(0) || '?'}
         </Avatar>
         <Typography sx={{
           ...pixelHeading,
@@ -63,11 +66,11 @@ const PlayerSpotlight = ({ currentPlayer, isMyTurn, pixelHeading }) => {
           textAlign: 'center',
           mb: 0.5
         }}>
-          {currentPlayer?.name || 'Unknown Player'}
+          {safeName}
         </Typography>
-        {currentPlayer?.role && (
-          <Tooltip title={currentPlayer.role} arrow componentsProps={{ tooltip: { sx: { fontSize: '0.9rem', letterSpacing: '0.5px', p: 2 } } }}>
-            <Chip label={currentPlayer.role} size="small" sx={{ bgcolor: 'rgba(95, 75, 139, 0.2)', border: '1px solid #5F4B8B', fontFamily: '"Press Start 2P", cursive', fontSize: '10px' }} />
+        {safeRole && (
+          <Tooltip title={safeRole} arrow componentsProps={{ tooltip: { sx: { fontSize: '0.9rem', letterSpacing: '0.5px', p: 2 } } }}>
+            <Chip label={safeRole} size="small" sx={{ bgcolor: 'rgba(95, 75, 139, 0.2)', border: '1px solid #5F4B8B', fontFamily: '"Press Start 2P", cursive', fontSize: '10px' }} />
           </Tooltip>
         )}
       </Box>

@@ -10,6 +10,7 @@ import { ArrowBack, ArrowForward, Check, EmojiEvents, QuestionAnswer } from '@mu
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import confetti from 'canvas-confetti';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 // Add API URL configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -324,7 +325,7 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
                             fontWeight: 'medium',
                             lineHeight: '1.6'
                           }}>
-                            {question?.question}
+                            {sanitizePlainText(question?.question)}
                           </Typography>
                         </Box>
                         
@@ -333,12 +334,12 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
                             Your answer: <span style={{ 
                               color: answer.isCorrect ? '#4caf50' : '#f44336',
                               fontWeight: 'bold'
-                            }}>{answer.answer}</span>
+                            }}>{sanitizePlainText(answer.answer)}</span>
                           </Typography>
                           
                           {!answer.isCorrect && (
                             <Typography sx={{ ...pixelText, fontSize: '10px', color: '#4caf50' }}>
-                              Correct answer: {answer.correctAnswer}
+                              Correct answer: {sanitizePlainText(answer.correctAnswer)}
                             </Typography>
                           )}
                         </Box>
@@ -469,7 +470,7 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
                   lineHeight: 1.6,
                   fontWeight: 'medium'
                 }}>
-                  {question.question}
+                  {sanitizePlainText(question.question)}
                 </Typography>
               </CardContent>
             </Card>
@@ -533,7 +534,7 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
                               }}>
                                 {optionLabel}
                               </Box>
-                              {option}
+                              {sanitizePlainText(option)}
                             </Typography>
                           }
                           sx={{ 
