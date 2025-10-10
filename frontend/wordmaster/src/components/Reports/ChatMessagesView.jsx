@@ -8,6 +8,7 @@ import {
   ChatBubbleOutline, CheckCircle, Error, Schedule, 
   Spellcheck, Psychology, Close, Launch
 } from '@mui/icons-material';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
   // Add state to track dialog visibility
@@ -127,7 +128,7 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                 bgcolor: 'rgba(255, 255, 255, 0.5)',
                 borderRadius: '4px'
               }}>
-                {message.content}
+                {sanitizePlainText(message.content)}
               </Typography>
               
               {/* Word bomb and role appropriate indicators */}
@@ -176,7 +177,7 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                     Grammar Feedback:
                   </Typography>
                   <Paper 
-                    onClick={() => handleOpenDialog('Grammar Feedback', message.grammarFeedback)}
+                    onClick={() => handleOpenDialog('Grammar Feedback', sanitizePlainText(message.grammarFeedback))}
                     sx={{ 
                       p: 1, 
                       bgcolor: 'rgba(95, 75, 139, 0.1)',
@@ -198,9 +199,9 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                       color: '#000000',
                       flex: 1
                     }}>
-                      {message.grammarFeedback.length > 100 
-                        ? message.grammarFeedback.substring(0, 100) + '...'
-                        : message.grammarFeedback
+                      {sanitizePlainText(message.grammarFeedback).length > 100 
+                        ? sanitizePlainText(message.grammarFeedback).substring(0, 100) + '...'
+                        : sanitizePlainText(message.grammarFeedback)
                       }
                     </Typography>
                     <Launch sx={{ fontSize: '12px', color: '#666' }} />
@@ -216,7 +217,7 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                     Vocabulary Feedback:
                   </Typography>
                   <Paper 
-                    onClick={() => handleOpenDialog('Vocabulary Feedback', message.vocabularyFeedback)}
+                    onClick={() => handleOpenDialog('Vocabulary Feedback', sanitizePlainText(message.vocabularyFeedback))}
                     sx={{ 
                       p: 1, 
                       bgcolor: 'rgba(30, 136, 229, 0.1)',
@@ -238,9 +239,9 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                       color: '#000000',
                       flex: 1
                     }}>
-                      {message.vocabularyFeedback.length > 100 
-                        ? message.vocabularyFeedback.substring(0, 100) + '...'
-                        : message.vocabularyFeedback
+                      {sanitizePlainText(message.vocabularyFeedback).length > 100 
+                        ? sanitizePlainText(message.vocabularyFeedback).substring(0, 100) + '...'
+                        : sanitizePlainText(message.vocabularyFeedback)
                       }
                     </Typography>
                     <Launch sx={{ fontSize: '12px', color: '#666' }} />
@@ -271,7 +272,7 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
           alignItems: 'center',
           fontFamily: 'Arial, sans-serif'
         }}>
-          {dialogTitle}
+          {sanitizePlainText(dialogTitle)}
           <IconButton onClick={handleCloseDialog} size="small">
             <Close />
           </IconButton>
@@ -283,7 +284,7 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
             color: '#000000',
             whiteSpace: 'pre-wrap'
           }}>
-            {dialogContent}
+            {sanitizePlainText(dialogContent)}
           </Typography>
         </DialogContent>
         <DialogActions>

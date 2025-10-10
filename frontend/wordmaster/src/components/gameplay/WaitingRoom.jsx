@@ -18,6 +18,7 @@ import {
 import { useUserAuth } from '../context/UserAuthContext';
 import { useProfilePicture } from '../utils/ProfilePictureManager';
 import defaultProfile from '../../assets/defaultprofile.png';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 // Player Avatar Component
 const PlayerAvatar = ({ profilePicture, name }) => {
@@ -53,7 +54,7 @@ const PlayerAvatar = ({ profilePicture, name }) => {
       onError={() => setImgError(true)}
       sx={{ mr: 2, bgcolor: '#5F4B8B' }}
     >
-      {(imgError || !profilePicture) && (name?.charAt(0) || 'P')}
+      {(imgError || !profilePicture) && (sanitizePlainText(name)?.charAt(0) || 'P')}
     </Avatar>
   );
 };
@@ -136,7 +137,7 @@ const WaitingRoom = ({ gameState, isTeacher }) => {
             mb={3}
             color={gameState.backgroundImage ? 'white' : 'inherit'}
           >
-            {gameState.contentInfo?.title || 'Game Session'}
+            {sanitizePlainText(gameState.contentInfo?.title) || 'Game Session'}
           </Typography>
           
           <Box 
@@ -148,7 +149,7 @@ const WaitingRoom = ({ gameState, isTeacher }) => {
             }}
           >
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">Session Code: <b>{gameState?.sessionCode || sessionId || 'Loading...'}</b></Typography>
+            <Typography variant="h6">Session Code: <b>{sanitizePlainText(gameState?.sessionCode || sessionId || 'Loading...')}</b></Typography>
             <Chip 
                 label={`${gameState.players?.length || 0} players joined`} 
                 color="primary" 
@@ -181,8 +182,8 @@ const WaitingRoom = ({ gameState, isTeacher }) => {
                   name={player.playerName || player.name}
                 />
                 <ListItemText 
-                  primary={player.playerName || player.name} 
-                  secondary={player.role || 'No role assigned'} 
+                  primary={sanitizePlainText(player.playerName || player.name)} 
+                  secondary={sanitizePlainText(player.role || 'No role assigned')} 
                 />
               </ListItem>
             ))}

@@ -25,6 +25,7 @@ import PlayerSpotlight from './Gameplay Components/PlayerSpotlight';
 import WordBank from './Gameplay Components/WordBank';
 import { getGrammarStatusColor, getGrammarStatusLabel } from './Gameplay Components/grammarUtils';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -98,24 +99,25 @@ const GamePlay = ({
 
   const renderHighlighted = (text) => {
     if (!text) return text;
+    const safe = sanitizePlainText(text);
     const words = getWordBank();
-    if (!words || words.length === 0) return text;
+    if (!words || words.length === 0) return safe;
 
     const escaped = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
-    if (escaped.length === 0) return text;
+    if (escaped.length === 0) return safe;
     const re = new RegExp('\\b(' + escaped.join('|') + ')\\b', 'ig');
 
     const parts = [];
     let lastIndex = 0;
     let match;
-    while ((match = re.exec(text)) !== null) {
+    while ((match = re.exec(safe)) !== null) {
       if (match.index > lastIndex) {
-        parts.push({ text: text.substring(lastIndex, match.index), highlight: false });
+        parts.push({ text: safe.substring(lastIndex, match.index), highlight: false });
       }
       parts.push({ text: match[0], highlight: true });
       lastIndex = re.lastIndex;
     }
-    if (lastIndex < text.length) parts.push({ text: text.substring(lastIndex), highlight: false });
+    if (lastIndex < safe.length) parts.push({ text: safe.substring(lastIndex), highlight: false });
 
     return parts.map((p, i) => p.highlight ? (
       <span key={i} style={{ fontWeight: '700', color: '#f8def8ff', textShadow: `
@@ -621,7 +623,7 @@ const GamePlay = ({
                       position: 'relative'
                     }}>
                       <Typography sx={{fontSize: '18px' }}>
-                        <strong>{msg.senderName}:</strong> {renderHighlighted(msg.content)}
+                        <strong>{sanitizePlainText(msg.senderName)}:</strong> {renderHighlighted(msg.content)}
                       </Typography>
                       {msg.role && (
                         <Typography sx={{ 
@@ -629,7 +631,7 @@ const GamePlay = ({
                           opacity: 0.8,
                           fontStyle: 'italic' 
                         }}>
-                          as {msg.role}
+                          as {sanitizePlainText(msg.role)}
                         </Typography>
                       )}
                       <Typography sx={{ 

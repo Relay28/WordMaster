@@ -15,7 +15,7 @@ const API_URL = import.meta.env.VITE_API_URL ;
 
 const GameCore = () => {
   const { sessionId } = useParams();
-  const { user, getToken } = useUserAuth();
+  const { user, getToken, isTeacher } = useUserAuth();
   const navigate = useNavigate();
   const [storyPrompt, setStoryPrompt] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -812,7 +812,7 @@ useEffect(() => {
       gameState.status === 'WAITING_TO_START' ||
       gameState.status === 'PENDING'
     ) {
-      return <WaitingRoom gameState={gameState} isTeacher={user?.role === 'USER_TEACHER'} />;
+      return <WaitingRoom gameState={gameState} isTeacher={isTeacher()} />;
     } else if (
       gameState.status === 'TURN_IN_PROGRESS' ||
       gameState.status === 'WAITING_FOR_PLAYER' ||

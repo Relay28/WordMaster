@@ -13,6 +13,7 @@ import GameCore from './GameCore';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import apiConfig from '../../services/apiConfig'; // Import API configuration
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const GamePage = ({
   // content
@@ -279,7 +280,8 @@ const GamePage = ({
                 if (!selected) {
                   return <span style={{...pixelText, opacity: 0.5}}>Select a classroom</span>;
                 }
-                return selected ? classrooms.find(c => c.id === selected)?.name : '';
+                const match = classrooms.find(c => c.id === selected);
+                return match ? sanitizePlainText(match.name) : '';
               }}
               sx={{
                 '& .MuiSelect-select': {
@@ -309,7 +311,7 @@ const GamePage = ({
                         mr: 1,
                         fontSize:'20px'
                       }} />
-                      {classroom.name}
+                      {sanitizePlainText(classroom.name)}
                     </Box>
                   </MenuItem>
                 ))
@@ -342,7 +344,8 @@ const GamePage = ({
                 if (!selected) {
                   return <span style={{...pixelText, opacity: 0.5}}>Select a content</span>;
                 }
-                return selected ? contents.find(c => c.id === selected)?.title : '';
+                const match = contents.find(c => c.id === selected);
+                return match ? sanitizePlainText(match.title) : '';
               }}
               sx={{
                 '& .MuiSelect-select': {
@@ -372,7 +375,7 @@ const GamePage = ({
                         mr: 1,
                         fontSize: '20px'
                       }} />
-                      {content.title}
+                      {sanitizePlainText(content.title)}
                     </Box>
                   </MenuItem>
                 ))

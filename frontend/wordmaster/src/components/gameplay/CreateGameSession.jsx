@@ -9,6 +9,7 @@ import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import apiConfig from '../../services/apiConfig';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const CreateGameSession = () => {
   const { getToken } = useUserAuth();
@@ -271,7 +272,7 @@ const CreateGameSession = () => {
                     );
                   }
                   const selectedItem = contents.find(content => content.id === selected);
-                  return selectedItem ? selectedItem.title : '';
+                  return selectedItem ? sanitizePlainText(selectedItem.title) : '';
                 }}
                 MenuProps={{
                   PaperProps: {
@@ -307,7 +308,7 @@ const CreateGameSession = () => {
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
                         }}>
-                          {content.title}
+                          {sanitizePlainText(content.title)}
                         </Typography>
                       </Box>
                     </MenuItem>

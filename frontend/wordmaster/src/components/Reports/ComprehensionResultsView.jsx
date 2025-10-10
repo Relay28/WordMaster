@@ -4,6 +4,7 @@ import {
   Card, CardContent, Divider, Chip, List, ListItem
 } from '@mui/material';
 import { CheckCircle, Cancel, QuestionMark } from '@mui/icons-material';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const ComprehensionResultsView = ({ comprehensionData, pixelText, pixelHeading }) => {
   if (!comprehensionData) {
@@ -127,7 +128,7 @@ const ComprehensionResultsView = ({ comprehensionData, pixelText, pixelHeading }
                 <Grid container spacing={2} alignItems="flex-start">
                   <Grid item xs={10}>
                     <Typography sx={{ ...pixelText, mb: 1 }}>
-                      {index + 1}. {question.question}
+                      {index + 1}. {sanitizePlainText(question.question)}
                     </Typography>
                   </Grid>
                   <Grid item xs={2} sx={{ textAlign: 'right' }}>
@@ -160,7 +161,7 @@ const ComprehensionResultsView = ({ comprehensionData, pixelText, pixelHeading }
                               : (isCorrectOption && !isCorrect ? 'success.main' : 'text.primary')
                           }}
                         >
-                          {optionLetter}. {option} {isSelected && '✓'} {isCorrectOption && !isSelected && !isCorrect && '(Correct)'}
+                          {optionLetter}. {sanitizePlainText(option)} {isSelected && '✓'} {isCorrectOption && !isSelected && !isCorrect && '(Correct)'}
                         </Typography>
                       );
                     })}
@@ -204,7 +205,7 @@ const ComprehensionResultsView = ({ comprehensionData, pixelText, pixelHeading }
                     </Typography>
                     <Paper elevation={0} sx={{ p: 1, bgcolor: 'rgba(0,0,0,0.03)', borderRadius: '4px', mt: 0.5 }}>
                       <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                        {answer?.answer || 'No answer provided'}
+                        {sanitizePlainText(answer?.answer || 'No answer provided')}
                       </Typography>
                     </Paper>
                     
@@ -213,7 +214,7 @@ const ComprehensionResultsView = ({ comprehensionData, pixelText, pixelHeading }
                     </Typography>
                     <Paper elevation={0} sx={{ p: 1, bgcolor: 'rgba(0,0,0,0.03)', borderRadius: '4px', mt: 0.5 }}>
                       <Typography sx={{ ...pixelText, fontSize: '8px' }}>
-                        {question.correctAnswer}
+                        {sanitizePlainText(question.correctAnswer)}
                       </Typography>
                     </Paper>
                     

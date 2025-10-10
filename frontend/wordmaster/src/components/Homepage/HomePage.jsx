@@ -31,6 +31,7 @@ import { useHomePage } from './HomePageFunctions';
 import picbg from '../../assets/picbg.png';
 import '@fontsource/press-start-2p';
 import HomepageHeader from '../Header/HomepageHeader';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const HomePage = () => {
   const { authChecked, user, getToken, login, logout } = useUserAuth();
@@ -416,7 +417,7 @@ const ClassroomCard = ({ classroom, onClick, pixelText, pixelHeading }) => (
           lineHeight: 2,
           letterSpacing: '-0.5px'
         }}>
-          {classroom.name || `CLASS ${classroom.id}`}
+          {sanitizePlainText(classroom.name) || `CLASS ${classroom.id}`}
         </Typography>
       </Box>
         

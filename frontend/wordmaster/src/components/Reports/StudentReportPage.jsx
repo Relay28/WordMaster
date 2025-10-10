@@ -14,10 +14,12 @@ import ComprehensionResultsView from './ComprehensionResultsView';
 import GrammarVocabResultsView from './GrammarVocabResultsView'; // Import the new component
 import ChatMessagesView from './ChatMessagesView';
 import { useProfilePicture } from '../utils/ProfilePictureManager';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 // Separate component for profile picture to properly use hooks
 const ProfilePicture = ({ profilePicture, studentName }) => {
   const profilePic = useProfilePicture(profilePicture);
+  const safeName = sanitizePlainText(studentName || '');
   
   return (
     <Avatar 
@@ -30,7 +32,7 @@ const ProfilePicture = ({ profilePicture, studentName }) => {
         mx: { xs: 'auto', md: 0 }
       }}
     >
-      {!profilePic && !defaultProfile && studentName.split(' ').map(n => n[0]).join('')}
+      {!profilePic && !defaultProfile && safeName.split(' ').map(n => n[0]).join('')}
     </Avatar>
   );
 };
@@ -382,10 +384,10 @@ const StudentReportPage = () => {
               </Grid>
               <Grid item xs={12} md={10}>
                 <Typography sx={{ ...pixelHeading, fontSize: '20px', mb: 1 }}>
-                  {studentDetails.studentName}
+                  {sanitizePlainText(studentDetails.studentName)}
                 </Typography>
                 <Typography sx={{ ...pixelText, color: '#5F4B8B', mb: 2 }}>
-                  ROLE: {studentDetails.role || 'N/A'}
+                  ROLE: {studentDetails.role ? sanitizePlainText(studentDetails.role) : 'N/A'}
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={6} sm={3}>

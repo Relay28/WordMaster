@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, IconButton, Typography, List, ListItem, Avatar } from '@mui/material';
 import defaultProfile from '../../../assets/defaultprofile.png';
+import { sanitizePlainText } from '../../../utils/sanitize';
 
 const LeaderboardOverlay = ({ leaderboard = [], cycleDisplayString = '' }) => {
   return (
@@ -31,11 +32,11 @@ const LeaderboardOverlay = ({ leaderboard = [], cycleDisplayString = '' }) => {
                     src={player.profilePicture || defaultProfile}
                     sx={{ width: 32, height: 32, mr: 1.5, backgroundColor: 'rgba(114, 137, 218, 0.7)' }}
                   >
-                    {player.name?.charAt(0) || '?'}
+                    {sanitizePlainText(player.name)?.charAt(0) || '?'}
                   </Avatar>
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography sx={{ color: 'white', fontWeight: 500, fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{player.name || 'Player'}</Typography>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>{player.role || ' '}</Typography>
+                    <Typography sx={{ color: 'white', fontWeight: 500, fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sanitizePlainText(player.name) || 'Player'}</Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>{sanitizePlainText(player.role) || ' '}</Typography>
                   </Box>
                   <Box sx={{ backgroundColor: 'rgba(114, 137, 218, 0.2)', borderRadius: '4px', px: 1.5, py: 0.5, color: 'white', fontWeight: 600, fontSize: '12px' }}>{player.score}</Box>
                 </Box>
