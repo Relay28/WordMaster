@@ -15,12 +15,14 @@ import { ExitToApp, Person } from "@mui/icons-material";
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/LOGO.png';
 import defaultProfile from '../../assets/defaultprofile.png';
+import { useUserAuth } from '../context/UserAuthContext';
+import { sanitizePlainText } from '../../utils/sanitize';
 
 const HomepageHeader = ({ 
-  displayName,
-  roleDisplay,
-  avatarInitials,
-  user,
+  displayName, // ignored for security
+  roleDisplay, // ignored for security
+  avatarInitials, // ignored for security
+  user: _userProp, // ignored for security
   anchorEl,
   pixelText,
   pixelHeading,
@@ -30,6 +32,17 @@ const HomepageHeader = ({
   handleLogout
 }) => {
   const navigate = useNavigate();
+  const { user } = useUserAuth();
+
+  // Derive trusted values from authenticated context only
+  const safeDisplayNameRaw = `${user?.fname || ''} ${user?.lname || ''}`.trim() || (user?.email || 'User');
+  const safeDisplayName = sanitizePlainText(safeDisplayNameRaw);
+  const roles = user?.authorities || [];
+  const trustedRole = user?.role || roles.find(Boolean) || 'UNKNOWN';
+  const safeRoleDisplay = sanitizePlainText(trustedRole === 'USER_TEACHER' ? 'Teacher' : trustedRole === 'USER_STUDENT' ? 'Student' : 'Unknown');
+  const safeAvatarInitials = (user?.fname && user?.lname)
+    ? `${user.fname.charAt(0)}${user.lname.charAt(0)}`
+    : user?.email?.charAt(0)?.toUpperCase() || 'U';
 
   const handleLogoClick = () => {
     navigate('/homepage');
@@ -48,13 +61,13 @@ const HomepageHeader = ({
           display="flex" 
           alignItems="center" 
           gap={4}
-          component={Button} // Make the whole container a clickable button
+          component={Button}
           onClick={handleLogoClick}
           sx={{
-            textTransform: 'none', // Prevent uppercase transformation
-            p: 0, // Remove padding
+            textTransform: 'none',
+            p: 0,
             '&:hover': {
-              backgroundColor: 'transparent' // Remove hover background
+              backgroundColor: 'transparent'
             }
           }}
         >
@@ -72,23 +85,21 @@ const HomepageHeader = ({
             color: '#5F4B8B',
             fontSize: '16px',
             '&:hover': {
-              color: '#6c63ff' // Add hover effect
+              color: '#6c63ff'
             }
           }}>
             WordMaster
           </Typography>
         </Box>
         <Box display="flex" alignItems="center" gap={2}>
-         
-            <Box textAlign="right">
-              <Typography sx={{ ...pixelText, fontSize: '12px', color: 'text.secondary' }}>
-                {displayName}
-              </Typography>
-              <Typography sx={{ ...pixelText, fontSize: '12px', color: '#5F4B8B' }}>
-                {roleDisplay}
-              </Typography>
-            </Box>
-          
+          <Box textAlign="right">
+            <Typography sx={{ ...pixelText, fontSize: '12px', color: 'text.secondary' }}>
+              {safeDisplayName}
+            </Typography>
+            <Typography sx={{ ...pixelText, fontSize: '12px', color: '#5F4B8B' }}>
+              {safeRoleDisplay}
+            </Typography>
+          </Box>
           <IconButton onClick={handleMenuOpen} size="small" sx={{ p: 0 }}>
             <Avatar 
               sx={{ 
@@ -97,9 +108,9 @@ const HomepageHeader = ({
                 bgcolor: '#5F4B8B',
                 color: 'white'
               }}
-              src={user.profilePicture || defaultProfile}
+              src={user?.profilePicture || defaultProfile}
             >
-              {avatarInitials}
+              {safeAvatarInitials}
             </Avatar>
           </IconButton>
           <Menu
