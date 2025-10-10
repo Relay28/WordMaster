@@ -5,6 +5,15 @@ import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext();
 
+/**
+ * Extracts role identifiers from a decoded token-like object.
+ *
+ * Checks the following fields, in order, and returns roles from the first populated value:
+ * `authorities`, `roles`, `role`, `scopes`, `scope`.
+ *
+ * @param {object|null|undefined} decoded - Decoded token payload to extract roles from.
+ * @returns {string[]} An array of role strings from the first populated field; empty array if no roles are found.
+ */
 function extractRolesFromDecoded(decoded) {
   if (!decoded) return [];
   const vals = [];
@@ -21,6 +30,11 @@ function extractRolesFromDecoded(decoded) {
   return [];
 }
 
+/**
+ * Construct a sanitized admin user object with resolved roles from a decoded token.
+ * @param {Object|null|undefined} raw - Original user-like object; may contain caller-provided `role` or `authorities` that should be ignored in favor of token-derived values.
+ * @param {Object|null|undefined} decoded - Decoded token payload used to extract roles/authorities.
+ * @returns {Object} Sanitized user object where `role` is the primary resolved role and `authorities` is an array of roles. Caller-provided `role` and `authorities` from `raw` are omitted.
 function buildSafeAdminUser(raw, decoded) {
   const roles = extractRolesFromDecoded(decoded);
   const primaryRole = roles.find(Boolean) || raw?.role;
@@ -32,6 +46,15 @@ function buildSafeAdminUser(raw, decoded) {
   };
 }
 
+/**
+ * Provides authentication state and actions for admin users and makes them available via AuthContext.
+ *
+ * Manages a sanitized currentUser (including derived roles), persists minimal auth data (token plus non-sensitive fields) to localStorage, restores state on mount, synchronizes across browser tabs, and navigates to the admin login on logout. Exposes `currentUser`, `isAdmin`, `login`, and `logout` through context.
+ *
+ * @param {object} props
+ * @param {import('react').ReactNode} props.children - Child elements rendered inside the provider.
+ * @returns {import('react').ReactElement} The AuthContext provider element wrapping children.
+ */
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
@@ -122,6 +145,12 @@ export function AuthProvider({ children }) {
   );
 }
 
+/**
+ * Access the authentication context for the current React component tree.
+ *
+ * @returns {{ currentUser: Object|null, isAdmin: boolean, login: Function, logout: Function }} The authentication context value.
+ * @throws {Error} If called outside of an AuthProvider.
+ */
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {

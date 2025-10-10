@@ -5,7 +5,16 @@ import { jwtDecode } from 'jwt-decode';
 
 const UserAuthContext = createContext();
 
-// Helper: extract roles/authorities from a decoded JWT in a robust way
+/**
+ * Extracts role or authority values from a decoded JWT payload.
+ *
+ * Looks for common claim locations (`authorities`, `roles`, `role`, `scopes`, `scope`)
+ * and returns an array of role strings if found. Supports array-valued claims and
+ * space- or comma-delimited strings.
+ *
+ * @param {Object|null|undefined} decoded - Decoded JWT payload to inspect.
+ * @returns {string[]} Array of role/authority names extracted from the token; empty array if none found.
+ */
 function extractRolesFromDecoded(decoded) {
   if (!decoded) return [];
   // common claim locations: role, roles, authorities, scope/scopes
@@ -27,7 +36,17 @@ function extractRolesFromDecoded(decoded) {
   return [];
 }
 
-// Helper: sanitize user object coming from storage so it can't override auth-critical fields
+/**
+ * Produce a sanitized user object that derives `role` and `authorities` from a decoded JWT.
+ *
+ * Strips any `role` or `authorities` present in the stored user data and sets those fields
+ * based on the provided decoded token. If the token does not contain an explicit role,
+ * falls back to `rawUser.role` for display purposes.
+ *
+ * @param {Object|null|undefined} rawUser - The user object loaded from storage (may be null/undefined); any stored `role`/`authorities` will be ignored.
+ * @param {Object} decodedToken - The decoded JWT payload used as the authoritative source for roles/authorities.
+ * @returns {Object} A sanitized user object that preserves non-auth fields from `rawUser` and sets `role` and `authorities` derived from the token.
+ */
 function buildSafeUserFromStorage(rawUser, decodedToken) {
   const roles = extractRolesFromDecoded(decodedToken);
   const primaryRole = roles.find(r => r) || rawUser?.role; // fallback for display if token lacks explicit role
@@ -42,6 +61,13 @@ function buildSafeUserFromStorage(rawUser, decodedToken) {
   };
 }
 
+/**
+ * Provides authentication state and actions (login, logout, update, token access, role checks, and storage sync) to descendant components via UserAuthContext.
+ *
+ * @param {object} props
+ * @param {import('react').ReactNode} props.children - Descendant elements that consume the authentication context.
+ * @returns {import('react').ReactElement} The UserAuthContext provider wrapping the given children.
+ */
 export function UserAuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
