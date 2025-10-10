@@ -32,7 +32,7 @@ function buildSafeUserFromStorage(rawUser, decodedToken) {
   const roles = extractRolesFromDecoded(decodedToken);
   const primaryRole = roles.find(r => r) || rawUser?.role; // fallback for display if token lacks explicit role
 
-  const { role: _ignoredRole, authorities: _ignoredAuth, ...rest } = rawUser || {};
+  const { ...rest } = rawUser || {};
 
   return {
     ...rest,
@@ -100,7 +100,7 @@ export function UserAuthProvider({ children }) {
     // Persist token and non-sensitive user data
     localStorage.setItem('userToken', token);
     // Strip any auth-critical fields before storing
-    const { role: _ignoredRole, authorities: _ignoredAuth, ...rest } = userData || {};
+    const { ...rest } = userData || {};
     localStorage.setItem('userData', JSON.stringify(rest));
 
     // Build safe user for state
@@ -144,7 +144,7 @@ export function UserAuthProvider({ children }) {
     }
 
     // Remove privileged fields before persisting
-    const { role: _ignoredRole, authorities: _ignoredAuth, ...persistable } = resolved || {};
+    //const { role: _ignoredRole, authorities: _ignoredAuth, ...persistable } = resolved || {};
     try {
       localStorage.setItem('userData', JSON.stringify(persistable));
       // Rebuild safe user from token claims
