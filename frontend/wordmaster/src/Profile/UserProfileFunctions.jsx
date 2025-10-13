@@ -103,8 +103,8 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
       });
       
       setFormData({
-        firstName: response.data.fname || response.data.firstName || '',
-        lastName: response.data.lname || response.data.lastName || '',
+        firstName: response.data.fname || '',
+        lastName: response.data.lname || '',
         email: response.data.email || '',
         profilePicture: response.data.profilePicture || '',
         currentPassword: '',
@@ -114,8 +114,8 @@ export const useUserProfile = (user, authChecked, logout, getToken) => {
 
       const userObj = {
         ...user,
-        fname: response.data.fname || response.data.firstName || '',
-        lname: response.data.lname || response.data.lastName || '',
+        fname: response.data.fname || '',
+        lname: response.data.lname || '',
         email: response.data.email || '',
         profilePicture: response.data.profilePicture || ''
       };

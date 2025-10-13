@@ -30,13 +30,20 @@ function extractRolesFromDecoded(decoded) {
 // Helper: sanitize user object coming from storage so it can't override auth-critical fields
 function buildSafeUserFromStorage(rawUser, decodedToken) {
   const roles = extractRolesFromDecoded(decodedToken);
-  const primaryRole = roles.find(r => r) || rawUser?.role; // fallback for display if token lacks explicit role
+  const primaryRole = roles.find(r => r);
 
-  const { ...rest } = rawUser || {};
+  // SECURITY: Explicitly exclude any auth-critical fields from rawUser
+  const { role: _ignoredRole, authorities: _ignoredAuth, ...safeFields } = rawUser || {};
+
+  // SECURITY: If no roles in token, this is a security issue - clear auth
+  if (!primaryRole) {
+    console.error('JWT token missing role claims - potential security issue');
+    return null; // Force re-authentication
+  }
 
   return {
-    ...rest,
-    // Always derive these from token to avoid tampering
+    ...safeFields,
+    // SECURITY: These MUST come from JWT token only, never from localStorage
     role: primaryRole,
     authorities: roles,
   };
@@ -74,6 +81,13 @@ export function UserAuthProvider({ children }) {
 
       const parsedUser = JSON.parse(userData);
       const safeUser = buildSafeUserFromStorage(parsedUser, decoded);
+      
+      // SECURITY: If safeUser is null, token is invalid - clear auth
+      if (!safeUser) {
+        clearAuth();
+        return;
+      }
+      
       setUser(safeUser);
     } catch (err) {
       console.error('Invalid token or userData in storage', err);
@@ -99,14 +113,15 @@ export function UserAuthProvider({ children }) {
   const login = (userData, token) => {
     // Persist token and non-sensitive user data
     localStorage.setItem('userToken', token);
-    // Strip any auth-critical fields before storing
-    const { ...rest } = userData || {};
-    localStorage.setItem('userData', JSON.stringify(rest));
+    
+    // SECURITY: Strip ALL auth-critical fields before storing to prevent tampering
+    const { role, authorities, ...safeUserData } = userData || {};
+    localStorage.setItem('userData', JSON.stringify(safeUserData));
 
-    // Build safe user for state
+    // Build safe user for state - roles come ONLY from JWT token
     try {
       const decoded = jwtDecode(token);
-      const safeUser = buildSafeUserFromStorage(rest, decoded);
+      const safeUser = buildSafeUserFromStorage(safeUserData, decoded);
       setUser(safeUser);
     } catch (e) {
       console.error('Failed to decode token during login', e);
