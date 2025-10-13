@@ -5,27 +5,27 @@ import lombok.*;
 
 
 public class UserProfileDto {
-    private String firstName;
-    private String lastName;
+    private String fname;
+    private String lname;
     private String email;
     private String profilePicture;
     private String role;
     private boolean active;
 
-    public String getFirstName() {
-        return firstName;
+    public String getFname() {
+        return fname;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public void setFname(String fname) {
+        this.fname = fname;
     }
 
-    public String getLastName() {
-        return lastName;
+    public String getLname() {
+        return lname;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setLname(String lname) {
+        this.lname = lname;
     }
 
     public String getEmail() {

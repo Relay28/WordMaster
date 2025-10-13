@@ -35,8 +35,8 @@ public class ProfileService implements IProfileService {
 
         // Convert to DTO for frontend consumption
         UserProfileDto profileDto = new UserProfileDto();
-        profileDto.setFirstName(user.getFname());
-        profileDto.setLastName(user.getLname());
+        profileDto.setFname(user.getFname());
+        profileDto.setLname(user.getLname());
         profileDto.setEmail(user.getEmail());
         profileDto.setProfilePicture(user.getProfilePicture());
         profileDto.setRole(user.getRole());
