@@ -37,6 +37,9 @@ public class MicrosoftAuthService {
     @Value("${azure.tenant-id}")
     private String tenantId;
 
+    @Value("${spring.security.oauth2.client.registration.azure.redirect-uri}")
+    private String redirectUri;
+
     @Autowired
     private UserService userService;
 
@@ -152,7 +155,7 @@ public class MicrosoftAuthService {
             
             logger.info("Token URL: {}", tokenUrl);
             logger.info("Client ID: {}", cleanClientId);
-            logger.info("Redirect URI: https://wordmaster.duckdns.org/login/oauth2/code/azure");
+            logger.info("Redirect URI: {}", redirectUri);
             logger.info("Code length: {}", code.length());
             
             // Create specific headers for token request
@@ -165,7 +168,7 @@ public class MicrosoftAuthService {
             formParams.add("client_secret", clientSecret);
             formParams.add("scope", "https://graph.microsoft.com/.default openid profile email");
             formParams.add("code", code);
-            formParams.add("redirect_uri", "https://wordmaster.duckdns.org/login/oauth2/code/azure");
+            formParams.add("redirect_uri", redirectUri);
             formParams.add("grant_type", "authorization_code");
             
             // Create the request entity
@@ -188,7 +191,7 @@ public class MicrosoftAuthService {
                 formData.append("&client_secret=").append(java.net.URLEncoder.encode(clientSecret, "UTF-8"));
                 formData.append("&scope=").append(java.net.URLEncoder.encode("https://graph.microsoft.com/.default", "UTF-8"));
                 formData.append("&code=").append(java.net.URLEncoder.encode(code, "UTF-8"));
-                formData.append("&redirect_uri=").append(java.net.URLEncoder.encode("https://wordmaster.duckdns.org/login/oauth2/code/azure", "UTF-8"));
+                formData.append("&redirect_uri=").append(java.net.URLEncoder.encode(redirectUri, "UTF-8"));
                 formData.append("&grant_type=authorization_code");
                 
                 // Send the data

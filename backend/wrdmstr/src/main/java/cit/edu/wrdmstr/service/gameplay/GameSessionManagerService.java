@@ -505,40 +505,62 @@ public class GameSessionManagerService {
             
             // Get current players and their roles
             List<PlayerSessionEntity> players = playerRepository.findBySessionId(session.getId());
-            Map<String, String> playerRoles = new HashMap<>();
-            List<String> playerNames = new ArrayList<>();
+            List<String> activeRoles = new ArrayList<>();
             
             for (PlayerSessionEntity player : players) {
-                String playerName = player.getUser().getFname(); // Use only first name
                 String roleName = player.getRole() != null ? player.getRole().getName() : "Participant";
-                
-                playerRoles.put(playerName, roleName);
-                playerNames.add(playerName);
+                if (!activeRoles.contains(roleName)) {
+                    activeRoles.add(roleName);
+                }
             }
             
             Map<String, Object> request = new HashMap<>();
             request.put("task", "story_prompt");
-            request.put("content", session.getContent().getTitle()); // Use title as main topic
-            request.put("contentDescription", session.getContent().getDescription()); // Add full description
+            request.put("contentTitle", session.getContent().getTitle());
+            request.put("contentDescription", session.getContent().getDescription());
             request.put("turn", turnNumber);
+            request.put("roles", activeRoles);
             
-            // Include player context
-            request.put("playerNames", playerNames);
-            request.put("playerRoles", playerRoles);
-            request.put("currentPlayerCount", players.size());
+            // NEW APPROACH: Content-centric with role invitation
+            StringBuilder instruction = new StringBuilder();
+            instruction.append("Create a SHORT story prompt (2-3 sentences, max 50 words) about the content topic '")
+                      .append(session.getContent().getTitle())
+                      .append("'. ");
+            instruction.append("Set a scene or situation in this world/topic, then ask what each person would do/say FROM THEIR ROLE. ");
+            instruction.append("Format: [Situation in the content world]. Using your role, what would you do/say/advise? ");
+            instruction.append("Example: 'It's a peaceful day in the kingdom. A concern arises about the kingdom's future. Using your role, what would you do or say to address this?' ");
+            instruction.append("DO NOT mention specific roles by name. DO NOT direct specific roles to act. ");
+            instruction.append("The prompt should work for ANY role to respond from their perspective.");
             
-            // Include previous story for continuity
+            request.put("instruction", instruction.toString());
+            
+            // Include previous story for continuity and progression
             if (!previousElements.isEmpty()) {
                 List<String> previousStory = previousElements.stream()
                     .map(element -> (String) element.get("prompt"))
+                    .limit(3) // Only last 3 for context
                     .collect(Collectors.toList());
                 request.put("previousStory", previousStory);
+                request.put("needsProgression", true);
+            } else {
+                request.put("needsProgression", false);
             }
             
             String newPrompt = aiService.callAIModel(request).getResult();
             
             // Clean the prompt to ensure it meets requirements
             String cleanedPrompt = cleanStoryPrompt(newPrompt);
+            
+            // Validate and ensure it has the role invitation
+            if (!cleanedPrompt.toLowerCase().contains("your role") && 
+                !cleanedPrompt.toLowerCase().contains("from your perspective")) {
+                // Add role invitation if missing
+                cleanedPrompt = cleanedPrompt.trim();
+                if (!cleanedPrompt.endsWith("?") && !cleanedPrompt.endsWith(".")) {
+                    cleanedPrompt += ".";
+                }
+                cleanedPrompt += " Using your role, how would you respond?";
+            }
             
             // Save the cleaned story prompt
             storyPromptService.addStoryPrompt(session.getId(), turnNumber, cleanedPrompt);
@@ -547,9 +569,9 @@ public class GameSessionManagerService {
         } catch (Exception e) {
             logger.error("Error generating story element for session {}: {}", session.getId(), e.getMessage(), e);
             
-            // Provide content-relevant fallback
+            // Provide content-relevant fallback with role invitation
             String contentTitle = session.getContent() != null ? session.getContent().getTitle() : "the topic";
-            return "The group continues their discussion about " + contentTitle + ". What should they focus on next?";
+            return "A situation unfolds regarding " + contentTitle + ". Using your role, how would you respond?";
         }
     }
 
@@ -557,7 +579,7 @@ public class GameSessionManagerService {
     // Add this method to clean story prompts
     private String cleanStoryPrompt(String rawStory) {
         if (rawStory == null || rawStory.trim().isEmpty()) {
-            return "Let's continue our story! What happens next?";
+            return "A new situation unfolds. Using your role, how would you respond?";
         }
         
         String cleaned = rawStory.trim();
@@ -568,6 +590,17 @@ public class GameSessionManagerService {
         cleaned = cleaned.replaceAll("#{1,6}\\s*", ""); // Remove headers
         cleaned = cleaned.replaceAll("Turn \\d+:", ""); // Remove "Turn X:"
         cleaned = cleaned.replaceAll("\\(([^)]+)\\)", ""); // Remove parenthetical directions
+        
+        // Remove player-specific references
+        cleaned = cleaned.replaceAll("\\bPlayer [A-Z]\\b", "someone");
+        cleaned = cleaned.replaceAll("\\bPlayer [0-9]+\\b", "someone");
+        cleaned = cleaned.replaceAll("\\bPlayer [A-Z]'s\\b", "someone's");
+        cleaned = cleaned.replaceAll("\\bPlayer [0-9]+'s\\b", "someone's");
+        
+        // Remove specific role names being used as subjects (e.g., "The villain should...")
+        // But preserve "your role" and "their role" phrases
+        cleaned = cleaned.replaceAll("\\bThe (villain|hero|bystander|narrator|sidekick)\\b", "Someone");
+        cleaned = cleaned.replaceAll("\\bA (villain|hero|bystander|narrator|sidekick)\\b", "Someone");
         
         // Remove gender pronouns and replace with neutral alternatives
         cleaned = cleaned.replaceAll("\\bhe\\b", "they");
@@ -587,19 +620,32 @@ public class GameSessionManagerService {
         cleaned = cleaned.replaceAll("[\u201C\u201D\u2018\u2019\u201E\u201A]", "\""); // Normalize quotes
         cleaned = cleaned.replaceAll("…", "..."); // Normalize ellipsis
         
+        // Preserve role-invitation phrases but remove other directive language
+        // DON'T remove: "using your role", "from your perspective", "in your role"
+        // DO remove: generic "you should", "you must" (unless followed by role context)
+        if (!cleaned.toLowerCase().matches(".*you (should|must|need to).*(role|perspective).*")) {
+            cleaned = cleaned.replaceAll("\\bYou should\\b", "Consider");
+            cleaned = cleaned.replaceAll("\\bYou must\\b", "It's time to");
+            cleaned = cleaned.replaceAll("\\bYou need to\\b", "There's a need to");
+        }
+        
         // Split into sentences and limit length
         String[] sentences = cleaned.split("\\. ");
         StringBuilder result = new StringBuilder();
         int sentenceCount = 0;
         
         for (String sentence : sentences) {
-            if (sentenceCount >= 4) break; // Max 4 sentences
+            if (sentenceCount >= 3) break; // Max 3 sentences
             
             sentence = sentence.trim();
             if (!sentence.isEmpty()) {
-                // Skip overly complex sentences (>20 words)
+                // Allow slightly longer sentences if they contain role invitation
                 String[] words = sentence.split("\\s+");
-                if (words.length <= 20) {
+                boolean hasRoleInvitation = sentence.toLowerCase().contains("your role") || 
+                                           sentence.toLowerCase().contains("your perspective");
+                int maxWords = hasRoleInvitation ? 25 : 18;
+                
+                if (words.length <= maxWords) {
                     if (result.length() > 0) result.append(". ");
                     result.append(sentence);
                     sentenceCount++;
@@ -614,9 +660,14 @@ public class GameSessionManagerService {
             finalStory += ".";
         }
         
-        // If still too long, provide a simple fallback
-        if (finalStory.length() > 300) {
-            return "The story continues. What do you think should happen next? Share your ideas!";
+        // If still too long, provide a simple fallback with role invitation
+        if (finalStory.length() > 250) {
+            return "The story continues. Using your role, how would you respond?";
+        }
+        
+        // If the story is too short or unclear, provide a better fallback
+        if (finalStory.length() < 20 || finalStory.split("\\s+").length < 4) {
+            return "A new situation unfolds. Using your role, what would you do?";
         }
         
         return finalStory;

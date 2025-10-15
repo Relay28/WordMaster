@@ -159,7 +159,7 @@ export function UserAuthProvider({ children }) {
     }
 
     // Remove privileged fields before persisting
-    //const { role: _ignoredRole, authorities: _ignoredAuth, ...persistable } = resolved || {};
+    const { role: _ignoredRole, authorities: _ignoredAuth, ...persistable } = resolved || {};
     try {
       localStorage.setItem('userData', JSON.stringify(persistable));
       // Rebuild safe user from token claims
