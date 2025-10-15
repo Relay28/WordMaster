@@ -621,8 +621,15 @@ public class AIService {
                     feedbackPrompt.append("- Total score: ").append(request.get("totalScore")).append("\n");
                     feedbackPrompt.append("- English messages sent: ").append(request.get("messageCount")).append("\n");
                     feedbackPrompt.append("- Perfect English grammar messages: ").append(request.get("perfectGrammarCount")).append("\n");
-                    feedbackPrompt.append("- English word bank usage: ").append(request.get("wordBankUsageCount")).append("\n\n");
-                    feedbackPrompt.append("Sample English messages from student:\n");
+                    feedbackPrompt.append("- English word bank usage: ").append(request.get("wordBankUsageCount")).append("\n");
+                    
+                    // Include comprehension percentage if available
+                    if (request.containsKey("comprehensionPercentage")) {
+                        double comprPercent = ((Number) request.get("comprehensionPercentage")).doubleValue();
+                        feedbackPrompt.append("- Comprehension quiz score: ").append(String.format("%.0f%%", comprPercent)).append("\n");
+                    }
+                    
+                    feedbackPrompt.append("\nSample English messages from student:\n");
                     List<String> sampleMessages = safeStringList(request.get("sampleMessages"));
                     for (int i = 0; i < sampleMessages.size(); i++) {
                         feedbackPrompt.append(i+1).append(". ").append(sampleMessages.get(i)).append("\n");
@@ -631,20 +638,31 @@ public class AIService {
                     feedbackPrompt.append("1. English language progress (grammar, vocabulary)\n");
                     feedbackPrompt.append("2. Confidence building in English communication\n");
                     feedbackPrompt.append("3. Participation and effort in English practice\n");
-                    feedbackPrompt.append("4. Celebrating strengths and gentle guidance for improvement\n\n");
-                    feedbackPrompt.append("IMPORTANT INSTRUCTIONS:\n");
+                    feedbackPrompt.append("4. Celebrating strengths and gentle guidance for improvement\n");
+                    if (request.containsKey("comprehensionPercentage")) {
+                        feedbackPrompt.append("5. Comprehension quiz performance and understanding\n");
+                    }
+                    feedbackPrompt.append("\nIMPORTANT INSTRUCTIONS:\n");
                     feedbackPrompt.append("- Address ").append(studentName).append(" warmly and personally\n");
                     feedbackPrompt.append("- Write like a caring teacher who believes in their English learning journey\n");
                     feedbackPrompt.append("- Emphasize the importance and value of practicing English\n");
                     feedbackPrompt.append("- Be encouraging about their progress as Filipino learners of English\n");
-                    feedbackPrompt.append("- Include specific scores (1-5) for:\n");
-                    feedbackPrompt.append("  * English Comprehension Score: (1-5)\n");
-                    feedbackPrompt.append("  * English Participation Score: (1-5)\n");
-                    feedbackPrompt.append("  * English Language Use Score: (1-5)\n");
-                    feedbackPrompt.append("  * Role Adherence in English Score: (1-5)\n");
-                    feedbackPrompt.append("  * Overall Letter Grade: (A-F)\n\n");
+                    feedbackPrompt.append("- Write 3-4 paragraphs of personalized feedback FIRST\n");
+                    feedbackPrompt.append("- Then add scores at the END in this EXACT format:\n\n");
+                    feedbackPrompt.append("REQUIRED SCORE FORMAT (must appear exactly like this at the end):\n");
+                    feedbackPrompt.append("**English Comprehension Score:** [1-5]\n");
+                    feedbackPrompt.append("**English Participation Score:** [1-5]\n");
+                    feedbackPrompt.append("**English Language Use Score:** [1-5]\n");
+                    feedbackPrompt.append("**Role Adherence in English Score:** [1-5]\n");
+                    feedbackPrompt.append("**Overall Letter Grade:** [A-F with optional + or -]\n\n");
                     
-                    feedbackPrompt.append("Format: Start with warm praise, acknowledge their English learning effort, provide gentle guidance, end with motivation to continue improving their English, then list scores.\n");
+                    feedbackPrompt.append("Example structure:\n");
+                    feedbackPrompt.append("[Warm personalized feedback paragraphs about the student's performance...]\n\n");
+                    feedbackPrompt.append("**English Comprehension Score:** 4\n");
+                    feedbackPrompt.append("**English Participation Score:** 5\n");
+                    feedbackPrompt.append("**English Language Use Score:** 3\n");
+                    feedbackPrompt.append("**Role Adherence in English Score:** 4\n");
+                    feedbackPrompt.append("**Overall Letter Grade:** B+\n");
                     
                     return feedbackPrompt.toString();
                     

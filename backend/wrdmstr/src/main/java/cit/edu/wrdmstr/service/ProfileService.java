@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -45,6 +46,7 @@ public class ProfileService implements IProfileService {
         return profileDto;
     }
 
+    @Transactional
     public UserEntity updateAuthenticatedUserProfile(Authentication authentication, UserProfileUpdateDto updateDto) {
         String email = authentication.getName();
         UserEntity user = userRepository.findByEmail(email)
@@ -68,6 +70,7 @@ public class ProfileService implements IProfileService {
         return userRepository.save(user);
     }
 
+    @Transactional
     public String uploadProfilePicture(Authentication authentication, MultipartFile file) throws IOException {
         String email = authentication.getName();
         UserEntity user = userRepository.findByEmail(email)
@@ -103,6 +106,7 @@ public class ProfileService implements IProfileService {
         return dataUrl;
     }
 
+    @Transactional
     public String deactivateAuthenticatedUser(Authentication authentication) {
         // Get email from authentication
         String email = authentication.getName();
@@ -141,25 +145,27 @@ public class ProfileService implements IProfileService {
         }
     }
 
+    @Transactional
     public UserEntity setupUserProfile(Authentication authentication, UserSetupDto setupDto) {
         // Get the authenticated user's email
         String email = authentication.getName();
 
-        // Find the user
+        // Find the user and ensure it's managed by the EntityManager
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
         // Validate that the user hasn't already completed setup
         // Only consider a profile "set up" if role is already set to a finalized role (not USER)
-        if (!user.getRole().equals("USER") &&
+        if (user.getRole() != null && !user.getRole().equals("USER") &&
                 user.getFname() != null &&
                 user.getLname() != null) {
             throw new IllegalStateException("User profile has already been set up");
         }
 
         // Validate the role
-        if (!"USER_STUDENT".equalsIgnoreCase(setupDto.getRole()) && !"USER_TEACHER".equalsIgnoreCase(setupDto.getRole())) {
-            throw new IllegalArgumentException("Role must be either 'student' or 'teacher'");
+        String roleUpperCase = setupDto.getRole().toUpperCase();
+        if (!"USER_STUDENT".equals(roleUpperCase) && !"USER_TEACHER".equals(roleUpperCase)) {
+            throw new IllegalArgumentException("Role must be either 'USER_STUDENT' or 'USER_TEACHER'");
         }
 
         // Validate first and last names
@@ -171,9 +177,9 @@ public class ProfileService implements IProfileService {
         }
 
         // Update the user's profile
-        user.setFname(setupDto.getFname());
-        user.setLname(setupDto.getLname());
-        user.setRole(setupDto.getRole().toUpperCase()); // store role in uppercase
+        user.setFname(setupDto.getFname().trim());
+        user.setLname(setupDto.getLname().trim());
+        user.setRole(roleUpperCase); // store role in uppercase
 
         // Save and return the updated user
         return userRepository.save(user);

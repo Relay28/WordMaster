@@ -39,6 +39,7 @@ public class GameSessionService {
     @Autowired private GrammarResultRepository grammarResultRepository;
     @Autowired private VocabularyResultRepository vocabularyResultRepository;
     @Autowired private ComprehensionResultRepository comprehensionResultRepository;
+    @Autowired private PlayerCardRepository playerCardRepository;
     
     // Add this field
     @Autowired @Lazy
@@ -312,7 +313,18 @@ public class GameSessionService {
         session.setCurrentPlayer(null);
         gameSessionRepository.save(session);
 
-        // Delete all player sessions first to avoid foreign key constraints
+        // Get all player session IDs for this game session
+        List<PlayerSessionEntity> playerSessions = playerSessionRepository.findBySessionId(sessionId);
+        List<Long> playerSessionIds = playerSessions.stream()
+            .map(PlayerSessionEntity::getId)
+            .collect(Collectors.toList());
+        
+        // Delete all player cards first to avoid foreign key constraints
+        if (!playerSessionIds.isEmpty()) {
+            playerCardRepository.deleteByPlayerSessionIds(playerSessionIds);
+        }
+
+        // Delete all player sessions
         playerSessionRepository.deleteBySessionId(sessionId);
         
         // Delete all messages associated with this session

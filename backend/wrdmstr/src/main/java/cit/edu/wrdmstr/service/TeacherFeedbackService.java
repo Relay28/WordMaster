@@ -220,41 +220,64 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
     private Map<String, Object> extractScoresFromAIFeedback(String aiSuggestion) {
         Map<String, Object> scores = new HashMap<>();
         
-        // Extract comprehension score
-        Pattern comprPattern = Pattern.compile("Comprehension Score:\\s*([1-5])", Pattern.CASE_INSENSITIVE);
+        logger.debug("Extracting scores from AI feedback: {}", aiSuggestion);
+        
+        // Extract comprehension score - match format: **English Comprehension Score:** 3
+        Pattern comprPattern = Pattern.compile("\\*\\*English\\s+Comprehension\\s+Score:\\*\\*\\s+([1-5])", Pattern.CASE_INSENSITIVE);
         Matcher comprMatcher = comprPattern.matcher(aiSuggestion);
         if (comprMatcher.find()) {
-            scores.put("comprehensionScore", Integer.parseInt(comprMatcher.group(1)));
+            int score = Integer.parseInt(comprMatcher.group(1));
+            scores.put("comprehensionScore", score);
+            logger.debug("Extracted comprehension score: {}", score);
+        } else {
+            logger.warn("Could not extract comprehension score from AI feedback");
         }
         
-        // Extract participation score
-        Pattern partPattern = Pattern.compile("Participation Score:\\s*([1-5])", Pattern.CASE_INSENSITIVE);
+        // Extract participation score - match format: **English Participation Score:** 4
+        Pattern partPattern = Pattern.compile("\\*\\*English\\s+Participation\\s+Score:\\*\\*\\s+([1-5])", Pattern.CASE_INSENSITIVE);
         Matcher partMatcher = partPattern.matcher(aiSuggestion);
         if (partMatcher.find()) {
-            scores.put("participationScore", Integer.parseInt(partMatcher.group(1)));
+            int score = Integer.parseInt(partMatcher.group(1));
+            scores.put("participationScore", score);
+            logger.debug("Extracted participation score: {}", score);
+        } else {
+            logger.warn("Could not extract participation score from AI feedback");
         }
         
-        // Extract language use score
-        Pattern langPattern = Pattern.compile("Language Use Score:\\s*([1-5])", Pattern.CASE_INSENSITIVE);
+        // Extract language use score - match format: **English Language Use Score:** 2
+        Pattern langPattern = Pattern.compile("\\*\\*English\\s+Language\\s+Use\\s+Score:\\*\\*\\s+([1-5])", Pattern.CASE_INSENSITIVE);
         Matcher langMatcher = langPattern.matcher(aiSuggestion);
         if (langMatcher.find()) {
-            scores.put("languageUseScore", Integer.parseInt(langMatcher.group(1)));
+            int score = Integer.parseInt(langMatcher.group(1));
+            scores.put("languageUseScore", score);
+            logger.debug("Extracted language use score: {}", score);
+        } else {
+            logger.warn("Could not extract language use score from AI feedback");
         }
         
-        // Extract role adherence score
-        Pattern rolePattern = Pattern.compile("Role Adherence Score:\\s*([1-5])", Pattern.CASE_INSENSITIVE);
+        // Extract role adherence score - match format: **Role Adherence in English Score:** 4
+        Pattern rolePattern = Pattern.compile("\\*\\*Role\\s+Adherence\\s+in\\s+English\\s+Score:\\*\\*\\s+([1-5])", Pattern.CASE_INSENSITIVE);
         Matcher roleMatcher = rolePattern.matcher(aiSuggestion);
         if (roleMatcher.find()) {
-            scores.put("roleAdherenceScore", Integer.parseInt(roleMatcher.group(1)));
+            int score = Integer.parseInt(roleMatcher.group(1));
+            scores.put("roleAdherenceScore", score);
+            logger.debug("Extracted role adherence score: {}", score);
+        } else {
+            logger.warn("Could not extract role adherence score from AI feedback");
         }
         
-        // Extract overall grade
-        Pattern gradePattern = Pattern.compile("Overall Letter Grade:\\s*([A-F][+-]?)", Pattern.CASE_INSENSITIVE);
+        // Extract overall grade - match format: **Overall Letter Grade:** B+ or C or A-
+        Pattern gradePattern = Pattern.compile("\\*\\*Overall\\s+Letter\\s+Grade:\\*\\*\\s+([A-F][+-]?)", Pattern.CASE_INSENSITIVE);
         Matcher gradeMatcher = gradePattern.matcher(aiSuggestion);
         if (gradeMatcher.find()) {
-            scores.put("overallGrade", gradeMatcher.group(1).toUpperCase());
+            String grade = gradeMatcher.group(1).toUpperCase();
+            scores.put("overallGrade", grade);
+            logger.debug("Extracted overall grade: {}", grade);
+        } else {
+            logger.warn("Could not extract overall grade from AI feedback");
         }
         
+        logger.info("Extracted scores: {}", scores);
         return scores;
     }
     /**
@@ -399,6 +422,7 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
 
     /**
      * Submit and grade comprehension answers
+     * AUTOMATICALLY generates AI feedback after comprehension quiz completion
      */
     public Map<String, Object> submitComprehensionAnswers(
             Long sessionId, 
@@ -430,14 +454,114 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
             result.setComprehensionAnswers(objectMapper.writeValueAsString(answers));
             result.setComprehensionPercentage(percentage);
             
-            // Save comprehension result (without creating/updating teacher feedback)
+            // Save comprehension result
             comprehensionResultRepository.save(result);
+            
+            // AUTO-GENERATE AI FEEDBACK after comprehension quiz completion
+            // This creates a draft feedback for teachers to review and adjust
+            try {
+                logger.info("Auto-generating AI feedback for student {} in session {}", studentId, sessionId);
+                autoGenerateTeacherFeedback(sessionId, studentId, session, student, percentage);
+            } catch (Exception e) {
+                // Don't fail the comprehension submission if AI feedback generation fails
+                logger.error("Failed to auto-generate teacher feedback: {}", e.getMessage(), e);
+            }
             
             // Return the grade result
             return gradeResult;
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error saving comprehension answers", e);
         }
+    }
+    
+    /**
+     * Auto-generate AI feedback and save it as a draft for teachers to review
+     * This is called automatically after comprehension quiz completion
+     */
+    private void autoGenerateTeacherFeedback(Long sessionId, Long studentId, 
+                                            GameSessionEntity session, UserEntity student,
+                                            double comprehensionPercentage) {
+        // Check if feedback already exists - don't overwrite existing feedback
+        Optional<TeacherFeedbackEntity> existingFeedback = feedbackRepository
+            .findByGameSessionIdAndStudentId(sessionId, studentId);
+        
+        if (existingFeedback.isPresent()) {
+            logger.info("Teacher feedback already exists for student {} in session {}, skipping auto-generation", 
+                       studentId, sessionId);
+            return;
+        }
+        
+        // Get player session
+        List<PlayerSessionEntity> playerSessions = playerSessionRepository
+            .findBySessionIdAndUserId(sessionId, studentId);
+        
+        if (playerSessions.isEmpty()) {
+            logger.warn("Player session not found for student {} in session {}", studentId, sessionId);
+            return;
+        }
+        
+        PlayerSessionEntity playerSession = playerSessions.get(0);
+        
+        // Get player messages
+        List<ChatMessageEntity> messages = chatMessageRepository
+            .findBySessionIdAndSenderIdOrderByTimestampAsc(sessionId, studentId);
+        
+        // Get player scores
+        List<ScoreRecordEntity> scores = scoreRepository
+            .findBySessionIdAndUserId(sessionId, studentId);
+        
+        // Calculate stats
+        int totalScore = playerSession.getTotalScore();
+        int messageCount = messages.size();
+        int perfectGrammarCount = (int) messages.stream()
+            .filter(m -> m.getGrammarStatus() == ChatMessageEntity.MessageStatus.PERFECT)
+            .count();
+        
+        // Count word bank usage
+        int wordBankUsageCount = (int) scores.stream()
+            .filter(s -> s.getReason() != null && s.getReason().contains("word bank"))
+            .count();
+        
+        // Prepare AI request with comprehension data
+        Map<String, Object> request = new HashMap<>();
+        request.put("task", "generate_feedback");
+        request.put("studentName", student.getFname() + " " + student.getLname());
+        request.put("role", playerSession.getRole() != null ? playerSession.getRole().getName() : "Unknown");
+        request.put("totalScore", totalScore);
+        request.put("messageCount", messageCount);
+        request.put("perfectGrammarCount", perfectGrammarCount);
+        request.put("wordBankUsageCount", wordBankUsageCount);
+        request.put("comprehensionPercentage", comprehensionPercentage);
+        
+        // Add sample messages (limit to 5 for brevity)
+        List<String> sampleMessages = messages.stream()
+            .map(ChatMessageEntity::getContent)
+            .limit(5)
+            .collect(Collectors.toList());
+        request.put("sampleMessages", sampleMessages);
+        
+        // Call AI service
+        String aiSuggestion = aiService.callAIModel(request).getResult();
+        
+        // Extract scores from AI feedback
+        Map<String, Object> extractedScores = extractScoresFromAIFeedback(aiSuggestion);
+        
+        // Create and save teacher feedback entity
+        TeacherFeedbackEntity feedback = new TeacherFeedbackEntity();
+        feedback.setGameSession(session);
+        feedback.setStudent(student);
+        feedback.setTeacher(session.getTeacher()); // Assign to the session's teacher
+        feedback.setFeedback(aiSuggestion); // Pre-populate with AI feedback
+        feedback.setAiSuggestedFeedback(aiSuggestion); // Keep original AI suggestion
+        feedback.setComprehensionScore((Integer) extractedScores.getOrDefault("comprehensionScore", 3));
+        feedback.setParticipationScore((Integer) extractedScores.getOrDefault("participationScore", 3));
+        feedback.setLanguageUseScore((Integer) extractedScores.getOrDefault("languageUseScore", 3));
+        feedback.setRoleAdherenceScore((Integer) extractedScores.getOrDefault("roleAdherenceScore", 3));
+        feedback.setOverallGrade((String) extractedScores.getOrDefault("overallGrade", "B"));
+        feedback.setVocabularyScore(wordBankUsageCount);
+        
+        feedbackRepository.save(feedback);
+        logger.info("Auto-generated AI feedback saved for student {} in session {}", studentId, sessionId);
     }
 
     /**

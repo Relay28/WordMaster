@@ -60,6 +60,9 @@ public class AuthController {
     @Value("${spring.security.oauth2.client.registration.azure.client-secret}")
     private String clientSecret;
 
+    @Value("${spring.security.oauth2.client.registration.azure.redirect-uri}")
+    private String redirectUri;
+
     @Autowired
     private PasswordResetService passwordResetService;
 
@@ -89,7 +92,7 @@ public class AuthController {
         Map<String, String> config = new HashMap<>();
         config.put("clientId", clientId);
         config.put("tenantId", tenantId);
-        config.put("redirectUri", "https://wordmaster.duckdns.org/login/oauth2/code/azure");
+        config.put("redirectUri", redirectUri); // Use the configured redirect URI
         config.put("authEndpoint", "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/authorize");
         return ResponseEntity.ok(config);
     }
@@ -147,7 +150,7 @@ public class AuthController {
             formParams.add("client_secret", clientSecret);
             formParams.add("scope", "https://graph.microsoft.com/.default");
             formParams.add("code", request.getCode());
-            formParams.add("redirect_uri", "https://wordmaster.duckdns.org/login/oauth2/code/azure");
+            formParams.add("redirect_uri", redirectUri); // Use configured redirect URI
             formParams.add("grant_type", "authorization_code");
             
             HttpEntity<MultiValueMap<String, String>> requestEntity = 

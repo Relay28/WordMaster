@@ -442,7 +442,6 @@ const confirmDeleteContent = async () => {
 // Add this new function
 const confirmDeleteSession = async () => {
   try {
-    setLoadingGameSessions(true);
     const token = await getToken();
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
     
@@ -457,17 +456,28 @@ const confirmDeleteSession = async () => {
       throw new Error(`Failed to delete game session (${response.status})`);
     }
     
-    setGameSessions(gameSessions.filter(session => session.id !== sessionToDelete));
-    
+    // Clear selected session and reports if we're deleting the currently selected one
     if (selectedSession === sessionToDelete) {
       setSelectedSession(null);
       setStudentReports([]);
     }
+    
+    // Close dialog before refetching to give immediate feedback
+    setDeleteSessionDialogOpen(false);
+    setSessionToDelete(null);
+    
+    // Refetch the appropriate data based on which view is active
+    if (selectedContent) {
+      // If viewing teacher reports (completed sessions for a content)
+      await fetchCompletedSessionsByContent(selectedContent.id);
+    } else {
+      // If viewing all game sessions
+      await fetchGameSessions();
+    }
+    
   } catch (err) {
     console.error("Error deleting game session:", err);
     setGameSessionsError(err.message || "Failed to delete game session");
-  } finally {
-    setLoadingGameSessions(false);
     setDeleteSessionDialogOpen(false);
     setSessionToDelete(null);
   }
