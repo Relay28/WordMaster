@@ -48,49 +48,115 @@ public class WordDetectionService {
             }
         }
 
-        // 2. If we have direct matches, return them immediately (no AI needed)
-        if (!foundLocal.isEmpty()) {
-            logger.debug("WordDetectionService: Local detection hit {} -> {}", original, foundLocal);
-            return new ArrayList<>(foundLocal);
-        }
-
-        // 3. Guard: if text is very short OR lacks any alphabetic token >3 chars, skip AI
+        // 2. Guard: if text is very short OR lacks any alphabetic token >3 chars, skip AI
         boolean hasMeaningfulToken = Arrays.stream(lower.split("\\W+"))
                 .anyMatch(tok -> tok.length() >= 4);
         if (original.length() < 20 || !hasMeaningfulToken) {
-            logger.debug("WordDetectionService: Skipping AI detection (short / low-signal text): '{}'");
-            return Collections.emptyList();
+            logger.debug("WordDetectionService: Skipping AI detection (short / low-signal text)");
+            // Still return local matches if we found any
+            return new ArrayList<>(foundLocal);
         }
 
-        // 4. (Optional heuristic) If none of the word bank stems appear as substrings at all, skip AI
-        boolean anyStemPresent = wordBankWords.stream().anyMatch(w -> lower.contains(w.toLowerCase().substring(0, Math.min(4, w.length()))));
-        if (!anyStemPresent) {
-            logger.debug("WordDetectionService: Skipping AI detection (no stems found) for '{}'");
-            return Collections.emptyList();
-        }
-
-        // 5. Call AI only now
+        // 3. Call AI to detect irregular forms and complex variations
+        // AI will find: irregular verbs (saw→see, ate→eat, bought→buy), plurals, etc.
         try {
             List<String> aiDetected = aiService.detectWordBankUsage(original, wordBankWords);
-            // Defensive filtering: keep only words present as whole word or simple morphological variant
+            
+            // Combine local and AI results
+            Set<String> combined = new HashSet<>(foundLocal);
             if (aiDetected != null && !aiDetected.isEmpty()) {
-                List<String> filtered = aiDetected.stream()
-                        .filter(w -> {
-                            String base = w.toLowerCase();
-                            String pat = "\\b" + Pattern.quote(base) + "(s|es|ed|ing)?\\b";
-                            return lower.matches(".*" + pat + ".*");
-                        })
-                        .collect(Collectors.toList());
-                if (!filtered.isEmpty()) {
-                    logger.info("AI detected validated word bank usage in '{}': {}", original, filtered);
-                    return filtered;
-                }
+                combined.addAll(aiDetected);
             }
+            
+            if (!combined.isEmpty()) {
+                logger.info("WordDetectionService: Detected word bank usage in '{}' - Local: {}, AI: {}, Total: {}", 
+                           original, foundLocal, aiDetected, combined);
+                return new ArrayList<>(combined);
+            }
+            
             return Collections.emptyList();
         } catch (Exception e) {
-            logger.warn("AI word detection failed ({}). Using fallback exact only.", e.getMessage());
-            return fallbackExactMatching(original, wordBankWords);
+            logger.warn("AI word detection failed ({}). Using local + fallback.", e.getMessage());
+            // If AI fails, at least return local matches + fallback
+            Set<String> fallbackResults = new HashSet<>(foundLocal);
+            fallbackResults.addAll(fallbackExactMatching(original, wordBankWords));
+            return new ArrayList<>(fallbackResults);
         }
+    }
+    
+    /**
+     * Extract the actual word variations found in the text that match the detected base words.
+     * For example, if base words are [see, eat, photo], this extracts [saw, ate, photos] from the text.
+     * This is needed for frontend highlighting.
+     * 
+     * @param text Original message text
+     * @param detectedBaseWords Base word bank words that were detected (e.g., ["see", "eat", "photo"])
+     * @return List of actual text variations found (e.g., ["saw", "ate", "photos"])
+     */
+    public List<String> extractTextVariations(String text, List<String> detectedBaseWords) {
+        if (text == null || text.trim().isEmpty() || detectedBaseWords == null || detectedBaseWords.isEmpty()) {
+            return Collections.emptyList();
+        }
+        
+        Set<String> variations = new HashSet<>();
+        String[] tokens = text.split("\\W+"); // Split on non-word characters
+        
+        // For each detected base word, find ALL its variations in the text
+        for (String baseWord : detectedBaseWords) {
+            String baseLower = baseWord.toLowerCase();
+            
+            // 1. Check for exact matches and simple morphological forms
+            for (String token : tokens) {
+                String tokenLower = token.toLowerCase();
+                
+                // Exact match
+                if (tokenLower.equals(baseLower)) {
+                    variations.add(token);
+                    continue;
+                }
+                
+                // Simple morphological forms: base+s, base+es, base+ed, base+ing
+                if (tokenLower.matches(Pattern.quote(baseLower) + "(s|es|ed|ing)")) {
+                    variations.add(token);
+                    continue;
+                }
+                
+                // Handle common verb forms ending in 'e': like+d=liked, make+s=makes
+                if (baseLower.endsWith("e")) {
+                    String stem = baseLower.substring(0, baseLower.length() - 1);
+                    if (tokenLower.matches(Pattern.quote(stem) + "(ed|ing|es)")) {
+                        variations.add(token);
+                    }
+                }
+            }
+            
+            // 2. For irregular forms (saw→see, ate→eat), we need to check if this base word
+            // was detected by AI, meaning some variation exists. We'll try common irregular patterns.
+            // Common irregular verb forms
+            Map<String, List<String>> irregularForms = Map.of(
+                "see", Arrays.asList("saw", "seen", "seeing"),
+                "eat", Arrays.asList("ate", "eaten", "eating"),
+                "buy", Arrays.asList("bought", "buying"),
+                "go", Arrays.asList("went", "gone", "going"),
+                "come", Arrays.asList("came", "coming"),
+                "take", Arrays.asList("took", "taken", "taking"),
+                "make", Arrays.asList("made", "making"),
+                "do", Arrays.asList("did", "done", "doing")
+            );
+            
+            if (irregularForms.containsKey(baseLower)) {
+                for (String irregularForm : irregularForms.get(baseLower)) {
+                    for (String token : tokens) {
+                        if (token.toLowerCase().equals(irregularForm)) {
+                            variations.add(token);
+                        }
+                    }
+                }
+            }
+        }
+        
+        logger.debug("WordDetectionService: Extracted text variations: {}", variations);
+        return new ArrayList<>(variations);
     }
     
     /**

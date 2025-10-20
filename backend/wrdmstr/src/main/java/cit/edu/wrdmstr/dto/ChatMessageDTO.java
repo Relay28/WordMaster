@@ -12,6 +12,7 @@ public class ChatMessageDTO {
     private String grammarFeedback;
     private boolean containsWordBomb;
     private String wordUsed;
+    private String wordVariations; // Actual text variations for frontend bolding
     private String role;
     private boolean roleAppropriate; // Add this field
 
@@ -86,6 +87,14 @@ public class ChatMessageDTO {
 
     public void setWordUsed(String wordUsed) {
         this.wordUsed = wordUsed;
+    }
+
+    public String getWordVariations() {
+        return wordVariations;
+    }
+
+    public void setWordVariations(String wordVariations) {
+        this.wordVariations = wordVariations;
     }
 
     public String getRole() {

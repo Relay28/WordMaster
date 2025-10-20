@@ -149,6 +149,10 @@ public class ChatService {
         if (!usedWordsFromBank.isEmpty()) {
             scoreService.handleWordBankUsage(player, usedWordsFromBank);
             message.setWordUsed(String.join(", ", usedWordsFromBank));
+            
+            // Extract the actual text variations for frontend highlighting
+            List<String> textVariations = wordDetectionService.extractTextVariations(content, usedWordsFromBank);
+            message.setWordVariations(String.join(", ", textVariations));
         }
 
         scoreService.handleRoleAppropriateScoring(player, grammarResult.isRoleAppropriate(),
@@ -250,6 +254,7 @@ public class ChatService {
         chatMessage.put("grammarFeedback", message.getGrammarFeedback());
         chatMessage.put("containsWordBomb", message.isContainsWordBomb());
         chatMessage.put("wordUsed", message.getWordUsed());
+        chatMessage.put("wordVariations", message.getWordVariations()); // Actual text variations for frontend bolding
         chatMessage.put("roleAppropriate", message.isRoleAppropriate()); // Add this line to include roleAppropriate flag
 
         if (message.getPlayerSession() != null && message.getPlayerSession().getRole() != null) {
@@ -317,6 +322,7 @@ public class ChatService {
             dto.setGrammarFeedback(message.getGrammarFeedback());
             dto.setContainsWordBomb(message.isContainsWordBomb());
             dto.setWordUsed(message.getWordUsed());
+            dto.setWordVariations(message.getWordVariations()); // Actual text variations for frontend bolding
             dto.setRoleAppropriate(message.isRoleAppropriate()); // Add this line to include roleAppropriate flag
             dto.setRole(message.getPlayerSession() != null && message.getPlayerSession().getRole() != null
                     ? message.getPlayerSession().getRole().getName()

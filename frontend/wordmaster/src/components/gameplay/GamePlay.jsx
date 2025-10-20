@@ -23,6 +23,7 @@ import StoryPromptPanel from './Gameplay Components/StoryPromptPanel';
 import LeaderboardOverlay from './Gameplay Components/LeaderboardOverlay';
 import PlayerSpotlight from './Gameplay Components/PlayerSpotlight';
 import WordBank from './Gameplay Components/WordBank';
+import ChartFeedbackBubble from './Gameplay Components/ChartFeedbackBubble';
 import { getGrammarStatusColor, getGrammarStatusLabel } from './Gameplay Components/grammarUtils';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import { sanitizePlainText } from '../../utils/sanitize';
@@ -97,13 +98,25 @@ const GamePlay = ({
     return gameState.wordBank.map(w => (typeof w === 'string' ? w.trim().toLowerCase() : (w.word || '').toLowerCase()));
   };
 
-  const renderHighlighted = (text) => {
+  const renderHighlighted = (text, wordVariations) => {
     if (!text) return text;
     const safe = sanitizePlainText(text);
-    const words = getWordBank();
-    if (!words || words.length === 0) return safe;
+    
+    // Use wordVariations if available (actual detected forms), otherwise fall back to word bank
+    let wordsToHighlight = [];
+    if (wordVariations && wordVariations.trim()) {
+      // wordVariations is a comma-separated string like "saw, ate, photos, beautiful"
+      wordsToHighlight = wordVariations.split(',').map(w => w.trim()).filter(Boolean);
+    } else {
+      // Fallback to word bank base words
+      const words = getWordBank();
+      if (!words || words.length === 0) return safe;
+      wordsToHighlight = words;
+    }
 
-    const escaped = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
+    if (wordsToHighlight.length === 0) return safe;
+
+    const escaped = wordsToHighlight.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).filter(Boolean);
     if (escaped.length === 0) return safe;
     const re = new RegExp('\\b(' + escaped.join('|') + ')\\b', 'ig');
 
@@ -623,7 +636,7 @@ const GamePlay = ({
                       position: 'relative'
                     }}>
                       <Typography sx={{fontSize: '18px' }}>
-                        <strong>{sanitizePlainText(msg.senderName)}:</strong> {renderHighlighted(msg.content)}
+                        <strong>{sanitizePlainText(msg.senderName)}:</strong> {renderHighlighted(msg.content, msg.wordVariations)}
                       </Typography>
                       {msg.role && (
                         <Typography sx={{ 
@@ -642,118 +655,13 @@ const GamePlay = ({
                         {new Date(msg.timestamp).toLocaleTimeString()}
                       </Typography>
                       {msg.grammarFeedback && msg.senderId === user?.id && msg.grammarStatus !== 'PROCESSING' && (
-                        <Box sx={{ position: 'relative', width: '100%' }}>
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              mt: 1.5,
-                              ml: 0,
-                              bgcolor: 'white',
-                              borderRadius: '12px',
-                              px: 2,
-                              py: 0.7,
-                              minWidth: '55%',
-                              boxShadow: '0 2px 8px rgba(95,75,139,0.10)',
-                              border: `1.5px solid ${getGrammarStatusColor(msg.grammarStatus)}`,
-                              wordBreak: 'break-word',
-                              flexWrap: 'wrap',
-                              alignSelf: 'flex-start',
-                            }}
-                          >
-                            <Typography
-                              sx={{
-                                fontSize: '12px',
-                                color: getGrammarStatusColor(msg.grammarStatus),
-                                fontWeight: 700,
-                                userSelect: 'none'
-                              }}
-                            >
-                              {getGrammarStatusLabel(msg.grammarStatus)}
-                            </Typography>
-                            <IconButton
-                              onClick={() => setOpenFeedbackIndex(openFeedbackIndex === index ? null : index)}
-                              sx={{
-                                bgcolor: '#ffffffff',
-                                color: 'black',
-                                width: 24,
-                                height: 24,
-                                borderRadius: '50%',
-                                p: 0,
-                                ml: 0.5,
-                                '&:hover': { bgcolor: '#cdc1e7ff' },
-                              }}
-                              size="small"
-                            >
-                              <ExpandMore sx={{ fontSize: 18 }} />
-                            </IconButton>
-                          </Box>
-                          {openFeedbackIndex === index && (
-                            <Box
-                              ref={el => {
-                                if (el && el.parentElement && el.parentElement.parentElement) {
-                                  const bubble = el.parentElement.parentElement;
-                                  el.style.width = `${bubble.offsetWidth}px`;
-                                }
-                              }}
-                              sx={{
-                                position: 'absolute',
-                                right: 0,
-                                top: '110%',
-                                left: '-12px',
-                                minWidth: 220,
-                                bgcolor: 'rgba(255,255,255,0.99)',
-                                borderRadius: 3,
-                                boxShadow: '0 8px 32px 0 rgba(95,75,139,0.18), 0 1.5px 6px 0 rgba(0,0,0,0.08)',
-                                border: '3px solid #5F4B8B',
-                                zIndex: 2000,
-                                p: 0,
-                                textAlign: 'left',
-                                animation: 'fadeIn 0.18s',
-                                overflow: 'hidden',
-                                mt: 1,
-                              }}
-                            >
-                              <Box sx={{
-                                width: '100%',
-                                height: 10,
-                                bgcolor: getGrammarStatusColor(msg.grammarStatus),
-                                borderTopLeftRadius: 8,
-                                borderTopRightRadius: 8,
-                                mb: 1,
-                              }} />
-                              <Box sx={{ p: 3, pt: 2 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                                  <Box sx={{
-                                    width: 14,
-                                    height: 14,
-                                    borderRadius: '50%',
-                                    bgcolor: getGrammarStatusColor(msg.grammarStatus),
-                                    mr: 1.5
-                                  }} />
-                                  <Typography sx={{
-                                    fontWeight: 700,
-                                    color: getGrammarStatusColor(msg.grammarStatus),
-                                    fontSize: '1rem',
-                                    letterSpacing: 0.2,
-                                    textShadow: '0 1px 0 #fff'
-                                  }}>
-                                    {getGrammarStatusLabel(msg.grammarStatus)}
-                                  </Typography>
-                                </Box>
-                                <Typography sx={{
-                                  whiteSpace: 'pre-wrap',
-                                  color: '#222',
-                                  fontSize: '0.9rem',
-                                  lineHeight: 1.7,
-                                }}>
-                                  {msg.grammarFeedback}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          )}
-                        </Box>
+                        <ChartFeedbackBubble
+                          message={msg.content}
+                          grammarStatus={msg.grammarStatus}
+                          grammarFeedback={msg.grammarFeedback}
+                          roleAppropriate={msg.roleAppropriate}
+                          vocabularyFeedback={msg.vocabularyFeedback}
+                        />
                       )}
                       {msg.grammarStatus === 'PERFECT' && msg.senderId === user?.id && (
                         <Box sx={{ 
