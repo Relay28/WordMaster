@@ -42,6 +42,10 @@ public class ChatMessageEntity {
     @Column(name = "word_used", columnDefinition = "TEXT")
     private String wordUsed;
 
+    @Lob
+    @Column(name = "word_variations", columnDefinition = "TEXT")
+    private String wordVariations; // Actual text variations found (e.g., "saw, ate, photos")
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "player_session_id")
     private PlayerSessionEntity playerSession;  // Additional connection to player sessio
@@ -159,6 +163,14 @@ public class ChatMessageEntity {
 
     public void setWordUsed(String wordUsed) {
         this.wordUsed = wordUsed;
+    }
+
+    public String getWordVariations() {
+        return wordVariations;
+    }
+
+    public void setWordVariations(String wordVariations) {
+        this.wordVariations = wordVariations;
     }
 
     public Integer getVocabularyScore() {

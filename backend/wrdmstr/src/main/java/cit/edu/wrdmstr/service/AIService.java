@@ -115,6 +115,45 @@ public class AIService {
     }
 
     /**
+     * Check grammar status using AI (lightweight - returns only status level, no corrections)
+     * Returns one of: PERFECT, MINOR_ERRORS, MAJOR_ERRORS
+     */
+    public String checkGrammarStatus(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return "MINOR_ERRORS";
+        }
+        
+        Map<String, Object> request = new HashMap<>();
+        request.put("task", "grammar_status_check");
+        request.put("text", text);
+        
+        try {
+            String response = callAIModel(request).getResult();
+            if (response != null) {
+                String trimmed = response.trim().toUpperCase();
+                
+                // Extract status from response (handle cases where AI adds extra text)
+                if (trimmed.contains("PERFECT")) {
+                    return "PERFECT";
+                } else if (trimmed.contains("MAJOR_ERRORS") || trimmed.contains("MAJOR ERRORS")) {
+                    return "MAJOR_ERRORS";
+                } else if (trimmed.contains("MINOR_ERRORS") || trimmed.contains("MINOR ERRORS")) {
+                    return "MINOR_ERRORS";
+                }
+                
+                // If we can't parse it, default to MINOR_ERRORS
+                logger.warn("Unexpected grammar status response: {}", trimmed);
+                return "MINOR_ERRORS";
+            }
+        } catch (Exception e) {
+            logger.error("Error checking grammar status: {}", e.getMessage());
+        }
+        
+        // Fallback
+        return "MINOR_ERRORS";
+    }
+
+    /**
      * Generate word bombs based on difficulty level and context
      */
     public String generateWordBomb(String difficulty, String context) {
@@ -158,9 +197,18 @@ public class AIService {
             return Collections.emptyList();
         }
 
-        return Arrays.stream(result.split(","))
+        // Clean up response: remove common prefixes AI might add
+        String cleaned = result.trim();
+        // Remove "Found words:" or similar prefixes
+        cleaned = cleaned.replaceAll("(?i)^(found words?|detected words?|words?|result)\\s*[:\\-]?\\s*", "");
+        // Remove any trailing periods or extra punctuation
+        cleaned = cleaned.replaceAll("[.!;]+$", "");
+
+        return Arrays.stream(cleaned.split(","))
             .map(String::trim)
             .filter(word -> !word.isEmpty())
+            // Extra safety: only keep words that are in the original word bank
+            .filter(word -> wordBankWords.stream().anyMatch(wb -> wb.equalsIgnoreCase(word)))
             .collect(Collectors.toList());
     }
 
@@ -243,18 +291,9 @@ public class AIService {
                         return fast;
                     }
                 }
-                // If short, clean English (letters/space/punct) -> immediate APPROPRIATE
-                if (msg.length() <= 60 && lower.matches("[a-z0-9 .,!?"+'"'+":;'()-]+")) {
-                    AIResponse fast = new AIResponse();
-                    fast.setResult("APPROPRIATE - On topic");
-                    // Cache it
-                    if (roleCheckKey != null) {
-                        CachedItem ci = new CachedItem(); ci.value = fast.getResult(); ci.ts = System.currentTimeMillis();
-                        roleCheckCache.put(roleCheckKey, ci);
-                    }
-                    performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
-                    return fast;
-                }
+                // Removed the "short clean English" heuristic shortcut that was too lenient
+                // Now ALL messages go through AI role check for better accuracy
+                // This allows AI to properly detect gibberish, nonsense, and off-topic content
             }
 
             for (int attempt = 1; attempt <= maxRetries; attempt++) {
@@ -375,6 +414,10 @@ public class AIService {
                           // Task-specific fallbacks with supportive tone for Filipino students
                         String task = (String) request.get("task");
                         switch (task) {
+                            case "grammar_status_check":
+                                // Conservative fallback for grammar status
+                                errorResponse.setResult("MINOR_ERRORS");
+                                break;
                             case "story_prompt":
                                 // Try to get content information from request for better fallbacks
                                 String contentTopic = (String) request.get("content");
@@ -426,6 +469,10 @@ public class AIService {
                       // Task-specific fallbacks with supportive tone for Filipino students
                     String task = (String) request.get("task");
                     switch (task) {
+                        case "grammar_status_check":
+                            // Conservative fallback for grammar status
+                            errorResponse.setResult("MINOR_ERRORS");
+                            break;
                         case "story_prompt":
                             // Try to get content information from request for better fallbacks
                             String contentTopic = (String) request.get("content");
@@ -483,13 +530,44 @@ public class AIService {
             String task = (String) request.get("task");
             
             switch (task) {
-                // Removed deprecated grammar_check case (GECToR handles grammar)
+                // New lightweight grammar status check (no corrections needed)
+                case "grammar_status_check":
+                    String text = (String) request.getOrDefault("text", "");
+                    return "GRAMMAR STATUS CHECK\n" +
+                           "Analyze this English message from a Grade 8-9 Filipino student: \"" + text + "\"\n\n" +
+                           "Return EXACTLY ONE of these three status levels (nothing else):\n" +
+                           "PERFECT - if grammar is excellent with no errors\n" +
+                           "MINOR_ERRORS - if there are 1-2 small grammar mistakes but message is understandable\n" +
+                           "MAJOR_ERRORS - if there are 3+ grammar errors, gibberish, non-English words, or incomprehensible\n\n" +
+                           "RULES:\n" +
+                           "- Gibberish (random words with no meaning) = MAJOR_ERRORS\n" +
+                           "- Non-English/Tagalog words = MAJOR_ERRORS\n" +
+                           "- Missing punctuation alone = MINOR_ERRORS\n" +
+                           "- Perfect sentence structure = PERFECT\n" +
+                           "- Minor tense/article errors = MINOR_ERRORS\n\n" +
+                           "Respond with ONLY the status word (PERFECT, MINOR_ERRORS, or MAJOR_ERRORS):";
+                
                 case "role_check":
                     String role = (String) request.getOrDefault("role", "student");
                     String context = (String) request.getOrDefault("context", "general lesson");
                     String msg = (String) request.getOrDefault("text", "");
-                    // New strict single-line prompt
-                    return "ROLE CHECK\nRole: " + role + "\nContext: " + context + "\nMessage: " + msg + "\nReturn EXACTLY ONE line ONLY: \nAPPROPRIATE - <<=6 words>\nOR\nNOT APPROPRIATE - <<=6 words>\nRules:\n- If writer claims a different role (e.g. says 'as the reporter' but role is " + role + ") -> NOT APPROPRIATE - Wrong role\n- If Tagalog / Filipino words appear -> NOT APPROPRIATE - Please use English\n- If message uses many numbers or math (e.g. '1+1=2') -> NOT APPROPRIATE - Use words only\n- If off-topic for the context -> NOT APPROPRIATE - Off context\n- Else APPROPRIATE\nNo extra text.";
+                    // Enhanced prompt with gibberish detection
+                    return "ROLE CHECK\n" +
+                           "Role: " + role + "\n" +
+                           "Context: " + context + "\n" +
+                           "Message: " + msg + "\n\n" +
+                           "Return EXACTLY ONE line ONLY:\n" +
+                           "APPROPRIATE - <brief reason in <=6 words>\n" +
+                           "OR\n" +
+                           "NOT APPROPRIATE - <brief reason in <=6 words>\n\n" +
+                           "RULES (check in this order):\n" +
+                           "1. If gibberish/nonsense (random letters like 'asdasdada' or random words with no meaning) -> NOT APPROPRIATE - Gibberish message\n" +
+                           "2. If writer claims a different role (e.g. says 'as the reporter' but role is '" + role + "') -> NOT APPROPRIATE - Wrong role\n" +
+                           "3. If Tagalog/Filipino words appear -> NOT APPROPRIATE - Please use English\n" +
+                           "4. If message uses numbers or math (e.g. '1+1=2') -> NOT APPROPRIATE - Use words only\n" +
+                           "5. If completely off-topic for context '" + context + "' -> NOT APPROPRIATE - Off context\n" +
+                           "6. If message is on-topic for role and context -> APPROPRIATE - On topic\n\n" +
+                           "No extra text, just one line.";
 
                 case "role_prompt":
                     return "Give a single short (<=35 words) in-character encouragement for the role '" +
@@ -621,8 +699,15 @@ public class AIService {
                     feedbackPrompt.append("- Total score: ").append(request.get("totalScore")).append("\n");
                     feedbackPrompt.append("- English messages sent: ").append(request.get("messageCount")).append("\n");
                     feedbackPrompt.append("- Perfect English grammar messages: ").append(request.get("perfectGrammarCount")).append("\n");
-                    feedbackPrompt.append("- English word bank usage: ").append(request.get("wordBankUsageCount")).append("\n\n");
-                    feedbackPrompt.append("Sample English messages from student:\n");
+                    feedbackPrompt.append("- English word bank usage: ").append(request.get("wordBankUsageCount")).append("\n");
+                    
+                    // Include comprehension percentage if available
+                    if (request.containsKey("comprehensionPercentage")) {
+                        double comprPercent = ((Number) request.get("comprehensionPercentage")).doubleValue();
+                        feedbackPrompt.append("- Comprehension quiz score: ").append(String.format("%.0f%%", comprPercent)).append("\n");
+                    }
+                    
+                    feedbackPrompt.append("\nSample English messages from student:\n");
                     List<String> sampleMessages = safeStringList(request.get("sampleMessages"));
                     for (int i = 0; i < sampleMessages.size(); i++) {
                         feedbackPrompt.append(i+1).append(". ").append(sampleMessages.get(i)).append("\n");
@@ -631,20 +716,31 @@ public class AIService {
                     feedbackPrompt.append("1. English language progress (grammar, vocabulary)\n");
                     feedbackPrompt.append("2. Confidence building in English communication\n");
                     feedbackPrompt.append("3. Participation and effort in English practice\n");
-                    feedbackPrompt.append("4. Celebrating strengths and gentle guidance for improvement\n\n");
-                    feedbackPrompt.append("IMPORTANT INSTRUCTIONS:\n");
+                    feedbackPrompt.append("4. Celebrating strengths and gentle guidance for improvement\n");
+                    if (request.containsKey("comprehensionPercentage")) {
+                        feedbackPrompt.append("5. Comprehension quiz performance and understanding\n");
+                    }
+                    feedbackPrompt.append("\nIMPORTANT INSTRUCTIONS:\n");
                     feedbackPrompt.append("- Address ").append(studentName).append(" warmly and personally\n");
                     feedbackPrompt.append("- Write like a caring teacher who believes in their English learning journey\n");
                     feedbackPrompt.append("- Emphasize the importance and value of practicing English\n");
                     feedbackPrompt.append("- Be encouraging about their progress as Filipino learners of English\n");
-                    feedbackPrompt.append("- Include specific scores (1-5) for:\n");
-                    feedbackPrompt.append("  * English Comprehension Score: (1-5)\n");
-                    feedbackPrompt.append("  * English Participation Score: (1-5)\n");
-                    feedbackPrompt.append("  * English Language Use Score: (1-5)\n");
-                    feedbackPrompt.append("  * Role Adherence in English Score: (1-5)\n");
-                    feedbackPrompt.append("  * Overall Letter Grade: (A-F)\n\n");
+                    feedbackPrompt.append("- Write 3-4 paragraphs of personalized feedback FIRST\n");
+                    feedbackPrompt.append("- Then add scores at the END in this EXACT format:\n\n");
+                    feedbackPrompt.append("REQUIRED SCORE FORMAT (must appear exactly like this at the end):\n");
+                    feedbackPrompt.append("**English Comprehension Score:** [1-5]\n");
+                    feedbackPrompt.append("**English Participation Score:** [1-5]\n");
+                    feedbackPrompt.append("**English Language Use Score:** [1-5]\n");
+                    feedbackPrompt.append("**Role Adherence in English Score:** [1-5]\n");
+                    feedbackPrompt.append("**Overall Letter Grade:** [A-F with optional + or -]\n\n");
                     
-                    feedbackPrompt.append("Format: Start with warm praise, acknowledge their English learning effort, provide gentle guidance, end with motivation to continue improving their English, then list scores.\n");
+                    feedbackPrompt.append("Example structure:\n");
+                    feedbackPrompt.append("[Warm personalized feedback paragraphs about the student's performance...]\n\n");
+                    feedbackPrompt.append("**English Comprehension Score:** 4\n");
+                    feedbackPrompt.append("**English Participation Score:** 5\n");
+                    feedbackPrompt.append("**English Language Use Score:** 3\n");
+                    feedbackPrompt.append("**Role Adherence in English Score:** 4\n");
+                    feedbackPrompt.append("**Overall Letter Grade:** B+\n");
                     
                     return feedbackPrompt.toString();
                     
@@ -661,12 +757,14 @@ public class AIService {
                     detectionPrompt.append("4. Word forms: 'happy' = 'happiness', 'happily'\n");
                     detectionPrompt.append("5. Only semantically related words count\n\n");
                     
-                    detectionPrompt.append("OUTPUT REQUIREMENTS:\n");
-                    detectionPrompt.append("- Found words: Return comma-separated list of BASE word bank words\n");
-                    detectionPrompt.append("- No words found: Return 'none'\n");
-                    detectionPrompt.append("- Example: Text has 'running', word bank has 'run' → return 'run'\n");
-                    detectionPrompt.append("- Example: Text has 'books', word bank has 'book' → return 'book'\n\n");
-                    detectionPrompt.append("CRITICAL: Return original word bank words, not text variations.");
+                    detectionPrompt.append("OUTPUT FORMAT (CRITICAL):\n");
+                    detectionPrompt.append("- Return ONLY comma-separated BASE word bank words\n");
+                    detectionPrompt.append("- NO extra text, NO labels, NO prefixes\n");
+                    detectionPrompt.append("- If no words found: Return ONLY 'none'\n");
+                    detectionPrompt.append("- Example: Text has 'running', word bank has 'run' → return ONLY: run\n");
+                    detectionPrompt.append("- Example: Text has 'books', word bank has 'book' → return ONLY: book\n");
+                    detectionPrompt.append("- Example: Text has 'saw, ate', word bank has 'see, eat' → return ONLY: see, eat\n\n");
+                    detectionPrompt.append("CRITICAL: Return ONLY the original word bank words separated by commas. NO other text.");
                     return detectionPrompt.toString();
 
                 case "comprehension_questions": // Change from "generate_comprehension_questions"

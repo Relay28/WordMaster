@@ -33,6 +33,7 @@ const StudentReportPage = lazy(() => import('./components/Reports/StudentReportP
 const StudentFeedbackPage = lazy(() => import('./components/Reports/StudentFeedbackPage'));
 const ProtectedAdminRoute = lazy(() => import('./components/auth/ProtectedAdminRoute'));
 const ProtectedTeacherRoute = lazy(() => import('./components/auth/ProtectedTeacherRoute'));
+const ChartFeedbackDemo = lazy(() => import('./components/gameplay/ChartFeedbackDemo'));
 
 // Loading component
 const LoadingSpinner = () => (
@@ -146,6 +147,7 @@ const AppRoutes = () => {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/demo/feedback" element={<ChartFeedbackDemo />} />
 
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
