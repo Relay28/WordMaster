@@ -1,7 +1,7 @@
 #!/bin/bash
 # Test script for WordMaster production deployment
 
-EC2_IP="3.26.165.228"
+EC2_IP="3.107.143.56"
 BASE_URL="http://$EC2_IP:8080"
 
 echo "🧪 Testing WordMaster Production Deployment"

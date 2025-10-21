@@ -3,7 +3,7 @@
 
 set -e  # Exit on any error
 
-EC2_IP="3.26.165.228"
+EC2_IP="3.107.143.56"
 KEY_PATH="wordmasterec2key.pem"  # Update with your actual key path
 DEPLOY_DIR="/opt/wordmaster"
 
