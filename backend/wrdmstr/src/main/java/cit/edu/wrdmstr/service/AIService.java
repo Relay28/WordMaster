@@ -44,7 +44,7 @@ public class AIService {
     // Simple in-memory cache for role_check to reduce latency/API calls
     private static class CachedItem { String value; long ts; }
     private final Map<String, CachedItem> roleCheckCache = new java.util.concurrent.ConcurrentHashMap<>();
-    private final long ROLE_CHECK_TTL_MS = 120_000; // 2 minutes
+    private final long ROLE_CHECK_TTL_MS = 60_000; // 1 minute - faster cache expiry for better accuracy
 
     // Helper for safe list casting (placed near top so available below)
     private List<String> safeStringList(Object obj) {
@@ -115,12 +115,12 @@ public class AIService {
     }
 
     /**
-     * Check grammar status using AI (lightweight - returns only status level, no corrections)
-     * Returns one of: PERFECT, MINOR_ERRORS, MAJOR_ERRORS
+     * Check grammar status using AI (lightweight - returns status and tip)
+     * Returns format: STATUS | Tip
      */
     public String checkGrammarStatus(String text) {
         if (text == null || text.trim().isEmpty()) {
-            return "MINOR_ERRORS";
+            return "MINOR_ERRORS | Message is too short";
         }
         
         Map<String, Object> request = new HashMap<>();
@@ -130,27 +130,41 @@ public class AIService {
         try {
             String response = callAIModel(request).getResult();
             if (response != null) {
-                String trimmed = response.trim().toUpperCase();
+                String trimmed = response.trim();
                 
-                // Extract status from response (handle cases where AI adds extra text)
-                if (trimmed.contains("PERFECT")) {
-                    return "PERFECT";
-                } else if (trimmed.contains("MAJOR_ERRORS") || trimmed.contains("MAJOR ERRORS")) {
-                    return "MAJOR_ERRORS";
-                } else if (trimmed.contains("MINOR_ERRORS") || trimmed.contains("MINOR ERRORS")) {
-                    return "MINOR_ERRORS";
+                // Check if response contains pipe separator for new format
+                if (trimmed.contains("|")) {
+                    // New format: STATUS | Tip
+                    String[] parts = trimmed.split("\\|", 2);
+                    String status = parts[0].trim().toUpperCase();
+                    String tip = parts.length > 1 ? parts[1].trim() : "";
+                    
+                    // Validate and return
+                    if (status.contains("PERFECT") || status.contains("MINOR") || status.contains("MAJOR")) {
+                        return trimmed; // Return full response with tip
+                    }
+                }
+                
+                // Old format fallback: Extract status from response
+                String upper = trimmed.toUpperCase();
+                if (upper.contains("PERFECT")) {
+                    return "PERFECT | Great job!";
+                } else if (upper.contains("MAJOR_ERRORS") || upper.contains("MAJOR ERRORS")) {
+                    return "MAJOR_ERRORS | Form complete sentence";
+                } else if (upper.contains("MINOR_ERRORS") || upper.contains("MINOR ERRORS")) {
+                    return "MINOR_ERRORS | Check small details";
                 }
                 
                 // If we can't parse it, default to MINOR_ERRORS
                 logger.warn("Unexpected grammar status response: {}", trimmed);
-                return "MINOR_ERRORS";
+                return "MINOR_ERRORS | Check your English";
             }
         } catch (Exception e) {
             logger.error("Error checking grammar status: {}", e.getMessage());
         }
         
         // Fallback
-        return "MINOR_ERRORS";
+        return "MINOR_ERRORS | Try again";
     }
 
     /**
@@ -241,7 +255,112 @@ public class AIService {
                 }
             }
             long startMs = System.currentTimeMillis();
-            // Ultra-fast heuristic short-circuit for role_check to avoid remote latency
+            
+            // Fast pre-validation checks to avoid AI calls for obvious bad input
+            String textToCheck = (String) request.getOrDefault("text", "");
+            if (textToCheck != null && !textToCheck.trim().isEmpty()) {
+                String msg = textToCheck.trim();
+                String lower = msg.toLowerCase();
+                
+                // 1. Check minimum length - too short messages are often spam
+                if (msg.length() < 3) {
+                    AIResponse fast = new AIResponse();
+                    if ("grammar_status_check".equals(taskName)) {
+                        fast.setResult("MAJOR_ERRORS");
+                    } else if (cacheableRoleCheck) {
+                        fast.setResult("NOT APPROPRIATE - Too short");
+                    }
+                    if (fast.getResult() != null) {
+                        if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                        logger.info("Message too short, rejecting");
+                        return fast;
+                    }
+                }
+                
+                // 2. Repeated characters (aaaa, bbbb, etc.)
+                if (lower.matches(".*([a-z])\\1{4,}.*")) {
+                    AIResponse fast = new AIResponse();
+                    if ("grammar_status_check".equals(taskName)) {
+                        fast.setResult("MAJOR_ERRORS");
+                    } else if (cacheableRoleCheck) {
+                        fast.setResult("NOT APPROPRIATE - Repeated chars");
+                    }
+                    if (fast.getResult() != null) {
+                        if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                        logger.info("Repeated characters detected");
+                        return fast;
+                    }
+                }
+                
+                // 3. Word spam detection - optimized
+                String[] words = lower.split("\\s+");
+                if (words.length >= 3) {
+                    // Quick check: if most words are the same
+                    String firstWord = words[0];
+                    int sameCount = 0;
+                    for (String word : words) {
+                        if (word.equals(firstWord)) sameCount++;
+                    }
+                    if (sameCount >= 3 || (words.length >= 4 && sameCount >= words.length * 0.6)) {
+                        AIResponse fast = new AIResponse();
+                        if ("grammar_status_check".equals(taskName)) {
+                            fast.setResult("MAJOR_ERRORS");
+                        } else if (cacheableRoleCheck) {
+                            fast.setResult("NOT APPROPRIATE - Word spam");
+                        }
+                        if (fast.getResult() != null) {
+                            if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                            logger.info("Word spam detected");
+                            return fast;
+                        }
+                    }
+                }
+                
+                // 4. Keyboard mashing patterns - consolidated check
+                if (lower.matches(".*(qwert|asdf|zxcv|hjkl|uiop|fgh|cvbn|rewq|fdsa).*")) {
+                    AIResponse fast = new AIResponse();
+                    if ("grammar_status_check".equals(taskName)) {
+                        fast.setResult("MAJOR_ERRORS");
+                    } else if (cacheableRoleCheck) {
+                        fast.setResult("NOT APPROPRIATE - Keyboard mash");
+                    }
+                    if (fast.getResult() != null) {
+                        if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                        logger.info("Keyboard mashing detected");
+                        return fast;
+                    }
+                }
+                
+                // 5. Check for non-sentence (no coherent structure)
+                // If it's just 2-3 random words with no verb/connector, likely spam
+                if (words.length == 2 || words.length == 3) {
+                    // Common word bank spam patterns: just nouns with no sentence structure
+                    boolean hasVerb = false;
+                    String[] commonVerbs = {"is", "are", "was", "were", "can", "will", "have", "has", "do", "does", "am"};
+                    for (String word : words) {
+                        for (String verb : commonVerbs) {
+                            if (word.startsWith(verb)) {
+                                hasVerb = true;
+                                break;
+                            }
+                        }
+                    }
+                    // If no verb and words don't form a phrase, likely word bank spam
+                    if (!hasVerb && !lower.matches(".*(to|the|a|an|in|on|at|for|with).*")) {
+                        AIResponse fast = new AIResponse();
+                        if (cacheableRoleCheck) {
+                            fast.setResult("NOT APPROPRIATE - Not a sentence");
+                        }
+                        if (fast.getResult() != null) {
+                            if (cacheableRoleCheck) performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
+                            logger.info("No sentence structure detected");
+                            return fast;
+                        }
+                    }
+                }
+            }
+            
+            // Role-check specific heuristics
             if (cacheableRoleCheck) {
                 String msg = ((String) request.getOrDefault("text", "")).trim();
                 String lower = msg.toLowerCase();
@@ -328,12 +447,13 @@ public class AIService {
                                 return resp;
                             });
                             try {
-                                response = future.get(1500, TimeUnit.MILLISECONDS);
+                                response = future.get(1200, TimeUnit.MILLISECONDS); // Reduced from 1500ms to 1200ms
                             } catch (TimeoutException te) {
                                 future.cancel(true);
                                 AIResponse timeoutResp = new AIResponse();
-                                timeoutResp.setResult("APPROPRIATE - Fast check");
-                                logger.warn("role_check timed out (>1500ms); returning fast fallback");
+                                // Stricter timeout fallback: don't approve messages we couldn't check
+                                timeoutResp.setResult("NOT APPROPRIATE - Unable to verify");
+                                logger.warn("role_check timed out (>1200ms); returning conservative fallback");
                                 performanceMetricsService.recordRoleCheck(System.currentTimeMillis()-startMs);
                                 return timeoutResp;
                             }
@@ -415,8 +535,9 @@ public class AIService {
                         String task = (String) request.get("task");
                         switch (task) {
                             case "grammar_status_check":
-                                // Conservative fallback for grammar status
-                                errorResponse.setResult("MINOR_ERRORS");
+                                // Stricter fallback: don't reward potentially bad input when AI unavailable
+                                errorResponse.setResult("MAJOR_ERRORS");
+                                logger.warn("Grammar check failed, using conservative MAJOR_ERRORS fallback");
                                 break;
                             case "story_prompt":
                                 // Try to get content information from request for better fallbacks
@@ -443,7 +564,9 @@ public class AIService {
                                 errorResponse.setResult("Remember to stay in character and use English vocabulary. You're doing great in practicing English!");
                                 break;
                             case "role_check":
-                                errorResponse.setResult("APPROPRIATE. Your English is improving! Keep practicing with confidence.");
+                                // Stricter fallback: don't mark as appropriate when we couldn't verify
+                                errorResponse.setResult("NOT APPROPRIATE - Unable to verify");
+                                logger.warn("Role check failed, using conservative NOT APPROPRIATE fallback");
                                 break;
                             case "word_generation":
                                 errorResponse.setResult("practice");
@@ -470,8 +593,9 @@ public class AIService {
                     String task = (String) request.get("task");
                     switch (task) {
                         case "grammar_status_check":
-                            // Conservative fallback for grammar status
-                            errorResponse.setResult("MINOR_ERRORS");
+                            // Stricter fallback: don't reward potentially bad input when AI unavailable
+                            errorResponse.setResult("MAJOR_ERRORS");
+                            logger.warn("Grammar check failed, using conservative MAJOR_ERRORS fallback");
                             break;
                         case "story_prompt":
                             // Try to get content information from request for better fallbacks
@@ -498,7 +622,9 @@ public class AIService {
                             errorResponse.setResult("Remember to stay in character and use English vocabulary. You're doing great in practicing English!");
                             break;
                         case "role_check":
-                            errorResponse.setResult("APPROPRIATE. Your English is improving! Keep practicing with confidence.");
+                            // Stricter fallback: don't mark as appropriate when we couldn't verify
+                            errorResponse.setResult("NOT APPROPRIATE - Unable to verify");
+                            logger.warn("Role check failed, using conservative NOT APPROPRIATE fallback");
                             break;
                         case "word_generation":
                             errorResponse.setResult("practice");
@@ -533,41 +659,33 @@ public class AIService {
                 // New lightweight grammar status check (no corrections needed)
                 case "grammar_status_check":
                     String text = (String) request.getOrDefault("text", "");
-                    return "GRAMMAR STATUS CHECK\n" +
-                           "Analyze this English message from a Grade 8-9 Filipino student: \"" + text + "\"\n\n" +
-                           "Return EXACTLY ONE of these three status levels (nothing else):\n" +
-                           "PERFECT - if grammar is excellent with no errors\n" +
-                           "MINOR_ERRORS - if there are 1-2 small grammar mistakes but message is understandable\n" +
-                           "MAJOR_ERRORS - if there are 3+ grammar errors, gibberish, non-English words, or incomprehensible\n\n" +
-                           "RULES:\n" +
-                           "- Gibberish (random words with no meaning) = MAJOR_ERRORS\n" +
-                           "- Non-English/Tagalog words = MAJOR_ERRORS\n" +
-                           "- Missing punctuation alone = MINOR_ERRORS\n" +
-                           "- Perfect sentence structure = PERFECT\n" +
-                           "- Minor tense/article errors = MINOR_ERRORS\n\n" +
-                           "Respond with ONLY the status word (PERFECT, MINOR_ERRORS, or MAJOR_ERRORS):";
+                    return "Analyze: \"" + text + "\"\n\n" +
+                           "Return in format: STATUS | Tip\n\n" +
+                           "STATUS options:\n" +
+                           "PERFECT - perfect grammar, coherent sentence\n" +
+                           "MINOR_ERRORS - 1-2 small errors, still understandable\n" +
+                           "MAJOR_ERRORS - gibberish, spam, repeated words, non-English, incoherent, or 3+ errors\n\n" +
+                           "Tip should be SHORT (max 10 words) and helpful:\n" +
+                           "- For PERFECT: Encouraging praise\n" +
+                           "- For MINOR_ERRORS: Specific fix (e.g., 'Add punctuation' or 'Check verb tense')\n" +
+                           "- For MAJOR_ERRORS: Clear issue (e.g., 'Form complete sentence' or 'Use real words')\n\n" +
+                           "Example: MINOR_ERRORS | Add a period at the end";
                 
                 case "role_check":
                     String role = (String) request.getOrDefault("role", "student");
                     String context = (String) request.getOrDefault("context", "general lesson");
                     String msg = (String) request.getOrDefault("text", "");
-                    // Enhanced prompt with gibberish detection
-                    return "ROLE CHECK\n" +
-                           "Role: " + role + "\n" +
-                           "Context: " + context + "\n" +
-                           "Message: " + msg + "\n\n" +
-                           "Return EXACTLY ONE line ONLY:\n" +
-                           "APPROPRIATE - <brief reason in <=6 words>\n" +
-                           "OR\n" +
-                           "NOT APPROPRIATE - <brief reason in <=6 words>\n\n" +
-                           "RULES (check in this order):\n" +
-                           "1. If gibberish/nonsense (random letters like 'asdasdada' or random words with no meaning) -> NOT APPROPRIATE - Gibberish message\n" +
-                           "2. If writer claims a different role (e.g. says 'as the reporter' but role is '" + role + "') -> NOT APPROPRIATE - Wrong role\n" +
-                           "3. If Tagalog/Filipino words appear -> NOT APPROPRIATE - Please use English\n" +
-                           "4. If message uses numbers or math (e.g. '1+1=2') -> NOT APPROPRIATE - Use words only\n" +
-                           "5. If completely off-topic for context '" + context + "' -> NOT APPROPRIATE - Off context\n" +
-                           "6. If message is on-topic for role and context -> APPROPRIATE - On topic\n\n" +
-                           "No extra text, just one line.";
+                    return "Role: " + role + " | Context: " + context + "\nMessage: \"" + msg + "\"\n\n" +
+                           "Is this a COHERENT English sentence?\n\n" +
+                           "IMPORTANT: Be LENIENT on role/topic matching. If the message is related to the general context or role theme, mark APPROPRIATE.\n" +
+                           "Example: 'Souvenir Shopper' can talk about trains, travel, visiting places, buying things, etc.\n\n" +
+                           "Mark NOT APPROPRIATE ONLY if:\n" +
+                           "- Gibberish/spam (aaaa, qwerty, repeated words)\n" +
+                           "- Not a coherent sentence (random words)\n" +
+                           "- Claims a DIFFERENT role (e.g., says 'as the teacher' when role is 'student')\n" +
+                           "- Non-English language (Tagalog/Filipino)\n" +
+                           "- Completely unrelated (e.g., math equations in a travel context)\n\n" +
+                           "Reply format: APPROPRIATE - [reason] OR NOT APPROPRIATE - [SHORT reason max 8 words]";
 
                 case "role_prompt":
                     return "Give a single short (<=35 words) in-character encouragement for the role '" +
