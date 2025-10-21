@@ -405,6 +405,15 @@ useEffect(() => {
     clearInterval(refreshInterval);
   };
 }, [fetchSessionMessages]);
+
+// Add effect to ensure gameEnded is set correctly when status is COMPLETED
+useEffect(() => {
+  // Ensure gameEnded is true whenever game status is COMPLETED
+  if (gameState.status === 'COMPLETED' && !gameEnded) {
+    console.log('[GameCore] Game status is COMPLETED, setting gameEnded=true');
+    setGameEnded(true);
+  }
+}, [gameState.status, gameEnded]);
   
   // WebSocket message handlers
   const handleGameStatus = (message) => {
