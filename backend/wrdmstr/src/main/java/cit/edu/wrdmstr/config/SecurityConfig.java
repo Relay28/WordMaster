@@ -95,8 +95,7 @@ public class SecurityConfig {
             "http://localhost:5173",           // Local development
             "http://localhost:3000",           // Alternative local port
             "https://wordmaster-nu.vercel.app", // Your Vercel deployment
-            "http://3.26.165.228:8080"          // EC2 backend (if needed for direct access)
-
+            "https://wordmaster.duckdns.org"   // Production backend domain
         ));
 
         // Allow only necessary HTTP methods
