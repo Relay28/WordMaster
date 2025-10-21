@@ -42,14 +42,16 @@ public class GrammarCheckerService {
      */
     public GrammarCheckResult checkGrammar(String text) {
         try {
-            String statusStr = aiService.checkGrammarStatus(text);
-            MessageStatus status = parseStatusString(statusStr);
-            String feedback = generateSimpleFeedback(status);
+            String aiResponse = aiService.checkGrammarStatus(text);
+            String[] parts = aiResponse.split("\\|", 2);
+            MessageStatus status = parseStatusString(parts[0]);
+            // Use detailed feedback for reports/admin view
+            String feedback = generateDetailedFeedback(status);
             return new GrammarCheckResult(status, feedback);
         } catch (Exception e) {
             logger.error("Error in simple grammar check: " + e.getMessage(), e);
             return new GrammarCheckResult(MessageStatus.MINOR_ERRORS, 
-                "Keep practicing! Your English is improving.", false, false);
+                "Good effort! Your message is understandable but has minor issues with punctuation, spelling, or grammar.", false, false);
         }
     }
     
@@ -59,9 +61,12 @@ public class GrammarCheckerService {
      */
     public GrammarCheckResult checkGrammar(String text, String role, String contextDescription) {
         try {
-            // Use AI for grammar status checking
-            String statusStr = aiService.checkGrammarStatus(text);
-            MessageStatus grammarStatus = parseStatusString(statusStr);
+            // Use AI for grammar status checking (now returns: STATUS | Tip)
+            String aiResponse = aiService.checkGrammarStatus(text);
+            String[] parts = aiResponse.split("\\|", 2);
+            MessageStatus grammarStatus = parseStatusString(parts[0]);
+            // Use detailed feedback for reports/admin view
+            String detailedFeedback = generateDetailedFeedback(grammarStatus);
             
             // Use AI for role appropriateness checking
             boolean isRoleAppropriate = true;
@@ -124,8 +129,8 @@ public class GrammarCheckerService {
                 }
             }
 
-            // Build feedback message
-            String feedback = generateSimpleFeedback(grammarStatus);
+            // Build feedback message - use our concise tips instead of verbose AI feedback
+            String feedback = detailedFeedback;
             MessageStatus finalStatus = grammarStatus;
             
             if (numericTriggered) {
@@ -162,18 +167,36 @@ public class GrammarCheckerService {
     }
 
     /**
-     * Generate simple encouraging feedback based on status
+     * Generate detailed feedback for reports/admin view
+     * These provide context and explanation for the student's performance
+     */
+    private String generateDetailedFeedback(MessageStatus status) {
+        switch (status) {
+            case PERFECT:
+                return "Excellent work! Your sentence has perfect grammar, proper punctuation, and clear structure. This shows strong English language skills.";
+            case MINOR_ERRORS:
+                return "Good effort! Your message is understandable but has minor issues with punctuation, spelling, or grammar. Review capitalization, verb tenses, and sentence endings.";
+            case MAJOR_ERRORS:
+                return "This message needs improvement. Focus on forming complete sentences with a subject and verb. Check for proper word order, grammar rules, and spelling.";
+            default:
+                return "Continue practicing your English writing skills.";
+        }
+    }
+
+    /**
+     * Generate concise, actionable tips for gameplay display
+     * These are short, specific suggestions shown during the game
      */
     private String generateSimpleFeedback(MessageStatus status) {
         switch (status) {
             case PERFECT:
-                return "Excellent work! Your grammar is perfect!";
+                return "Perfect grammar!";
             case MINOR_ERRORS:
-                return "Good job! Just a small improvement needed.";
+                return "Check punctuation and spelling";
             case MAJOR_ERRORS:
-                return "Keep practicing! Learning takes time.";
+                return "Form a complete sentence with subject and verb";
             default:
-                return "Keep going! You're making progress.";
+                return "Try writing in complete sentences";
         }
     }
 

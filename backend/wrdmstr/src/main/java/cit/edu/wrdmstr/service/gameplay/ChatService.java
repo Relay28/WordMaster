@@ -178,19 +178,8 @@ public class ChatService {
             savedMessage.getId(), savedMessage.isContainsWordBomb(), 
             savedMessage.getVocabularyFeedback());
 
-        // Generate progressive feedback
-        String progressiveFeedback = progressiveFeedbackService.generateProgressiveFeedback(
-            userId, sessionId, content, grammarResult.getStatus(), 
-            grammarResult.isRoleAppropriate(), vocabResult.getVocabularyScore()
-        );
-        
-        // Combine AI feedback with progressive feedback
-        String enhancedFeedback = grammarResult.getFeedback();
-        if (progressiveFeedback != null && !progressiveFeedback.trim().isEmpty()) {
-            enhancedFeedback = progressiveFeedback + "\n\n" + grammarResult.getFeedback();
-        }
-        
-        message.setGrammarFeedback(truncateFeedback(enhancedFeedback));
+        // Use only the concise grammar feedback tip (no verbose progressive feedback)
+        message.setGrammarFeedback(grammarResult.getFeedback());
 
         return savedMessage;
     }
@@ -471,24 +460,9 @@ public class ChatService {
                                          PlayerSessionEntity player,
                                          GameSessionEntity session) {
         
-        // Generate progressive feedback
-        String progressiveFeedback = progressiveFeedbackService.generateProgressiveFeedback(
-            player.getUser().getId(), session.getId(), message.getContent(), 
-            grammarResult.getStatus(), grammarResult.isRoleAppropriate(), 
-            vocabResult.getVocabularyScore()
-        );
-        
-        // Combine feedbacks
-        String enhancedFeedback = grammarResult.getFeedback();
-        if (progressiveFeedback != null && !progressiveFeedback.trim().isEmpty()) {
-            enhancedFeedback = progressiveFeedback + "\n\n" + grammarResult.getFeedback();
-        }
-        
-        message.setGrammarFeedback(truncateFeedback(enhancedFeedback));
-        
-        // Update message with analysis results
+        // Use only the concise grammar feedback tip (no verbose progressive feedback)
         message.setGrammarStatus(grammarResult.getStatus());
-        message.setGrammarFeedback(truncateFeedback(grammarResult.getFeedback()));
+        message.setGrammarFeedback(grammarResult.getFeedback());
         message.setVocabularyScore(vocabResult.getVocabularyScore());
         
         // Handle vocabulary feedback display
