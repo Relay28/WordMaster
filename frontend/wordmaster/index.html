@@ -7,6 +7,8 @@
     <title>Wordmaster</title>
     <meta http-equiv="Content-Security-Policy" 
           content="default-src 'self'; 
+                  worker-src 'self' blob:;
+                  
                    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; 
                    connect-src 'self' https://wordmaster.duckdns.org wss://wordmaster.duckdns.org https://wordmaster-nu.vercel.app; 
                    frame-src 'self' https://wordmaster.duckdns.org https://login.microsoftonline.com https://wordmaster-nu.vercel.app;

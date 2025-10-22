@@ -10,7 +10,7 @@ const StoryPromptPanel = ({ storyPrompt, gameState, isSinglePlayer, pixelHeading
         <Chip label={`${isSinglePlayer ? `Turn ${gameState.currentTurn}` : `Cycle ${gameState.currentCycle}`}`} color="warning" size="small" />
       </Box>
       <Box sx={{ flex: 1, overflowY: 'auto', pr: 1, '&::-webkit-scrollbar': { width: '8px' }, '&::-webkit-scrollbar-track': { background: 'rgba(95, 75, 139, 0.1)', borderRadius: '4px' }, '&::-webkit-scrollbar-thumb': { background: '#5F4B8B', borderRadius: '4px', '&:hover': { background: '#4a3a6d' } } }}>
-        <Typography sx={{ whiteSpace: 'pre-wrap', fontSize: '1.1rem', lineHeight: '1.6' }}>{sanitizePlainText(storyPrompt)}</Typography>
+        <Typography sx={{ whiteSpace: 'pre-wrap', fontSize: '1.25rem', lineHeight: '1.6' }}>{sanitizePlainText(storyPrompt)}</Typography>
       </Box>
     </Paper>
   );

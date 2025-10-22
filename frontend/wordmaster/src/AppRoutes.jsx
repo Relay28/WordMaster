@@ -4,6 +4,7 @@ import { useUserAuth } from './components/context/UserAuthContext';
 import { isLoggedIn } from './utils/authUtils';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import picbg from '../src/assets/picbg.png';
+import loadingSpinnerGif from '../src/assets/LOADINGSPINNER.gif';
 import '@fontsource/press-start-2p';
 
 // Lazy load all components
@@ -61,14 +62,15 @@ const LoadingSpinner = () => (
       imageRendering: 'pixelated',
     }}
   >
-    <CircularProgress
-      size={60}
-      thickness={4}
-      sx={{
-        color: '#5F4B8B',
-        mb: 2,
-        filter: 'drop-shadow(0 4px 8px rgba(95, 75, 139, 0.3))',
-      }}
+    <img 
+      src={loadingSpinnerGif} 
+      alt="Loading..." 
+      style={{ 
+        width: '200px',
+        height: '200px',
+        marginBottom: '16px',
+        filter: 'drop-shadow(0 4px 8px rgba(95, 75, 139, 0.3))'
+      }} 
     />
     <Typography
       sx={{
