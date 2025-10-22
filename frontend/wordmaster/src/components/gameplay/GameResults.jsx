@@ -175,7 +175,8 @@ const GameResults = ({ gameState, quizCompleted }) => {
       ],
       shapes: ['square'], // Only classic confetti squares
       scalar: 1.2, // Slightly larger particles for more visibility
-      disableForReducedMotion: true // Accessibility
+      disableForReducedMotion: true, // Accessibility
+      useWorker: false
     };
     
     // Classic confetti burst function - focused on vibrant colors with traditional confetti
