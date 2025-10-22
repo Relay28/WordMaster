@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, Typography, Button, Paper, Avatar, List, ListItem, Divider,
@@ -11,7 +11,7 @@ import picbg from '../../assets/picbg.png';
 import defaultProfile from '../../assets/defaultprofile.png';
 import { useProfilePicture } from '../utils/ProfilePictureManager';
 import '@fontsource/press-start-2p';
-
+import confetti from 'canvas-confetti';
 // Player Avatar component
 const PlayerAvatar = ({ profilePicture, index }) => {
   const profilePic = useProfilePicture(profilePicture);
@@ -37,6 +37,10 @@ const GameResults = ({ gameState, quizCompleted }) => {
   const [tabValue, setTabValue] = useState(0);
   const [comprehensionQuestions, setComprehensionQuestions] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(true);
+  
+  // Reference for the container
+  const containerRef = useRef(null);
   
   const isTeacher = user?.role === 'USER_TEACHER';
 
@@ -148,20 +152,140 @@ const GameResults = ({ gameState, quizCompleted }) => {
     setTabValue(newValue);
   };
   
+  // Function to trigger confetti with advanced options - raining from the top
+  const triggerConfetti = () => {
+    // Create a confetti cannon that shoots from the top - classic confetti with vibrant colors
+    const count = 300; // Even more particles for a vibrant display
+    const defaults = {
+      origin: { y: 0 }, // Start from the top of the screen
+      gravity: 0.7, // Slightly higher gravity to simulate falling
+      drift: 0, // No drift
+      ticks: 300, // Longer animation duration
+      // Ultra vibrant, eye-catching colors - selected for maximum pop effect
+      colors: [
+        '#FF003F', // Neon red
+        '#39FF14', // Ultra bright neon green
+        '#FF00FF', // Electric pink/fuchsia
+        '#FFFF00', // Bright lemon yellow
+        '#FFA500', // Bright orange
+        '#00FFFF', // Bright cyan
+        '#FF6EC7', // Hot pink
+        '#CCFF00', // Fluorescent yellow-green
+        '#FF3131'  // Bright neon red
+      ],
+      shapes: ['square'], // Only classic confetti squares
+      scalar: 1.2, // Slightly larger particles for more visibility
+      disableForReducedMotion: true // Accessibility
+    };
+    
+    // Classic confetti burst function - focused on vibrant colors with traditional confetti
+    function shootConfettiFrom(xOrigin, options = {}) {
+      confetti({
+        ...defaults,
+        particleCount: options.particleCount || count / 5,
+        spread: options.spread || 80,  // Slightly tighter spread for more density
+        startVelocity: options.startVelocity || 40,
+        origin: { x: xOrigin, y: options.y || 0 },
+        scalar: options.scalar || defaults.scalar,
+        angle: options.angle || 90, // Straight down by default
+        useWorker: false // Disable worker to avoid CSP issues
+      });
+    }
+    
+    // Create an even distribution across the entire width - classic confetti rain
+    // Initial burst across the screen
+    for (let i = 0; i <= 10; i++) {
+      shootConfettiFrom(i / 10, { 
+        particleCount: count / 10, 
+        spread: 70 
+      });
+    }
+    
+    // Create continuous rain effect with evenly distributed bursts
+    let timeouts = [];
+    
+    // First wave - steady rain pattern
+    for (let i = 0; i < 10; i++) {
+      const timeout = setTimeout(() => {
+        // Distribute across screen evenly
+        shootConfettiFrom(0.1 + (i % 5) * 0.2, { 
+          particleCount: 30,
+          spread: 50
+        });
+      }, i * 400);
+      timeouts.push(timeout);
+    }
+    
+    // Second wave - more steady rain
+    for (let i = 0; i < 8; i++) {
+      const timeout = setTimeout(() => {
+        shootConfettiFrom(0.2 + (i % 4) * 0.2, { 
+          particleCount: 25,
+          startVelocity: 35
+        });
+      }, 1500 + (i * 600));
+      timeouts.push(timeout);
+    }
+    
+    // Final wave - last burst across the screen
+    const finalTimeout = setTimeout(() => {
+      for (let i = 0; i <= 5; i++) {
+        shootConfettiFrom(i / 5, { 
+          particleCount: 40,
+          spread: 60
+        });
+      }
+    }, 6000);
+    timeouts.push(finalTimeout);
+    
+    return () => {
+      timeouts.forEach(clearTimeout);
+    };
+  };
+
+  // Trigger confetti on initial render if showConfetti is true
+  useEffect(() => {
+    if (showConfetti) {
+      // Trigger the confetti and capture cleanup function
+      const cleanup = triggerConfetti();
+      
+      // Hide the showConfetti flag after 12 seconds (even longer duration for the enhanced effect)
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 12000);
+      
+      return () => {
+        clearTimeout(timer);
+        if (cleanup) cleanup(); // Clean up confetti timeouts if available
+      };
+    }
+  }, [showConfetti]);
+  
   const handleQuizComplete = (results) => {
     console.log('Quiz completed with results:', results);
-    // Could show a success message or other UI updates here
+    
+    // Show confetti when quiz is completed with a good score
+    if (results && results.percentage >= 70) {
+      // Just set the flag to true, the effect hook will handle the confetti
+      setShowConfetti(true);
+    }
   };
   
   return (
-    <Box sx={{ 
-      minHeight: '100vh',
-      pt: 4, 
-      pb: 8,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed',
-    }}>
+    <Box 
+      ref={containerRef}
+      sx={{ 
+        minHeight: '100vh',
+        pt: 4, 
+        pb: 8,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        position: 'relative', // Important for confetti positioning
+      }}
+    >
+      {/* The confetti is triggered via the canvas-confetti library */}
+      
       <Container maxWidth="lg">
         <Box display="flex" alignItems="center" mb={2}>
           <Typography sx={{ ...pixelHeading, fontSize: '20px' }}>

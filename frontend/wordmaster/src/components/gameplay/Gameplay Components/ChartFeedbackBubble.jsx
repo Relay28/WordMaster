@@ -86,7 +86,8 @@ const ChartFeedbackBubble = ({
       <Box sx={{ 
         display: 'flex', 
         gap: 1.5,
-        justifyContent: 'flex-start',
+        justifyContent: 'space-between', // Changed from flex-start to space-between
+        width: '100%', // Added to make boxes fill the entire width
         flexWrap: 'wrap'
       }}>
         {/* Grammar Status Card */}
@@ -94,9 +95,9 @@ const ChartFeedbackBubble = ({
           sx={{
             bgcolor: 'white',
             borderRadius: '12px',
-            px: 2.5,
+            px: 2,
             py: 1.5,
-            minWidth: '120px',
+            flex: 1,
             boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
             border: `2px solid ${grammarColor}`,
             display: 'flex',

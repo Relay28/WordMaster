@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Box, Container, Typography, Paper, Grid, Button, Avatar, 
+  Box, Container, Typography, Paper, Grid, Button, Avatar, IconButton,
   CircularProgress, Alert, Divider, List, ListItem, ListItemText, Chip,
     TextField, Select, MenuItem, FormControl, InputLabel, Tabs, Tab
 } from '@mui/material';
 import { ArrowBack, School, Person, Assessment, EmojiEvents, QuestionAnswer, Spellcheck, Chat } from '@mui/icons-material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
@@ -15,6 +16,71 @@ import GrammarVocabResultsView from './GrammarVocabResultsView'; // Import the n
 import ChatMessagesView from './ChatMessagesView';
 import { useProfilePicture } from '../utils/ProfilePictureManager';
 import { sanitizePlainText } from '../../utils/sanitize';
+
+// Function to format text with proper spacing and make labels bold
+const formatTextWithBoldLabels = (text) => {
+  if (!text) return '';
+  
+  // First, replace all double colons with single colons
+  text = text.replace(/::/g, ':');
+  
+  // Split the text into lines
+  const lines = text.split('\n');
+  const formattedLines = [];
+  
+  // Process each line
+  for (let line of lines) {
+    // Check if line starts with markdown-style bold pattern (**Text**)
+    if (line.trim().startsWith('**') && line.includes('**', 2)) {
+      // Extract the label part (content between ** **)
+      const boldEndIndex = line.indexOf('**', 2);
+      const label = line.substring(2, boldEndIndex);
+      
+      // Get the rest of the line after the bold section
+      let value = line.substring(boldEndIndex + 2).trim();
+      
+      // If there's a value after the label (usually separated by a colon)
+      if (value.startsWith(':')) {
+        value = value.substring(1).trim(); // Remove the colon and trim spaces
+      }
+      
+      // Create a bold label followed by the value
+      formattedLines.push(
+        <React.Fragment key={label + value.substring(0, 10)}>
+          <strong>{label}</strong>{value ? ': ' + value : ''}
+        </React.Fragment>
+      );
+    } 
+    // Check if line contains a colon (indicating a label)
+    else if (line.includes(':')) {
+      const parts = line.split(':');
+      const label = parts[0].trim();
+      const value = parts.slice(1).join(':').trim();
+      
+      // Create a bold label followed by the value
+      formattedLines.push(
+        <React.Fragment key={label + value.substring(0, 10)}>
+          <strong>{label}:</strong> {value}
+        </React.Fragment>
+      );
+    } else {
+      // If it's not a label line, just add it as is
+      formattedLines.push(line);
+    }
+  }
+  
+  // Join the lines with proper spacing
+  return (
+    <React.Fragment>
+      {formattedLines.map((line, index) => (
+        <React.Fragment key={index}>
+          {line}
+          {index < formattedLines.length - 1 && <br />}
+        </React.Fragment>
+      ))}
+    </React.Fragment>
+  );
+};
 
 // Separate component for profile picture to properly use hooks
 const ProfilePicture = ({ profilePicture, studentName }) => {
@@ -313,24 +379,32 @@ const StudentReportPage = () => {
         },
       }}>
         <Container maxWidth="lg">
-          {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-            <Button
-              startIcon={<ArrowBack />}
+          {/* Header - Updated to match ClassroomDetailHeader design */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, gap: 4 }}>
+            <IconButton 
               onClick={() => navigate('/homepage')}
               sx={{
-                ...pixelButton,
-                mr: 2,
                 color: '#5F4B8B',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
                 border: '2px solid #5F4B8B',
+                borderRadius: '4px',
+                width: '32px',
+                height: '32px',
                 '&:hover': {
-                  backgroundColor: 'rgba(95, 75, 139, 0.1)'
-                }
+                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease'
               }}
             >
-              Back
-            </Button>
-            <Typography sx={{ ...pixelHeading, fontSize: '20px' }}>
+              <ChevronLeftIcon fontSize="medium" />
+            </IconButton>
+            <Typography sx={{ 
+              ...pixelHeading, 
+              color: '#5F4B8B',
+              fontSize: '20px',
+              marginLeft: '8px'
+            }}>
               Student Report
             </Typography>
           </Box>
@@ -358,10 +432,10 @@ const StudentReportPage = () => {
                 <Typography sx={{ ...pixelText, color: '#5F4B8B', mb: 2 }}>
                   ROLE: {studentDetails.role ? sanitizePlainText(studentDetails.role) : 'N/A'}
                 </Typography>
-                <Grid container spacing={2}>
+                <Grid container spacing={3}>
                   <Grid item xs={6} sm={3}>
                     <Box>
-                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                      <Typography sx={{ ...pixelText, fontSize: '8px', mb: 0.5 }}>
                         TOTAL SCORE
                       </Typography>
                       <Typography sx={{ ...pixelHeading, color: '#5F4B8B' }}>
@@ -371,7 +445,7 @@ const StudentReportPage = () => {
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box>
-                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                      <Typography sx={{ ...pixelText, fontSize: '8px', mb: 0.5 }}>
                         MESSAGES SENT
                       </Typography>
                       <Typography sx={{ ...pixelHeading }}>
@@ -381,7 +455,7 @@ const StudentReportPage = () => {
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box>
-                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                      <Typography sx={{ ...pixelText, fontSize: '8px', mb: 0.5 }}>
                         WORD BANK USAGE
                       </Typography>
                       <Typography sx={{ ...pixelHeading }}>
@@ -391,7 +465,7 @@ const StudentReportPage = () => {
                   </Grid>
                   <Grid item xs={6} sm={3}>
                     <Box>
-                      <Typography sx={{ ...pixelText, fontSize: '8px' }}>
+                      <Typography sx={{ ...pixelText, fontSize: '8px', mb: 0.5 }}>
                         GRAMMAR STREAK
                       </Typography>
                       <Typography sx={{ ...pixelHeading }}>
@@ -415,8 +489,7 @@ const StudentReportPage = () => {
                 border: '4px solid #5F4B8B',
                 borderRadius: '6px',
                 height: '100%',
-                  mb: 2, // Added margin bottom
-                width: '1095px',
+                mb: 2 // Added margin bottom
               }}>
                 <Typography sx={{ ...pixelHeading, mb: 2}}>
                   GRAMMAR PERFORMANCE
@@ -515,8 +588,7 @@ const StudentReportPage = () => {
                 backdropFilter: 'blur(8px)',
                 border: '4px solid #5F4B8B',
                 borderRadius: '6px',
-                height: '100%',
-                width: '1095px',
+                height: '100%'
               }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, }}>
                   <Typography sx={{ ...pixelHeading }}>
@@ -662,8 +734,12 @@ const StudentReportPage = () => {
                         borderRadius: '4px',
                         border: '1px solid rgba(95, 75, 139, 0.1)'
                       }}>
-                        <Typography sx={{fontSize: '14px' }}>
-                          {studentDetails.feedback.feedback || "No written feedback provided"}
+                        <Typography sx={{
+                          fontSize: '14px',
+                          whiteSpace: 'pre-line',
+                          lineHeight: 1.6
+                        }}>
+                          {formatTextWithBoldLabels(studentDetails.feedback.feedback) || "No written feedback provided"}
                         </Typography>
                       </Paper>
                     </Box>

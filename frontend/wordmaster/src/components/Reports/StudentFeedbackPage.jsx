@@ -1,15 +1,82 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  Box, Container, Typography, Paper, Grid, Button, 
+  Box, Container, Typography, Paper, Grid, Button, IconButton,
   CircularProgress, Alert, Divider, Chip, Tabs, Tab
 } from '@mui/material';
-import { ArrowBack, QuestionAnswer, Spellcheck } from '@mui/icons-material';
+import { ArrowBack, QuestionAnswer, Spellcheck, Chat, ChevronLeft } from '@mui/icons-material';
 import { useUserAuth } from '../context/UserAuthContext';
 import '@fontsource/press-start-2p';
 import picbg from '../../assets/picbg.png';
 import ComprehensionResultsView from './ComprehensionResultsView';
 import GrammarVocabResultsView from './GrammarVocabResultsView';
+import ChatMessagesView from './ChatMessagesView';
+import { sanitizePlainText } from '../../utils/sanitize';
+
+// Function to format text with proper spacing and make labels bold
+const formatTextWithBoldLabels = (text) => {
+  if (!text) return '';
+  
+  // First, replace all double colons with single colons
+  text = text.replace(/::/g, ':');
+  
+  // Split the text into lines
+  const lines = text.split('\n');
+  const formattedLines = [];
+  
+  // Process each line
+  for (let line of lines) {
+    // Check if line starts with markdown-style bold pattern (**Text**)
+    if (line.trim().startsWith('**') && line.includes('**', 2)) {
+      // Extract the label part (content between ** **)
+      const boldEndIndex = line.indexOf('**', 2);
+      const label = line.substring(2, boldEndIndex);
+      
+      // Get the rest of the line after the bold section
+      let value = line.substring(boldEndIndex + 2).trim();
+      
+      // If there's a value after the label (usually separated by a colon)
+      if (value.startsWith(':')) {
+        value = value.substring(1).trim(); // Remove the colon and trim spaces
+      }
+      
+      // Create a bold label followed by the value
+      formattedLines.push(
+        <React.Fragment key={label + value.substring(0, 10)}>
+          <strong>{label}</strong>{value ? ': ' + value : ''}
+        </React.Fragment>
+      );
+    } 
+    // Check if line contains a colon (indicating a label)
+    else if (line.includes(':')) {
+      const parts = line.split(':');
+      const label = parts[0].trim();
+      const value = parts.slice(1).join(':').trim();
+      
+      // Create a bold label followed by the value
+      formattedLines.push(
+        <React.Fragment key={label + value.substring(0, 10)}>
+          <strong>{label}:</strong> {value}
+        </React.Fragment>
+      );
+    } else {
+      // If it's not a label line, just add it as is
+      formattedLines.push(line);
+    }
+  }
+  
+  // Join the lines with proper spacing
+  return (
+    <React.Fragment>
+      {formattedLines.map((line, index) => (
+        <React.Fragment key={index}>
+          {line}
+          {index < formattedLines.length - 1 && <br />}
+        </React.Fragment>
+      ))}
+    </React.Fragment>
+  );
+};
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -157,20 +224,27 @@ const StudentFeedbackPage = () => {
   
   return (
     <Box sx={{ 
-      display: 'flex',
+          display: 'flex',
+          flexDirection: 'column',
+         height: '100vh',
+      width: '100vw', margin: 0,
+        display: 'flex',
       flexDirection: 'column',
-      height: '100vh',
-      overflow: 'hidden',
-      background: `
-        linear-gradient(to bottom, 
-          rgba(249, 249, 249, 0.8) 0%, 
-          rgba(249, 249, 249, 0.8) 40%, 
-          rgba(249, 249, 249, 0.2) 100%),
-        url(${picbg})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundAttachment: 'fixed',
-    }}>
+        overflow: 'hidden',
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+          background: `
+            linear-gradient(to bottom, 
+              rgba(249, 249, 249, 0.8) 0%, 
+              rgba(249, 249, 249, 0.8) 40%, 
+              rgba(249, 249, 249, 0.2) 100%),
+            url(${picbg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+        }}>
       <Box sx={{ 
         flex: 1,
         width: '100%',
@@ -192,24 +266,32 @@ const StudentFeedbackPage = () => {
         },
       }}>
         <Container maxWidth="lg">
-          {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-            <Button
-              startIcon={<ArrowBack />}
+          {/* Header - Matching ClassroomDetailHeader design */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, gap: 4 }}>
+            <IconButton 
               onClick={() => navigate(-1)}
               sx={{
-                ...pixelButton,
-                mr: 2,
                 color: '#5F4B8B',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
                 border: '2px solid #5F4B8B',
+                borderRadius: '4px',
+                width: '32px',
+                height: '32px',
                 '&:hover': {
-                  backgroundColor: 'rgba(95, 75, 139, 0.1)'
-                }
+                  backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                  transform: 'translateY(-1px)'
+                },
+                transition: 'all 0.2s ease'
               }}
             >
-              Back
-            </Button>
-            <Typography sx={{ ...pixelHeading, fontSize: '20px' }}>
+              <ChevronLeft fontSize="medium" />
+            </IconButton>
+            <Typography sx={{ 
+              ...pixelHeading, 
+              color: '#5F4B8B',
+              fontSize: '20px',
+              marginLeft: '8px'
+            }}>
               Teacher Feedback
             </Typography>
           </Box>
@@ -274,7 +356,7 @@ const StudentFeedbackPage = () => {
               PERFORMANCE SUMMARY
             </Typography>
             
-            <Grid container spacing={2} sx={{ mb: 3, justifyContent: 'center' }}>
+            <Grid container spacing={3} sx={{ mb: 3, justifyContent: 'center' }}>
               <Grid item xs={6} sm={3}>
                 <Paper elevation={0} sx={{ 
                   p: 2, 
@@ -284,7 +366,7 @@ const StudentFeedbackPage = () => {
                   border: '1px solid rgba(95, 75, 139, 0.1)',
                   height: '100%'
                 }}>
-                  <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B', width: '120px' }}>
+                  <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B' }}>
                     TOTAL SCORE
                   </Typography>
                   <Typography sx={{ ...pixelHeading, fontSize: '16px' }}>
@@ -301,7 +383,7 @@ const StudentFeedbackPage = () => {
                   border: '1px solid rgba(95, 75, 139, 0.1)',
                   height: '100%'
                 }}>
-                  <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B', width: '120px'}}>
+                  <Typography sx={{ ...pixelText, fontSize: '8px', mb: 1, color: '#5F4B8B' }}>
                     MESSAGES SENT
                   </Typography>
                   <Typography sx={{ ...pixelHeading, fontSize: '16px' }}>
@@ -386,8 +468,12 @@ const StudentFeedbackPage = () => {
                 borderRadius: '4px',
                 border: '1px solid rgba(95, 75, 139, 0.1)'
               }}>
-                <Typography sx={{ ...pixelText, fontSize: '9px' }}>
-                  {feedbackDetails.feedback.feedback || "No written feedback provided"}
+                <Typography sx={{
+                  fontSize: '14px',
+                  whiteSpace: 'pre-line',
+                  lineHeight: 1.6
+                }}>
+                  {formatTextWithBoldLabels(feedbackDetails.feedback.feedback) || "No written feedback provided"}
                 </Typography>
               </Paper>
             </Box>
@@ -470,9 +556,9 @@ const StudentFeedbackPage = () => {
             </Grid>
           </Paper>
           
-          {/* Results Tabs Section */}
+          {/* Tabs for Overview, Messages, Comprehension - matching StudentReportPage */}
           <Paper elevation={0} sx={{ 
-            p: 3,
+            p: 2, 
             mt: 4,
             backgroundColor: 'rgba(255, 255, 255, 0.8)',
             backdropFilter: 'blur(8px)',
@@ -487,14 +573,15 @@ const StudentFeedbackPage = () => {
               value={activeTab} 
               onChange={handleTabChange} 
               sx={{ 
-                mb: 3,
+                mb: 2, 
                 '& .MuiTabs-indicator': { backgroundColor: '#5F4B8B' },
-                '& .MuiTab-root': { ...pixelText, fontSize: '8px' },
+                '& .MuiTab-root': { ...pixelText, minWidth: 'auto' },
                 '& .Mui-selected': { color: '#5F4B8B' }
               }}
             >
-              <Tab icon={<QuestionAnswer />} label="COMPREHENSION" />
-              <Tab icon={<Spellcheck />} label="GRAMMAR & VOCABULARY" />
+              <Tab icon={<QuestionAnswer />} label="Comprehension" />
+              <Tab icon={<Spellcheck />} label="Grammar & Vocabulary" />
+              <Tab icon={<Chat />} label="Chat Messages" />
             </Tabs>
             
             {/* Comprehension Tab */}
@@ -522,6 +609,15 @@ const StudentFeedbackPage = () => {
                   usedWords: feedbackDetails.usedWords || [],
                   usedAdvancedWords: feedbackDetails.usedAdvancedWords || []
                 }}
+                pixelText={pixelText}
+                pixelHeading={pixelHeading}
+              />
+            )}
+            
+            {/* Chat Messages Tab - added to match StudentReportPage */}
+            {activeTab === 2 && (
+              <ChatMessagesView 
+                chatMessages={feedbackDetails.chatMessages || []}
                 pixelText={pixelText}
                 pixelHeading={pixelHeading}
               />

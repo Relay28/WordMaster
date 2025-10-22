@@ -10,6 +10,71 @@ import {
 } from '@mui/icons-material';
 import { sanitizePlainText } from '../../utils/sanitize';
 
+// Function to format text with proper spacing and make labels bold
+const formatTextWithBoldLabels = (text) => {
+  if (!text) return '';
+  
+  // First, replace all double colons with single colons
+  text = text.replace(/::/g, ':');
+  
+  // Split the text into lines
+  const lines = text.split('\n');
+  const formattedLines = [];
+  
+  // Process each line
+  for (let line of lines) {
+    // Check if line starts with markdown-style bold pattern (**Text**)
+    if (line.trim().startsWith('**') && line.includes('**', 2)) {
+      // Extract the label part (content between ** **)
+      const boldEndIndex = line.indexOf('**', 2);
+      const label = line.substring(2, boldEndIndex);
+      
+      // Get the rest of the line after the bold section
+      let value = line.substring(boldEndIndex + 2).trim();
+      
+      // If there's a value after the label (usually separated by a colon)
+      if (value.startsWith(':')) {
+        value = value.substring(1).trim(); // Remove the colon and trim spaces
+      }
+      
+      // Create a bold label followed by the value
+      formattedLines.push(
+        <React.Fragment key={label + value.substring(0, 10)}>
+          <strong>{label}</strong>{value ? ': ' + value : ''}
+        </React.Fragment>
+      );
+    } 
+    // Check if line contains a colon (indicating a label)
+    else if (line.includes(':')) {
+      const parts = line.split(':');
+      const label = parts[0].trim();
+      const value = parts.slice(1).join(':').trim();
+      
+      // Create a bold label followed by the value
+      formattedLines.push(
+        <React.Fragment key={label + value.substring(0, 10)}>
+          <strong>{label}:</strong> {value}
+        </React.Fragment>
+      );
+    } else {
+      // If it's not a label line, just add it as is
+      formattedLines.push(line);
+    }
+  }
+  
+  // Join the lines with proper spacing
+  return (
+    <React.Fragment>
+      {formattedLines.map((line, index) => (
+        <React.Fragment key={index}>
+          {line}
+          {index < formattedLines.length - 1 && <br />}
+        </React.Fragment>
+      ))}
+    </React.Fragment>
+  );
+};
+
 const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
   // Add state to track dialog visibility
   const [openDialog, setOpenDialog] = useState(false);
@@ -177,7 +242,7 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                     Grammar Feedback:
                   </Typography>
                   <Paper 
-                    onClick={() => handleOpenDialog('Grammar Feedback', sanitizePlainText(message.grammarFeedback))}
+                    onClick={() => handleOpenDialog('Grammar Feedback', message.grammarFeedback)}
                     sx={{ 
                       p: 1, 
                       bgcolor: 'rgba(95, 75, 139, 0.1)',
@@ -193,17 +258,20 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                       justifyContent: 'space-between'
                     }}
                   >
-                    <Typography sx={{ 
-                      fontFamily: 'Arial, sans-serif', 
+                    <Box sx={{ 
+                      fontFamily: 'Arial, sans-serif',
                       fontSize: '12px', 
                       color: '#000000',
-                      flex: 1
+                      flex: 1,
+                      whiteSpace: 'pre-line',
+                      lineHeight: 1.6
                     }}>
-                      {sanitizePlainText(message.grammarFeedback).length > 100 
-                        ? sanitizePlainText(message.grammarFeedback).substring(0, 100) + '...'
-                        : sanitizePlainText(message.grammarFeedback)
+                      {message.grammarFeedback.length > 100 
+                        ? formatTextWithBoldLabels(message.grammarFeedback.substring(0, 100)) 
+                        : formatTextWithBoldLabels(message.grammarFeedback)
                       }
-                    </Typography>
+                      {message.grammarFeedback.length > 100 && '...'}
+                    </Box>
                     <Launch sx={{ fontSize: '12px', color: '#666' }} />
                   </Paper>
                 </Box>
@@ -217,7 +285,7 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                     Vocabulary Feedback:
                   </Typography>
                   <Paper 
-                    onClick={() => handleOpenDialog('Vocabulary Feedback', sanitizePlainText(message.vocabularyFeedback))}
+                    onClick={() => handleOpenDialog('Vocabulary Feedback', message.vocabularyFeedback)}
                     sx={{ 
                       p: 1, 
                       bgcolor: 'rgba(30, 136, 229, 0.1)',
@@ -233,17 +301,20 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
                       justifyContent: 'space-between'
                     }}
                   >
-                    <Typography sx={{ 
-                      fontFamily: 'Arial, sans-serif', 
+                    <Box sx={{ 
+                      fontFamily: 'Arial, sans-serif',
                       fontSize: '12px', 
                       color: '#000000',
-                      flex: 1
+                      flex: 1,
+                      whiteSpace: 'pre-line',
+                      lineHeight: 1.6
                     }}>
-                      {sanitizePlainText(message.vocabularyFeedback).length > 100 
-                        ? sanitizePlainText(message.vocabularyFeedback).substring(0, 100) + '...'
-                        : sanitizePlainText(message.vocabularyFeedback)
+                      {message.vocabularyFeedback.length > 100 
+                        ? formatTextWithBoldLabels(message.vocabularyFeedback.substring(0, 100)) 
+                        : formatTextWithBoldLabels(message.vocabularyFeedback)
                       }
-                    </Typography>
+                      {message.vocabularyFeedback.length > 100 && '...'}
+                    </Box>
                     <Launch sx={{ fontSize: '12px', color: '#666' }} />
                   </Paper>
                 </Box>
@@ -279,12 +350,15 @@ const ChatMessagesView = ({ chatMessages, pixelText, pixelHeading }) => {
         </DialogTitle>
         <DialogContent dividers>
           <Typography sx={{ 
-            fontFamily: 'Arial, sans-serif', 
+            fontFamily: 'Arial, sans-serif',
             fontSize: '14px', 
             color: '#000000',
-            whiteSpace: 'pre-wrap'
+            whiteSpace: 'pre-line',
+            lineHeight: 1.6
           }}>
-            {sanitizePlainText(dialogContent)}
+            {dialogTitle === 'Vocabulary Feedback' || dialogTitle === 'Grammar Feedback'
+              ? formatTextWithBoldLabels(dialogContent)
+              : sanitizePlainText(dialogContent)}
           </Typography>
         </DialogContent>
         <DialogActions>
