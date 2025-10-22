@@ -490,7 +490,7 @@ const StudentReportPage = () => {
                 borderRadius: '6px',
                 height: '100%',
                 mb: 2 ,// Added margin bottom
-                width: '100%',
+                width: '1095px',
               }}>
                 <Typography sx={{ ...pixelHeading, mb: 2}}>
                   GRAMMAR PERFORMANCE
