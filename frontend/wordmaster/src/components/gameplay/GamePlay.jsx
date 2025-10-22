@@ -78,6 +78,8 @@ const GamePlay = ({
   const [proceeding, setProceeding] = useState(false);
   const [openFeedbackIndex, setOpenFeedbackIndex] = useState(null);
   const [messageProcessing, setMessageProcessing] = useState(false);
+  const [waitingForFeedback, setWaitingForFeedback] = useState(false);
+  const messageCountBeforeSubmitRef = useRef(0);
   
   const pixelText = {
     fontFamily: '"Press Start 2P", cursive',
@@ -321,14 +323,24 @@ const GamePlay = ({
   
   const handleSubmit = async () => {
     const trimmed = sentence.trim();
-    if (!trimmed || submitting) return;
+    if (!trimmed || submitting || waitingForFeedback) return;
     if (trimmed.length < 5) {
       return;
     }
     
     setSubmitting(true);
+    setWaitingForFeedback(true);
     const currentSentence = trimmed;
     setSentence('');
+    
+    // Count current real (non-optimistic) user messages before submitting
+    const currentRealMessages = localMessages.filter(msg => 
+      msg.senderId === user.id && 
+      !msg.isOptimistic &&
+      msg.grammarStatus &&
+      msg.grammarStatus !== 'PROCESSING'
+    ).length;
+    messageCountBeforeSubmitRef.current = currentRealMessages;
     
     const optimisticMessage = {
       id: `optimistic-${user.id}-${Date.now()}`,
@@ -364,6 +376,7 @@ const GamePlay = ({
       if (!token) {
         setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         setSubmitting(false);
+        setWaitingForFeedback(false);
         alert('Authentication error. Please log in again.');
         return;
       }
@@ -386,6 +399,7 @@ const GamePlay = ({
     } catch (error) {
       setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
       setSentence(currentSentence);
+      setWaitingForFeedback(false);
       alert('Failed to send sentence. Please try again.');
     } finally {
       setSubmitting(false);
@@ -405,6 +419,30 @@ const GamePlay = ({
       }
     }
   }, [localMessages, user?.id]);
+
+  // Simple check: unlock when we get a new real message with feedback
+  useEffect(() => {
+    if (waitingForFeedback && localMessages.length > 0) {
+      const currentRealMessages = localMessages.filter(msg => 
+        msg.senderId === user.id && 
+        !msg.isOptimistic &&
+        msg.grammarStatus &&
+        msg.grammarStatus !== 'PROCESSING'
+      ).length;
+      
+      // If we have more real messages than before, feedback arrived
+      if (currentRealMessages > messageCountBeforeSubmitRef.current) {
+        setWaitingForFeedback(false);
+      }
+    }
+  }, [localMessages, waitingForFeedback, user?.id]);
+
+  // Clear waiting state when turn changes (multiplayer)
+  useEffect(() => {
+    if (!isSinglePlayer && waitingForFeedback && !isMyTurn) {
+      setWaitingForFeedback(false);
+    }
+  }, [isMyTurn, isSinglePlayer, waitingForFeedback]);
 
   const fetchUpdatedGameState = useCallback(async () => {
     try {
@@ -754,15 +792,17 @@ const GamePlay = ({
                       fullWidth
                       variant="outlined"
                       placeholder={
-                        isMyTurn 
-                          ? "Type your message..." 
-                          : "Waiting for your turn..."
+                        waitingForFeedback
+                          ? "Processing your message..."
+                          : isMyTurn 
+                            ? "Type your message..." 
+                            : "Waiting for your turn..."
                       }
                       value={sentence}
                       onChange={handleSentenceChange}
-                      disabled={!isMyTurn || submitting}
+                      disabled={!isMyTurn || submitting || waitingForFeedback}
                       onKeyPress={(ev) => {
-                        if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn) {
+                        if (ev.key === 'Enter' && !ev.shiftKey && isMyTurn && !waitingForFeedback) {
                           handleSubmit();
                           ev.preventDefault();
                         }
@@ -777,7 +817,7 @@ const GamePlay = ({
                     <Button
                       variant="contained"
                       onClick={handleSubmit}
-                      disabled={!isMyTurn || submitting || !sentence.trim()}
+                      disabled={!isMyTurn || submitting || waitingForFeedback || !sentence.trim()}
                       sx={{
                         bgcolor: '#5F4B8B',
                         borderRadius: '50px',
@@ -789,7 +829,7 @@ const GamePlay = ({
                         '&.Mui-disabled': { bgcolor: '#c5c5c5' }
                       }}
                     >
-                      {submitting ? (
+                      {submitting || waitingForFeedback ? (
                         <CircularProgress size={20} color="inherit"/>
                       ) : (
                         '➤'
