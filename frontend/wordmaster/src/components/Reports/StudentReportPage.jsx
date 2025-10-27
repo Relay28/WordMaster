@@ -589,7 +589,8 @@ const StudentReportPage = () => {
                 backdropFilter: 'blur(8px)',
                 border: '4px solid #5F4B8B',
                 borderRadius: '6px',
-                height: '100%'
+                height: '100%',
+                width: '1095px',
               }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, }}>
                   <Typography sx={{ ...pixelHeading }}>
@@ -623,7 +624,7 @@ const StudentReportPage = () => {
                       label="Feedback"
                       value={feedbackData.feedback}
                       onChange={handleFeedbackChange}
-                      sx={{ mb: 3, height: '250px'}}
+                      sx={{ mb: 3, height: '100%', width: '1095px',}}
                     />
                     
                     <Grid container spacing={2} sx={{ mb: 3, justifyContent: 'center' }}>
