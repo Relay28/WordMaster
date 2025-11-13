@@ -843,7 +843,7 @@ public class AIService {
                     feedbackPrompt.append("- Write like a caring teacher who believes in their English learning journey\n");
                     feedbackPrompt.append("- Emphasize the importance and value of practicing English\n");
                     feedbackPrompt.append("- Be encouraging about their progress as Filipino learners of English\n");
-                    feedbackPrompt.append("- Write 3-4 paragraphs of personalized feedback FIRST\n");
+                    feedbackPrompt.append("- Write 200 words of  personalized feedback in a structured format and not in paragraph form FIRST\n");
                     feedbackPrompt.append("- Then add scores at the END in this EXACT format:\n\n");
                     feedbackPrompt.append("REQUIRED SCORE FORMAT (must appear exactly like this at the end):\n");
                     feedbackPrompt.append("**English Comprehension Score:** [1-5]\n");
