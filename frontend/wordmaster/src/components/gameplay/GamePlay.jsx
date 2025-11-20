@@ -494,7 +494,9 @@ const GamePlay = ({
         display: 'flex',
         flexDirection: 'column', 
         position: 'relative',
-        p: 4,
+        pt: 0,        
+        px: 4,
+        pb: 4,
         gap: 2,
       }}>
         <StoryPromptPanel 
