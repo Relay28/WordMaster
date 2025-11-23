@@ -516,23 +516,14 @@ public class GameSessionManagerService {
             
             Map<String, Object> request = new HashMap<>();
             request.put("task", "story_prompt");
-            request.put("contentTitle", session.getContent().getTitle());
+            request.put("content", session.getContent().getTitle());
             request.put("contentDescription", session.getContent().getDescription());
             request.put("turn", turnNumber);
             request.put("roles", activeRoles);
             
-            // NEW APPROACH: Content-centric with role invitation
-            StringBuilder instruction = new StringBuilder();
-            instruction.append("Create a SHORT story prompt (2-3 sentences, max 50 words) about the content topic '")
-                      .append(session.getContent().getTitle())
-                      .append("'. ");
-            instruction.append("Set a scene or situation in this world/topic, then ask what each person would do/say FROM THEIR ROLE. ");
-            instruction.append("Format: [Situation in the content world]. Using your role, what would you do/say/advise? ");
-            instruction.append("Example: 'It's a peaceful day in the kingdom. A concern arises about the kingdom's future. Using your role, what would you do or say to address this?' ");
-            instruction.append("DO NOT mention specific roles by name. DO NOT direct specific roles to act. ");
-            instruction.append("The prompt should work for ANY role to respond from their perspective.");
-            
-            request.put("instruction", instruction.toString());
+            // HYBRID APPROACH: Role-friendly collaborative scenarios
+            // Note: The detailed instructions are now in AIService.java under story_prompt case
+            // We just need to pass the role information for context
             
             // Include previous story for continuity and progression
             if (!previousElements.isEmpty()) {
@@ -551,15 +542,17 @@ public class GameSessionManagerService {
             // Clean the prompt to ensure it meets requirements
             String cleanedPrompt = cleanStoryPrompt(newPrompt);
             
-            // Validate and ensure it has the role invitation
-            if (!cleanedPrompt.toLowerCase().contains("your role") && 
-                !cleanedPrompt.toLowerCase().contains("from your perspective")) {
-                // Add role invitation if missing
-                cleanedPrompt = cleanedPrompt.trim();
-                if (!cleanedPrompt.endsWith("?") && !cleanedPrompt.endsWith(".")) {
-                    cleanedPrompt += ".";
+            // Validate prompt ends with a question to encourage participation
+            cleanedPrompt = cleanedPrompt.trim();
+            if (!cleanedPrompt.endsWith("?")) {
+                // If no question mark, check if it's a clear action prompt
+                if (!cleanedPrompt.toLowerCase().matches(".*(what|how|where|when|should|could|would).*")) {
+                    // Add a generic collaborative prompt if needed
+                    if (!cleanedPrompt.endsWith(".")) {
+                        cleanedPrompt += ".";
+                    }
+                    cleanedPrompt += " What should the team do?";
                 }
-                cleanedPrompt += " Using your role, how would you respond?";
             }
             
             // Save the cleaned story prompt
