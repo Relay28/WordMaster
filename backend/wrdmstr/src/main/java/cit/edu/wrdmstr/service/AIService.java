@@ -694,35 +694,30 @@ public class AIService {
 
                 case "story_prompt":
                     StringBuilder prompt = new StringBuilder();
-                    prompt.append("You are creating simple, engaging story prompts for Grade 8-9 Filipino students learning English.\n\n");
+                    prompt.append("You are creating collaborative story prompts for Grade 8-9 Filipino students learning English.\n\n");
                     
                     prompt.append("CRITICAL REQUIREMENTS:\n");
                     prompt.append("- Write at a Grade 8-9 reading level (simple vocabulary, clear sentences)\n");
                     prompt.append("- Maximum 3-4 sentences total\n");
                     prompt.append("- Use common English words that Filipino students know\n");
                     prompt.append("- NO special formatting (**, ##, Turn X:, etc.)\n");
-                    prompt.append("- NO gender assumptions (use 'they/them' or names only)\n");
-                    prompt.append("- MUST relate directly to the content topic and roles\n");
-                    prompt.append("- End with a simple question or choice for the next player\n\n");
+                    prompt.append("- NO gender assumptions (use 'they/them' or 'the group/team')\n");
+                    prompt.append("- Create GROUP scenarios where ALL players participate together\n");
+                    prompt.append("- DO NOT create fictional NPCs or strangers - focus on the ACTUAL players\n");
+                    prompt.append("- End with specific ACTION questions (What should they do? Where should they go? What happens next?)\n\n");
                     
                     // Make content information more prominent
                     prompt.append("CONTENT TOPIC: ").append(request.get("content")).append("\n");
                     prompt.append("CONTENT DESCRIPTION: ").append(request.getOrDefault("contentDescription", "")).append("\n");
                     prompt.append("Current turn: ").append(request.get("turn")).append("\n\n");
                     
-                    // Include player roles prominently
+                    // Include roles as context but don't force them into the scenario
                     @SuppressWarnings("unchecked")
-                    List<String> playerNames = (List<String>) request.get("playerNames");
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> playerRoles = (Map<String, String>) request.get("playerRoles");
-                    
-                    if (playerNames != null && !playerNames.isEmpty()) {
-                        prompt.append("STUDENTS AND THEIR ROLES:\n");
-                        for (String playerName : playerNames) {
-                            String roleName = playerRoles != null ? playerRoles.get(playerName) : "Student";
-                            prompt.append("- ").append(playerName).append(" as ").append(roleName).append("\n");
-                        }
-                        prompt.append("\n");
+                    List<String> roles = (List<String>) request.get("roles");
+                    if (roles != null && !roles.isEmpty()) {
+                        prompt.append("AVAILABLE ROLES IN SESSION: ");
+                        prompt.append(String.join(", ", roles)).append("\n");
+                        prompt.append("Note: Create scenarios compatible with these roles, but don't name them directly\n\n");
                     }
                     
                     // Include previous story for continuity
@@ -736,21 +731,24 @@ public class AIService {
                         prompt.append("\n");
                     }
                     
-                    prompt.append("CREATE A STORY PROMPT THAT:\n");
-                    prompt.append("- Directly relates to the content topic: ").append(request.get("content")).append("\n");
-                    prompt.append("- Incorporates the student roles meaningfully\n");
-                    prompt.append("- Uses gender-neutral language (they/them or just names)\n");
-                    prompt.append("- Uses simple English vocabulary\n");
-                    prompt.append("- Creates a situation where students can use their roles\n");
-                    prompt.append("- Continues logically from previous story parts\n");
-                    prompt.append("- Ends with a clear question or choice for the next student\n\n");
+                    prompt.append("HYBRID APPROACH - CREATE SCENARIOS THAT:\n");
+                    prompt.append("1. Present a GROUP situation/challenge related to: ").append(request.get("content")).append("\n");
+                    prompt.append("2. Allow ANY role to contribute naturally (role-friendly, not role-dependent)\n");
+                    prompt.append("3. Focus on the PLAYERS THEMSELVES working together, not external NPCs\n");
+                    prompt.append("4. Continue logically from previous story parts\n");
+                    prompt.append("5. End with clear, action-oriented questions that invite all players to participate\n\n");
                     
-                    prompt.append("EXAMPLE FORMATS:\n");
-                    prompt.append("Topic: Environmental Science, Roles: Researcher, Reporter\n");
-                    prompt.append("→ 'The team is studying pollution in the river. Alex the Researcher found some interesting data. Sam the Reporter needs to share this with the community. What should they do next?'\n\n");
+                    prompt.append("GOOD EXAMPLE FORMATS:\n");
+                    prompt.append("Topic: Berlin Tourism, Roles: Tour Guide, Hotel Receptionist, Local Artist\n");
+                    prompt.append("→ 'The group arrives at Berlin's main square and notices a festival starting. They have 2 hours before sunset. What should the team do to make the most of this opportunity?'\n\n");
                     
-                    prompt.append("Topic: History, Roles: Explorer, Guide, Historian\n");
-                    prompt.append("→ 'The group arrived at the ancient ruins. Maya the Explorer wants to investigate. Jordan the Guide knows the safe paths. What should the team explore first?'\n\n");
+                    prompt.append("Topic: Environmental Science, Roles: Researcher, Field Observer, Data Analyst\n");
+                    prompt.append("→ 'The team discovers unusual plant growth near the river. The water looks different than yesterday. What should they investigate first?'\n\n");
+                    
+                    prompt.append("BAD EXAMPLES TO AVOID:\n");
+                    prompt.append("✗ 'You meet a stranger who asks for help' (creates fictional NPC)\n");
+                    prompt.append("✗ 'Using your role, how would you respond?' (too vague)\n");
+                    prompt.append("✗ 'The Tour Guide should explain...' (singles out specific role)\n\n");
                     
                     prompt.append("Write ONLY the story prompt (no formatting, no extra text):");
                     
