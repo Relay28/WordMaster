@@ -2,10 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useUserAuth } from './components/context/UserAuthContext';
 import { isLoggedIn } from './utils/authUtils';
-import { Box, CircularProgress, Typography } from '@mui/material';
-import picbg from '../src/assets/picbg.png';
-import loadingSpinnerGif from '../src/assets/LOADINGSPINNER.gif';
-import '@fontsource/press-start-2p';
+import LoadingSpinner from './components/utils/LoadingSpinner';
 
 // Lazy load all components
 const UserProfile = lazy(() => import('./Profile/UserProfileContainer'));
@@ -35,56 +32,6 @@ const StudentFeedbackPage = lazy(() => import('./components/Reports/StudentFeedb
 const ProtectedAdminRoute = lazy(() => import('./components/auth/ProtectedAdminRoute'));
 const ProtectedTeacherRoute = lazy(() => import('./components/auth/ProtectedTeacherRoute'));
 const ChartFeedbackDemo = lazy(() => import('./components/gameplay/ChartFeedbackDemo'));
-
-// Loading component
-const LoadingSpinner = () => (
-  <Box
-    sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      height: '100vh',
-      width: '100vw',
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      background: `
-        linear-gradient(to bottom, 
-          rgba(249, 249, 249, 0.95) 0%, 
-          rgba(249, 249, 249, 0.95) 40%, 
-          rgba(249, 249, 249, 0.8) 100%),
-        url(${picbg})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed',
-      imageRendering: 'pixelated',
-    }}
-  >
-    <img 
-      src={loadingSpinnerGif} 
-      alt="Loading..." 
-      style={{ 
-        width: '200px',
-        height: '200px',
-        marginBottom: '16px',
-        filter: 'drop-shadow(0 4px 8px rgba(95, 75, 139, 0.3))'
-      }} 
-    />
-    <Typography
-      sx={{
-        fontFamily: '"Press Start 2P", cursive',
-        fontSize: '16px',
-        color: '#5F4B8B',
-        textShadow: '2px 2px 4px rgba(95, 75, 139, 0.2)',
-        letterSpacing: '2px',
-      }}
-    >
-      LOADING...
-    </Typography>
-  </Box>
-);
 
 const ProtectedRoute = ({ children }) => {
   const { getToken, user } = useUserAuth();

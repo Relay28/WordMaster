@@ -466,6 +466,7 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
                 </Typography>
                 
                 <Typography sx={{ 
+                  fontFamily: '"Press Start 2P", cursive',
                   fontSize: '16px',
                   lineHeight: 1.6,
                   fontWeight: 'medium'

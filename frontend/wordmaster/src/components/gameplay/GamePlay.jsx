@@ -24,6 +24,7 @@ import LeaderboardOverlay from './Gameplay Components/LeaderboardOverlay';
 import PlayerSpotlight from './Gameplay Components/PlayerSpotlight';
 import WordBank from './Gameplay Components/WordBank';
 import ChartFeedbackBubble from './Gameplay Components/ChartFeedbackBubble';
+import GameEndModal from './Gameplay Components/GameEndModal';
 import { getGrammarStatusColor, getGrammarStatusLabel } from './Gameplay Components/grammarUtils';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import { sanitizePlainText } from '../../utils/sanitize';
@@ -135,7 +136,7 @@ const GamePlay = ({
     if (lastIndex < safe.length) parts.push({ text: safe.substring(lastIndex), highlight: false });
 
     return parts.map((p, i) => p.highlight ? (
-      <span key={i} style={{ fontWeight: '700', color: '#f8def8ff', textShadow: `
+      <span key={i} style={{ fontWeight: '700', color: '#e7d52eff', textShadow: `
             -0.8px -0.8px 0 #000,  
             0.8px -0.8px 0 #000,
             -0.8px  0.8px 0 #000,
@@ -493,7 +494,9 @@ const GamePlay = ({
         display: 'flex',
         flexDirection: 'column', 
         position: 'relative',
-        p: 4,
+        pt: 0,        
+        px: 4,
+        pb: 4,
         gap: 2,
       }}>
         <StoryPromptPanel 
@@ -732,46 +735,15 @@ const GamePlay = ({
                   gap: 2,
                   mt: 2
                 }}>
-                  <Typography sx={{
-                    fontFamily: '"Press Start 2P", cursive',
-                    fontSize: '14px',
-                    color: '#5F4B8B',
-                    fontWeight: 'bold',
-                    mb: 1,
-                    textAlign: 'center'
-                  }}>
-                    🎉 Congratulations! You've finished the game! 🎉
-                  </Typography>
-                  <Typography sx={{
-                    fontFamily: '"Press Start 2P", cursive',
-                    fontSize: '10px',
-                    color: '#333',
-                    mb: 2,
-                    textAlign: 'center'
-                  }}>
-                    Click below to proceed to the comprehension check and see your results.
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    sx={{
-                      fontFamily: '"Press Start 2P", cursive',
-                      fontSize: '12px',
-                      backgroundColor: '#5F4B8B',
-                      borderRadius: '8px',
-                      px: 4,
-                      py: 1.5,
-                      boxShadow: '2px 2px 0px rgba(0,0,0,0.2)',
-                      '&:hover': { backgroundColor: '#4a3a6d' }
-                    }}
-                    disabled={proceeding}
-                    onClick={() => {
+                  <GameEndModal
+                    open={gameEnded}
+                    proceeding={proceeding}
+                    onClose={() => setProceeding(false)}
+                    onProceed={() => {
                       setProceeding(true);
                       if (onProceedToResults) onProceedToResults();
                     }}
-                  >
-                    Proceed to Comprehension Check
-                  </Button>
+                  />
                 </Box>
               )}
               {!gameEnded && (
