@@ -63,13 +63,13 @@ public class WaitingRoomService implements IWaitingRoomService {
             }
         }
     }
-
+    
     private void notifyWaitingRoomUpdate(Long contentId) {
         // Ensure the list is not null, send an empty list if no one is in the room
         List<UserDto> students = new ArrayList<>(waitingRooms.getOrDefault(contentId, Collections.emptySet()));
         messagingTemplate.convertAndSend("/topic/waiting-room/" + contentId + "/updates", students);
     }
-
+    
     public synchronized void removeFromWaitingRoom(Long contentId, Long userId) {
         Set<UserDto> students = waitingRooms.get(contentId);
         if (students != null) {
@@ -81,7 +81,7 @@ public class WaitingRoomService implements IWaitingRoomService {
             }
         }
     }
-
+    @Transactional
     public List<UserDto> getWaitingStudents(Long contentId) {
         return new ArrayList<>(waitingRooms.getOrDefault(contentId, ConcurrentHashMap.newKeySet()));
     }

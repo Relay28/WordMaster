@@ -121,7 +121,6 @@ public class GameSessionManagerService {
         // Process in background
         processSubmissionInBackground(sessionId, userId, submission);
     }
-
     private void processMultiplayerSubmission(Long sessionId, Long userId, WordSubmissionDTO submission) {
         // Standard synchronous processing for multiplayer
         submitWord(sessionId, userId, submission);
@@ -327,6 +326,7 @@ public class GameSessionManagerService {
         startNextTurn(sessionId);
     }
 
+    
     private void trackTurnCompletion(PlayerSessionEntity player, GameSessionEntity session) {
         try {
             long turnEndTime = System.currentTimeMillis();
@@ -409,6 +409,7 @@ public class GameSessionManagerService {
         resetTurnTimer(session);
     }
 
+    @Transactional
     private void assignRoles(List<PlayerSessionEntity> players, List<Role> roles) {
         Random random = new Random();
         int numRoles = roles.size();
@@ -979,6 +980,7 @@ public class GameSessionManagerService {
         logger.info("Game {} ended and caches cleared.", sessionId);
     }
 
+    @Transactional
     public void joinGame(Long sessionId, Long userId) {
         logger.info("Player {} joining game {}", userId, sessionId);
         List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId);
@@ -1221,7 +1223,7 @@ public class GameSessionManagerService {
         sessionsToRemove.forEach(activeGames::remove);
     }
 
-
+    @Transactional
     private void awardPoints(Long sessionId, Long userId, int points, String reason) {
         scoreService.awardPoints(sessionId, userId, points, reason);
 
