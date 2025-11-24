@@ -326,7 +326,7 @@ public class GameSessionManagerService {
         startNextTurn(sessionId);
     }
 
-    @Transactional
+    
     private void trackTurnCompletion(PlayerSessionEntity player, GameSessionEntity session) {
         try {
             long turnEndTime = System.currentTimeMillis();
