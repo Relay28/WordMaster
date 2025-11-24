@@ -415,7 +415,6 @@ public class ChatService {
     }
 
     @Async("analysisExecutor")
-    @Transactional
     private void processMessageAnalysisAsync(ChatMessageEntity message, PlayerSessionEntity player, GameSessionEntity session) {
         try {
             String content = message.getContent();
