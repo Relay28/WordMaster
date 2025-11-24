@@ -185,7 +185,6 @@ public class AIService {
     /**
      * Generate story prompts for game turns
      */
-    @Transactional
     public String generateStoryPrompt(String contextDescription, int turnNumber, List<String> usedWords) {
         Map<String, Object> request = new HashMap<>();
         request.put("content", contextDescription);
