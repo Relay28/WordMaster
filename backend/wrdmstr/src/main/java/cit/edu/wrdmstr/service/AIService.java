@@ -119,7 +119,7 @@ public class AIService {
      * Check grammar status using AI (lightweight - returns status and tip)
      * Returns format: STATUS | Tip
      */
-    @Transactional
+    
     public String checkGrammarStatus(String text) {
         if (text == null || text.trim().isEmpty()) {
             return "MINOR_ERRORS | Message is too short";
