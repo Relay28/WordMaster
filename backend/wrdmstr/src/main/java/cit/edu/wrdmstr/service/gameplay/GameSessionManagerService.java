@@ -121,7 +121,6 @@ public class GameSessionManagerService {
         // Process in background
         processSubmissionInBackground(sessionId, userId, submission);
     }
-    @Transactional
     private void processMultiplayerSubmission(Long sessionId, Long userId, WordSubmissionDTO submission) {
         // Standard synchronous processing for multiplayer
         submitWord(sessionId, userId, submission);
