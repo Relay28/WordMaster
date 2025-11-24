@@ -295,7 +295,7 @@ public class ChatService {
     }
 
     // Removed the awardPoints method as it's now in ScoreService
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ChatMessageDTO> getSessionMessages(Long sessionId) {
         List<ChatMessageEntity> messages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
 
