@@ -410,7 +410,7 @@ public class GameSessionManagerService {
         resetTurnTimer(session);
     }
 
-     @Transactional
+    @Transactional
     private void assignRoles(List<PlayerSessionEntity> players, List<Role> roles) {
         Random random = new Random();
         int numRoles = roles.size();
