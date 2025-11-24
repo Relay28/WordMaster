@@ -1224,7 +1224,7 @@ public class GameSessionManagerService {
         sessionsToRemove.forEach(activeGames::remove);
     }
 
-      @Transactional
+    @Transactional
     private void awardPoints(Long sessionId, Long userId, int points, String reason) {
         scoreService.awardPoints(sessionId, userId, points, reason);
 
