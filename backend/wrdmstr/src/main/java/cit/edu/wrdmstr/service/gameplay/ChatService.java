@@ -183,7 +183,8 @@ public class ChatService {
 
         return savedMessage;
     }
-
+    
+    @Transactional
     private void updateProgressMetrics(PlayerSessionEntity player, ChatMessageEntity message,GameSessionEntity session) {
         StudentProgress progress = progressRepository.findByStudentIdAndSessionId(
                         player.getUser().getId(), player.getSession().getId())
@@ -295,7 +296,7 @@ public class ChatService {
     }
 
     // Removed the awardPoints method as it's now in ScoreService
-
+    @Transactional
     public List<ChatMessageDTO> getSessionMessages(Long sessionId) {
         List<ChatMessageEntity> messages = chatMessageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
 
@@ -356,6 +357,7 @@ public class ChatService {
     }
 
     @Async("chatProcessingExecutor")
+    @Transactional
     public ChatMessageEntity sendMessageOptimized(Long sessionId, Long userId, String content, boolean isSinglePlayer) {
         try {
             if (isSinglePlayer) {
@@ -368,7 +370,7 @@ public class ChatService {
             throw e;
         }
     }
-
+    @Transactional
     private ChatMessageEntity sendMessageSinglePlayerOptimized(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findActiveBySessionIdAndUserId(sessionId, userId);
         PlayerSessionEntity player = players.isEmpty() ? null : players.get(0);
@@ -414,6 +416,7 @@ public class ChatService {
     }
 
     @Async("analysisExecutor")
+    @Transactional
     private void processMessageAnalysisAsync(ChatMessageEntity message, PlayerSessionEntity player, GameSessionEntity session) {
         try {
             String content = message.getContent();
