@@ -70,7 +70,7 @@ public class WaitingRoomService implements IWaitingRoomService {
         List<UserDto> students = new ArrayList<>(waitingRooms.getOrDefault(contentId, Collections.emptySet()));
         messagingTemplate.convertAndSend("/topic/waiting-room/" + contentId + "/updates", students);
     }
-     @Transactional
+    @Transactional
     public synchronized void removeFromWaitingRoom(Long contentId, Long userId) {
         Set<UserDto> students = waitingRooms.get(contentId);
         if (students != null) {
