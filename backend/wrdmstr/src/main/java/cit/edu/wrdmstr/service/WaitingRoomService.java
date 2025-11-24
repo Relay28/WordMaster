@@ -64,7 +64,7 @@ public class WaitingRoomService implements IWaitingRoomService {
             }
         }
     }
-    @Transactional
+    
     private void notifyWaitingRoomUpdate(Long contentId) {
         // Ensure the list is not null, send an empty list if no one is in the room
         List<UserDto> students = new ArrayList<>(waitingRooms.getOrDefault(contentId, Collections.emptySet()));
