@@ -232,7 +232,7 @@ public class AIService {
 
     /**
      * Call the AI API with the given request
-     */ @Transactional
+     */
         public AIResponse callAIModel(Map<String, Object> request) {
             int maxRetries = 3;
             int retryDelay = 1200; // slightly lower base
