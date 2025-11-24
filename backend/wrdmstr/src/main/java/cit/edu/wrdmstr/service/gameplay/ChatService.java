@@ -184,7 +184,6 @@ public class ChatService {
         return savedMessage;
     }
     
-    @Transactional
     private void updateProgressMetrics(PlayerSessionEntity player, ChatMessageEntity message,GameSessionEntity session) {
         StudentProgress progress = progressRepository.findByStudentIdAndSessionId(
                         player.getUser().getId(), player.getSession().getId())
