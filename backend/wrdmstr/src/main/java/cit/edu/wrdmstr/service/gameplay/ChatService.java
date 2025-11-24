@@ -357,7 +357,6 @@ public class ChatService {
     }
 
     @Async("chatProcessingExecutor")
-    @Transactional
     public ChatMessageEntity sendMessageOptimized(Long sessionId, Long userId, String content, boolean isSinglePlayer) {
         try {
             if (isSinglePlayer) {
