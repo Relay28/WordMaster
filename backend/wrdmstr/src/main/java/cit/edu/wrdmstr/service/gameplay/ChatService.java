@@ -368,7 +368,6 @@ public class ChatService {
             throw e;
         }
     }
-    @Transactional
     private ChatMessageEntity sendMessageSinglePlayerOptimized(Long sessionId, Long userId, String content) {
         List<PlayerSessionEntity> players = playerSessionRepository.findActiveBySessionIdAndUserId(sessionId, userId);
         PlayerSessionEntity player = players.isEmpty() ? null : players.get(0);
