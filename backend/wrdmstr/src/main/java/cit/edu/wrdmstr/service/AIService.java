@@ -1,5 +1,6 @@
 package cit.edu.wrdmstr.service;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
@@ -118,6 +119,7 @@ public class AIService {
      * Check grammar status using AI (lightweight - returns status and tip)
      * Returns format: STATUS | Tip
      */
+    @Transactional
     public String checkGrammarStatus(String text) {
         if (text == null || text.trim().isEmpty()) {
             return "MINOR_ERRORS | Message is too short";
@@ -183,6 +185,7 @@ public class AIService {
     /**
      * Generate story prompts for game turns
      */
+    @Transactional
     public String generateStoryPrompt(String contextDescription, int turnNumber, List<String> usedWords) {
         Map<String, Object> request = new HashMap<>();
         request.put("content", contextDescription);
@@ -197,6 +200,7 @@ public class AIService {
     /**
      * Check if text contains variations of word bank words (tense, plural, etc.)
      */
+    @Transactional
     public List<String> detectWordBankUsage(String text, List<String> wordBankWords) {
         Map<String, Object> request = new HashMap<>();
         request.put("task", "word_bank_detection");
@@ -228,7 +232,7 @@ public class AIService {
 
     /**
      * Call the AI API with the given request
-     */
+     */ @Transactional
         public AIResponse callAIModel(Map<String, Object> request) {
             int maxRetries = 3;
             int retryDelay = 1200; // slightly lower base
