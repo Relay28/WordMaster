@@ -40,7 +40,6 @@ public class WaitingRoomService implements IWaitingRoomService {
     @Autowired
     private PlayerSessionEntityRepository playerSessionRepository;
 
-    @Transactional
     public synchronized void joinWaitingRoom(Long contentId, Long userId, String userName) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
