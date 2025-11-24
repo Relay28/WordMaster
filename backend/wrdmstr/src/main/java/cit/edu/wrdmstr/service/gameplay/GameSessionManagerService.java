@@ -981,7 +981,7 @@ public class GameSessionManagerService {
         logger.info("Game {} ended and caches cleared.", sessionId);
     }
 
-     @Transactional
+    @Transactional
     public void joinGame(Long sessionId, Long userId) {
         logger.info("Player {} joining game {}", userId, sessionId);
         List<PlayerSessionDTO> playerDTOs = gameSessionService.getSessionPlayerDTOs(sessionId);
