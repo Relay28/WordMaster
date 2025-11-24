@@ -82,7 +82,7 @@ public class WaitingRoomService implements IWaitingRoomService {
             }
         }
     }
-     @Transactional
+    @Transactional
     public List<UserDto> getWaitingStudents(Long contentId) {
         return new ArrayList<>(waitingRooms.getOrDefault(contentId, ConcurrentHashMap.newKeySet()));
     }
