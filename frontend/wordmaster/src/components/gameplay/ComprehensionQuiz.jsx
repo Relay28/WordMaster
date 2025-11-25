@@ -54,14 +54,16 @@ const ComprehensionQuiz = ({ sessionId, studentId, questions, onComplete }) => {
           angle: 60,
           spread: 55,
           origin: { x: 0 },
-          colors: ['#5F4B8B', '#7a5bc9', '#9575cd']
+          colors: ['#5F4B8B', '#7a5bc9', '#9575cd'],
+          useWorker: false
         });
         confetti({
           particleCount: 5,
           angle: 120,
           spread: 55,
           origin: { x: 1 },
-          colors: ['#5F4B8B', '#7a5bc9', '#9575cd']
+          colors: ['#5F4B8B', '#7a5bc9', '#9575cd'],
+          useWorker: false
         });
 
         if (Date.now() < end) {
