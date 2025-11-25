@@ -26,7 +26,7 @@ const GameEndModal = ({ open, onClose, onProceed, proceeding }) => {
 
   return (
     <>
-  <ConfettiBurst open={open} durationMs={2000} />
+      <ConfettiBurst open={open} />
     
     <Dialog
       open={!!open}
