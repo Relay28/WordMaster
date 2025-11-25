@@ -4,8 +4,7 @@ import confetti from 'canvas-confetti';
 // Reusable confetti trigger component. When `open` is true it will
 // run a sequence of confetti bursts similar to GameResults.triggerConfetti.
 // This component renders nothing to DOM and only manages the side-effect.
-// durationMs: total duration of the sequence in milliseconds (default matches original ~6000ms)
-const ConfettiBurst = ({ open = false, durationMs = 6000 }) => {
+const ConfettiBurst = ({ open = false }) => {
   useEffect(() => {
     if (!open) return undefined;
 
@@ -37,44 +36,36 @@ const ConfettiBurst = ({ open = false, durationMs = 6000 }) => {
       });
     }
 
-  const timeouts = [];
+    const timeouts = [];
 
-  // Ensure an immediate, visible burst so the effect doesn't feel delayed
-  // when the sequence is heavily time-compressed (short durationMs).
-  shootConfettiFrom(0.5, { particleCount: Math.round(count / 3), spread: 90 });
-
-    // Scale timings so total duration equals durationMs
-    const baseTotal = 6000; // original timeline end (ms)
-    const scale = Math.max(0.01, durationMs / baseTotal);
-
-    // Initial wide bursts (originally every 50ms)
+    // Initial wide bursts
     for (let i = 0; i <= 10; i++) {
-      timeouts.push(setTimeout(() => shootConfettiFrom(i / 10, { particleCount: count / 10, spread: 70 }), Math.round(i * 50 * scale)));
+      timeouts.push(setTimeout(() => shootConfettiFrom(i / 10, { particleCount: count / 10, spread: 70 }), i * 50));
     }
 
-    // First wave - steady rain (originally every 400ms)
+    // First wave - steady rain
     for (let i = 0; i < 10; i++) {
       const timeout = setTimeout(() => {
         shootConfettiFrom(0.1 + (i % 5) * 0.2, {
           particleCount: 30,
           spread: 50
         });
-      }, Math.round(i * 400 * scale));
+      }, i * 400);
       timeouts.push(timeout);
     }
 
-    // Second wave (originally starting at 1500ms, every 600ms)
+    // Second wave
     for (let i = 0; i < 8; i++) {
       const timeout = setTimeout(() => {
         shootConfettiFrom(0.2 + (i % 4) * 0.2, {
           particleCount: 25,
           startVelocity: 35
         });
-      }, Math.round((1500 + (i * 600)) * scale));
+      }, 1500 + (i * 600));
       timeouts.push(timeout);
     }
 
-    // Final burst (originally at 6000ms)
+    // Final burst
     const finalTimeout = setTimeout(() => {
       for (let i = 0; i <= 5; i++) {
         shootConfettiFrom(i / 5, {
@@ -82,11 +73,11 @@ const ConfettiBurst = ({ open = false, durationMs = 6000 }) => {
           spread: 60
         });
       }
-    }, Math.round(6000 * scale));
+    }, 6000);
     timeouts.push(finalTimeout);
 
     return () => timeouts.forEach(clearTimeout);
-  }, [open, durationMs]);
+  }, [open]);
 
   return null;
 };
