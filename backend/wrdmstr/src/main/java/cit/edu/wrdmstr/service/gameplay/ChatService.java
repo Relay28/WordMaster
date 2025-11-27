@@ -9,7 +9,7 @@ import cit.edu.wrdmstr.service.AIService;
 import cit.edu.wrdmstr.service.ProgressiveFeedbackService;
 import cit.edu.wrdmstr.service.gameplay.ProfanityFilterService;
 import cit.edu.wrdmstr.service.ProgressTrackingService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.apache.velocity.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

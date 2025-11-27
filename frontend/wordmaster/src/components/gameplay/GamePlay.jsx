@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -9,7 +9,6 @@ import {
   Grid, 
   LinearProgress, 
   CircularProgress,
-  Chip,
   Snackbar,
   Alert,
   useTheme,
@@ -27,6 +26,7 @@ import ChartFeedbackBubble from './Gameplay Components/ChartFeedbackBubble';
 import GameEndModal from './Gameplay Components/GameEndModal';
 import { getGrammarStatusColor, getGrammarStatusLabel } from './Gameplay Components/grammarUtils';
 import ExpandMore from '@mui/icons-material/ExpandMore';
+import ArrowBack from '@mui/icons-material/ArrowBack';
 import { sanitizePlainText } from '../../utils/sanitize';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -46,9 +46,11 @@ const GamePlay = ({
   onCardSelect,
   onCardDeselect,
   onUseCard,
-  pendingCardUse = false
+  pendingCardUse = false,
+  isSpectator = false
 }) => {
   const { sessionId } = useParams();
+  const navigate = useNavigate();
   const { user, getToken } = useUserAuth();
   const [sentence, setSentence] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -724,7 +726,7 @@ const GamePlay = ({
                 ))}
                 <div ref={chatEndRef} />
               </Box>
-              {gameEnded && (
+              {gameEnded && !isSpectator && (
                 <Box sx={{
                   p: 2,
                   borderTop: '1px solid rgba(0,0,0,0.12)',
@@ -746,7 +748,34 @@ const GamePlay = ({
                   />
                 </Box>
               )}
-              {!gameEnded && (
+              {gameEnded && isSpectator && (
+                <Box sx={{
+                  p: 2,
+                  borderTop: '1px solid rgba(0,0,0,0.12)',
+                  bgcolor: 'rgba(95, 75, 139, 0.1)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 2,
+                  mt: 2
+                }}>
+                  <Typography sx={{ 
+                    ...pixelHeading,
+                    color: '#5F4B8B',
+                    textAlign: 'center',
+                  }}>
+                    🎉 GAME COMPLETED!
+                  </Typography>
+                  <Typography sx={{ 
+                    ...pixelText,
+                    color: '#666',
+                    textAlign: 'center',
+                  }}>
+                    The game session has ended. You can view the results from the session manager.
+                  </Typography>
+                </Box>
+              )}
+              {!gameEnded && !isSpectator && (
                 <Box sx={{ 
                   p: 2,
                   borderTop: '1px solid rgba(0,0,0,0.12)',
@@ -808,6 +837,49 @@ const GamePlay = ({
                       )}
                     </Button>
                   </Box>
+                </Box>
+              )}
+              {!gameEnded && isSpectator && (
+                <Box sx={{ 
+                  p: 2,
+                  borderTop: '1px solid rgba(0,0,0,0.12)',
+                  bgcolor: 'rgba(95, 75, 139, 0.1)',
+                  position: 'relative',
+                  zIndex: 1,
+                  borderRadius: '0 0 12px 12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1.5,
+                }}>
+                  <Typography sx={{ 
+                    ...pixelText,
+                    color: '#5F4B8B',
+                    fontSize: '12px',
+                  }}>
+                    👁️ SPECTATOR MODE - Watching the game live
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    startIcon={<ArrowBack />}
+                    onClick={() => navigate(-1)}
+                    sx={{
+                      fontFamily: '"Press Start 2P", cursive',
+                      fontSize: '8px',
+                      color: '#5F4B8B',
+                      borderColor: '#5F4B8B',
+                      '&:hover': { 
+                        backgroundColor: 'rgba(95, 75, 139, 0.1)',
+                        borderColor: '#4a3a6d',
+                      },
+                      borderRadius: '4px',
+                      px: 2,
+                      py: 0.5,
+                    }}
+                  >
+                    Back to Sessions
+                  </Button>
                 </Box>
               )}
             </Paper>
