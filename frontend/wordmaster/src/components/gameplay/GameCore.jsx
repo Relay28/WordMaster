@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useUserAuth } from '../context/UserAuthContext';
-import { Box, Typography, Container, CircularProgress, Paper } from '@mui/material';
+import { Box, Typography, Container, CircularProgress, Paper, Button } from '@mui/material';
 import WaitingRoom from './WaitingRoom';
 import GamePlay from './GamePlay';
 import GameResults from './GameResults';
@@ -17,6 +17,10 @@ const GameCore = () => {
   const { sessionId } = useParams();
   const { user, getToken, isTeacher } = useUserAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if spectator mode is enabled via URL query parameter
+  const isSpectatorMode = new URLSearchParams(location.search).get('spectate') === 'true';
   const [storyPrompt, setStoryPrompt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -315,8 +319,11 @@ const fetchSessionMessages = useCallback(async () => {
   }
 }, [sessionId, getToken]);
   
-  // Fetch game state from the backend
-const fetchGameState = useCallback(async () => {
+  // Fetch game state from the backend with retry support
+const fetchGameState = useCallback(async (retryCount = 0) => {
+  const maxRetries = 3;
+  const retryDelay = 1000; // 1 second between retries
+  
   try {
     const token = await getToken();
     if (!token) {
@@ -366,19 +373,29 @@ const fetchGameState = useCallback(async () => {
     });
 
     setLoading(false);
+    setError(null); // Clear any previous errors on success
   } catch (err) {
-    setError('Error loading game state');
-    console.error('Game state fetch error:', err);
-    // Ensure the loading spinner is cleared even on error
-    setLoading(false);
+    console.error(`Game state fetch error (attempt ${retryCount + 1}/${maxRetries + 1}):`, err);
+    
+    // Retry if we haven't exceeded max retries
+    if (retryCount < maxRetries) {
+      console.log(`Retrying in ${retryDelay}ms...`);
+      setTimeout(() => {
+        fetchGameState(retryCount + 1);
+      }, retryDelay);
+    } else {
+      // Only set error after all retries exhausted
+      setError('Error loading game state. The session may not exist or has ended.');
+      setLoading(false);
+    }
   }
 }, [sessionId, getToken]);
 
   // Fallback initial fetch in case websocket connect is delayed
   useEffect(() => {
     if (loading) {
-      fetchGameState();
-      // Safety timeout: clear loading after 8s if still true
+      fetchGameState(0); // Start with retry count 0
+      // Safety timeout: clear loading after 10s if still true (increased for retries)
       const timeout = setTimeout(() => {
         setLoading(prev => {
           if (prev) {
@@ -387,7 +404,7 @@ const fetchGameState = useCallback(async () => {
           }
           return prev;
         });
-      }, 8000);
+      }, 10000);
       return () => clearTimeout(timeout);
     }
   }, [loading, fetchGameState]);
@@ -706,6 +723,15 @@ useEffect(() => {
   // Determine which component to render based on game state
   const renderGameContent = () => {
     // Use appropriate component based on user role and game status
+    
+    // For spectators, skip comprehension quiz and show results directly when game ends
+    if (isSpectatorMode && (showResults || showComprehension || quizCompleted)) {
+      return <GameResults 
+               gameState={gameState} 
+               quizCompleted={true}
+             />;
+    }
+    
     if (showResults) {
       return <GameResults 
                gameState={gameState} 
@@ -722,7 +748,7 @@ useEffect(() => {
           justifyContent: 'center',
           alignItems: 'center',
         }}>
-          <Paper elevation={3} sx={{ 
+          <Paper elevation={3} sx={{
             p: 5, 
             borderRadius: '16px',
             textAlign: 'center',
@@ -821,6 +847,55 @@ useEffect(() => {
       gameState.status === 'WAITING_TO_START' ||
       gameState.status === 'PENDING'
     ) {
+      // For spectators, show a waiting message instead of the full WaitingRoom
+      if (isSpectatorMode) {
+        return (
+          <Box sx={{ 
+            height: '100vh', 
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}>
+            <Paper elevation={3} sx={{ 
+              p: 5, 
+              borderRadius: '16px',
+              textAlign: 'center',
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              border: '4px solid #5F4B8B',
+              maxWidth: '600px',
+              width: '90%',
+            }}>
+              <Typography 
+                sx={{ 
+                  fontFamily: '"Press Start 2P", cursive',
+                  fontSize: { xs: '14px', sm: '18px' }, 
+                  color: '#5F4B8B', 
+                  mb: 3 
+                }}
+              >
+                👁️ SPECTATOR MODE
+              </Typography>
+              <CircularProgress sx={{ color: '#5F4B8B', mb: 3 }} />
+              <Typography sx={{ 
+                fontFamily: '"Press Start 2P", cursive',
+                fontSize: { xs: '10px', sm: '12px' },
+                color: '#666',
+              }}>
+                Waiting for the game to start...
+              </Typography>
+              <Typography sx={{ 
+                fontFamily: '"Press Start 2P", cursive',
+                fontSize: { xs: '8px', sm: '10px' },
+                color: '#999',
+                mt: 2,
+              }}>
+                Players in lobby: {gameState.players?.length || 0}
+              </Typography>
+            </Paper>
+          </Box>
+        );
+      }
       return <WaitingRoom gameState={gameState} isTeacher={isTeacher()} />;
     } else if (
       gameState.status === 'TURN_IN_PROGRESS' ||
@@ -837,6 +912,7 @@ useEffect(() => {
           onGameStateUpdate={handleGameStateUpdate}
           gameEnded={gameEnded}
           onProceedToResults={handleProceedToComprehension}
+          isSpectator={isSpectatorMode}
           // playerCards={playerCards}
           // onRefreshCards={fetchPlayerCards}
           // loadingCards={loadingCards}
@@ -865,8 +941,38 @@ useEffect(() => {
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <Typography color="error">{error}</Typography>
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="100vh" gap={2}>
+        <Paper sx={{ 
+          p: 4, 
+          textAlign: 'center',
+          backgroundColor: 'rgba(255,255,255,0.9)',
+          border: '4px solid #FF6B6B',
+          borderRadius: '12px',
+        }}>
+          <Typography 
+            sx={{ 
+              fontFamily: '"Press Start 2P", cursive',
+              fontSize: '14px',
+              color: '#FF6B6B',
+              mb: 2
+            }}
+          >
+            ⚠️ ERROR
+          </Typography>
+          <Typography color="error" sx={{ mb: 3 }}>{error}</Typography>
+          <Button 
+            variant="contained" 
+            onClick={() => navigate('/homepage')}
+            sx={{
+              backgroundColor: '#5F4B8B',
+              fontFamily: '"Press Start 2P", cursive',
+              fontSize: '10px',
+              '&:hover': { backgroundColor: '#4a3a6d' }
+            }}
+          >
+            Back to Homepage
+          </Button>
+        </Paper>
       </Box>
     );
   }

@@ -715,8 +715,9 @@ return (
                   display: 'flex', 
                   gap: 1,
                   mt: 2,
-                  flexDirection: 'row' // Button layout
+                  flexDirection: 'column' // Stack buttons vertically for better layout with 3 buttons
                 }}>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
 
 <Button
   variant="contained"
@@ -739,9 +740,29 @@ return (
 </Button>
 <Button
   variant="contained"
-  onClick={() => endSession(session.sessionId)}
+  onClick={() => navigate(`/game/${session.sessionId}?spectate=true`)}
   sx={{
     flex: 1,
+    py: 1,
+    fontSize: '10px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    fontFamily: '"Press Start 2P", cursive',
+    '&:hover': {
+      backgroundColor: '#45a049',
+      transform: 'scale(1.02)',
+    },
+    transition: 'all 0.2s ease-in-out'
+  }}
+>
+  Spectate
+</Button>
+                  </Box>
+<Button
+  variant="contained"
+  onClick={() => endSession(session.sessionId)}
+  sx={{
+    width: '100%',
     py: 1,
     fontSize: '10px',
     backgroundColor: '#FF6B6B',
