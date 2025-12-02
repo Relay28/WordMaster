@@ -50,11 +50,84 @@ const ProtectedRoute = ({ children }) => {
   return <Outlet />
 };
 
-// HomePageRouter component remains the same
+// HomePageRouter component - handles routing based on user role
 function HomePageRouter() {
-  const { isTeacher, isStudent, getToken, user } = useUserAuth();
+  const { isTeacher, isStudent, getToken, user, login } = useUserAuth();
+  const navigate = useNavigate();
+  const [checking, setChecking] = React.useState(true);
+  const [shouldRedirectSetup, setShouldRedirectSetup] = React.useState(false);
   const token = getToken();
-  if (!token) {
+  
+  useEffect(() => {
+    let isMounted = true;
+    
+    const checkUserSetup = async () => {
+      console.log('HomePageRouter: Starting check, user role:', user?.role);
+      
+      if (!token) {
+        if (isMounted) setChecking(false);
+        return;
+      }
+      
+      // If user already has a valid role, no need to check API
+      if (user && (user.role === 'USER_TEACHER' || user.role === 'USER_STUDENT')) {
+        console.log('HomePageRouter: Valid role found, no API check needed');
+        if (isMounted) setChecking(false);
+        return;
+      }
+      
+      // Role is "USER" or missing - check with API
+      console.log('HomePageRouter: Checking setup status with API...');
+      try {
+        const setupResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/profile/setup/status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const setupNeeded = await setupResponse.json();
+        console.log('HomePageRouter: Setup needed:', setupNeeded);
+        
+        if (setupNeeded === true) {
+          console.log('HomePageRouter: Will redirect to setup');
+          if (isMounted) setShouldRedirectSetup(true);
+          return;
+        }
+        
+        // Setup not needed - fetch fresh profile to update role
+        console.log('HomePageRouter: Fetching fresh profile...');
+        const profileResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const profileData = await profileResponse.json();
+        console.log('HomePageRouter: Profile data:', profileData);
+        
+        if (profileData && profileData.role && isMounted) {
+          login({
+            ...user,
+            fname: profileData.fname,
+            lname: profileData.lname,
+            role: profileData.role,
+            profilePicture: profileData.profilePicture || user?.profilePicture
+          }, token);
+        }
+      } catch (err) {
+        console.error('HomePageRouter: Error:', err);
+      }
+      
+      if (isMounted) setChecking(false);
+    };
+    
+    checkUserSetup();
+    
+    return () => { isMounted = false; };
+  }, [token]);
+  
+  // Handle redirect in useEffect to avoid render-time state updates
+  useEffect(() => {
+    if (shouldRedirectSetup) {
+      navigate('/setup', { replace: true });
+    }
+  }, [shouldRedirectSetup, navigate]);
+  
+  if (!token || checking || shouldRedirectSetup) {
     return <LoadingSpinner />;
   }
 
@@ -63,6 +136,10 @@ function HomePageRouter() {
   } else if (isStudent()) {
     return <StudentHomePage />;
   }
+  
+  // Fallback for unrecognized role - this shouldn't happen after our fixes
+  console.log('HomePageRouter: Fallback - unrecognized role:', user?.role);
+  return <LoadingSpinner />;
 }
 
 // Add a route listener component
@@ -98,6 +175,11 @@ const AppRoutes = () => {
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/demo/feedback" element={<ChartFeedbackDemo />} />
 
+          {/* Admin Routes - Separate from regular user routes */}
+          <Route element={<ProtectedAdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
+
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<UserProfile />} />
@@ -118,11 +200,6 @@ const AppRoutes = () => {
               <Route path="/content/upload" element={<ContentUpload />} />
               <Route path="/content/edit/:id" element={<EditContent />} />
               <Route path="/content/:id" element={<ContentDetails />} />
-            </Route>
-
-            {/* Admin Routes */}
-            <Route element={<ProtectedAdminRoute />}>
-              <Route path="/admin" element={<AdminDashboard />} />
             </Route>
           </Route>
 

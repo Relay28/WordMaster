@@ -5,6 +5,8 @@ import cit.edu.wrdmstr.dto.UserProfileUpdateDto;
 import cit.edu.wrdmstr.dto.UserSetupDto;
 import cit.edu.wrdmstr.entity.UserEntity;
 import cit.edu.wrdmstr.service.ProfileService;
+import cit.edu.wrdmstr.service.JwtService;
+import cit.edu.wrdmstr.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,10 +27,14 @@ import java.util.Map;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final JwtService jwtService;
+    private final UserService userService;
 
     @Autowired
-    public ProfileController(ProfileService profileService) {
+    public ProfileController(ProfileService profileService, JwtService jwtService, UserService userService) {
         this.profileService = profileService;
+        this.jwtService = jwtService;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -77,14 +83,28 @@ public class ProfileController {
     @GetMapping("/setup/status")
     public ResponseEntity<Boolean> checkSetupStatus(Authentication authentication) {
         boolean setupNeeded = profileService.isSetupNeeded(authentication);
+        System.out.println("Setup status check for " + authentication.getName() + ": setupNeeded = " + setupNeeded);
         return ResponseEntity.ok(setupNeeded);
     }
 
     @PostMapping("/setup")
-    public ResponseEntity<UserEntity> completeSetup(
+    public ResponseEntity<Map<String, Object>> completeSetup(
             Authentication authentication,
             @RequestBody UserSetupDto setupDto) {
         UserEntity updatedUser = profileService.setupUserProfile(authentication, setupDto);
-        return ResponseEntity.ok(updatedUser);
+        
+        // Generate a NEW JWT token with the updated role
+        String newToken = jwtService.generateToken(userService.loadUserByUsername(updatedUser.getEmail()));
+        
+        // Return both user data and new token
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", updatedUser.getId());
+        response.put("email", updatedUser.getEmail());
+        response.put("fname", updatedUser.getFname());
+        response.put("lname", updatedUser.getLname());
+        response.put("role", updatedUser.getRole());
+        response.put("token", newToken); // New token with updated role!
+        
+        return ResponseEntity.ok(response);
     }
 }

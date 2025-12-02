@@ -758,14 +758,22 @@ public class AIService {
                     return prompt.toString();
 
                 case "word_generation":
-                    return "Generate one vocabulary word appropriate for Grade 8-9 Filipino students learning English at " 
+                    return "Generate one vocabulary word for Grade 8-9 Filipino students (ages 13-15) at " 
                         + request.get("difficulty") + " difficulty level in the context: " 
-                        + request.get("context") + ". Choose words that will help them build confidence in English. Reply with just the English word itself.";
+                        + request.get("context") + ".\n\n"
+                        + "DIFFICULTY LEVELS:\n"
+                        + "- Easy: High-frequency academic words (analyze, compare, describe)\n"
+                        + "- Medium: Subject-specific vocabulary and transitional words (consequently, furthermore, significant)\n"
+                        + "- Hard: Advanced academic and literary terms (synthesize, juxtapose, paradigm)\n\n"
+                        + "Reply with just the English word itself.";
                 case "word_enrichment":
-                    return "You are a helpful English language assistant. For the following word: \"" + request.get("word") + "\", " +
-                        "provide a clear, concise definition and an example sentence showing how to use it properly. " +
-                        "Format your response exactly as: \"Definition of the word | Example: A sentence using the word.\" " +
-                        "Keep the definition brief and suitable for Grade 8-9 English language learners.";
+                    return "You are an English language assistant helping Grade 8-9 Filipino students (ages 13-15).\n\n"
+                        + "For the word: \"" + request.get("word") + "\"\n\n"
+                        + "Provide:\n"
+                        + "1. A clear definition using vocabulary appropriate for high school students\n"
+                        + "2. An example sentence that shows the word used in an academic or real-world context\n\n"
+                        + "Format: \"Definition | Example: sentence\"\n"
+                        + "Keep the definition concise but accurate. The example should demonstrate proper usage in context.";
                 case "content_generation":
                     // Get the requested number of roles (default to 5 if not specified)
                     int roleCount = 5;
@@ -773,39 +781,49 @@ public class AIService {
                         roleCount = ((Number) request.get("roleCount")).intValue();
                     }
                     
-                    return "Generate exactly 20 ENGLISH vocabulary words and exactly " + roleCount + " role names for Grade 8-9 Filipino students learning English about: " 
+                    return "Generate exactly 20 ENGLISH vocabulary words and exactly " + roleCount + " role names for Grade 8-9 Filipino students (ages 13-15) about: " 
                         + request.get("topic") + ".\n\n"
-                        + "IMPORTANT GUIDELINES FOR FILIPINO LEARNERS:\n"
-                        + "- All words must be common ENGLISH vocabulary that builds confidence\n"
-                        + "- Choose simple, practical ENGLISH words appropriate for Grade 8-9 Filipino students\n"
-                        + "- Select words they can use in real English conversations\n"
-                        + "- Avoid words that might be too challenging or intimidating\n"
-                        + "- Focus on vocabulary that helps them feel successful in English\n\n"
-                        + "Create a warm, encouraging scenario description (2-3 sentences) IN ENGLISH that motivates Filipino students to practice English.\n\n"
+                        + "VOCABULARY GUIDELINES (Philippine K-12 Curriculum Aligned):\n"
+                        + "Grade 8-9 students should learn vocabulary that challenges and expands their English proficiency.\n\n"
+                        + "WORD SELECTION CRITERIA:\n"
+                        + "- Include 5 FOUNDATIONAL words: Essential topic-related terms students must know\n"
+                        + "- Include 8 INTERMEDIATE words: Academic vocabulary, transitional words, and subject-specific terms\n"
+                        + "- Include 7 ADVANCED words: Sophisticated vocabulary that stretches their learning\n\n"
+                        + "WORD TYPES TO INCLUDE:\n"
+                        + "- Academic vocabulary (analyze, evaluate, synthesize, interpret, demonstrate)\n"
+                        + "- Subject-specific terminology related to the topic\n"
+                        + "- Transitional/linking words (consequently, furthermore, nevertheless, whereas)\n"
+                        + "- Descriptive adjectives beyond basic level (substantial, prevalent, intricate)\n"
+                        + "- Action verbs beyond basic level (collaborate, investigate, formulate)\n\n"
+                        + "AVOID:\n"
+                        + "- Elementary-level words (big, small, good, bad, nice, said)\n"
+                        + "- Words Filipino students already commonly use (beautiful, important, happy)\n"
+                        + "- Overly technical jargon that lacks practical application\n\n"
+                        + "Create an engaging scenario description (2-3 sentences) that sets up meaningful English practice.\n\n"
                         + "You MUST format your response EXACTLY as follows:\n\n"
                         + "DESCRIPTION:\n"
-                        + "Your encouraging 2-3 sentence description IN ENGLISH that motivates Grade 8-9 Filipino students to practice English confidently.\n\n"
+                        + "An engaging 2-3 sentence scenario description that motivates Grade 8-9 students to practice English.\n\n"
                         + "WORDS:\n"
-                        + "- word1 | Simple English definition | Natural English example sentence\n"
-                        + "- word2 | Simple English definition | Natural English example sentence\n"
-                        + "- word3 | Simple English definition | Natural English example sentence\n"
-                        + "- word4 | Simple English definition | Natural English example sentence\n"
-                        + "- word5 | Simple English definition | Natural English example sentence\n"
-                        + "- word6 | Simple English definition | Natural English example sentence\n"
-                        + "- word7 | Simple English definition | Natural English example sentence\n"
-                        + "- word8 | Simple English definition | Natural English example sentence\n"
-                        + "- word9 | Simple English definition | Natural English example sentence\n"
-                        + "- word10 | Simple English definition | Natural English example sentence\n"
-                        + "- word11 | Simple English definition | Natural English example sentence\n"
-                        + "- word12 | Simple English definition | Natural English example sentence\n"
-                        + "- word13 | Simple English definition | Natural English example sentence\n"
-                        + "- word14 | Simple English definition | Natural English example sentence\n"
-                        + "- word15 | Simple English definition | Natural English example sentence\n"
-                        + "- word16 | Simple English definition | Natural English example sentence\n"
-                        + "- word17 | Simple English definition | Natural English example sentence\n"
-                        + "- word18 | Simple English definition | Natural English example sentence\n"
-                        + "- word19 | Simple English definition | Natural English example sentence\n"
-                        + "- word20 | Simple English definition | Natural English example sentence\n\n"
+                        + "- word1 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word2 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word3 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word4 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word5 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word6 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word7 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word8 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word9 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word10 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word11 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word12 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word13 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word14 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word15 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word16 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word17 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word18 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word19 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
+                        + "- word20 | Clear definition (not oversimplified) | Academic/contextual example sentence\n\n"
                         + "ROLES:\n" + buildRoleBulletPoints(roleCount) + "\n\n";
 
                 case "generate_feedback":

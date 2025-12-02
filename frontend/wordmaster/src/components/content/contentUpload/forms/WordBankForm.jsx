@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { Add, Delete, Info } from '@mui/icons-material';
 import axios from 'axios';
-import API_URL from '../../../../services/apiConfig';
+import apiConfig from '../../../../services/apiConfig';
 import { useUserAuth } from '../../../context/UserAuthContext';
 
 const WordBankForm = ({ scenarioSettings, setScenarioSettings, errors }) => {
@@ -19,7 +19,7 @@ const WordBankForm = ({ scenarioSettings, setScenarioSettings, errors }) => {
     try {
       setLoading(true);
       const token = await getToken();
-      const response = await axios.post(`${API_URL}/api/wordbank/enrich`, 
+      const response = await axios.post(`${apiConfig.API_URL}/api/wordbank/enrich`, 
         { word }, 
         { headers: { 'Authorization': `Bearer ${token}` } }
       );

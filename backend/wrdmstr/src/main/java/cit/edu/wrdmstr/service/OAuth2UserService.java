@@ -58,10 +58,12 @@ public class OAuth2UserService extends DefaultOAuth2UserService {
             UserEntity user = new UserEntity();
             user.setEmail(email);
             user.setPassword(java.util.UUID.randomUUID().toString());
-            user.setFname(firstName);
-            user.setLname(lastName);
-            user.setRole("USER_STUDENT"); // Default role for OAuth users awaiting frontend pa
+            // Don't set fname/lname here - let user confirm/edit in setup page
+            // Set role to "USER" to indicate setup is required
+            user.setRole("USER");
+            user.setVerified(true); // OAuth users are pre-verified by Microsoft
             userService.saveUser(user);
+            logger.info("Created new OAuth user with email: {} - setup required", email);
         }
 
         return oAuth2User;

@@ -60,9 +60,7 @@ public class AdminUserService {
 
     // Create new user (admin can create users of any role)
     public UserDto createUser(Authentication authentication, UserCreateDto userCreateDto) {
-        System.out.println("AAAAAAAGGGGGGGHHHHHHHHHHH FIRST");
         verifyAdminAccess(authentication);
-        System.out.println("AAAAAAAGGGGGGGHHHHHHHHHHH");
         if (userRepository.existsByEmail(userCreateDto.getEmail())) {
             throw new IllegalArgumentException("Email already in use");
         }
@@ -76,6 +74,7 @@ public class AdminUserService {
         user.setCreatedAt(new Date());
         user.setActive(userCreateDto.isActive());
         user.setProfilePicture(userCreateDto.getProfilePicture());
+        user.setVerified(true); // Admin-created accounts are auto-verified, no OTP needed
 
         return new UserDto(userRepository.save(user));
     }
@@ -173,6 +172,30 @@ public class AdminUserService {
         admin.setRole("ADMIN");
         admin.setCreatedAt(new Date());
         admin.setActive(true);
+        admin.setVerified(true); // Admin accounts are auto-verified, no OTP needed
+
+        // Save the admin entity
+        UserEntity savedAdmin = userRepository.save(admin);
+
+        return new UserDto(savedAdmin);
+    }
+
+    public UserDto registerAdmin(AdminCreateDto adminCreateDto) {
+        // Check if email already exists
+        if (userRepository.existsByEmail(adminCreateDto.getEmail())) {
+            throw new IllegalArgumentException("Email already in use");
+        }
+
+        // Create a new UserEntity for admin
+        UserEntity admin = new UserEntity();
+        admin.setEmail(adminCreateDto.getEmail());
+        admin.setPassword(passwordEncoder.encode(adminCreateDto.getPassword()));
+        admin.setFname(adminCreateDto.getFname());
+        admin.setLname(adminCreateDto.getLname());
+        admin.setRole("ADMIN");
+        admin.setCreatedAt(new Date());
+        admin.setActive(true);
+        admin.setVerified(true); // Admin accounts are auto-verified, no OTP needed
 
         // Save the admin entity
         UserEntity savedAdmin = userRepository.save(admin);
