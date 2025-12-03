@@ -112,9 +112,9 @@ public class MicrosoftAuthService {
                 UserEntity newUser = new UserEntity();
                 newUser.setEmail(email);
                 newUser.setPassword(java.util.UUID.randomUUID().toString());
-                newUser.setFname(firstName);
-                newUser.setLname(lastName);
-                newUser.setRole("USER"); // Changed from USER_STUDENT to USER
+                // Don't set fname/lname - let user confirm in setup page
+                newUser.setRole("USER"); // Triggers setup flow
+                newUser.setVerified(true); // OAuth users are pre-verified by Microsoft
                 user = userService.saveUser(newUser);
             } else {
                 logger.info("User already exists with email: " + email);
@@ -303,9 +303,9 @@ public class MicrosoftAuthService {
                 UserEntity newUser = new UserEntity();
                 newUser.setEmail(email);
                 newUser.setPassword(java.util.UUID.randomUUID().toString());
-                newUser.setFname(firstName);
-                newUser.setLname(lastName);
-                newUser.setRole("USER"); // Changed from USER_STUDENT to USER
+                // Don't set fname/lname - let user confirm in setup page
+                newUser.setRole("USER"); // Triggers setup flow
+                newUser.setVerified(true); // OAuth users are pre-verified by Microsoft
                 user = userService.saveUser(newUser);
             } else {
                 logger.info("User already exists with email: " + email);

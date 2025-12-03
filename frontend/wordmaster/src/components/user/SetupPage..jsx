@@ -33,30 +33,80 @@ const SetupPage = () => {
   // Check setup status when component mounts
   useEffect(() => {
     const checkSetupStatus = async () => {
+      const token = getToken();
+      
+      // If no token, redirect to login
+      if (!token) {
+        console.log('SetupPage: No token found, redirecting to login');
+        navigate('/login', { replace: true });
+        return;
+      }
+      
       try {
+        console.log('SetupPage: Checking setup status...');
         const response = await axios.get(
           `${API_URL}/api/profile/setup/status`,
           {
             headers: {
-              Authorization: `Bearer ${getToken()}`
+              Authorization: `Bearer ${token}`
             }
           }
         );
         
-        // If setupNeeded is false, redirect to homepage
-        if (!response.data) {
-          navigate('/homepage');
+        console.log('SetupPage: Setup status response:', response.data);
+        
+        // response.data is true if setup IS needed, false if NOT needed
+        if (response.data === true) {
+          // Setup IS needed - show the form (just set loading to false)
+          console.log('SetupPage: Setup IS needed, showing form');
+          setLoading(false);
+          return; // Exit here - don't navigate, show the form
         }
+        
+        // Setup NOT needed - user is already set up
+        console.log('SetupPage: Setup NOT needed, fetching fresh profile data...');
+        try {
+          const profileResponse = await axios.get(
+            `${API_URL}/api/profile`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            }
+          );
+          
+          // Update auth context with fresh data from server
+          if (profileResponse.data) {
+            console.log('SetupPage: Updating auth context with profile:', profileResponse.data);
+            login({
+              ...user,
+              fname: profileResponse.data.fname,
+              lname: profileResponse.data.lname,
+              role: profileResponse.data.role,
+              profilePicture: profileResponse.data.profilePicture || user?.profilePicture
+            }, token);
+          }
+        } catch (profileErr) {
+          console.error('SetupPage: Failed to fetch profile:', profileErr);
+        }
+        
+        console.log('SetupPage: Redirecting to homepage');
+        navigate('/homepage', { replace: true });
+        
       } catch (err) {
-        console.error('Failed to check setup status:', err);
+        console.error('SetupPage: Failed to check setup status:', err);
+        // If 401/403 error, token might be invalid - redirect to login
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          navigate('/login', { replace: true });
+          return;
+        }
         setError('Failed to verify your account status. Please try again.');
-      } finally {
-        setLoading(false);
+        setLoading(false); // Show form with error so user can retry
       }
     };
 
     checkSetupStatus();
-  }, [getToken, navigate]);
+  }, [getToken, navigate]); // Removed login and user from deps to prevent re-runs
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,16 +134,42 @@ const SetupPage = () => {
         }
       );
 
-      // Update both localStorage AND auth context state
+      // Backend now returns a NEW token with the updated role
+      const { token: newToken, ...userData } = response.data;
+      
+      console.log('Setup complete, received new token with role:', userData.role);
+      
+      // Fetch the full profile to get profilePicture and other data
+      let profilePicture = '';
+      try {
+        const profileResponse = await axios.get(
+          `${API_URL}/api/profile`,
+          {
+            headers: {
+              Authorization: `Bearer ${newToken}`
+            }
+          }
+        );
+        profilePicture = profileResponse.data.profilePicture || '';
+        console.log('Fetched profile picture after setup:', profilePicture ? 'present' : 'empty');
+      } catch (profileErr) {
+        console.error('Failed to fetch profile after setup:', profileErr);
+      }
+      
+      // Update auth context with new token that has correct role and profile picture
       const updatedUser = {
         ...user,
-        fname: response.data.fname,
-        lname: response.data.lname,
-        role: response.data.role
+        fname: userData.fname,
+        lname: userData.lname,
+        role: userData.role,
+        profilePicture: profilePicture
       };
       
-      login(updatedUser, getToken());
-      navigate('/homepage');
+      // Use the NEW token from the response
+      login(updatedUser, newToken);
+      
+      // Use replace to prevent going back to setup page
+      navigate('/homepage', { replace: true });
     } catch (err) {
       console.error('Setup failed:', err);
       setError(err.response?.data?.message || 'Failed to complete setup. Please try again.');

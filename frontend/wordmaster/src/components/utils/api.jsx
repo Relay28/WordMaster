@@ -1,6 +1,5 @@
 // src/utils/api.js
 import axios from 'axios';
-import { useAuth } from '../context/AdminAuthContext';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
@@ -8,9 +7,16 @@ const api = axios.create({
 
 // Add request interceptor
 api.interceptors.request.use((config) => {
-  const authData = JSON.parse(localStorage.getItem('adminAuth'));
-  if (authData?.token) {
-    config.headers.Authorization = `Bearer ${authData.token}`;
+  const authData = localStorage.getItem('adminAuth');
+  if (authData) {
+    try {
+      const parsed = JSON.parse(authData);
+      if (parsed?.token) {
+        config.headers.Authorization = `Bearer ${parsed.token}`;
+      }
+    } catch (e) {
+      console.error('Failed to parse admin auth token', e);
+    }
   }
   return config;
 });
@@ -20,8 +26,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      const { logout } = useAuth();
-      logout();
+      // Clear admin auth and redirect to login
+      localStorage.removeItem('adminAuth');
+      window.location.href = '/admin/login';
     }
     return Promise.reject(error);
   }

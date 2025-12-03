@@ -11,7 +11,7 @@ const OAuthSuccessHandler = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useUserAuth();
+  const { login, setUser } = useUserAuth();
   const processingAttempted = useRef(false);
   
   useEffect(() => {
@@ -37,54 +37,89 @@ const OAuthSuccessHandler = () => {
         const authData = JSON.parse(decodedData);
         
         console.log('Received auth data:', authData);
+        console.log('Profile picture value:', authData.profilePicture, 'Type:', typeof authData.profilePicture);
         
         if (!authData.token) {
           throw new Error('Invalid authentication data');
         }
         
-        // Store auth data
+        // Store auth data first
         login({
           id: authData.id,
           email: authData.email,
           fname: authData.fname || '',
           lname: authData.lname || '',
-          role: authData.role
+          role: authData.role,
+          profilePicture: authData.profilePicture || null
         }, authData.token);
         
-        // Handle setup based on role
+        // Fetch the complete user profile to get profilePicture and other data
+        // This ensures the header and other components have the full user data
         try {
-          // Try to check setup status with timeout for slow connections
+          console.log('Fetching complete user profile...');
+          const profileResponse = await axios.get(`${API_URL}/api/profile`, {
+            headers: {
+              Authorization: `Bearer ${authData.token}`
+            },
+            timeout: 5000
+          });
+          
+          console.log('Profile API response:', profileResponse.data);
+          
+          // Update user data with complete profile information
+          const completeUserData = {
+            id: authData.id,
+            email: profileResponse.data.email || authData.email,
+            fname: profileResponse.data.fname || authData.fname || '',
+            lname: profileResponse.data.lname || authData.lname || '',
+            profilePicture: profileResponse.data.profilePicture || null
+          };
+          
+          // Update localStorage and context with complete profile data
+          localStorage.setItem('userData', JSON.stringify(completeUserData));
+          setUser(completeUserData);
+          
+          console.log('Updated user data with profile picture:', completeUserData.profilePicture);
+        } catch (profileError) {
+          console.error('Error fetching user profile:', profileError);
+          // Continue even if profile fetch fails - user can still use the app
+        }
+        
+        // ALWAYS check with the API for setup status - don't rely on role from token
+        // This is the single source of truth
+        try {
+          console.log('Checking setup status with API...');
           const setupResponse = await axios.get(`${API_URL}/api/profile/setup/status`, {
             headers: {
               Authorization: `Bearer ${authData.token}`
             },
-            timeout: 5000 // 5 second timeout
+            timeout: 5000
           });
           
-          // Redirect based on setup status
-          if (setupResponse.data === true || authData.role === 'USER') {
-            console.log('Setup needed, redirecting to setup page');
-            navigate('/setup');
+          console.log('Setup status API response:', setupResponse.data);
+          
+          // setupResponse.data is true if setup is needed, false otherwise
+          if (setupResponse.data === true) {
+            console.log('Setup needed (API confirmed), redirecting to setup page');
+            navigate('/setup', { replace: true });
           } else {
-            console.log('Setup not needed, redirecting to homepage');
-            navigate('/homepage');
+            console.log('Setup not needed (API confirmed), redirecting to homepage');
+            navigate('/homepage', { replace: true });
           }
         } catch (setupError) {
           console.error('Error checking setup status:', setupError);
-          
-          // If we can't check setup status, make decision based on role
+          // On error, use role as fallback
           if (authData.role === 'USER') {
-            console.log('Using role to determine flow, redirecting to setup page');
-            navigate('/setup');
+            console.log('API failed, role is USER, redirecting to setup');
+            navigate('/setup', { replace: true });
           } else {
-            console.log('Using role to determine flow, redirecting to homepage');
-            navigate('/homepage');
+            console.log('API failed, role is not USER, redirecting to homepage');
+            navigate('/homepage', { replace: true });
           }
         }
       } catch (err) {
         console.error('Error processing OAuth data:', err);
         setError(err.message || 'Authentication failed');
-        // Don't auto-redirect on error, let the user manually try again
       } finally {
         setLoading(false);
       }

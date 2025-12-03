@@ -92,7 +92,15 @@ const HomePage = () => {
     </Box>
   );
 
-  if (!user) return null;
+  // If no user after auth check, show loading briefly then redirect
+  // This handles race conditions during OAuth login flow
+  if (!user) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   // Calculate pagination
   const indexOfLastClass = currentPage * classesPerPage;

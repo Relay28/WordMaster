@@ -12,7 +12,8 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
   const [createClassOpen, setCreateClassOpen] = useState(false);
   const [classCode, setClassCode] = useState("");
   const [className, setClassName] = useState("");
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  // Start as true - we need to wait for user data
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingClassrooms, setLoadingClassrooms] = useState(false);
   const [classrooms, setClassrooms] = useState([]);
   const [joinSuccess, setJoinSuccess] = React.useState(false);
@@ -38,6 +39,12 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
   // Data fetching
   useEffect(() => {
     const fetchUserProfile = async () => {
+      // If user already exists, no need to fetch
+      if (user) {
+        setLoadingProfile(false);
+        return;
+      }
+      
       if (authChecked && getToken() && !user) {
         setLoadingProfile(true);
         try {
@@ -61,11 +68,15 @@ export const useHomePage = (authChecked, user, getToken, login, logout) => {
         } finally {
           setLoadingProfile(false);
         }
+      } else if (authChecked && !getToken()) {
+        // No token means not logged in
+        setLoadingProfile(false);
+        navigate('/login');
       }
     };
 
     fetchUserProfile();
-  }, [authChecked, getToken, login, logout, navigate]);
+  }, [authChecked, user, getToken, login, logout, navigate]);
 
   useEffect(() => {
     const fetchClassrooms = async () => {

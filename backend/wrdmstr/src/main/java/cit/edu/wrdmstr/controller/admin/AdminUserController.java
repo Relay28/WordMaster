@@ -105,4 +105,18 @@ public class AdminUserController {
         AuthResponse response = authService.login(loginRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> registerAdmin(@RequestBody AdminCreateDto adminCreateDto) {
+        // Create the admin account (allows multiple admins)
+        UserDto adminDto = adminUserService.registerAdmin(adminCreateDto);
+
+        // Automatically login the admin
+        AuthRequest loginRequest = new AuthRequest();
+        loginRequest.setEmail(adminCreateDto.getEmail());
+        loginRequest.setPassword(adminCreateDto.getPassword());
+
+        AuthResponse response = authService.login(loginRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 }

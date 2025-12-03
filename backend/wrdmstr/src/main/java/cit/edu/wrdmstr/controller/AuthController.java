@@ -208,13 +208,19 @@ public class AuthController {
     // Helper method to convert AuthResponse to JSON
     private String convertToJson(AuthResponse authResponse) {
         try {
+            String profilePic = authResponse.getProfilePicture();
+            // Escape the profilePicture if it contains special characters (like base64 data URLs)
+            String profilePicJson = profilePic != null ? 
+                "\"" + profilePic.replace("\\", "\\\\").replace("\"", "\\\"") + "\"" : "null";
+            
             return "{" +
                 "\"token\":\"" + authResponse.getToken() + "\"," +
                 "\"id\":" + authResponse.getId() + "," +
                 "\"email\":\"" + authResponse.getEmail() + "\"," +
-                "\"fname\":\"" + authResponse.getFname() + "\"," +
-                "\"lname\":\"" + authResponse.getLname() + "\"," +
-                "\"role\":\"" + authResponse.getRole() + "\"" +
+                "\"fname\":\"" + (authResponse.getFname() != null ? authResponse.getFname() : "") + "\"," +
+                "\"lname\":\"" + (authResponse.getLname() != null ? authResponse.getLname() : "") + "\"," +
+                "\"role\":\"" + authResponse.getRole() + "\"," +
+                "\"profilePicture\":" + profilePicJson +
                 "}";
         } catch (Exception e) {
             logger.error("Error converting AuthResponse to JSON", e);
