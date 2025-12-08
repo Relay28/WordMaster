@@ -414,9 +414,16 @@ public class GameSessionService {
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
             .orElseThrow(() -> new ResourceNotFoundException("Game session not found"));
         
-        session.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
-        session.setEndedAt(new Date());
-        return gameSessionRepository.save(session);
+        // Only update if not already completed (prevent duplicate updates)
+        if (session.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
+            session.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
+            session.setEndedAt(new Date());
+            session = gameSessionRepository.save(session);
+            logger.info("Game session {} marked as COMPLETED", sessionId);
+        } else {
+            logger.info("Game session {} already completed, skipping update", sessionId);
+        }
+        return session;
     }
 
     /**

@@ -945,7 +945,7 @@ public class GameSessionManagerService {
                 sessionCheck.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
                 sessionCheck.setEndedAt(new Date());
                 gameSessionRepository.save(sessionCheck);
-                logger.info("Game session {} marked as COMPLETED", sessionId);
+                logger.info("Game session {} marked as COMPLETED (no active game state)", sessionId);
             }
             return;
         }
@@ -960,9 +960,16 @@ public class GameSessionManagerService {
 
         GameSessionEntity session = gameSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Game session not found"));
-        session.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
-        session.setEndedAt(new Date());
-        gameSessionRepository.save(session);
+        
+        // Only update if not already completed (prevent race condition with endSessionWithComprehension)
+        if (session.getStatus() != GameSessionEntity.SessionStatus.COMPLETED) {
+            session.setStatus(GameSessionEntity.SessionStatus.COMPLETED);
+            session.setEndedAt(new Date());
+            gameSessionRepository.save(session);
+            logger.info("Game session {} marked as COMPLETED (via endGame)", sessionId);
+        } else {
+            logger.info("Game session {} already completed, skipping update in endGame", sessionId);
+        }
 
         gameState.setStatus(GameState.Status.COMPLETED);
         Map<String, Object> endMessage = new HashMap<>();

@@ -41,6 +41,9 @@ public class AppConfig implements WebMvcConfigurer {
     @Value("${ai.http.max-connections-per-route:20}")
     private int maxConnectionsPerRoute;
 
+    @Value("${ai.api.key}")
+    private String apiKey;
+
     @Bean
     public RestTemplate restTemplate() {
         // Use Apache HttpClient with pooling to reduce handshake latency
@@ -64,8 +67,15 @@ public class AppConfig implements WebMvcConfigurer {
         ClientHttpRequestFactory factory = new BufferingClientHttpRequestFactory(httpFactory);
         RestTemplate restTemplate = new RestTemplate(factory);
         
-        // Add logging interceptor
+        // Add Authorization header interceptor for AI API requests
         restTemplate.getInterceptors().add((request, body, execution) -> {
+            // Add Authorization header for OpenRouter API
+            if (request.getURI().getHost() != null && request.getURI().getHost().contains("openrouter.ai")) {
+                request.getHeaders().set("Authorization", "Bearer " + apiKey);
+                request.getHeaders().set("Content-Type", "application/json");
+            }
+            
+            // Debug logging
             if (logger.isDebugEnabled()) {
                 logger.debug("Request URI: {}", request.getURI());
                 logger.debug("Request Method: {}", request.getMethod());
