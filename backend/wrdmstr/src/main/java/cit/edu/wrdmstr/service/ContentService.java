@@ -505,11 +505,13 @@ public class ContentService {
         List<String> generatedRoles = new ArrayList<>();
         List<WordData> parsedWords = new ArrayList<>();  // Move this declaration outside the loop
         
+        boolean parsingTitle = false;
         boolean parsingDescription = false;
         boolean parsingWords = false;
         boolean parsingRoles = false;
         
         StringBuilder description = new StringBuilder();
+        StringBuilder titleBuilder = new StringBuilder();
         
         // Log the response for debugging
         logger.info("Parsing AI response: {}", aiResponse);
@@ -518,19 +520,29 @@ public class ContentService {
             line = line.trim();
             
             // Check for section headers
-            if (line.contains("DESCRIPTION:")) {
+            if (line.contains("TITLE:")) {
+                parsingTitle = true;
+                parsingDescription = false;
+                parsingWords = false;
+                parsingRoles = false;
+                logger.debug("Started parsing TITLE section");
+                continue;
+            } else if (line.contains("DESCRIPTION:")) {
+                parsingTitle = false;
                 parsingDescription = true;
                 parsingWords = false;
                 parsingRoles = false;
                 logger.debug("Started parsing DESCRIPTION section");
                 continue;
             } else if (line.contains("WORDS:")) {
+                parsingTitle = false;
                 parsingDescription = false;
                 parsingWords = true;
                 parsingRoles = false;
                 logger.debug("Started parsing WORDS section");
                 continue;
             } else if (line.contains("ROLES:")) {
+                parsingTitle = false;
                 parsingDescription = false;
                 parsingWords = false;
                 parsingRoles = true;
@@ -542,22 +554,28 @@ public class ContentService {
             // List<WordData> parsedWords = new ArrayList<>();
             
             // Parse each section accordingly
-            if (parsingDescription && !line.isEmpty()) {
+            if (parsingTitle && !line.isEmpty()) {
+                titleBuilder.append(line).append(" ");
+            } else if (parsingDescription && !line.isEmpty()) {
                 description.append(line).append(" ");
-            } else if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
-                String item = line.substring(2).trim();
+            } else if ((parsingWords || parsingRoles) && !line.isEmpty()) {
+                // Accept both bulleted ("- x") and plain lines from the AI
+                String item = (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• "))
+                    ? line.substring(2).trim()
+                    : line.trim();
+
                 if (parsingWords && !item.isEmpty()) {
                     String[] parts = item.split("\\|");
                     String word = parts[0].trim();
                     String desc = parts.length > 1 ? parts[1].trim() : "No description available";
                     String example = parts.length > 2 ? parts[2].trim() : "No example available";
-                    
+
                     generatedWords.add(word);
                     parsedWords.add(new WordData(word, desc, example));
                     logger.debug("Found word: {} with description and example", word);
                 } else if (parsingRoles && !item.isEmpty()) {
                     generatedRoles.add(item);
-                    logger.debug("Started parsing ROLES section");
+                    logger.debug("Added role: {}", item);
                 }
             }
         }
@@ -566,10 +584,30 @@ public class ContentService {
         String contentDescription = description.length() > 0 ? 
             description.toString().trim() : 
             "AI-generated content about " + topic;
+
+        String aiTitle = titleBuilder.length() > 0 ? titleBuilder.toString().trim() : topic;
+
+        // Fallbacks if parsing yielded nothing (protects frontend display)
+        if (parsedWords.isEmpty()) {
+            logger.warn("No words parsed from AI response, adding fallback words");
+            parsedWords.add(new WordData("vocabulary", "Words related to the topic", "We practiced vocabulary for the lesson."));
+            parsedWords.add(new WordData("language", "System of communication", "They studied the language of the text."));
+            parsedWords.add(new WordData("speaking", "Act of talking", "Speaking clearly helps the group."));
+        }
+        if (generatedRoles.isEmpty()) {
+            logger.warn("No roles parsed from AI response, adding fallback roles");
+            generatedRoles.add("Speaker");
+            generatedRoles.add("Listener");
+            generatedRoles.add("Moderator");
+        }
+        if (titleBuilder.length() == 0) {
+            logger.warn("No title parsed from AI response, using topic as title");
+            titleBuilder.append(topic);
+        }
             
         // Create new content
         ContentEntity content = new ContentEntity();
-        content.setTitle(topic); // Changed: Use topic directly as title
+        content.setTitle(aiTitle);
         content.setDescription(contentDescription);
         content.setBackgroundTheme("default");
         content.setCreator(creator);
@@ -691,11 +729,13 @@ public class ContentService {
         List<String> generatedWords = new ArrayList<>();
         List<String> generatedRoles = new ArrayList<>();
         List<WordData> parsedWords = new ArrayList<>();
+        boolean parsingTitle = false;
         boolean parsingDescription = false;
         boolean parsingWords = false;
         boolean parsingRoles = false;
         
         StringBuilder description = new StringBuilder();
+        StringBuilder titleBuilder = new StringBuilder();
         
         // Log the response for debugging
         logger.info("Parsing AI response: {}", aiResponse);
@@ -704,19 +744,29 @@ public class ContentService {
             line = line.trim();
             
             // Check for section headers
-            if (line.contains("DESCRIPTION:")) {
+            if (line.contains("TITLE:")) {
+                parsingTitle = true;
+                parsingDescription = false;
+                parsingWords = false;
+                parsingRoles = false;
+                logger.debug("Started parsing TITLE section");
+                continue;
+            } else if (line.contains("DESCRIPTION:")) {
+                parsingTitle = false;
                 parsingDescription = true;
                 parsingWords = false;
                 parsingRoles = false;
                 logger.debug("Started parsing DESCRIPTION section");
                 continue;
             } else if (line.contains("WORDS:")) {
+                parsingTitle = false;
                 parsingDescription = false;
                 parsingWords = true;
                 parsingRoles = false;
                 logger.debug("Started parsing WORDS section");
                 continue;
             } else if (line.contains("ROLES:")) {
+                parsingTitle = false;
                 parsingDescription = false;
                 parsingWords = false;
                 parsingRoles = true;
@@ -725,10 +775,16 @@ public class ContentService {
             }
             
             // Parse each section accordingly
-            if (parsingDescription && !line.isEmpty()) {
+            if (parsingTitle && !line.isEmpty()) {
+                titleBuilder.append(line).append(" ");
+            } else if (parsingDescription && !line.isEmpty()) {
                 description.append(line).append(" ");
-            } else if (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ")) {
-                String item = line.substring(2).trim();
+            } else if ((parsingWords || parsingRoles) && !line.isEmpty()) {
+                // Accept both bulleted ("- x") and plain lines from the AI
+                String item = (line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• "))
+                    ? line.substring(2).trim()
+                    : line.trim();
+
                 if (parsingWords && !item.isEmpty()) {
                     String[] parts = item.split("\\|");
                     String word = parts[0].trim();
@@ -763,9 +819,11 @@ public class ContentService {
             generatedRoles.add("Observer");
         }
 
+        String aiTitle = titleBuilder.length() > 0 ? titleBuilder.toString().trim() : topic;
+
         // Create new content
         ContentEntity content = new ContentEntity();
-        content.setTitle(topic); // Changed: Use topic directly as title
+        content.setTitle(aiTitle);
         content.setDescription(description.length() > 0 ? description.toString().trim() : "AI-generated content about " + topic);
         content.setBackgroundTheme("default");
         content.setCreator(creator);

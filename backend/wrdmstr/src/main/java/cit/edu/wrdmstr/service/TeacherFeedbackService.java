@@ -222,8 +222,8 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
         
         logger.debug("Extracting scores from AI feedback: {}", aiSuggestion);
         
-        // Extract comprehension score - match format: **English Comprehension Score:** 3
-        Pattern comprPattern = Pattern.compile("\\*\\*English\\s+Comprehension\\s+Score:\\*\\*\\s+([1-5])", Pattern.CASE_INSENSITIVE);
+        // Extract comprehension score - match with or without markdown: **English Comprehension Score:** 3 or English Comprehension Score: 3
+        Pattern comprPattern = Pattern.compile("\\*{0,2}English\\s+Comprehension\\s+Score:\\*{0,2}\\s+([1-5])", Pattern.CASE_INSENSITIVE);
         Matcher comprMatcher = comprPattern.matcher(aiSuggestion);
         if (comprMatcher.find()) {
             int score = Integer.parseInt(comprMatcher.group(1));
@@ -233,8 +233,8 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
             logger.warn("Could not extract comprehension score from AI feedback");
         }
         
-        // Extract participation score - match format: **English Participation Score:** 4
-        Pattern partPattern = Pattern.compile("\\*\\*English\\s+Participation\\s+Score:\\*\\*\\s+([1-5])", Pattern.CASE_INSENSITIVE);
+        // Extract participation score - match with or without markdown
+        Pattern partPattern = Pattern.compile("\\*{0,2}English\\s+Participation\\s+Score:\\*{0,2}\\s+([1-5])", Pattern.CASE_INSENSITIVE);
         Matcher partMatcher = partPattern.matcher(aiSuggestion);
         if (partMatcher.find()) {
             int score = Integer.parseInt(partMatcher.group(1));
@@ -244,8 +244,8 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
             logger.warn("Could not extract participation score from AI feedback");
         }
         
-        // Extract language use score - match format: **English Language Use Score:** 2
-        Pattern langPattern = Pattern.compile("\\*\\*English\\s+Language\\s+Use\\s+Score:\\*\\*\\s+([1-5])", Pattern.CASE_INSENSITIVE);
+        // Extract language use score - match with or without markdown
+        Pattern langPattern = Pattern.compile("\\*{0,2}English\\s+Language\\s+Use\\s+Score:\\*{0,2}\\s+([1-5])", Pattern.CASE_INSENSITIVE);
         Matcher langMatcher = langPattern.matcher(aiSuggestion);
         if (langMatcher.find()) {
             int score = Integer.parseInt(langMatcher.group(1));
@@ -255,8 +255,8 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
             logger.warn("Could not extract language use score from AI feedback");
         }
         
-        // Extract role adherence score - match format: **Role Adherence in English Score:** 4
-        Pattern rolePattern = Pattern.compile("\\*\\*Role\\s+Adherence\\s+in\\s+English\\s+Score:\\*\\*\\s+([1-5])", Pattern.CASE_INSENSITIVE);
+        // Extract role adherence score - match with or without markdown
+        Pattern rolePattern = Pattern.compile("\\*{0,2}Role\\s+Adherence\\s+in\\s+English\\s+Score:\\*{0,2}\\s+([1-5])", Pattern.CASE_INSENSITIVE);
         Matcher roleMatcher = rolePattern.matcher(aiSuggestion);
         if (roleMatcher.find()) {
             int score = Integer.parseInt(roleMatcher.group(1));
@@ -266,8 +266,8 @@ public class TeacherFeedbackService implements ITeacherFeedbackService {
             logger.warn("Could not extract role adherence score from AI feedback");
         }
         
-        // Extract overall grade - match format: **Overall Letter Grade:** B+ or C or A-
-        Pattern gradePattern = Pattern.compile("\\*\\*Overall\\s+Letter\\s+Grade:\\*\\*\\s+([A-F][+-]?)", Pattern.CASE_INSENSITIVE);
+        // Extract overall grade - match with or without markdown: **Overall Letter Grade:** B+ or Overall Letter Grade: C
+        Pattern gradePattern = Pattern.compile("\\*{0,2}Overall\\s+Letter\\s+Grade:\\*{0,2}\\s+([A-F][+-]?)", Pattern.CASE_INSENSITIVE);
         Matcher gradeMatcher = gradePattern.matcher(aiSuggestion);
         if (gradeMatcher.find()) {
             String grade = gradeMatcher.group(1).toUpperCase();

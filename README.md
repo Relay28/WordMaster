@@ -29,7 +29,7 @@ WordMaster is an interactive language learning platform designed to enhance voca
 - Dynamic game sessions with configurable parameters
 - Role-based gameplay encouraging immersive language practice
 - Word bank and "word bomb" mechanics for vocabulary enrichment
-- Power-up card system to reward advanced language usage
+
 
 ### Progress Tracking & Assessment
 - Real-time metrics tracking student performance

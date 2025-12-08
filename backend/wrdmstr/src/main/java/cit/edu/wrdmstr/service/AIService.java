@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.client.ClientHttpRequestExecution;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -63,6 +64,9 @@ public class AIService {
 
     @Value("${ai.api.url}")
     private String apiUrl;
+
+    @Value("${ai.model.name}")
+    private String modelName;
 
     private final PerformanceMetricsService performanceMetricsService;
     // Lazily created longer-timeout RestTemplate for heavy generation tasks
@@ -420,33 +424,33 @@ public class AIService {
 
             for (int attempt = 1; attempt <= maxRetries; attempt++) {
                 try {
-                    // Format for Gemini API
-                    Map<String, Object> content = new HashMap<>();
+                    // Format for OpenRouter / OpenAI API
+                    Map<String, Object> message = new HashMap<>();
+                    message.put("role", "user");
+                    message.put("content", buildPromptFromRequest(request));
 
-                    String prompt = buildPromptFromRequest(request);
-                    Map<String, Object> textPart = new HashMap<>();
-                    textPart.put("text", prompt);
+                    Map<String, Object> openAiRequest = new HashMap<>();
+                    openAiRequest.put("model", modelName);
+                    openAiRequest.put("messages", Collections.singletonList(message));
 
-                    List<Map<String, Object>> parts = new ArrayList<>();
-                    parts.add(textPart);
-                    content.put("parts", parts);
+                    // Set headers
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.set("Authorization", "Bearer " + apiKey);
+                    headers.set("Content-Type", "application/json");
+                    headers.set("HTTP-Referer", "https://wordmaster.edu"); // Optional
+                    headers.set("X-Title", "WordMaster"); // Optional
 
-                    Map<String, Object> geminiRequest = new HashMap<>();
-                    geminiRequest.put("contents", Collections.singletonList(content));
-
-                    // Add API key as query parameter
-                    String fullUrl = apiUrl + "?key=" + apiKey;
+                    HttpEntity<Map<String, Object>> entity = new HttpEntity<>(openAiRequest, headers);
 
                     logger.info("Making API request to: {}", apiUrl);
                     try {
                         Map<String, Object> response;
                         // For role_check enforce hard timeout (1.5s) using future to prevent long tail
                         if (cacheableRoleCheck) {
-                            final String finalFullUrl = fullUrl;
-                            final Map<String, Object> finalPayload = geminiRequest;
+                            final HttpEntity<Map<String, Object>> finalEntity = entity;
                             Future<Map<String, Object>> future = aiExecutor.submit(() -> {
                                 @SuppressWarnings("unchecked")
-                                Map<String, Object> resp = restTemplate.postForObject(finalFullUrl, finalPayload, Map.class);
+                                Map<String, Object> resp = restTemplate.postForObject(apiUrl, finalEntity, Map.class);
                                 return resp;
                             });
                             try {
@@ -473,37 +477,30 @@ public class AIService {
                                 logger.debug("Using long-timeout RestTemplate (readTimeout={}ms) for task {}", longReadTimeoutMs, taskName);
                             }
                             @SuppressWarnings("unchecked")
-                            Map<String, Object> resp = client.postForObject(fullUrl, geminiRequest, Map.class);
+                            Map<String, Object> resp = client.postForObject(apiUrl, entity, Map.class);
                             response = resp;
                         }
 
-                        // Parse Gemini response
+                        // Parse OpenAI/OpenRouter response
                         AIResponse result = new AIResponse();
                         if (response != null) {
                             // Debug logging
                             logger.debug("Received response: {}", response);
 
                             @SuppressWarnings("unchecked")
-                            List<Map<String, Object>> candidates = (List<Map<String, Object>>) response.get("candidates");
-                            if (candidates != null && !candidates.isEmpty()) {
-                                Map<String, Object> candidate = candidates.get(0);
+                            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
+                            if (choices != null && !choices.isEmpty()) {
+                                Map<String, Object> choice = choices.get(0);
                                 @SuppressWarnings("unchecked")
-                                Map<String, Object> candidateContent = (Map<String, Object>) candidate.get("content");
-
-                                if (candidateContent != null) {
-                                    @SuppressWarnings("unchecked")
-                                    List<Map<String, Object>> candidateParts = (List<Map<String, Object>>) candidateContent.get("parts");
-                                    if (candidateParts != null && !candidateParts.isEmpty()) {
-                                        Object textObj = candidateParts.get(0).get("text");
-                                        result.setResult(textObj != null ? textObj.toString() : "No response text");
-                                    } else {
-                                        result.setResult("No content parts in response");
-                                    }
+                                Map<String, Object> messageObj = (Map<String, Object>) choice.get("message");
+                                if (messageObj != null) {
+                                    Object contentObj = messageObj.get("content");
+                                    result.setResult(contentObj != null ? contentObj.toString() : "No response text");
                                 } else {
-                                    result.setResult("No content in response candidate");
+                                    result.setResult("No message in choice");
                                 }
                             } else {
-                                result.setResult("No candidates in response");
+                                result.setResult("No choices in response");
                             }
                         } else {
                             result.setResult("Null response from API");
@@ -700,14 +697,15 @@ public class AIService {
                     prompt.append("You are creating collaborative story prompts for Grade 8-9 Filipino students learning English.\n\n");
                     
                     prompt.append("CRITICAL REQUIREMENTS:\n");
-                    prompt.append("- Write at a Grade 8-9 reading level (simple vocabulary, clear sentences)\n");
-                    prompt.append("- Maximum 3-4 sentences total\n");
-                    prompt.append("- Use common English words that Filipino students know\n");
+                    prompt.append("- Write 2-3 sentences at Grade 8-9 reading level\n");
+                    prompt.append("- Keep sentences SHORT and SIMPLE (aim for under 250 characters total)\n");
+                    prompt.append("- Use common English words Filipino students know\n");
                     prompt.append("- NO special formatting (**, ##, Turn X:, etc.)\n");
-                    prompt.append("- NO gender assumptions (use 'they/them' or 'the group/team')\n");
-                    prompt.append("- Create GROUP scenarios where ALL players participate together\n");
-                    prompt.append("- DO NOT create fictional NPCs or strangers - focus on the ACTUAL players\n");
-                    prompt.append("- End with specific ACTION questions (What should they do? Where should they go? What happens next?)\n\n");
+                    prompt.append("- Use 'they/them' (no gender assumptions)\n");
+                    prompt.append("- Create scenarios where ALL players participate together\n");
+                    prompt.append("- Make scenarios RELEVANT to the CONTENT TOPIC provided\n");
+                    prompt.append("- Focus on the ACTUAL players working together, not external NPCs\n");
+                    prompt.append("- End with ONE clear action question\n\n");
                     
                     // Make content information more prominent
                     prompt.append("CONTENT TOPIC: ").append(request.get("content")).append("\n");
@@ -780,51 +778,25 @@ public class AIService {
                     if (request.containsKey("roleCount")) {
                         roleCount = ((Number) request.get("roleCount")).intValue();
                     }
-                    
-                    return "Generate exactly 20 ENGLISH vocabulary words and exactly " + roleCount + " role names for Grade 8-9 Filipino students (ages 13-15) about: " 
-                        + request.get("topic") + ".\n\n"
-                        + "VOCABULARY GUIDELINES (Philippine K-12 Curriculum Aligned):\n"
-                        + "Grade 8-9 students should learn vocabulary that challenges and expands their English proficiency.\n\n"
-                        + "WORD SELECTION CRITERIA:\n"
-                        + "- Include 5 FOUNDATIONAL words: Essential topic-related terms students must know\n"
-                        + "- Include 8 INTERMEDIATE words: Academic vocabulary, transitional words, and subject-specific terms\n"
-                        + "- Include 7 ADVANCED words: Sophisticated vocabulary that stretches their learning\n\n"
-                        + "WORD TYPES TO INCLUDE:\n"
-                        + "- Academic vocabulary (analyze, evaluate, synthesize, interpret, demonstrate)\n"
-                        + "- Subject-specific terminology related to the topic\n"
-                        + "- Transitional/linking words (consequently, furthermore, nevertheless, whereas)\n"
-                        + "- Descriptive adjectives beyond basic level (substantial, prevalent, intricate)\n"
-                        + "- Action verbs beyond basic level (collaborate, investigate, formulate)\n\n"
-                        + "AVOID:\n"
-                        + "- Elementary-level words (big, small, good, bad, nice, said)\n"
-                        + "- Words Filipino students already commonly use (beautiful, important, happy)\n"
-                        + "- Overly technical jargon that lacks practical application\n\n"
-                        + "Create an engaging scenario description (2-3 sentences) that sets up meaningful English practice.\n\n"
-                        + "You MUST format your response EXACTLY as follows:\n\n"
+
+                    return "You are helping teachers auto-generate English practice content for Grade 8-9 Filipino students (ages 13-15).\n"
+                        + "Given the user topic: '" + request.get("topic") + "', select ONE real-world event or scenario strongly related to it.\n"
+                        + "- Anchor it with place/year if applicable (e.g., 'California Wildfire Response 2023').\n"
+                        + "- Avoid sensitive or tragic current events; keep it school-appropriate.\n"
+                        + "- Reading level: Grade 8-9, simple English.\n\n"
+                        + "OUTPUT FORMAT (exact sections):\n"
+                        + "TITLE:\n"
+                        + "A concise title for the chosen real event/scenario (NOT just the original topic).\n\n"
                         + "DESCRIPTION:\n"
-                        + "An engaging 2-3 sentence scenario description that motivates Grade 8-9 students to practice English.\n\n"
+                        + "2-3 sentences describing the chosen scenario and why it matters.\n\n"
                         + "WORDS:\n"
-                        + "- word1 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word2 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word3 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word4 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word5 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word6 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word7 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word8 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word9 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word10 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word11 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word12 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word13 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word14 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word15 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word16 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word17 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word18 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word19 | Clear definition (not oversimplified) | Academic/contextual example sentence\n"
-                        + "- word20 | Clear definition (not oversimplified) | Academic/contextual example sentence\n\n"
-                        + "ROLES:\n" + buildRoleBulletPoints(roleCount) + "\n\n";
+                        + "List exactly 20 words, each as '- word | Clear definition | Academic/contextual example sentence'\n"
+                        + "- Use academic or topic-relevant vocabulary; avoid baby words; keep examples short.\n\n"
+                        + "ROLES:\n" + buildRoleBulletPoints(roleCount).toUpperCase() + "\n\n"
+                        + "Additional constraints:\n"
+                        + "- Be factual; do not invent events.\n"
+                        + "- No special formatting beyond the sections above.\n"
+                        + "- Keep examples and definitions concise.";
 
                 case "generate_feedback":
                     StringBuilder feedbackPrompt = new StringBuilder();
